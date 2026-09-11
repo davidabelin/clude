@@ -57,11 +57,10 @@ is "probability card `c` is in the envelope" unless noted otherwise.
 ## Mustard -- Decision tree on game logs
 
 - Module: `clude_agents/decision_tree.py`
-- Legacy basis: none; built fresh. Bootstrapped on `RandomBot` self-play
-  via `clude_core.engine.run_game` (Phase 1) since `clude_training`
-  doesn't exist yet -- a placeholder dataset, not Phase 4's real
-  self-play pipeline; retraining against that later is expected to
-  change his behavior, not just his accuracy.
+- Legacy basis: none; built fresh. Trained on `clude_training.self_play`
+  snapshots (Phase 4) -- still `RandomBot` self-play, not smarter
+  opponents, so his pattern-matching is bootstrapped on the same
+  distribution the benchmark measures everyone against.
 - Summary: A hand-rolled CART-style regression tree (Gini-guided binary
   splits, leaf value = mean label), trained once and cached at module
   level, on six engineered per-card features (remaining possible-holder
@@ -69,7 +68,9 @@ is "probability card `c` is in the envelope" unless noted otherwise.
   fraction, category size). Predicts each still-unresolved card's
   envelope probability from whatever pattern the training games
   happened to show -- confident, and wrong exactly when live play
-  doesn't look like dumb-bot self-play.
+  doesn't look like dumb-bot self-play. Measured, not just asserted: see
+  Phase 4 benchmark results below -- his log-loss runs roughly 2x worse
+  than pure ignorance for the whole game.
 
 ## Green -- Bandit ensemble over the other five
 
@@ -99,7 +100,59 @@ is "probability card `c` is in the envelope" unless noted otherwise.
   raises suspicion toward the envelope for cards they keep re-naming
   without resolution. Reads suggestion behavior, not card content:
   strong on who's close to solving, weak on the envelope itself against
-  atypical play.
+  atypical play. Measured, not just asserted: see Phase 4 benchmark
+  results below -- his log-loss runs 3-4x worse than pure ignorance for
+  the *entire* game, not just early on, the most extreme result of the
+  six.
+
+## Phase 4 benchmark results
+
+`clude_training.benchmark.run_benchmark` (`python scripts/benchmark.py`)
+scores all six agents' belief against the eventual ground truth over
+shared `RandomBot` self-play snapshots, at four checkpoints per game (25/
+50/75/100% of that game's suggestions). Three metrics -- Brier score,
+log-loss, and top-1 category accuracy -- against a `"uniform"` baseline
+(the deduction floor's own belief with zero method-specific evidence).
+Since Phase 5 (personality -> action) doesn't exist yet, this measures
+*belief quality*, not win rate.
+
+A run of 60 games (seed 4004) at game end (checkpoint 1.0):
+
+| Agent | Brier | Log-loss | Top-1 acc |
+|---|---|---|---|
+| Plum | 0.033 | 0.45 | 0.79 |
+| Scarlett | 0.036 | 0.49 | 0.77 |
+| Peacock | 0.037 | 0.53 | 0.76 |
+| uniform (baseline) | 0.034 | 0.47 | 0.77 |
+| Green | 0.035 | 0.60 | 0.78 |
+| Mustard | 0.036 | 0.91 | 0.77 |
+| White | 0.044 | 1.73 | 0.76 |
+
+Findings, and what they mean:
+
+- **Plum, Scarlett, Peacock all sit at or just past the uniform
+  baseline** on log-loss -- exactly what "correct" (Plum) or
+  "reasonable, if sloppy" (Scarlett, Peacock) methods should do.
+- **Green improves across checkpoints within a run** (log-loss 0.83 ->
+  0.60 from the 25% to 100% checkpoint in the 60-game run) as his Beta
+  posteriors accumulate real evidence about which of the other five to
+  trust -- his posteriors are deliberately *not* reset between games
+  (David's call, 2026-09-11; see `clude_training/benchmark.py`).
+- **Mustard and White are both measurably worse than pure ignorance for
+  the whole game**, not just early when there's little evidence yet --
+  White dramatically so (3-4x worse throughout). Top-1 accuracy for both
+  stays roughly in line with everyone else, so this is specifically a
+  *calibration* problem (confident on the wrong card) rather than a
+  ranking problem (picking the wrong card as most likely).
+- **David's call (2026-09-11): leave this as-is rather than smoothing
+  it away.** "Confidently wrong on unusual deals" (Mustard) and "weak on
+  the envelope itself" (White) were the intended character flaws from
+  the start (`CLAUDE.md`); the benchmark now gives real numbers for how
+  bad that is, which is useful input to Phase 5's personality tuning --
+  a character whose confidently-wrong beliefs actually cost it games is
+  a stronger, more legible flaw than a softened one. Revisit if Phase 5
+  self-play shows either of them losing so badly it stops being fun to
+  play against.
 
 ## Registry and factories
 

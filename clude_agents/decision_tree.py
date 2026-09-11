@@ -1,22 +1,21 @@
 """Mustard -- decision tree trained on self-play game logs.
 
 Built fresh (no legacy basis); needed a headless engine plus self-play to
-train on, which Phase 1 already provides (`clude_core.engine.run_game`
-with `RandomBot`s). A hand-rolled CART-style regression tree (Gini-guided
-binary splits, leaf value = mean label) is trained once, per Mustard's
-character: pattern-matches what dumb-bot self-play looks like, and can be
-confidently wrong on a deal that doesn't resemble that training
-distribution -- e.g. once real LLM/human play replaces random bots.
+train on, which Phase 1 already provides. A hand-rolled CART-style
+regression tree (Gini-guided binary splits, leaf value = mean label) is
+trained once, per Mustard's character: pattern-matches what dumb-bot
+self-play looks like, and can be confidently wrong on a deal that
+doesn't resemble that training distribution -- e.g. once real LLM/human
+play replaces random bots.
 
 Notes
 -----
-Training data here is a placeholder bootstrap: self-play against
-`RandomBot`s, truncated at a couple of points per game to vary how much
-evidence is on the table. This is *not* the real `clude_training`
-self-play pipeline (Phase 4, smarter opponents, a proper benchmark
-harness) -- it exists only so Mustard has something non-trivial to train
-on during Phase 3. Retraining against Phase 4 data later is expected to
-change his behavior, not just his accuracy.
+Training data comes from `clude_training.self_play.generate_snapshots`
+(Phase 4) -- still `RandomBot` self-play, not smarter opponents, so
+Mustard's pattern-matching is bootstrapped on the same distribution
+`clude_training.benchmark` measures everyone against. Retraining against
+richer self-play later is expected to change his behavior, not just his
+accuracy.
 
 The tree is trained lazily on first use and cached at module level
 (keyed by its hyperparameters), so repeated `DecisionTreeAgent()`
@@ -25,18 +24,16 @@ construction -- e.g. inside Green's ensemble, `clude_agents/bandit.py`
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from typing import Any, Optional
 
 from clude_agents.base import CATEGORIES, ClueBelief, SeededAgentMixin, mask_and_normalize
-from clude_constraints import observe as masked_observe
-from clude_core import engine
-from clude_core.bots import RandomBot
-from clude_core.state import ClueObservation, GameState
+from clude_core.state import ClueObservation
+from clude_training.self_play import generate_snapshots
 
 DEFAULT_N_TRAINING_GAMES = 25
 DEFAULT_TRAINING_SEED = 2026
-DEFAULT_SNAPSHOTS_PER_GAME = 2
+DEFAULT_CHECKPOINTS: tuple = (0.5, 1.0)
 DEFAULT_MAX_DEPTH = 6
 DEFAULT_MIN_SAMPLES_LEAF = 20
 MAX_TURN_FOR_NORMALIZATION = 50.0
@@ -63,43 +60,16 @@ def _features(obs: ClueObservation, mask, card: str, category: list) -> tuple:
     )
 
 
-def _snapshot(state: GameState, k: int) -> GameState:
-    """A copy of `state` as if only its first `k` suggestions had
-    happened yet -- for generating training examples at varied amounts
-    of revealed evidence from one finished self-play game."""
-    return replace(
-        state,
-        suggestion_log=state.suggestion_log[:k],
-        accusation_log=[],
-        active=[True] * state.n_players,
-        turn=k,
-    )
-
-
-def _generate_training_rows(
-    n_games: int, seed: int, snapshots_per_game: int
-) -> list:
+def _generate_training_rows(n_games: int, seed: int, checkpoints: tuple) -> list:
     rows: list = []
-    for g in range(n_games):
-        n_players = 3 + (g % 4)
-        bots = {p: RandomBot() for p in range(n_players)}
-        state, _events = engine.run_game(n_players, bots, seed=seed + g, max_turns=150)
-        total = len(state.suggestion_log)
-        if total == 0:
-            continue
-        fractions = [(i + 1) / (snapshots_per_game + 1) for i in range(snapshots_per_game)]
-        ks = sorted({max(1, round(total * f)) for f in fractions} | {total})
-        for k in ks:
-            snap = _snapshot(state, k)
-            for viewer in range(n_players):
-                obs = masked_observe(snap, viewer)
-                mask = obs.mask
-                for category in CATEGORIES:
-                    for card in category:
-                        if mask.holder_of(card) is not None:
-                            continue
-                        label = 1 if card in state.envelope else 0
-                        rows.append((_features(obs, mask, card, category), label))
+    for snap in generate_snapshots(n_games, seed, checkpoints=checkpoints):
+        mask = snap.obs.mask
+        for category in CATEGORIES:
+            for card in category:
+                if mask.holder_of(card) is not None:
+                    continue
+                label = 1 if card in snap.envelope else 0
+                rows.append((_features(snap.obs, mask, card, category), label))
     return rows
 
 
@@ -180,13 +150,13 @@ _TREE_CACHE: dict = {}
 
 
 def _cached_tree(
-    n_training_games: int, training_seed: int, snapshots_per_game: int,
+    n_training_games: int, training_seed: int, checkpoints: tuple,
     max_depth: int, min_samples_leaf: int,
 ) -> _TreeNode:
-    rows_key = (n_training_games, training_seed, snapshots_per_game)
+    rows_key = (n_training_games, training_seed, checkpoints)
     if rows_key not in _ROWS_CACHE:
         _ROWS_CACHE[rows_key] = _generate_training_rows(
-            n_training_games, training_seed, snapshots_per_game
+            n_training_games, training_seed, checkpoints
         )
     tree_key = rows_key + (max_depth, min_samples_leaf)
     if tree_key not in _TREE_CACHE:
@@ -206,14 +176,14 @@ class DecisionTreeAgent(SeededAgentMixin):
         self,
         n_training_games: int = DEFAULT_N_TRAINING_GAMES,
         training_seed: int = DEFAULT_TRAINING_SEED,
-        snapshots_per_game: int = DEFAULT_SNAPSHOTS_PER_GAME,
+        checkpoints: tuple = DEFAULT_CHECKPOINTS,
         max_depth: int = DEFAULT_MAX_DEPTH,
         min_samples_leaf: int = DEFAULT_MIN_SAMPLES_LEAF,
     ) -> None:
         super().__init__()
         self.n_training_games = n_training_games
         self.training_seed = training_seed
-        self.snapshots_per_game = snapshots_per_game
+        self.checkpoints = checkpoints
         self.max_depth = max_depth
         self.min_samples_leaf = min_samples_leaf
         self._tree: "Optional[_TreeNode]" = None
@@ -223,7 +193,7 @@ class DecisionTreeAgent(SeededAgentMixin):
             self._tree = _cached_tree(
                 self.n_training_games,
                 self.training_seed,
-                self.snapshots_per_game,
+                self.checkpoints,
                 self.max_depth,
                 self.min_samples_leaf,
             )
@@ -246,6 +216,6 @@ class DecisionTreeAgent(SeededAgentMixin):
         return ClueBelief(probabilities=mask_and_normalize(raw, mask))
 
     def observe(self, transition: Any) -> None:
-        """No-op -- trained once from self-play; live outcomes feed
-        Phase 4's `clude_training` retraining pipeline instead."""
+        """No-op -- trained once from self-play at construction time;
+        there is no online retraining from live outcomes."""
         return None

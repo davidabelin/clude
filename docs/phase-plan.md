@@ -10,7 +10,7 @@ to the next phase.
 | 1 | Headless rules engine, dumb random-legal-move bots, full game loop, structured event log | done |
 | 2 | Finished `ConstraintPropagator` deduction floor; convergence tests | done |
 | 3 | Six strategy agents, each emitting a masked/renormalized belief vector; no action selection yet | done |
-| 4 | Benchmark harness measuring the six methods' relative strength; `docs/strategy-glossary.md` filled in | not started |
+| 4 | Benchmark harness measuring the six methods' relative strength; `docs/strategy-glossary.md` filled in | done |
 | 5 | Personality parameter profiles turning beliefs into actions; self-play checks that dials move win rate | not started |
 | 6 | LLM wrapper: menu of legal actions + persona -> structured action + dialogue, illegal/malformed falls back to top-scored action | not started |
 | 7 | Logbooks: persistent, per-character, written after every game | not started |
@@ -100,6 +100,45 @@ probability methods, any action selection, any LLM call, any UI.
 Explicitly out of scope for Phase 3: action selection (`choose_destination`
 stays a reserved, unimplemented slot), personality parameters, any LLM
 call, any UI, and the real `clude_training` self-play pipeline.
+
+## Phase 4 scope
+
+- `clude_training/self_play.py`: `generate_snapshots(n_games, seed,
+  checkpoints)`, the real self-play pipeline `clude_agents/decision_tree.py`
+  was a placeholder for -- `RandomBot` games snapshotted at several
+  checkpoints (25/50/75/100% of suggestions played by default), yielding
+  masked observations paired with the eventual ground truth. Mustard's
+  tree now trains against this instead of duplicating the game-running
+  loop itself. Deliberately depends only on `clude_core`/`clude_constraints`,
+  never `clude_agents`, so agents can depend on it without a cycle back
+  through `clude_training.benchmark` (which depends on `clude_agents`).
+- `clude_training/benchmark.py`: `run_benchmark(...)` scores all six
+  agents' belief against ground truth on shared snapshots -- Brier
+  score, log-loss, and top-1 category accuracy, per checkpoint, against
+  a `"uniform"` (zero-evidence) baseline. Since Phase 5 doesn't exist
+  yet, this measures belief quality, not win rate. Green's instance is
+  built once and never reset mid-run (David's call, 2026-09-11), so his
+  Beta posteriors accumulate real cross-game learning instead of
+  cold-starting every game.
+- `scripts/benchmark.py`: CLI, mirrors `scripts/play_game.py`.
+- `tests/test_training.py`: snapshot-generation shape and reproducibility,
+  `_Accumulator` arithmetic checked against closed-form expectations on
+  synthetic beliefs, an end-to-end run confirming at least one real
+  method beats the uniform baseline, and a check that Green's posteriors
+  actually move (not just that the run doesn't crash).
+- Findings written up in `docs/strategy-glossary.md`'s new "Phase 4
+  benchmark results" section: Plum/Scarlett/Peacock land at or better
+  than the uniform baseline as expected; Mustard and White are both
+  measurably *worse* than pure ignorance on log-loss for the whole game
+  (White dramatically so, 3-4x) -- a calibration problem, not a ranking
+  one, since top-1 accuracy stays in line with everyone else. David's
+  call: leave it as-is rather than smoothing it away, since it's the
+  intended "confidently wrong" character flaw, now quantified rather
+  than asserted -- useful input to Phase 5's personality tuning.
+
+Explicitly out of scope for Phase 4: any change to the six agents'
+algorithms in response to their benchmark scores (see above), action
+selection, personality parameters, any LLM call, any UI.
 
 ## Open questions
 
