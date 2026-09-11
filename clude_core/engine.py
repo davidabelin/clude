@@ -90,7 +90,9 @@ def legal_moves(state: GameState, player: int, roll: int) -> list[MoveChoice]:
     occupied = frozenset(
         p for p in state.positions.values() if isinstance(p, board.HallwayCell)
     )
-    for dest in board.reachable(pos, roll, occupied):
+    # Sorted for a process-independent order before any caller indexes
+    # into this list with a seeded RNG -- see `board.node_sort_key`.
+    for dest in sorted(board.reachable(pos, roll, occupied), key=board.node_sort_key):
         choices.append(MoveChoice("move", dest))
     return choices
 

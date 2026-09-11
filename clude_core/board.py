@@ -144,3 +144,22 @@ def reachable(start: Node, roll: int, occupied: frozenset[HallwayCell]) -> set[N
 def room_of(node: Node) -> str | None:
     """The room a node represents, or None if it's a hallway cell."""
     return node if isinstance(node, str) else None
+
+
+def node_sort_key(node: Node) -> tuple:
+    """A total order over `Node` that does not depend on Python's
+    per-process string-hash randomization.
+
+    `reachable` returns a `set`, whose iteration order is otherwise
+    hash-dependent -- fine for the set's own contents (reachability is
+    order-independent), but not for a caller that turns it into a list
+    and indexes into it with a seeded RNG (`RandomBot.choose_movement`).
+    Without this, an identical `seed` produced a different game on every
+    process run despite `random.Random(seed)` itself being deterministic
+    -- the RNG index was reproducible, but which `Node` sat at that index
+    in the list wasn't. Sort by this key before choosing from any
+    collection of `Node`s.
+    """
+    if isinstance(node, str):
+        return (0, node, "", 0)
+    return (1, node.room_a, node.room_b, node.k)

@@ -1,16 +1,26 @@
 """`GameState` (engine-internal, omniscient) and `ClueObservation` (the
 per-player-perspective contract every future agent consumes).
 
-Per docs/architecture.md, `ClueObservation` does not yet carry a `mask`
-field -- that is `ConstraintResult` from the deduction floor, a Phase 2
-deliverable. It will be added here once `clude_constraints` exists.
+`ClueObservation.mask` carries the deduction floor's `ConstraintResult`
+(Phase 3, `clude_constraints`). It defaults to `None` here rather than
+being required, purely to avoid a circular import: `clude_constraints`
+already depends on `clude_core` (for `ClueObservation` itself), so
+`clude_core` cannot import it back at runtime -- the `ConstraintResult`
+import below is `TYPE_CHECKING`-only. `ClueObservation.for_player` never
+populates `mask`; use `clude_constraints.observe(state, viewer)` to get a
+fully masked observation. By convention every observation an agent's
+`select_action` receives has `mask` populated -- see `clude_agents/base.py`.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Optional
 
 from .board import Node
 from .domain import Accusation, Suggestion
+
+if TYPE_CHECKING:
+    from clude_constraints import ConstraintResult
 
 
 @dataclass
@@ -51,6 +61,7 @@ class ClueObservation:
     suggestion_log: tuple[Suggestion, ...]
     accusation_log: tuple[Accusation, ...]
     turn: int
+    mask: "Optional[ConstraintResult]" = None
 
     @staticmethod
     def for_player(state: GameState, viewer: int) -> "ClueObservation":

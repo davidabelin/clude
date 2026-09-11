@@ -1,7 +1,7 @@
 # clude
 
 A web app for playing Clue with a mix of human and LLM players. The name is a nod to Claude.
-Owner: Dave (David Abelin, github.com/davidabelin). Solo project.
+Owner: David (David Abelin, github.com/davidabelin). Solo project.
 
 ## Status (September 2026)
 
@@ -9,9 +9,9 @@ The design was worked out in claude.ai conversations. No engine code exists yet.
 `legacy/` holds code from an earlier chat, which is material to port from rather than a foundation to build on.
 Read `legacy/README.md` before touching it, because several pieces are unfinished.
 
-## Settled decisions (Dave's)
+## Settled decisions (David's)
 
-- **Six LLM characters, one per suspect.** Each uses a genuinely distinct probability method: six real algorithms, not one engine with six parameter sets. Part of the point is revisiting old-school ML methods Dave studied but never got to play with enough.
+- **Six LLM characters, one per suspect.** Each uses a genuinely distinct probability method: six real algorithms, not one engine with six parameter sets. Part of the point is revisiting old-school ML methods David studied but never got to play with enough.
 
   | Suspect | Method | Intended flavor |
   |---|---|---|
@@ -29,7 +29,7 @@ Read `legacy/README.md` before touching it, because several pieces are unfinishe
 - **Documentation.** Each player's model and strategy gets documented in detail.
 - **Parallel design track.** Aesthetics, gameplay design, and UX are developed alongside the model work.
 - **IP.** clude stays a private project shared with a few family and friends, so it copies the Classic board game as closely as possible. That means the real rules, suspects, weapons, and rooms under their real names: Miss Scarlett, Colonel Mustard, Mrs. White, Mr. Green, Mrs. Peacock, Professor Plum, with card lists as in `legacy/domain.py`. If it is ever published (e.g. to an app store), scrub it for infringement first. Visual assets are drawn fresh rather than copied from the board or card art.
-- **Structure mirrors Dave's `rps` repo** (and `c4`, which already copies it):
+- **Structure mirrors David's `rps` repo** (and `c4`, which already copies it):
   - a shared `AgentProtocol` with `reset` / `select_action` / `observe`
   - an `AgentSpec` name-keyed registry
   - one module per method
@@ -42,7 +42,7 @@ Read `legacy/README.md` before touching it, because several pieces are unfinishe
 - **Mustard needs data.** His tree trains on game logs, so a headless engine plus self-play has to exist before he can.
 - **Logbooks as data.** Logbooks may later become training input for Mustard and extra history for White.
 
-## Proposed but not yet confirmed by Dave
+## Proposed but not yet confirmed by David
 
 Treat these as suggestions to raise, not decisions to implement.
 
@@ -61,8 +61,15 @@ Treat these as suggestions to raise, not decisions to implement.
   3. Personality parameters, with self-play checks that they actually move win rate.
   4. LLM wrapper.
   5. Flask front end, then chat, then human seats.
-- **Deployment.** Cloud Run rather than App Engine, since live chat wants websockets. Dave's other apps run on App Engine.
+- **Deployment.** Cloud Run rather than App Engine, since live chat wants websockets. David's other apps run on App Engine.
 - **Logbook reset.** A "reset logbooks" control for fairness.
+- **Seats and player identity.** Each suspect is a Seat, occupied by a
+  human or a fixed, seat-locked cludebot. Human identity is a chosen
+  display name, independent of seat, so tells persist across games
+  regardless of which suspect they play next. Logbooks split into an
+  immutable per-game entry and a mutable per-opponent dossier that
+  actually carries tells forward. Details and rationale in
+  `docs/architecture.md`.
 
 ## Open questions (ask, don't assume)
 
@@ -82,7 +89,7 @@ None outstanding as of 2026-09-11. Resolved:
 - **Deployment target:** Cloud Run, budget permitting -- see
   `docs/architecture.md` for the cost caveat.
 
-## Working with Dave
+## Working with David
 
 - Confirm shared understanding of a plan before writing code.
 - Break large efforts into ordered phases. Change working systems one incremental step at a time.

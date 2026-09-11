@@ -145,6 +145,15 @@ This is the most expensive object in the repo to change later, since all six
 agents and the event log key off it — it is written once, in Phase 1, before
 any agent code.
 
+**As implemented (Phase 3):** `mask` is `Optional[ConstraintResult] = None`
+in `clude_core.state`, not required as sketched above — `clude_constraints`
+already depends on `clude_core`, so `clude_core` cannot import
+`ConstraintResult` back at runtime without a cycle (the import there is
+`TYPE_CHECKING`-only). `ClueObservation.for_player` never sets `mask`;
+`clude_constraints.observe(state, viewer)` is the one place that builds an
+observation and attaches a freshly computed mask, and every observation
+reaching an agent's `select_action` is expected to have gone through it.
+
 ## `AgentProtocol`
 
 Same shape as `rps_agents/base.py`, phase-scoped: through Phase 4 it returns
@@ -181,6 +190,17 @@ class AgentProtocol(Protocol):
 
 `AGENT_SPECS` is a name-keyed registry (`clude_agents/__init__.py`), same
 pattern as `rps_agents.heuristic.AGENT_SPECS`, keyed by suspect name.
+
+**As implemented (Phase 3):** `ClueBelief` is `{probabilities: dict[str,
+float], extra: dict[str, Any]}` -- `extra` is where a method reports
+whatever doesn't fit a flat per-card probability (Peacock's raw
+Belief/Plausibility bounds, Green's selected arm). `choose_destination`'s
+reserved slot is realized as `SeededAgentMixin.choose_destination`,
+raising `NotImplementedError("room/destination choice is Phase 5")` --
+every agent inherits it as-is until Phase 5 gives it something to do.
+`ClueTransition` doesn't exist yet; only Green's `observe` does anything
+today, against a narrower placeholder (`RevealedOutcome`, just the solved
+envelope) documented in `clude_agents/bandit.py`.
 
 ## Method-to-suspect mapping
 
@@ -330,9 +350,51 @@ websockets natively) or self-hosting on Orbit behind a tunnel (Tailscale
 Funnel or Cloudflare Tunnel) -- free, but only reachable while the laptop
 is on. Not needed yet; revisit if a Cloud Run bill ever shows up.
 
+## Seats and player identity (proposed, not yet confirmed)
+
+Answers "how do human players play, and how are they recognized across
+games" (`CLAUDE.md`). Not yet implemented -- Phase 8 builds seats and
+Phase 7 builds logbooks, but the identity model is recorded now so neither
+phase needs a breaking change later.
+
+- **Seat** -- one of the six suspect slots for a single game. Already
+  exactly `suspects_in_play[i]` in `GameState`; nothing new here.
+- **`PlayerIdentity`** -- who's behind a seat, persistent *across* games.
+  Deliberately kept out of `clude_core`/`clude_agents`: a `SeatAssignment
+  {seat_index, suspect, identity}` map is built at table setup, before
+  `engine.setup()` deals, and lives in `clude_web`/`clude_storage`. The
+  engine and all six agents stay identity-agnostic and index-based, so
+  none of Phases 1-3 needs to change for this.
+  - LLM occupant: identity is intrinsic and seat-locked --
+    `MissScarlettbot` is always naive Bayes, always Scarlett. No auth,
+    no seat mobility.
+  - Human occupant: identity must be independent of seat, since
+    remembering a human's tells across games only makes sense if the
+    same person is recognized whether they're piloting Plum tonight and
+    White next week. Given a small trusted circle and no budget for
+    real auth: a human picks/enters a display name once; that name is
+    the identity key. A `localStorage` token can pre-fill it by
+    browser, but the name stays the source of truth, not the token.
+- **Logbooks, two layers** (adapting `docs/zenbot_memories.json`'s
+  shape -- structured + narrative + evaluative + lessons -- while
+  splitting episodic record from durable fact, which that schema
+  conflates):
+  1. **Per-game entry**, keyed by `(identity, game_id)`, immutable.
+     Zenbot-shaped: `title`, `key_insights`, `lessons_learned`,
+     `final_outcome`, plus a `reads` list (zenbot's
+     `session_evaluations` -- one per opponent faced that game:
+     identity, evaluation, notes).
+  2. **Per-opponent dossier**, keyed by identity alone, mutable, updated
+     after every game -- zenbot's `user_instructions`, but rolling
+     rather than per-session. This is what "remember tells across
+     games" actually requires: without it, a tell would need
+     re-deriving from full history on every lookup.
+
+  Mustard's tree and White's Markov model train on layer 1; the
+  personality/chat layer (Phase 8) reads layer 2 to recognize a known
+  human by their established read.
+
 ## Open questions
 
 Carried from `CLAUDE.md`; not yet decided: none, as of 2026-09-11 (see
-`CLAUDE.md` and `docs/phase-plan.md` for what was resolved). The Seat /
-`PlayerIdentity` model for human seats and cross-game logbook identity is
-under active discussion and not yet confirmed.
+`CLAUDE.md` and `docs/phase-plan.md` for what was resolved).
