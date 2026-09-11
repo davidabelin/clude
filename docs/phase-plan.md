@@ -65,11 +65,17 @@ probability methods, any action selection, any LLM call, any UI.
 
 ## Open questions
 
-Ask before assuming; do not resolve unilaterally.
+Ask before assuming; do not resolve unilaterally. None outstanding as of
+2026-09-11.
 
-- May characters talk about their own cards, and may they lie?
-- Should logbooks remember a human player's tells across games?
-- What is the deployment target? (Cloud Run proposed, not confirmed.)
+Resolved:
 
-Resolved: environment is a Python 3.14 venv (`pythoncore-3.14-64` under
-`C:\Users\David\AppData\Local\Python`), not conda — see `docs/architecture.md`.
+- Environment is a Python 3.14 venv (`pythoncore-3.14-64` under
+  `C:\Users\David\AppData\Local\Python`), not conda — see `docs/architecture.md`.
+- Characters may talk about and bluff about their own cards at their own
+  discretion. House rule: refusing a reveal you're actually required to
+  make is system-enforced expulsion — see `docs/architecture.md`.
+- Logbooks must remember a human player's tells across games, independent
+  of which seat/suspect they play next.
+- Deployment target is Cloud Run, budget permitting — see
+  `docs/architecture.md` for the cost caveat.

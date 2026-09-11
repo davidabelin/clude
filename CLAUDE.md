@@ -66,10 +66,21 @@ Treat these as suggestions to raise, not decisions to implement.
 
 ## Open questions (ask, don't assume)
 
-- May characters talk about their own cards, and may they lie?
-- Should logbooks remember a human player's tells across games?
-- Which Python version and conda environment should this repo use?
-- What is the deployment target?
+None outstanding as of 2026-09-11. Resolved:
+
+- **Talk/bluffing about own cards:** allowed. Characters may hint, bluff,
+  and make side-bets about their own hand at their own discretion, and are
+  meant to learn the cost of over-sharing rather than have it designed
+  away. House rule: refusing a reveal you are actually required to make
+  (the formal suggestion-refutation step) is system-enforced expulsion,
+  not just a bad move -- see `docs/architecture.md` for why the engine
+  already makes this hard to violate by accident.
+- **Human tells across games:** yes, logbooks must remember them,
+  independent of which suspect/seat the human plays next -- see the Seat
+  model discussion in project notes.
+- **Python/conda:** Python 3.14 venv, no conda -- see `docs/architecture.md`.
+- **Deployment target:** Cloud Run, budget permitting -- see
+  `docs/architecture.md` for the cost caveat.
 
 ## Working with Dave
 

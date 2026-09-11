@@ -284,10 +284,55 @@ later -- see the protocol sketch below.
 distinct ones." None is one of the six methods above, so none is on the
 critical path. They stay in `legacy/` as reference, not ported.
 
+## Reveal integrity and the lying/expulsion house rule
+
+David's ruling: characters may talk about, hint at, or bluff about their
+own cards at their own discretion (including side-bets), and are meant to
+learn the cost of over-sharing rather than have it designed away. The one
+hard line: refusing a reveal you're actually required to make is
+system-enforced expulsion.
+
+That line is already close to unbreakable by construction. `resolve_suggestion`
+(`clude_core/engine.py`) computes who must show a card straight from
+`state.hands[p]` -- ground truth -- and calls `choose_card_to_show` only on
+a player already known to hold a match. There is no code path today where a
+player is asked "can you refute?" and allowed to answer untruthfully; the
+question the engine actually asks is "which of these do you want to show,"
+and only to someone who has no honest way to say "none."
+
+This matters for every later phase that adds a decision point the current
+engine doesn't have: once chat and human/LLM seats exist (Phase 8), nothing
+should ever let a typed or spoken claim ("I don't have that") substitute
+for this ground-truth check for the *formal* refutation step. Bluffing
+stays legal everywhere else -- idle chat about your hand, claims outside a
+suggestion you're party to, side-bets -- because none of that is the
+system verifying a required reveal. Expulsion is therefore a backstop
+invariant (a protocol violation should be unreachable if the UI/agent
+layer is built correctly), not a mechanic that needs new state-machine
+branches. Worth a regression test once Phase 6+ introduces any path where
+a seat's own claim is consulted before the engine's ground truth is.
+
+## Deployment cost
+
+Cloud Run is confirmed as the target (see `CLAUDE.md`), but budget is
+effectively zero, so cost needs to stay near zero too. Cloud Run scales to
+zero between requests and the free tier (2M requests/month, generous
+CPU-seconds) should cover a private game with a handful of family/friend
+players -- likely $0/month at this traffic level even before optimizing
+anything. Two things to watch once chat/websockets land (Phase 8): a
+long-lived websocket connection keeps an instance warm (billed) for the
+duration, so an idle lobby with a connection left open costs more than the
+request-count math suggests; and `min-instances: 0` must stay set (no
+always-warm instance) since that's what makes idle time free. If either of
+those ever pushes real cost, cheaper always-on alternatives for this scale
+are Fly.io's free allowance (small VM, no cold start, supports
+websockets natively) or self-hosting on Orbit behind a tunnel (Tailscale
+Funnel or Cloudflare Tunnel) -- free, but only reachable while the laptop
+is on. Not needed yet; revisit if a Cloud Run bill ever shows up.
+
 ## Open questions
 
-Carried from `CLAUDE.md`; not yet decided:
-
-- May characters talk about their own cards, and may they lie?
-- Should logbooks remember a human player's tells across games?
-- What is the deployment target? (Cloud Run is proposed but not confirmed.)
+Carried from `CLAUDE.md`; not yet decided: none, as of 2026-09-11 (see
+`CLAUDE.md` and `docs/phase-plan.md` for what was resolved). The Seat /
+`PlayerIdentity` model for human seats and cross-game logbook identity is
+under active discussion and not yet confirmed.

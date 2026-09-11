@@ -1,0 +1,44 @@
+{
+  "date": "YYYY-MM-DD",
+  "time": "time-of-day or descriptive time",
+
+  "serial_number": "NNN",
+
+  "title": "Short title summarizing the session or memory theme",
+
+  "koans_used": [
+    "Koan/case explicitly used, discussed, or referenced"
+  ],
+
+  "user_problem_or_questions":
+    "Main issue, struggle, question, or request brought by the user.",
+
+  "response_summary":
+    "Concise but meaningful summary of the response or guidance given.",
+
+  "session_evaluations": [
+    {
+      "case": "Koan case identifier or label",
+      "conversation_id": "conversation identifier",
+      "evaluation": "Short evaluative judgment or classification",
+      "notes": "Supporting rationale, observations, or nuance"
+    }
+  ],
+
+  "key_insights": [
+    "Important realization, interpretive turn, or clarification",
+    "Another important insight"
+  ],
+
+  "lessons_learned": [
+    "Generalizable lesson extracted from the exchange",
+    "Another lesson"
+  ],
+
+  "final_outcome":
+    "Net result or conclusion of the interaction.",
+
+  "user_instructions": [
+    "Any enduring instruction or preference expressed by the user"
+  ]
+}
