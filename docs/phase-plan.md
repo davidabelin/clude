@@ -7,8 +7,8 @@ to the next phase.
 
 | Phase | Deliverable | Status |
 |---|---|---|
-| 1 | Headless rules engine, dumb random-legal-move bots, full game loop, structured event log | in progress |
-| 2 | Finished `ConstraintPropagator` deduction floor; convergence tests | not started |
+| 1 | Headless rules engine, dumb random-legal-move bots, full game loop, structured event log | done |
+| 2 | Finished `ConstraintPropagator` deduction floor; convergence tests | done |
 | 3 | Six strategy agents, each emitting a masked/renormalized belief vector; no action selection yet | not started |
 | 4 | Benchmark harness measuring the six methods' relative strength; `docs/strategy-glossary.md` filled in | not started |
 | 5 | Personality parameter profiles turning beliefs into actions; self-play checks that dials move win rate | not started |
@@ -24,10 +24,10 @@ not after them.
 | File | Contents | Fate |
 |---|---|---|
 | `domain.py` | Card lists, `Suggestion`, `GameState` | Reused, extended into `ClueObservation` (Phase 1) |
-| `constraints.py` | `ConstraintPropagator` | Basis of the deduction floor once the 5 fixes in `docs/architecture.md` land (Phase 2) |
+| `constraints.py` | `ConstraintPropagator` | Superseded by `clude_constraints/propagator.py` -- the 5 fixes in `docs/architecture.md` are done |
 | `belief_tracker.py` | `BayesianBeliefTracker` | Demoted to Scarlett's naive-Bayes method (Phase 3) |
 | `opponent_model.py` | `OpponentModel` | Starting point for White's Markov model (Phase 3) |
-| `info_agent.py` | `InformationAgent` | Math is a placeholder; maybe reused for shared suggestion-choice logic once real, not a priority |
+| `info_agent.py` | `InformationAgent` | Starting point for Phase 5's room/suggestion target-selection policy -- a separate problem from belief inference; see `docs/architecture.md` |
 | `reward_shaping.py`, `dqn.py`, `gnn.py` | RL reward, Dueling DQN, card-player GNN | Deferred indefinitely; not one of the six methods |
 | `ml_agent.py` | `ClueMLAgent` wiring | Reference only |
 
@@ -46,6 +46,22 @@ not after them.
 
 Explicitly out of scope for Phase 1: any probability computation, any of
 the six agents, any LLM call, any UI.
+
+## Phase 2 scope
+
+- `clude_constraints`: `propagate(obs) -> ConstraintResult`, a pure
+  function run fresh from a `ClueObservation` every call -- own hand,
+  per-suggestion elimination/OR-constraint/hard-reveal facts, then a
+  fixpoint loop (OR-constraint collapse, the category rule, hand-size
+  saturation). No agent-facing probability yet -- that starts Phase 3.
+- `tests/test_constraints.py`: targeted unit tests per propagation rule
+  (category rule, OR-constraint collapse, hand-size saturation,
+  contradiction detection), a soundness property test across many random
+  real games (the floor must never rule out the truth), and a convergence
+  test (at least one player reaches full certainty given enough turns).
+
+Explicitly out of scope for Phase 2: any of the six agents' own
+probability methods, any action selection, any LLM call, any UI.
 
 ## Open questions
 

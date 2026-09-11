@@ -10,7 +10,7 @@ from typing import Optional, Protocol
 
 from . import board
 from .board import Node
-from .domain import ALL_CARDS, Accusation, ROOMS, Suggestion, SUSPECTS, WEAPONS
+from .domain import ALL_CARDS, Accusation, ROOMS, Suggestion, SUSPECTS, WEAPONS, players_after
 from .events import AccusationEvent, GameEvent, GameOverEvent, MoveEvent, SuggestionEvent
 from .state import GameState
 
@@ -123,7 +123,7 @@ def resolve_suggestion(
     named = {suspect, weapon, room}
     refuter: Optional[int] = None
     shown: Optional[str] = None
-    order = [(suggester + i) % state.n_players for i in range(1, state.n_players)]
+    order = players_after(state.n_players, suggester)
     for p in order:
         matching = sorted(named & state.hands[p])
         if matching:

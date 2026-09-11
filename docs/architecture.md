@@ -56,8 +56,9 @@ makes it safe for Scarlett's naive Bayes to be sloppy about soft evidence
 without ever assigning nonzero probability to a card in her own hand.
 
 Built by finishing `legacy/constraints.py`'s `ConstraintPropagator`. Per its
-own known-issues list (`legacy/README.md`), five things need doing before it
-can serve as the floor:
+own known-issues list (`legacy/README.md`), five things needed doing before
+it could serve as the floor -- all five are done in
+`clude_constraints/propagator.py`:
 
 1. `_possible_holders` must actually track eliminations. Right now it
    returns "all holders" unless the card is fully known, which makes
@@ -75,17 +76,40 @@ can serve as the floor:
    Standardize on one (`'envelope'` is more readable and is what
    `constraints.py` already does; `clude_core` will use it too).
 
-Output shape, consumed by every agent:
+Implemented in `clude_constraints/propagator.py`. Output shape, consumed by
+every agent:
 
 ```python
-@dataclass
+@dataclass(frozen=True)
 class ConstraintResult:
-    known: dict[str, str | int | None]      # card -> holder ('envelope', player index, or None)
-    or_constraints: list[tuple[frozenset[str], int]]  # (candidate cards, holder) still undetermined
+    possible_holders: dict[str, frozenset[Holder]]  # Holder = int | 'envelope'
+    or_constraints: tuple[tuple[frozenset[str], int], ...]  # still-unresolved joint constraints
     hand_sizes: dict[int, int]
 
-    def is_possible(self, card: str, holder: str | int) -> bool: ...
+    def holder_of(self, card: str) -> Holder | None: ...   # resolved holder, or None
+    def is_possible(self, card: str, holder: Holder) -> bool: ...
+    def solution(self) -> tuple[str, str, str] | None: ...
 ```
+
+Two things worth noting about this shape, since it differs from the
+original pseudocode above:
+
+- `possible_holders` is exposed per card (not collapsed to known/unknown),
+  because Peacock's Dempster-Shafer method wants exactly that
+  mass-assignment-shaped structure.
+- `or_constraints` is exposed too, separately, because per-card marginals
+  lose the joint "this player holds at least one of these three" structure
+  that Plum's exact enumeration needs to search the true joint posterior
+  correctly -- a masked marginal alone isn't enough for him.
+
+`propagate(obs: ClueObservation) -> ConstraintResult` recomputes from
+scratch every call (own hand, then every suggestion's eliminations/OR
+constraints/hard reveals, then a fixpoint loop over OR-constraint
+collapse, the category rule, and hand-size saturation). Verified sound by
+`tests/test_constraints.py`: across many real random-bot games, replayed
+through every player's `ClueObservation`, the floor never rules out the
+true holder of any card, and at least one player reaches full certainty
+given enough turns.
 
 ## `ClueObservation`
 
@@ -137,6 +161,19 @@ class AgentProtocol(Protocol):
         """Return this agent's belief over the 21 cards, already masked and
         renormalized against obs.mask. Phase 5+ callers additionally pass
         this through a personality profile to obtain a ClueAction."""
+        ...
+
+    def choose_destination(
+        self,
+        obs: ClueObservation,
+        legal_moves: list[MoveChoice],
+        room_features: dict[str, RoomFeatures],
+    ) -> MoveChoice:
+        """Phase 5. Pick where to move this turn. `room_features` covers
+        only the room-type entries in `legal_moves`; shared feature
+        extraction, per-agent decision -- see the note above. A `HumanAgent`
+        implements this by asking the UI instead of a model, through the
+        same signature."""
         ...
 
     def observe(self, transition: ClueTransition) -> None: ...
@@ -191,6 +228,54 @@ GameState ──► ConstraintPropagator.propagate()
               LLM: menu of legal actions + persona -> action + dialogue
               (invalid/malformed response falls back to top-scored action)
 ```
+
+## Room/suggestion target selection is not the same problem as belief
+
+Flagged by David before Phase 2 started, and worth keeping explicit: an
+agent's room-card belief (P(this room card is in the envelope), one of the
+three masked sub-distributions in its belief vector) answers a different
+question than "which room should I move toward this turn." Moving to a
+room only buys you the room slot of your next suggestion -- suspect and
+weapon are freely named regardless of position -- so a room's value isn't
+its envelope probability, it's the best expected information gain from a
+suggestion made there, discounted by reachability this turn (`legal_moves`)
+and by opponent-danger (does refuting there teach a dangerous opponent too
+much).
+
+This is a **policy/action-selection** concern, not one of the six inference
+methods, so it belongs in the Phase 5 personality layer, not `clude_agents`.
+
+**Refined per David:** room choice must stay a genuine trainable input for
+each character, not one shared analytic formula deciding for all six --
+that would collapse the "six distinct methods" design exactly where it
+matters most (an action every character actually takes, every turn). The
+split:
+
+- **Shared and deterministic -- feature extraction only.** For each room
+  reachable this turn (the subset of `legal_moves()`'s output where
+  `board.room_of(destination)` is not None), compute a numeric feature
+  vector: this agent's own masked probability that the room card is the
+  envelope's (already sitting in its belief vector -- no new computation),
+  reachability/distance, opponent-danger, whether anything's even left to
+  learn by suggesting there. Arithmetic over shared inputs, safe to share
+  like `ConstraintResult` is.
+- **Not shared -- the decision itself.** Turning that feature vector into
+  a pick is per-agent: `choose_destination(obs, legal_moves, room_features)
+  -> MoveChoice`, trainable/tunable per character like its belief method,
+  not a fixed formula. A human player is presented the identical reachable-
+  room menu and feature vector (surfaced in the UI) and picks directly
+  through the same interface point -- real parity between LLM characters
+  and human seats.
+
+Starting point for the feature side: `legacy/info_agent.py`'s
+`InformationAgent.best_suggestion(current_room)` already takes the room as
+given and searches suspect/weapon only, with a placeholder expected-info-
+gain calc to replace; `legacy/opponent_model.py`'s `danger_score`/
+`safe_to_suggest` is the opponent-danger half.
+
+Implementation is still Phase 5 (action selection), but `AgentProtocol`
+should reserve the slot now so Phase 3 doesn't need a breaking change
+later -- see the protocol sketch below.
 
 ## Deferred legacy code
 

@@ -52,6 +52,22 @@ class Suggestion:
         return (self.suspect, self.weapon, self.room)
 
 
+def players_after(n_players: int, player: int) -> list[int]:
+    """Turn order starting the player after `player`, wrapping around,
+    excluding `player` itself."""
+    return [(player + i) % n_players for i in range(1, n_players)]
+
+
+def skipped_players(n_players: int, suggester: int, refuter: Optional[int]) -> list[int]:
+    """Players who were asked to refute a suggestion and couldn't --
+    everyone strictly between `suggester` and `refuter` in turn order, or
+    every other player if nobody could refute."""
+    order = players_after(n_players, suggester)
+    if refuter is None:
+        return order
+    return order[: order.index(refuter)]
+
+
 @dataclass(frozen=True)
 class Accusation:
     """One accusation and whether it matched the envelope."""
