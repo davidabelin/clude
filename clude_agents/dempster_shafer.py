@@ -5,7 +5,7 @@ maintains a mass function over subsets of still-possible envelope
 candidates, combines evidence via Dempster's rule, and reports both
 Belief (mass on that card alone) and Plausibility (mass on any subset
 containing it) in `ClueBelief.extra` -- the two-tone belief/plausibility
-bar from the visual design notes (`CLUDE.md`) is literally this pair.
+bar from the visual design notes (`CLAUDE.md`) is literally this pair.
 `ClueBelief.probabilities` itself is the pignistic transform (BetP),
 which always lies within [Belief, Plausibility] for every card and is
 what the rest of the system treats as "the" probability.
