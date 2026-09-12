@@ -13,11 +13,13 @@ working notes that drive development.
 
 ## Status
 
-Phases 1-4 of the [phase plan](docs/phase-plan.md) are done: a headless
+Phases 1-5 of the [phase plan](docs/phase-plan.md) are done: a headless
 rules engine and event log, the deduction floor, the six strategy
-agents (belief only, no actions yet), and a self-play benchmark of their
-belief quality. Phase 5 -- personality profiles that turn beliefs into
-actions -- is next. There is no UI, no LLM call, and no persistence yet.
+agents, a self-play benchmark of their belief quality, and now the
+personality layer that turns each agent's belief into moves, with an
+arena and dial sweeps to measure it and game records stored locally or
+in Cloud Storage. Phase 6 -- the LLM wrapper -- is next. There is no UI
+and no chat yet.
 
 ## Quick start
 
@@ -29,17 +31,20 @@ python -m pytest
 python scripts/clude_cli.py --help
 ```
 
-Python 3.14 in a plain venv, no conda. Only `pytest` is a dependency;
-everything else is the standard library.
+Python 3.14 in a plain venv, no conda. `pytest` and `google-cloud-storage`
+are the only dependencies; the latter is imported only for `gs://` record
+stores, so everything else runs on the standard library.
 
 ## Try it
 
 ```
-python scripts/clude_cli.py play --seed 1 --verbose        # watch one random-bot game
-python scripts/clude_cli.py trace --seed 1 --viewer 0      # replay every agent's belief from one seat
-python scripts/clude_cli.py floor --seed 1 --convergence   # watch the deduction floor close in
-python scripts/clude_cli.py benchmark --games 12           # score the six methods' beliefs
-python scripts/clude_cli.py train-mustard --render         # train and inspect Mustard's tree
+python scripts/clude_cli.py play --seed 1 --roster floor --verbose      # watch a deduction-driven game
+python scripts/clude_cli.py play --roster Plum,Scarlett,Peacock,floor    # watch three characters play
+python scripts/clude_cli.py trace --seed 1 --roster floor --viewer 0     # replay every character's belief from one seat
+python scripts/clude_cli.py floor --seed 1 --roster floor --convergence  # watch the deduction floor close in
+python scripts/clude_cli.py benchmark --games 12                         # score the six methods' beliefs
+python scripts/clude_cli.py arena --games 24                             # who wins, who accuses wrongly
+python scripts/clude_cli.py sweep --dial accuse_threshold --values 0.2 0.6 1.0
 ```
 
 [docs/cli.md](docs/cli.md) explains every subcommand and how to read
@@ -49,9 +54,11 @@ its output.
 
 ```
 clude_core/          domain model, board, event log, GameState/ClueObservation, rules engine
-clude_constraints/   the shared deduction floor (constraint propagation)
-clude_agents/        AgentProtocol, the AgentSpec registry, one module per method
-clude_training/      self-play snapshots, the belief benchmark, post-game replay
+clude_constraints/   the shared deduction floor (constraint propagation) and FloorBot
+clude_agents/        AgentProtocol, the AgentSpec registry, one module per method,
+                     and the personality layer (Profile, features, Character)
+clude_training/      self-play snapshots, the belief benchmark, post-game replay, arena, sweeps
+clude_storage/       game records; local-directory and Cloud Storage record stores
 scripts/             clude_cli.py, the maintainer CLI
 tests/               pytest suite
 docs/                architecture, phase plan, strategy glossary, CLI guide
@@ -60,8 +67,7 @@ legacy/              code from an earlier chat; ported from, never imported
 
 The structure mirrors the `rps` repo (a shared protocol, a name-keyed
 registry, sibling packages by concern). Planned but not yet present:
-`clude_storage/` (logbooks, game logs) and `clude_web/` (Flask/Cloud
-Run app, chat).
+`clude_web/` (Flask/Cloud Run app, chat).
 
 ## The six
 
@@ -76,14 +82,17 @@ Run app, chat).
 
 Every agent implements `reset` / `select_action` / `observe`, returns a
 belief over the 21 cards already masked and renormalized against the
-floor, and is documented in [docs/strategy-glossary.md](docs/strategy-glossary.md).
+floor, and plays through a `Character` that combines that belief with
+five personality dials. Each is documented in
+[docs/strategy-glossary.md](docs/strategy-glossary.md).
 
 ## Documentation
 
 - [CLAUDE.md](CLAUDE.md) -- settled decisions, proposals, and how to work on this repo
-- [docs/architecture.md](docs/architecture.md) -- package layout, the deduction floor, `ClueObservation`, `AgentProtocol`
+- [docs/architecture.md](docs/architecture.md) -- package layout, the deduction floor, `ClueObservation`, the engine seam, `AgentProtocol`, the personality layer, storage
 - [docs/phase-plan.md](docs/phase-plan.md) -- what each phase delivered and what is out of scope
-- [docs/strategy-glossary.md](docs/strategy-glossary.md) -- each method in plain language, with benchmark results
+- [docs/phase5-plan.md](docs/phase5-plan.md) -- the Phase 5 plan, David's decisions, and how the build departed from it
+- [docs/strategy-glossary.md](docs/strategy-glossary.md) -- each method in plain language, with benchmark and arena results
 - [docs/cli.md](docs/cli.md) -- the maintainer CLI
 - [docs/board.md](docs/board.md) -- board topology and its simplifications
 - [legacy/README.md](legacy/README.md) -- what the legacy code is and what is wrong with it

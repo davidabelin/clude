@@ -1,1 +1,4 @@
 pytest>=8.0
+# Only needed for gs:// record stores (clude_storage.GcsStore); everything
+# else is the standard library, and the package is imported lazily.
+google-cloud-storage>=3.0

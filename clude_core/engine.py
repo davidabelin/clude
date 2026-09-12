@@ -1,52 +1,89 @@
 """Headless rules engine: setup, movement, suggestion/refutation,
-accusation, and the turn loop. No inference, no LLM -- Phase 1 scope only
-(see docs/phase-plan.md).
+accusation, and the turn loop. No inference, no LLM.
+
+Every seat is asked its four decisions through `PlayerProtocol`, each
+call receiving that seat's `ClueObservation` first (Phase 5a). The
+observation is built by an injectable `observer`, defaulting to
+`ClueObservation.for_player`, so this package still never imports the
+deduction floor -- callers who want a masked view pass
+`clude_constraints.observe` (see docs/architecture.md).
 """
 from __future__ import annotations
 
 import random
 from dataclasses import dataclass
-from typing import Optional, Protocol
+from typing import Callable, Optional, Protocol
 
 from . import board
 from .board import Node
 from .domain import ALL_CARDS, Accusation, ROOMS, Suggestion, SUSPECTS, WEAPONS, players_after
 from .events import AccusationEvent, GameEvent, GameOverEvent, MoveEvent, SuggestionEvent
-from .state import GameState
+from .state import ClueObservation, GameState
 
 MIN_PLAYERS = 3
 MAX_PLAYERS = 6
+
+Observer = Callable[[GameState, int], ClueObservation]
+"""Builds one seat's view of the game: ``observer(state, player)``."""
 
 
 @dataclass(frozen=True)
 class MoveChoice:
     """One legal movement option for a turn.
 
-    `kind` is one of ``"stay"`` (only offered while in a room), ``"secret_
-    passage"`` (only offered in a room that has one; `destination` is the
-    connected room), or ``"move"`` (`destination` is a reachable node).
+    `kind` is one of ``"stay"`` (offered while in a room, or when a
+    hallway token is boxed in with no legal move at all; `destination`
+    is the current node, so a player can tell where staying keeps them),
+    ``"secret_passage"`` (only offered in a room that has one;
+    `destination` is the connected room), or ``"move"`` (`destination`
+    is a reachable node).
     """
 
     kind: str
     destination: Optional[Node] = None
 
 
-class RandomBotProtocol(Protocol):
-    """The decision interface Phase 1's dumb bots implement. Not
-    `AgentProtocol` -- that's introduced in Phase 3 once agents have
-    beliefs to act on (see docs/architecture.md)."""
+class PlayerProtocol(Protocol):
+    """The four decisions the engine asks of every seat.
 
-    def choose_movement(self, choices: list[MoveChoice], rng: random.Random) -> MoveChoice: ...
+    Each takes the seat's own `ClueObservation` first, built by
+    `run_game`'s `observer` from that seat's perspective. With the
+    default observer `obs.mask` is None; pass `clude_constraints.observe`
+    to `run_game` for a masked view (every Phase 3+ agent needs one).
+
+    `rng` is the engine's seeded RNG. Phase 1's `RandomBot` draws from
+    it, so seeded random games are reproducible; a player with its own
+    RNG (Phase 5's `Character`) should leave it untouched, so that the
+    dice sequence depends only on the seed and games played under
+    different personality settings share the same deal *and* rolls.
+    """
+
+    def choose_movement(
+        self, obs: ClueObservation, choices: list[MoveChoice], rng: random.Random
+    ) -> MoveChoice: ...
 
     def choose_suggestion(
-        self, room: str, own_hand: frozenset[str], rng: random.Random
-    ) -> Optional[tuple[str, str]]: ...
+        self, obs: ClueObservation, room: str, rng: random.Random
+    ) -> Optional[tuple[str, str]]:
+        """Return (suspect, weapon) to suggest in `room`, the seat's
+        current room, or None to make no suggestion this turn."""
+        ...
 
     def choose_accusation(
-        self, rng: random.Random
-    ) -> Optional[tuple[str, str, str]]: ...
+        self, obs: ClueObservation, rng: random.Random
+    ) -> Optional[tuple[str, str, str]]:
+        """Return (suspect, weapon, room) to accuse, or None. `obs` is
+        rebuilt after this turn's suggestion resolves, so its refutation
+        is already visible."""
+        ...
 
-    def choose_card_to_show(self, candidates: list[str], rng: random.Random) -> str: ...
+    def choose_card_to_show(
+        self, obs: ClueObservation, candidates: list[str], shown_to: int, rng: random.Random
+    ) -> str:
+        """Return which of `candidates` (the named cards this seat holds,
+        sorted) to show to `shown_to`. The suggestion being refuted is
+        not yet in `obs.suggestion_log`."""
+        ...
 
 
 def setup(n_players: int, rng: random.Random) -> GameState:
@@ -82,7 +119,7 @@ def legal_moves(state: GameState, player: int, roll: int) -> list[MoveChoice]:
     choices: list[MoveChoice] = []
 
     if room is not None:
-        choices.append(MoveChoice("stay"))
+        choices.append(MoveChoice("stay", room))
         passage_target = board.SECRET_PASSAGES.get(room)
         if passage_target is not None:
             choices.append(MoveChoice("secret_passage", passage_target))
@@ -94,6 +131,10 @@ def legal_moves(state: GameState, player: int, roll: int) -> list[MoveChoice]:
     # into this list with a seeded RNG -- see `board.node_sort_key`.
     for dest in sorted(board.reachable(pos, roll, occupied), key=board.node_sort_key):
         choices.append(MoveChoice("move", dest))
+    if not choices:
+        # Boxed in on a hallway cell by other tokens: a blocked player
+        # simply doesn't move this turn.
+        choices.append(MoveChoice("stay", pos))
     return choices
 
 
@@ -108,12 +149,19 @@ def resolve_suggestion(
     suggester: int,
     suspect: str,
     weapon: str,
-    bots: dict[int, RandomBotProtocol],
+    bots: dict[int, PlayerProtocol],
     rng: random.Random,
+    observer: Observer = ClueObservation.for_player,
 ) -> Suggestion:
     """Move the named suspect's token into the room, then ask each other
     player in turn order (eliminated players included -- they still hold
-    cards and must disprove) whether they can refute."""
+    cards and must disprove) whether they can refute.
+
+    Who must show a card is computed from `state.hands` -- ground truth,
+    never a player's own claim (the reveal-integrity rule in
+    docs/architecture.md). The refuter only chooses *which* matching
+    card to show, given their own observation from `observer`.
+    """
     room = board.room_of(state.positions[suggester])
     assert room is not None, "suggestion made outside a room"
 
@@ -130,7 +178,7 @@ def resolve_suggestion(
         matching = sorted(named & state.hands[p])
         if matching:
             refuter = p
-            shown = bots[p].choose_card_to_show(matching, rng)
+            shown = bots[p].choose_card_to_show(observer(state, p), matching, suggester, rng)
             break
 
     suggestion = Suggestion(
@@ -161,11 +209,33 @@ def resolve_accusation(
 
 def run_game(
     n_players: int,
-    bots: dict[int, RandomBotProtocol],
+    bots: dict[int, PlayerProtocol],
     seed: Optional[int] = None,
     max_turns: int = 300,
+    observer: Observer = ClueObservation.for_player,
 ) -> tuple[GameState, list[GameEvent]]:
-    """Play one full headless game and return the final state and event log."""
+    """Play one full headless game and return the final state and event log.
+
+    Parameters
+    ----------
+    n_players : int
+        Table size, 3-6.
+    bots : dict[int, PlayerProtocol]
+        One player per seat index.
+    seed : int or None
+        Seeds the deal, the dice, and any player that draws from the
+        engine RNG.
+    max_turns : int
+        Turn cap if nobody accuses correctly.
+    observer : Observer
+        Builds each seat's `ClueObservation` before every decision.
+        Default `ClueObservation.for_player` (no `mask`); pass
+        `clude_constraints.observe` for players that need the deduction
+        floor. One observation serves both the movement and the
+        suggestion decision of a turn -- nothing a `ClueObservation`
+        carries changes between them -- and a fresh one is built for the
+        accusation once this turn's suggestion has resolved.
+    """
     rng = random.Random(seed)
     state = setup(n_players, rng)
     events: list[GameEvent] = []
@@ -184,7 +254,8 @@ def run_game(
         turns_taken += 1
         roll = rng.randint(1, 6)
         choices = legal_moves(state, player, roll)
-        choice = bots[player].choose_movement(choices, rng)
+        obs = observer(state, player)
+        choice = bots[player].choose_movement(obs, choices, rng)
         apply_move(state, player, choice)
         events.append(
             MoveEvent(state.turn, player, state.positions[player], choice.kind == "secret_passage")
@@ -192,13 +263,16 @@ def run_game(
 
         room = board.room_of(state.positions[player])
         if room is not None:
-            suggested = bots[player].choose_suggestion(room, state.hands[player], rng)
+            suggested = bots[player].choose_suggestion(obs, room, rng)
             if suggested is not None:
                 suspect, weapon = suggested
-                suggestion = resolve_suggestion(state, player, suspect, weapon, bots, rng)
+                suggestion = resolve_suggestion(
+                    state, player, suspect, weapon, bots, rng, observer
+                )
                 events.append(SuggestionEvent(state.turn, suggestion))
+                obs = observer(state, player)
 
-        accused = bots[player].choose_accusation(rng)
+        accused = bots[player].choose_accusation(obs, rng)
         if accused is not None:
             suspect, weapon, room2 = accused
             accusation = resolve_accusation(state, player, suspect, weapon, room2)

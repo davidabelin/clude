@@ -279,11 +279,15 @@ def test_exact_enum_reports_which_path_produced_its_answer():
 
 
 def test_exact_enum_matches_independent_brute_force():
+    """FloorBot games converge, so their late states have the small
+    unresolved sets the reference enumerator can afford to brute-force."""
     checked_any = False
     for seed in range(20):
         n_players = 3 + seed % 3
-        bots = {p: RandomBot() for p in range(n_players)}
-        state, _events = engine.run_game(n_players, bots, seed=seed, max_turns=25)
+        bots = {p: clude_constraints.FloorBot() for p in range(n_players)}
+        state, _events = engine.run_game(
+            n_players, bots, seed=seed, max_turns=100, observer=clude_constraints.observe
+        )
         for viewer in range(n_players):
             obs = clude_constraints.observe(state, viewer)
             mask = obs.mask
@@ -332,14 +336,9 @@ def test_dempster_shafer_belief_never_exceeds_plausibility():
 
 
 def test_stationary_repeat_probability_increases_with_more_repeats():
-    """Direct test of the chain, not the end-to-end belief: once any
-    suggestion has happened, an unmentioned card's raw score is exactly
-    0, so a mentioned card's *normalized* belief saturates toward 1.0
-    the moment it's the only card anyone's named -- a real ceiling
-    effect that would mask the thing this test actually checks (that
-    P(repeat) itself rises with more repeats), so we check the chain
-    directly instead of round-tripping through `mask_and_normalize`.
-    """
+    """Direct test of the chain, not the end-to-end belief, so that the
+    normalization against the floor prior can't mask the thing this
+    checks: that P(repeat) itself rises with more repeats."""
     from clude_agents.markov import _stationary_repeat_probability
 
     never_repeats = _stationary_repeat_probability([0, 0])
@@ -348,6 +347,25 @@ def test_stationary_repeat_probability_increases_with_more_repeats():
     assert _stationary_repeat_probability([]) == pytest.approx(0.5)
     assert repeats_once > never_repeats
     assert repeats_and_stays > repeats_once
+
+
+def test_markov_unnamed_cards_are_unsuspicious_not_impossible():
+    """Phase 5b: a still-possible card nobody has named keeps the floor's
+    prior instead of a hard 0, and a re-named card sits above it."""
+    repeated = [
+        Suggestion(1, "Mustard", "Rope", "Kitchen", refuter=2, shown_to=1, card_shown=None),
+        Suggestion(1, "Mustard", "Knife", "Kitchen", refuter=2, shown_to=1, card_shown=None),
+    ]
+    obs = make_obs(3, 0, set(), {0: 6, 1: 6, 2: 6}, repeated, turn=2)
+    agent = MarkovAgent()
+    agent.reset(0)
+    belief = agent.select_action(obs)
+    assert belief.probabilities["Green"] > 0.0  # never named, still possible
+    assert belief.probabilities["Mustard"] > belief.probabilities["Green"]
+    assert set(belief.extra["closeness"]) == {1, 2}
+    assert 0.0 <= belief.extra["closeness"][1] < 1.0
+    assert belief.extra["closeness"][1] > belief.extra["closeness"][2]  # 2 has suggested nothing
+    assert belief.extra["repeat_probability"][1] > belief.extra["repeat_probability"][2]
 
 
 # ---------------------------------------------------------------------
@@ -394,6 +412,41 @@ def test_trained_mustard_exposes_its_tree():
     assert agent.tree.n_samples > 0
 
 
+def test_mustard_leaves_are_smoothed_away_from_hard_zeros():
+    """Phase 5b: with m-estimate leaves no leaf predicts exactly 0 or 1;
+    with m = 0 the same data can (a leaf with no positives)."""
+    from clude_agents.decision_tree import DecisionTreeAgent, summarize_tree
+
+    smoothed = DecisionTreeAgent(n_training_games=4, training_seed=5, smoothing_m=3.0)
+    leaves = summarize_tree(smoothed.tree).leaf_predictions
+    assert min(leaves) > 0.0 and max(leaves) < 1.0
+
+    rows = [((0.0,), 0)] * 30 + [((1.0,), 1)] * 30
+    plain = _build_tree(rows, depth=0, max_depth=2, min_samples_leaf=5, smoothing_m=0.0)
+    assert _predict(plain, (0.0,)) == 0.0
+    smooth = _build_tree(rows, depth=0, max_depth=2, min_samples_leaf=5, smoothing_m=3.0)
+    assert 0.0 < _predict(smooth, (0.0,)) < 0.1
+    assert 0.9 < _predict(smooth, (1.0,)) < 1.0
+
+
+def test_mustard_features_include_the_phase5_additions():
+    from clude_agents.decision_tree import FEATURE_NAMES, _features
+
+    named_twice = [
+        Suggestion(1, "Mustard", "Knife", "Kitchen", refuter=2, shown_to=1, card_shown=None),
+        Suggestion(2, "Mustard", "Rope", "Study", refuter=0, shown_to=2, card_shown="Rope"),
+    ]
+    obs = make_obs(3, 0, {"Rope"}, {0: 1, 1: 9, 2: 8}, named_twice, turn=2)
+    features = _features(obs, obs.mask, "Mustard", SUSPECTS)
+    assert len(features) == len(FEATURE_NAMES)
+    by_name = dict(zip(FEATURE_NAMES, features))
+    assert by_name["distinct_namers"] == 2.0
+    assert by_name["times_named_total"] == 2.0
+    # Rope is located (own hand), so the second suggestion named Mustard
+    # beside one located card; the first beside none.
+    assert by_name["named_beside_located"] == pytest.approx(0.5)
+
+
 # ---------------------------------------------------------------------
 # Green -- bandit ensemble
 # ---------------------------------------------------------------------
@@ -427,3 +480,16 @@ def test_bandit_updates_posteriors_toward_a_consistently_correct_arm():
             continue
         other_mean = c.alpha / (c.alpha + c.beta)
         assert scarlett_mean > other_mean
+
+
+def test_rank_rewards_are_linear_in_rank_with_shared_ties():
+    from clude_agents.bandit import rank_rewards
+
+    rewards = rank_rewards({"a": 0.1, "b": 0.5, "c": 0.3, "d": 0.9, "e": 0.7})
+    assert rewards == {"a": 1.0, "c": 0.75, "b": 0.5, "e": 0.25, "d": 0.0}
+    tied = rank_rewards({"a": 0.1, "b": 0.1, "c": 0.9})
+    assert tied["a"] == tied["b"] == pytest.approx(0.75)
+    assert tied["c"] == 0.0
+    assert rank_rewards({"only": 2.0}) == {"only": 1.0}
+    all_tied = rank_rewards({"a": 1.0, "b": 1.0})
+    assert all_tied == {"a": 0.5, "b": 0.5}

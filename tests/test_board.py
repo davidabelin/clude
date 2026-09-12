@@ -42,6 +42,19 @@ def test_reachable_is_blocked_by_occupied_cell():
     assert "Ballroom" not in dests
 
 
+def test_reachable_lets_a_token_leave_its_room_through_either_door():
+    """Phase 5b regression: the start room used to be treated as
+    terminal, so tokens could only leave rooms by secret passage."""
+    dests = board.reachable("Lounge", roll=2, occupied=frozenset())
+    assert board.HallwayCell("Hall", "Lounge", board.HALLWAY_LENGTH) in dests
+    assert board.HallwayCell("Lounge", "Dining", 1) in dests
+    assert board.HallwayCell("Lounge", "Dining", 2) in dests
+    assert "Lounge" not in dests
+    far = board.reachable("Lounge", roll=6, occupied=frozenset())
+    assert "Hall" in far and "Dining" in far  # five steps away, within a 6
+    assert "Conservatory" not in far  # the secret passage is a separate move type
+
+
 def test_reachable_room_does_not_extend_further_same_turn():
     start = board.HallwayCell("Kitchen", "Ballroom", 1)
     dests = board.reachable(start, roll=6, occupied=frozenset())

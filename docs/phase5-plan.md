@@ -1,10 +1,12 @@
 # Phase 5 Plan (refined, 2026-09-11)
 
-Status: **for discussion, not approved.** This reworks the Phase 5 design
-in `docs/review_pre_stage_5.md` (the "Fab4 review"), read as a set of
-suggestions, against the code as it stands and against numbers from the
-new maintainer CLI (`docs/cli.md`). Items marked **ASK** need David's
-call before any code is written.
+Status: **approved 2026-09-12 and implemented.** David's answers to the
+six decisions are in section 6; what was actually built, and where it
+departed from this plan, is in section 8 at the end. This reworks the
+Phase 5 design in `docs/review_pre_stage_5.md` (the "Fab4 review"), read
+as a set of suggestions, against the code as it stood and against
+numbers from the maintainer CLI (`docs/cli.md`). Items marked **ASK**
+were the ones that needed David's call before any code was written.
 
 ## 1. What the measurements say
 
@@ -207,17 +209,29 @@ before moving on.
 ## 6. Decisions needed
 
 1. `observer` injection into `run_game` (review Q1) -- recommended yes.
+  * Yes.
+
 2. `FloorBot` as the standard self-play opponent and Mustard's default
    training source (4.1) -- recommended yes.
+  * Yes.
+
 3. Remove the hard zeros: Mustard leaf smoothing (4.2) and White's
    floor prior (4.3), reversing the "leave as-is" call now that the
    cause is measured -- recommended yes, because Phase 5 will turn
    those zeros into accusations.
+  * Yes.
+
 4. Green's reward: rank or margin-vs-uniform (4.4) -- recommended rank.
+  * Ok.
+
 5. Five dials for the first pass, `confidence_source` as a per-spec
    function rather than a profile field (review Q2, Q3) -- recommended.
+  * Ok, that's fine, I would rather have too many on first pass to prune down over time. I can't think of obvious additional dials right now, so we can just do your five, that's fine.
+
 6. Whether to cache self-play games on disk in 5d (4.5), which starts
    `clude_storage/` a phase early.
+  * We can start setting up Cloud Storage. Use the Service Account in the clude-game-sa.json.
+
 
 ## 7. Out of scope for Phase 5
 
@@ -225,3 +239,75 @@ Any LLM call, any UI, chat, logbooks (beyond noting what 5d's game
 records should contain so Phase 7 can read them), danger/urgency dials
 without a measured trigger, and any change to a method's core algorithm
 beyond its absence-of-evidence case.
+
+## 8. As implemented (2026-09-12)
+
+Everything in section 5's table exists; `docs/phase-plan.md` lists the
+modules and `docs/strategy-glossary.md` the results. Where the build
+departed from the plan above, and why:
+
+- **The measurements in section 1 were taken on a broken board.** The
+  first FloorBot games plateaued exactly like the RandomBot games did,
+  and tracing them showed why: `board.reachable` treated the *starting*
+  room as terminal, so a token could only leave a room by secret
+  passage. Every table piled into one room and re-suggested there. The
+  "random suggesters re-name located cards" explanation in section 1
+  was real but secondary; the plateau was mostly tokens that could not
+  move. Fixed, along with a boxed-in hallway token having no legal move.
+  The seam's golden fingerprints were regenerated once, after the fix.
+- **FloorBot movement is not uniform** (4.1 said it would be). With
+  uniform movement, even on the fixed board, tokens that get dragged into
+  a located room by others' suggestions stay stuck there half the time.
+  The bot now prefers a move landing in a room the floor hasn't located,
+  else the move closest to one, and once every room is located, a room
+  nobody else can refute. Still floor-only, no belief, no personality.
+  Its exhausted-category fallback names the proven envelope card rather
+  than a random one, for the same reason.
+- **A floor fix fell out of the same trace**: or-constraints already
+  satisfied by a located card were kept and printed as open, and Peacock
+  read their unlocated members as evidence. Dropped now.
+- **Cost.** Section 1's ms/call figures were measured on the plateaued
+  regime, where the floor had already done Plum's work. On genuinely
+  open mid-game FloorBot snapshots Plum costs about 200 ms per call and
+  falls back to sampling in a third of them, so Green does too; a
+  24-game arena at all table sizes takes about a minute. Sweeps ran at
+  48 games per value with FloorBot control seats, not the 200 the
+  sample-size arithmetic asks for, so the glossary reports them as
+  direction-and-magnitude with their std, not as significance.
+- **Mustard's two new features** are `distinct_namers` and
+  `named_beside_located` (how often a card was named beside cards the
+  viewer's floor has already located, a probe); the tree uses the first
+  and not yet the second.
+- **Green's `observe` cadence** is once per revealed envelope, as
+  planned: every snapshot in the benchmark, once per game in the arena.
+- **Storage went further than "cache on disk"**: one `RecordStore`
+  interface with local and `gs://` backends, the `clude-game-data` bucket
+  created under the service account once David enabled billing on the
+  project, and `GameRecord` documented as Phase 7's input. The "replay
+  the same deals" part of 4.5 turned out to need no cache at all: with
+  every player drawing from its own RNG, a seed alone reproduces the deal
+  and the dice, which is what the paired sweeps use.
+- **`trace` gained the accusation test** (`[P(correct)=0.47 <0.50]`)
+  rather than a chosen action per step, since the belief replay has no
+  engine turn to choose in; `play --roster` shows the chosen actions
+  of a live character game instead.
+- **The `secrecy` dial survived its sweep on a technicality.** Its
+  first sweep moved nothing, own cards leaked included. A re-show rate
+  (`reshow%`: of the refutations with two or more matching cards, the
+  share answered with an already-exposed card) was added to the arena
+  as the dial's direct footprint, and that it does move monotonically;
+  leaked stays flat because forced single-card refutations expose a
+  hand anyway. Kept under David's "too many dials on the first pass,
+  prune over time", and named in the glossary as the first to cut.
+- **Seeded games were not reproducible across processes at 5-6
+  players.** Found when the tuned arena, run twice with the same seed
+  and dials, gave two different tables. Plum's search iterated
+  `mask.possible_holders[c]` raw, a frozenset mixing seat ints with the
+  string `ENVELOPE`, whose place in set order changes with each Python
+  process's hash seed; on the sampling fallback (which a 6-player table
+  always takes early on) that changed Plum's belief, hence Green's, and
+  the game. Fixed with a fixed holder order (`_holder_order`), with a
+  subprocess test under two `PYTHONHASHSEED`s. The sweeps each ran in
+  one process, so their pairing across values was real; their absolute
+  numbers cannot be regenerated bit-for-bit on the fixed code, and the
+  glossary says so.

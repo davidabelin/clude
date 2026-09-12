@@ -24,17 +24,37 @@ Recomputes from scratch every call from `obs.suggestion_log`; `reset`/
 `observe` are no-ops. Direction of the heuristic (repeats raise, not
 lower, suspicion for envelope) is a stated modeling choice, not a
 derived fact -- see module docstring above.
+
+Absence of evidence (changed in Phase 5b, docs/phase5-plan.md 4.3):
+every still-unresolved card starts at the floor's uniform prior (raw
+score 1) and the Markov evidence is *added* on top, so a card no
+opponent has named yet is merely unsuspicious, not impossible. Before
+this, such cards scored exactly 0 and accounted for 79% of White's
+log-loss in the Phase 4 benchmark. The method itself is unchanged.
+
+`ClueBelief.extra` also carries per-opponent ``repeat_probability`` and
+a ``closeness`` proxy (how much evidence that opponent has been shown:
+each refuted suggestion of theirs showed them one card, each unrefuted
+one proved them up to three, squashed to [0, 1)). Nothing consumes
+``closeness`` yet; it is there so an `urgency` dial has something to
+read if one is ever added.
 """
 from __future__ import annotations
 
 from typing import Any
 
 from clude_agents.base import ClueBelief, SeededAgentMixin, mask_and_normalize
+from clude_core.domain import ALL_CARDS
 from clude_core.state import ClueObservation
 
 # Laplace-smoothed transition-count prior so a short/empty sequence
 # returns the neutral P(repeat) = 0.5 rather than an undefined ratio.
 _PRIOR = 1.0
+# The floor's own prior for an unresolved card, before any Markov
+# evidence is added; the same scale as one repeat-weighted mention.
+_BASE_SCORE = 1.0
+# Half-saturation point of the `closeness` proxy, in evidence units.
+_CLOSENESS_HALF = 6.0
 
 
 def _stationary_repeat_probability(symbols: list) -> float:
@@ -64,7 +84,7 @@ class MarkovAgent(SeededAgentMixin):
     def select_action(self, obs: ClueObservation) -> ClueBelief:
         """Fit each opponent's repeat/new Markov chain, then weight
         still-unresolved cards they've re-named by that opponent's
-        current P(repeat)."""
+        current P(repeat), on top of a uniform prior."""
         assert obs.mask is not None, (
             "select_action requires a masked observation (see clude_constraints.observe)"
         )
@@ -72,6 +92,7 @@ class MarkovAgent(SeededAgentMixin):
         opponents = [p for p in range(obs.n_players) if p != obs.my_index]
         named_counts: dict = {p: {} for p in opponents}
         symbols: dict = {p: [] for p in opponents}
+        evidence: dict = {p: 0.0 for p in opponents}
 
         for s in obs.suggestion_log:
             p = s.suggester
@@ -82,18 +103,26 @@ class MarkovAgent(SeededAgentMixin):
             symbols[p].append(1 if is_repeat else 0)
             for c in cards:
                 named_counts[p][c] = named_counts[p].get(c, 0) + 1
+            evidence[p] += 1.0 if s.refuter is not None else 3.0
 
-        raw: dict = {}
+        raw: dict = {c: _BASE_SCORE for c in ALL_CARDS if mask.holder_of(c) is None}
+        repeat_probability: dict = {}
         for p in opponents:
             repeat_prob = _stationary_repeat_probability(symbols[p])
+            repeat_probability[p] = repeat_prob
             for c, n in named_counts[p].items():
-                if mask.holder_of(c) is not None:
+                if c not in raw:
                     continue  # already resolved; nothing left for White to add
-                raw[c] = raw.get(c, 0.0) + n * repeat_prob
+                raw[c] += n * repeat_prob
 
+        closeness = {p: e / (e + _CLOSENESS_HALF) for p, e in evidence.items()}
         return ClueBelief(
             probabilities=mask_and_normalize(raw, mask),
-            extra={"named_counts": named_counts},
+            extra={
+                "named_counts": named_counts,
+                "repeat_probability": repeat_probability,
+                "closeness": closeness,
+            },
         )
 
     def observe(self, transition: Any) -> None:

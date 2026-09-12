@@ -12,81 +12,99 @@ python scripts/clude_cli.py <subcommand> --help
 
 Run from the repo root with the project venv active (see
 `docs/architecture.md` for the environment). No subcommand writes to
-disk unless you pass `--json`.
+disk unless you pass `--json` or `--store`.
 
 | Subcommand | Question it answers | Phase it exercises |
 |---|---|---|
-| `agents` | What agents are registered? | 3 |
-| `play` | What does one headless game look like? | 1 |
-| `trace` | What did each agent believe after every suggestion, from one seat? | 2-3 |
+| `agents` | What agents are registered, and what are their preset dials? | 3, 5 |
+| `play` | What does one headless game look like? | 1, 5 |
+| `trace` | What did each character believe after every suggestion, and would it have accused? | 2-3, 5 |
 | `floor` | What has the deduction floor proven, and how fast does it close in? | 2 |
 | `benchmark` | How good is each method's belief, and what does a call cost? | 4 |
 | `train-mustard` | What tree do these hyperparameters give, and does it help? | 3-4 |
-| `snapshots` | What does the self-play training/benchmark data look like? | 4 |
+| `snapshots` | What does the self-play training/benchmark data look like? | 4-5 |
+| `arena` | Who wins, who accuses wrongly, who leaks, over N full games? | 5 |
+| `sweep` | Does one dial move a metric monotonically? | 5 |
+| `store` | What runs are in a record store, local or in the bucket? | 5 |
 
 The three one-game commands (`play`, `trace`, `floor`) share
-`--players` (3-6, default 4), `--seed` (default 1) and `--max-turns`
-(default 300) and always play the *same* game for the same values, so
-you can `play` a game, then `trace` it, then `floor` it and be looking at
-one deal throughout.
+`--players` (3-6, default 4), `--seed` (default 1), `--max-turns`
+(default 300) and `--roster` (default `random`), and always play the
+*same* game for the same values, so you can `play` a game, then `trace`
+it, then `floor` it and be looking at one deal throughout.
+
+`--roster` says who sits at the table: `random` (Phase 1's `RandomBot`s),
+`floor` (`FloorBot`s, the standard self-play opponent), or a
+comma-separated lineup of suspect names and `floor` fill seats, seated
+in that order and padded with `floor` up to `--players`. Seats print as
+`P<index> <token>` with the occupant in parentheses when it differs:
+`P1 Mustard (Plum)` is Plum's method piloting the Mustard token.
 
 ## `agents`
 
-Lists the six registered suspects and their methods, straight from
-`clude_agents.AGENT_SPECS`. The names it prints are the ones `--agents`
-accepts elsewhere.
+Lists the six registered suspects, their methods, their preset dials
+(`accuse_threshold`, `bluff_rate`, `curiosity`, `secrecy`,
+`temperature`) and what the accusation threshold is compared against
+(`probabilities`, or `DS belief` for Peacock). The names it prints are
+the ones `--agents` and `--roster` accept elsewhere.
 
 ## `play`
 
 ```
 python scripts/clude_cli.py play --players 4 --seed 1 --verbose --hands
+python scripts/clude_cli.py play --players 4 --seed 1 --roster floor
+python scripts/clude_cli.py play --roster Plum,Scarlett,Peacock,floor --verbose
 ```
 
-Plays one game between `RandomBot`s (Phase 1's uniform-random bots) and
-prints the outcome. `--verbose` prints the event log one line per
-move/suggestion/accusation, with players labelled `P<index> <suspect>`
-and hallway cells as `RoomA~RoomB[k]`; `--hands` appends the dealt hands
-(omniscient -- no agent ever sees these).
+Plays one game and prints the outcome. `--verbose` prints the event log
+one line per move/suggestion/accusation, with hallway cells as
+`RoomA~RoomB[k]`; `--hands` appends the dealt hands (omniscient -- no
+agent ever sees these).
 
 ```
-turn 5: P0 Scarlett -> Lounge
-turn 5: P0 Scarlett suggests Green/Rope/Lounge -- P1 Mustard showed Lounge
-...
+seed=1 players=4 roster=floor
+seats: P0 Scarlett (floor), P1 Mustard (floor), P2 White (floor), P3 Green (floor)
+
 Envelope: Mustard/Rope/Ballroom
-Turns played: 210; suggestions: 183; accusations: 4
-No winner -- every player accused incorrectly.
+Turns played: 7; suggestions: 6; accusations: 1
+Winner: P2 White (floor)
 ```
 
-The event log is omniscient too: it always names the card shown.
-`trace` and `floor` show the redacted, per-seat view instead.
+The same deal with `RandomBot`s runs 184 turns and 53 suggestions and
+ends with every player eliminated: random bots suggest whatever,
+including cards in their own hand, and accuse at random 3% of the time,
+so nobody deduces anything on purpose. `FloorBot`s only name cards the
+floor still leaves open, head for rooms it hasn't located, and accuse
+exactly when it has proven the envelope, so their games end by deduction
+-- occasionally, as above, because an early suggestion happened to name
+the envelope and nobody could refute it. A character lineup shows the
+personality layer choosing every move.
 
-What to expect from `RandomBot`s: they suggest whatever, including cards
-in their own hand, and accuse at random 3% of the time, so games are
-long (100+ suggestions), nobody deduces anything on purpose, and most
-end with every player eliminated. That is by design for Phase 1 -- and
-exactly the distribution `snapshots` describes.
+The event log is omniscient: it always names the card shown. `trace`
+and `floor` show the redacted, per-seat view instead.
 
 ## `trace`
 
 ```
-python scripts/clude_cli.py trace --seed 1 --players 3 --viewer 0 --every 4
+python scripts/clude_cli.py trace --seed 1 --players 3 --roster floor --viewer 0 --every 6
 python scripts/clude_cli.py trace --seed 1 --agents Plum,Scarlett --all-cards
 ```
 
 The post-game belief replay in text form. Plays the game, then for the
 chosen `--viewer`'s seat rebuilds their masked `ClueObservation` after
 every `--every`-th suggestion (k=0 and the end are always shown) and
-prints each selected agent's belief on it:
+prints each selected character's belief on it and its accusation test:
 
 ```
---- k=8: turn 12: P2 White suggests Plum/Rope/Study -- P0 Scarlett showed Plum
-floor: 9/21 cards located; 2 open or-constraint(s)
-Green     S: Mustard 0.43 Green 0.33 Peacock 0.23  |  W: Knife 0.44 ...  [arm: Plum]
-Mustard   S: Mustard 0.33 Green 0.33 Peacock 0.33  |  W: Knife 0.25 ...
-Peacock   S: Mustard 0.58 Green 0.21 Peacock 0.21  |  W: ...  [bel/pl of top: S 0.25/1.00 W 0.00/1.00 R 0.00/1.00]
-Plum      S: Mustard 0.43 Green 0.33 Peacock 0.23  |  W: Knife 0.44 ...  [exact: 927 deals, 12003 nodes]
-Scarlett  S: Mustard 0.43 Green 0.29 Peacock 0.29  |  W: ...
-White     S: Green 0.50 Peacock 0.50 Mustard 0.00  |  W: ...
+--- k=18: turn 25: P0 Scarlett (floor) suggests Mustard/Wrench/Ballroom -- P2 White (floor) showed Wrench
+floor: 17/21 cards located
+Scarlett  S: Mustard*  |  W: Rope*  |  R: Billiard 0.47 Study 0.47 Ballroom 0.06  [P(correct)=0.47 <0.50]
+Peacock   S: Mustard*  |  W: Rope*  |  R: Ballroom 0.33 Billiard 0.33 Study 0.33  [bel/pl of top: S 1.00/1.00 W 1.00/1.00 R 0.00/1.00]  [P(correct)=0.00 <0.70]
+Plum      S: Mustard*  |  W: Rope*  |  R: Ballroom 0.60 Billiard 0.20 Study 0.20  [exact: 5 deals, 30 nodes]  [P(correct)=0.60 <0.95]
+
+--- k=19: turn 26: P1 Mustard (floor) suggests Scarlett/Rope/Ballroom -- P0 Scarlett (floor) showed Scarlett
+floor: 18/21 cards located; envelope proven: Mustard/Rope/Ballroom
+Scarlett  S: Mustard*  |  W: Rope*  |  R: Ballroom*  [P(correct)=1.00 >=0.50]
 ```
 
 How to read it:
@@ -102,28 +120,36 @@ How to read it:
   `--top` (default 3) still-possible cards by that agent's probability;
   `Card*` means the floor has proven it, so every agent reports 1.0.
   `--all-cards` shows every still-possible card instead.
-- The bracketed tail is whatever the method put in `ClueBelief.extra`:
-  Plum's `[exact: N deals, M nodes]` or `[sampled: ...]` (he hit his
-  node budget and fell back to rejection sampling), Green's chosen
-  `[arm: ...]`, Peacock's Dempster-Shafer `[bel/pl ...]` bounds for her
-  top card per category (the two-tone bar from the design notes).
+- The first bracketed tail is whatever the method put in
+  `ClueBelief.extra`: Plum's `[exact: N deals, M nodes]` or `[sampled:
+  ...]` (he hit his node budget and fell back to rejection sampling),
+  Green's chosen `[arm: ...]`, Peacock's Dempster-Shafer `[bel/pl ...]`
+  bounds for her top card per category (the two-tone bar from the design
+  notes).
+- The last tail is the Phase 5 accusation test: `P(correct)` is the
+  character's confidence in its best triple (product of the three
+  category maxima of its confidence source -- probabilities for five of
+  them, the DS belief for Peacock, which is why hers reads 0.00 while
+  her probabilities don't), against its preset `accuse_threshold`;
+  `>=` means it would accuse here.
 - The header prints the truth so you can see who is right; no agent
   sees it.
 
 Things worth noticing in a trace: how Plum and Green agree exactly
-whenever Green picks Plum's arm; how White zeroes a card nobody has
-named yet even when it is the answer; how Peacock's belief stays at 0.00
-until something is *proven*, while her plausibility stays at 1.00.
+whenever Green picks Plum's arm; how Scarlett's naive Bayes drifts off
+the true room at k=18 above while Plum's exact posterior doesn't; how
+Peacock's belief stays at 0.00 until something is *proven*, while her
+plausibility stays at 1.00.
 
-Cost: roughly 1-2 s for a 3-player game with all six agents, more for
-6 players (Plum's search and Green's five arms dominate; the trailer
-line prints the total).
+Cost: well under a second for a 3-player FloorBot game with three
+agents, more for 6 players and all six (Plum's search and Green's five
+arms dominate; the trailer line prints the total).
 
 ## `floor`
 
 ```
 python scripts/clude_cli.py floor --seed 1 --players 3 --viewer 0 --at 6
-python scripts/clude_cli.py floor --seed 1 --players 4 --convergence
+python scripts/clude_cli.py floor --seed 1 --players 4 --roster floor --convergence
 ```
 
 Two views of the deduction floor alone, no agents involved.
@@ -154,28 +180,27 @@ at which each viewer had the envelope proven:
    0     5     5     4     4
    1     6     5     4     4
   ...
-  40    15    15    15    17
- 183    15    15    15    17
-
-first k with the envelope proven: P0=never, P1=never, P2=never, P3=never
 ```
 
-That long final plateau is normal for `RandomBot` games: once the random
-suggesters are re-naming located cards and their own hands, later
-suggestions carry no new information. It is the clearest single picture
-of why Phase 5 needs smarter self-play before anything trains on it.
+This is the view that found both Phase 5b rules bugs: a table of
+`FloorBot`s plateaued at 15/21 for a hundred turns, and reading their
+positions showed every token bouncing between Lounge and Conservatory
+through the secret passage -- the only way a token could leave a room
+at all until `board.reachable` was fixed.
 
 ## `benchmark`
 
 ```
 python scripts/clude_cli.py benchmark
 python scripts/clude_cli.py benchmark --games 12 --checkpoints 0.5 1.0 --show-green
-python scripts/clude_cli.py benchmark --agents Plum,Scarlett --players 6 --json data/exports/bench.json
+python scripts/clude_cli.py benchmark --agents Plum,Scarlett --players 6 --bot random --json data/exports/bench.json
 ```
 
 Phase 4's belief-quality benchmark (`clude_training.benchmark`): every
-selected agent scores its belief on shared `RandomBot` self-play
-snapshots against the eventual truth. Metrics per (agent, checkpoint):
+selected agent scores its belief on shared self-play snapshots against
+the eventual truth. `--bot floor` (the default since Phase 5) snapshots
+`FloorBot` games; `--bot random` the Phase 4 `RandomBot` regime. Metrics
+per (agent, checkpoint):
 
 - `brier` -- mean squared error over all 21 cards; lower is better.
 - `log_loss` -- mean `-log P(true card)` per category; lower is better,
@@ -189,14 +214,14 @@ snapshots against the eventual truth. Metrics per (agent, checkpoint):
 ```
 agent        checkpoint     brier  log_loss  top1_acc  ms/call
 --------------------------------------------------------------
-Green              1.00    0.0456    0.9181     0.698     12.1
-Mustard            1.00    0.0444    0.9254     0.673      0.2
-Plum               1.00    0.0428    0.5738     0.679     11.6
+Green              0.50    0.0837    1.1501     0.568    226.1
+Green              1.00    0.0085    0.1145     0.975     22.8
 ...
-uniform            1.00    0.0430    0.5748     0.673        -
+uniform            0.50    0.0971    1.3184     0.309        -
+uniform            1.00    0.0252    0.3116     0.852        -
 
-12 games, seed 4004, table sizes [3, 4, 5, 6], 108 snapshots, 4.7s
-Plum fell back to sampling in 4/108 calls
+12 floor-bot games, seed 4004, table sizes [3, 4, 5, 6], 108 snapshots, 26.5s
+Plum fell back to sampling in 33/108 calls
 ```
 
 Flags: `--agents` benchmarks a subset (the `uniform` row is always
@@ -206,45 +231,53 @@ Beta posteriors after the run (mean = how much he trusts that arm;
 evidence = how many observations it has absorbed); `--json PATH` writes
 everything `BenchmarkResult.to_dict()` knows.
 
-The 60-game default takes about 50 s; nearly all of it is Plum and Green
-(who calls Plum as an arm). See `docs/strategy-glossary.md` for the
-reference results and what they mean.
+FloorBot games are short and their mid-game snapshots are genuinely
+open, which is where Plum's search is expensive: expect 200 ms per call
+at the 0.5 checkpoint and a third of his calls falling back to sampling.
+See `docs/strategy-glossary.md` for the reference results and what they
+mean.
 
 ## `train-mustard`
 
 ```
 python scripts/clude_cli.py train-mustard
 python scripts/clude_cli.py train-mustard --games 50 --max-depth 8 --min-samples-leaf 10 --render
-python scripts/clude_cli.py train-mustard --eval-games 30 --eval-seed 9000
+python scripts/clude_cli.py train-mustard --eval-games 30 --eval-seed 9000 --smoothing-m 0
 ```
 
 Trains Mustard's tree (`clude_agents.decision_tree`) with explicit
 hyperparameters, describes it, and scores it on held-out self-play:
 
 ```
-training set: 1443 rows from 25 RandomBot games (seeds 2026..2050) at checkpoints [0.5, 1.0]
-  one row per (viewer, checkpoint, card the floor hadn't located); 275 positive = 0.191
-trained in 0.2s
-tree: 39 nodes, 20 leaves, depth 6 (--max-depth 6, --min-samples-leaf 20)
+training set: 2347 rows from 25 floor-bot games (seeds 2026..2050) at checkpoints [0.5, 1.0]
+  one row per (viewer, checkpoint, card the floor hadn't located); 398 positive = 0.170
+trained in 0.6s (rows and tree are cached per settings within a process)
+tree: 45 nodes, 23 leaves, depth 6 (--max-depth 6, --min-samples-leaf 20, --smoothing-m 3.0)
 splits per feature:
-  possible_holders_frac          5
+  possible_holders_frac          6
   ...
-leaf predictions: min 0.000, median 0.230, max 0.783
+  turn_fraction                 10
+  distinct_namers                2
+  named_beside_located           0
+leaf predictions: min 0.001, median 0.271, max 0.973
 
-held-out evaluation: 8 games from seed 4004
+held-out evaluation: 8 floor-bot games from seed 4004
 agent        checkpoint     brier  log_loss  top1_acc  ms/call
-Mustard            0.50    0.0684    2.3189     0.583      0.1
-uniform            0.50    0.0559    0.7428     0.611        -
+Mustard            0.50    0.0895    1.4965     0.546      0.1
+Mustard            1.00    0.0075    0.1136     0.991      0.1
+uniform            0.50    0.0977    1.3378     0.361        -
+uniform            1.00    0.0292    0.3743     0.861        -
 ```
 
 How to read it: the training set is one row per still-unlocated card
 per snapshot, labelled 1 if that card was the envelope's; `label_rate`
-is the base rate a smoothed tree would fall back to. `splits per
-feature` says which of the six engineered features (`FEATURE_NAMES`)
-the tree actually uses. `leaf predictions: min 0.000` means at least one
-leaf predicts a hard zero -- see the calibration discussion in
-`docs/strategy-glossary.md`. `--render` prints the whole tree, one node
-per line, `feature <= threshold (n=rows)` with the true branch first.
+is the base rate the m-estimate leaves are smoothed toward. `splits per
+feature` says which of the eight engineered features (`FEATURE_NAMES`)
+the tree actually uses. `leaf predictions: min 0.001` is the smoothing
+at work -- with `--smoothing-m 0` the minimum is exactly 0.000 again.
+`--render` prints the whole tree, one node per line, `feature <=
+threshold (n=rows)` with the true branch first. `--bot` picks the
+regime for both training and evaluation games.
 
 The held-out block is `benchmark` restricted to this tree plus the
 uniform baseline, so "does this setting help" is one command. It warns
@@ -256,7 +289,8 @@ changes that, it only trains a separate instance.
 ## `snapshots`
 
 ```
-python scripts/clude_cli.py snapshots --games 40
+python scripts/clude_cli.py snapshots --games 24
+python scripts/clude_cli.py snapshots --games 24 --bot random
 python scripts/clude_cli.py snapshots --games 20 --players 6 --checkpoints 0.25 0.5 0.75 1.0
 ```
 
@@ -264,12 +298,14 @@ Describes the self-play snapshot distribution `generate_snapshots`
 produces -- Mustard's training data and the benchmark's test data:
 
 ```
+24 floor-bot games, seed 2026, checkpoints [0.25, 0.5, 0.75, 1.0], table sizes [3, 4, 5, 6]: 108 snapshots in 2.6s
+
 games per table size, and suggestions per game at the last checkpoint:
-  3 players: 6 games, suggestions min/mean/max 48/78.8/118
+  3 players: 6 games, suggestions min/mean/max 15/18.5/22
   ...
 checkpoint players  snaps  mean_k unresolved label_rate  solved
-      0.50       3     18    39.3        4.8      0.149    0.44
-      0.50       6     36    58.0        7.0      0.207    0.00
+      1.00       3     18    18.5        4.3      0.182    0.39
+      1.00       4     24    16.3        7.4      0.157    0.38
 ```
 
 - `mean_k` -- suggestions revealed at that checkpoint.
@@ -277,14 +313,113 @@ checkpoint players  snaps  mean_k unresolved label_rate  solved
   gets one training row per such card.
 - `label_rate` -- fraction of those rows that are positive.
 - `solved` -- fraction of snapshots whose viewer has the envelope fully
-  proven. `0.00` at 6 players means no 6-player `RandomBot` game ever
-  reaches a deduction, at any checkpoint.
+  proven. About a third at the end of a FloorBot game (the winner, plus
+  anyone else the last suggestions happened to settle it for); `--bot
+  random` shows the Phase 4 regime for comparison.
+
+## `arena`
+
+```
+python scripts/clude_cli.py arena
+python scripts/clude_cli.py arena --games 48 --players 4 --roster Scarlett,Plum,Peacock,floor
+python scripts/clude_cli.py arena --set Scarlett.accuse_threshold=0.3 --set Plum.temperature=0.5
+python scripts/clude_cli.py arena --store data --run-id baseline --json data/exports/baseline.json
+python scripts/clude_cli.py arena --store gs://clude-game-data/arena
+```
+
+Phase 5's arena (`clude_training.arena`): N whole games among characters
+and/or bots, seats rotating so each roster entry moves first equally
+often, table size cycling 3..6 unless `--players` fixes it, missing
+seats filled with `FloorBot`s. One row per roster label:
+
+```
+player     games   win%   +-  wrong%   +-  1st_acc  never%  leaked  named  reshow%  ms/call
+-------------------------------------------------------------------------------------------
+Scarlett      20   10.0  6.7    45.0 11.1     23.8    45.0    2.05   1.25     37.5      0.0
+Mustard       16   25.0 10.8    25.0 10.8     20.1    50.0    2.81   1.31     33.3      3.3
+White         20   30.0 10.2     0.0  0.0     31.0    70.0    2.25   3.05     23.1      0.1
+Green         16   18.8  9.8    12.5  8.3     36.0    68.8    2.38   1.44     72.7    230.5
+Peacock       20   15.0  8.0     0.0  0.0     21.7    85.0    2.40   1.65     42.9      0.1
+Plum          16   37.5 12.1     0.0  0.0     26.7    62.5    2.44   0.81     12.5    229.8
+
+24 games, seed 7007, table sizes [3, 4, 5, 6], 84.1s; mean 27.5 turns; 100% decided by a correct accusation
+records: run arena-tuned-24 in gs://clude-game-data/arena
+```
+
+- `win%` and `wrong%` are per game (games won, games with a wrong
+  accusation and elimination), each with its binomial standard
+  deviation `+-` so a difference smaller than a couple of those is noise;
+  200 games per setting is what a 5-point claim needs at 6 seats.
+- `1st_acc` is the mean turn of the player's first accusation over the
+  games it made one; `never%` the games it never accused in (somebody
+  else won first).
+- `leaked` is the number of distinct own cards shown to opponents over
+  the game; `named` the number of the player's suggestions that named a
+  card in its own hand (bluffs).
+- `reshow%` is, over the refutations where the player held two or more
+  matching cards and so had a choice, the share where it showed a card
+  it had already exposed to somebody: the `secrecy` dial's footprint.
+  `-` when it never had such a choice.
+- `ms/call` is per belief call, as in `benchmark`; `-` for bots.
+
+`--set LABEL.DIAL=VALUE` overrides one preset dial for one character
+(repeatable). `--store PATH|gs://bucket/prefix` writes every game's
+`GameRecord` and the run summary (see `store`); `--run-id` names the
+run (default `arena-<seed>-<games>`). The table above is the tuned
+baseline, whose records are in the bucket as `arena-tuned-24`; the
+untuned first pass, the sweeps, and what changed are in
+`docs/strategy-glossary.md`.
+
+## `sweep`
+
+```
+python scripts/clude_cli.py sweep --dial accuse_threshold --values 0.2 0.4 0.6 0.8 1.0
+python scripts/clude_cli.py sweep --dial secrecy --values 0 0.5 1 --characters Plum --games 48
+python scripts/clude_cli.py sweep --dial temperature --values 0 0.1 0.5 2 --roster Scarlett,floor,Plum,floor
+```
+
+The arena once per value of one dial, with the dial set on every swept
+character (`--characters`, default all in the roster) and the others at
+preset, on the *same* seeds each time -- so the same deals and dice --
+and the swept characters' metrics pooled per value:
+
+```
+accuse_threshold   games   win%   +-  wrong%   +-  1st_acc  never%  leaked  named  turns
+0.200 ...
+1.000 ...
+
+monotone: wrong_accusation_rate decreasing, mean_first_accusation_turn increasing
+```
+
+The `monotone:` line is the keep-a-dial rule from docs/phase5-plan.md:
+a dial that moves no metric monotonically across its sweep gets cut. A
+roster that interleaves characters with `floor` seats (the glossary's
+sweeps use `Scarlett,floor,Mustard,floor,...`) makes the pooled `win%`
+mean "characters versus purely logical players", with the FloorBot seats
+as an untouched control group in each run's own table (`--json` keeps
+every run).
+
+## `store`
+
+```
+python scripts/clude_cli.py store --uri data
+python scripts/clude_cli.py store --uri data --run baseline
+python scripts/clude_cli.py store --uri gs://clude-game-data/arena
+```
+
+Lists the runs in a record store and how many game records each has, or
+prints one run's stored per-player summary. Local stores are directories
+(`runs/<run_id>.json`, `games/<run_id>/<index>.json`); `gs://` stores
+use the same keys as objects in the bucket, authenticated with the
+service-account key described in `docs/architecture.md` ("Cloud
+Storage"). Records are omniscient (every hand, every card shown) and
+are the input Phase 7's logbooks will read.
 
 ## Adding a subcommand
 
 Each subcommand is one `cmd_<name>(args) -> int` function plus a
 `sub.add_parser(...)` block in `build_parser()`, with `set_defaults(fn=...)`
-to dispatch. Put reusable logic in a package (`clude_training.trace` is
-the pattern), keep the script to argument parsing and printing, and add
-a smoke test to `tests/test_cli.py` that runs it on a tiny
-configuration.
+to dispatch. Put reusable logic in a package (`clude_training.trace` and
+`clude_training.arena` are the pattern), keep the script to argument
+parsing and printing, and add a smoke test to `tests/test_cli.py` that
+runs it on a tiny configuration.

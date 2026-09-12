@@ -187,9 +187,9 @@ def test_benchmark_runs_and_beats_the_uniform_baseline():
 
 def test_benchmark_lets_green_learn_across_games():
     """Green's posteriors must not reset between games (David's call,
-    2026-09-11): after enough self-play, at least one arm's Beta
-    posterior should have moved measurably away from the Beta(1, 1)
-    prior every arm starts at.
+    2026-09-11), and since Phase 5b's rank reward they must actually
+    *separate*: the Phase 4 reward left all five arms within a percent
+    of each other, so Thompson sampling picked among them at random.
     """
     result = run_benchmark(n_games=20, seed=321, checkpoints=(1.0,))
     green = result.agents["Green"]
@@ -200,6 +200,8 @@ def test_benchmark_lets_green_learn_across_games():
     # x 1 checkpoint x n_players-ish viewers per game x 20 games).
     total_evidence = sum(c.alpha + c.beta - 2.0 for c in green.candidates.values())
     assert total_evidence > 50
+    means = [c.mean for c in green.candidates.values()]
+    assert max(means) - min(means) > 0.1, "Green's arms did not separate"
 
 
 def test_benchmark_accepts_an_agent_subset_and_records_call_cost():

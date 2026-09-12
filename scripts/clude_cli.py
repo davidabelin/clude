@@ -1,5 +1,5 @@
-"""Unified maintainer CLI: play, trace, inspect, benchmark, and train
-clude's headless pieces from the terminal.
+"""Unified maintainer CLI: play, trace, inspect, benchmark, train, and
+run the arena for clude's headless pieces from the terminal.
 
 Every subcommand is headless and deterministic for a given ``--seed``,
 so anything printed here can be reproduced exactly and pasted into a doc
@@ -11,17 +11,22 @@ Usage
     python scripts/clude_cli.py --help
     python scripts/clude_cli.py agents
     python scripts/clude_cli.py play --players 4 --seed 1 --verbose --hands
+    python scripts/clude_cli.py play --roster Scarlett,Plum,Peacock,floor --verbose
     python scripts/clude_cli.py trace --seed 1 --viewer 0 --agents Plum,Scarlett
     python scripts/clude_cli.py floor --seed 1 --viewer 0 --at 10
     python scripts/clude_cli.py floor --seed 1 --convergence
     python scripts/clude_cli.py benchmark --games 20 --show-green --json data/exports/bench.json
     python scripts/clude_cli.py train-mustard --games 50 --max-depth 8 --render
-    python scripts/clude_cli.py snapshots --games 40
+    python scripts/clude_cli.py snapshots --games 40 --bot floor
+    python scripts/clude_cli.py arena --games 24 --store data
+    python scripts/clude_cli.py sweep --dial accuse_threshold --values 0.3 0.6 0.9
+    python scripts/clude_cli.py store --uri data --list
 """
 from __future__ import annotations
 
 import argparse
 import json
+import random
 import sys
 import time
 from collections import defaultdict
@@ -32,12 +37,15 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import clude_constraints
-from clude_agents import build_agent, list_agent_specs
+from clude_agents import AGENT_SPECS, build_agent, build_character, list_agent_specs
+from clude_agents.character import best_triple, ds_belief_confidence
 from clude_agents.decision_tree import (
     DEFAULT_CHECKPOINTS as MUSTARD_CHECKPOINTS,
     DEFAULT_MAX_DEPTH,
     DEFAULT_MIN_SAMPLES_LEAF,
     DEFAULT_N_TRAINING_GAMES,
+    DEFAULT_SMOOTHING_M,
+    DEFAULT_TRAINING_BOT,
     DEFAULT_TRAINING_SEED,
     FEATURE_NAMES,
     DecisionTreeAgent,
@@ -45,22 +53,39 @@ from clude_agents.decision_tree import (
     summarize_tree,
     training_rows,
 )
+from clude_agents.personality import DIALS, preset
 from clude_constraints import ENVELOPE
 from clude_core import board, engine
 from clude_core.bots import RandomBot
 from clude_core.domain import ALL_CARDS, ROOMS, SUSPECTS, WEAPONS
 from clude_core.events import AccusationEvent, GameOverEvent, MoveEvent, SuggestionEvent
+from clude_core.state import ClueObservation
+from clude_storage import open_store
+from clude_training.arena import (
+    DEFAULT_MAX_TURNS as ARENA_MAX_TURNS,
+    DEFAULT_N_GAMES as ARENA_N_GAMES,
+    DEFAULT_ROSTER,
+    DEFAULT_SEED as ARENA_SEED,
+    fill_seed,
+    lineup_for_game,
+    parse_roster,
+    run_arena,
+)
 from clude_training.benchmark import DEFAULT_N_GAMES, DEFAULT_SEED, run_benchmark
 from clude_training.self_play import (
+    BOT_KINDS,
+    DEFAULT_BOT,
     DEFAULT_CHECKPOINTS,
     DEFAULT_MAX_TURNS,
     DEFAULT_PLAYER_COUNTS,
     generate_snapshots,
     truncate_state,
 )
+from clude_training.sweep import sweep_dial
 from clude_training.trace import belief_trace, floor_convergence, resolved_count
 
 CATEGORY_TAGS = (("S", SUSPECTS), ("W", WEAPONS), ("R", ROOMS))
+DEFAULT_STORE = "data"
 
 
 # ---------------------------------------------------------------------
@@ -68,9 +93,13 @@ CATEGORY_TAGS = (("S", SUSPECTS), ("W", WEAPONS), ("R", ROOMS))
 # ---------------------------------------------------------------------
 
 
-def _player_label(state, player: int) -> str:
-    """``P2 White`` -- index plus the suspect in that seat."""
-    return f"P{player} {state.suspects_in_play[player]}"
+def _player_label(state, player: int, labels=None) -> str:
+    """``P2 White``, or ``P2 White (Plum)`` when a different character
+    occupies the White token."""
+    text = f"P{player} {state.suspects_in_play[player]}"
+    if labels is not None and labels[player] != state.suspects_in_play[player]:
+        text += f" ({labels[player]})"
+    return text
 
 
 def _node_label(node) -> str:
@@ -81,22 +110,56 @@ def _node_label(node) -> str:
 
 
 def _add_game_args(parser: argparse.ArgumentParser) -> None:
-    """The three knobs every one-game command shares."""
+    """The knobs every one-game command shares."""
     parser.add_argument("--players", type=int, default=4, help="Table size, 3-6 (default 4).")
     parser.add_argument(
         "--seed", type=int, default=1,
-        help="Seed for the deal, the dice, and every bot (default 1, so runs are reproducible).",
+        help="Seed for the deal, the dice, and every player (default 1, so runs are reproducible).",
     )
     parser.add_argument(
         "--max-turns", type=int, default=300,
         help="Turn cap if nobody accuses correctly (default 300).",
     )
+    parser.add_argument(
+        "--roster", default="random",
+        help="Who plays: 'random' (RandomBots), 'floor' (FloorBots), or a comma-separated "
+        "lineup of suspect names and 'floor' fill seats, seated in that order.",
+    )
 
 
-def _play_random_game(args):
-    """One finished `RandomBot` game from the shared game args."""
-    bots = {p: RandomBot() for p in range(args.players)}
-    return engine.run_game(args.players, bots, seed=args.seed, max_turns=args.max_turns)
+def _play_game(args):
+    """One finished game from the shared game args: ``(state, events,
+    labels)`` where `labels` names each seat's occupant."""
+    n = args.players
+    roster = args.roster.strip()
+    if roster == "random":
+        players = {p: RandomBot() for p in range(n)}
+        labels = ["random"] * n
+        observer = ClueObservation.for_player
+    elif roster == "floor":
+        players = {p: clude_constraints.FloorBot() for p in range(n)}
+        labels = ["floor"] * n
+        observer = clude_constraints.observe
+    else:
+        try:
+            labels = lineup_for_game(parse_roster(roster.split(",")), 0, n)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+        players = {}
+        for seat, label in enumerate(labels):
+            if label in AGENT_SPECS:
+                character = build_character(label)
+                character.reset(args.seed)
+                players[seat] = character
+            elif label == "floor":
+                players[seat] = clude_constraints.FloorBot(rng=random.Random(fill_seed(args.seed, seat)))
+            else:
+                players[seat] = RandomBot()
+        observer = clude_constraints.observe
+    state, events = engine.run_game(
+        n, players, seed=args.seed, max_turns=args.max_turns, observer=observer
+    )
+    return state, events, labels
 
 
 def _parse_agent_names(raw: str) -> list:
@@ -113,26 +176,45 @@ def _parse_agent_names(raw: str) -> list:
     return names
 
 
-def _build_agents(names: list, seed: int) -> dict:
-    agents = {}
+def _build_characters(names: list, seed: int) -> dict:
+    """Preset characters by name, each reset with `seed`. A `Character`
+    exposes `select_action`, so the trace can query it like an agent and
+    still read its accusation test."""
+    characters = {}
     for name in names:
-        agent = build_agent(name)
-        agent.reset(seed)
-        agents[name] = agent
-    return agents
+        character = build_character(name)
+        character.reset(seed)
+        characters[name] = character
+    return characters
 
 
-def _describe_suggestion(state, suggestion, turn=None) -> str:
+def _parse_dial_settings(items) -> dict:
+    """``Label.dial=value`` strings -> ``{label: Profile}`` overrides,
+    starting from each character's preset."""
+    profiles: dict = {}
+    for item in items or []:
+        try:
+            target, value = item.split("=", 1)
+            label, dial = target.split(".", 1)
+            profiles[label] = profiles.get(label, preset(label)).with_dials(**{dial: float(value)})
+        except (ValueError, KeyError) as exc:
+            raise SystemExit(
+                f"bad --set {item!r} ({exc}); expected Label.dial=value with a dial in {DIALS}"
+            ) from exc
+    return profiles
+
+
+def _describe_suggestion(state, suggestion, turn=None, labels=None) -> str:
     """One line for a suggestion as a given observer sees it: the card
     shown is named only if `suggestion.card_shown` was left visible."""
-    who = _player_label(state, suggestion.suggester)
+    who = _player_label(state, suggestion.suggester, labels)
     cards = f"{suggestion.suspect}/{suggestion.weapon}/{suggestion.room}"
     if suggestion.refuter is None:
         outcome = "nobody could refute"
     elif suggestion.card_shown is not None:
-        outcome = f"{_player_label(state, suggestion.refuter)} showed {suggestion.card_shown}"
+        outcome = f"{_player_label(state, suggestion.refuter, labels)} showed {suggestion.card_shown}"
     else:
-        outcome = f"{_player_label(state, suggestion.refuter)} showed a card (hidden)"
+        outcome = f"{_player_label(state, suggestion.refuter, labels)} showed a card (hidden)"
     prefix = f"turn {turn}: " if turn is not None else ""
     return f"{prefix}{who} suggests {cards} -- {outcome}"
 
@@ -185,6 +267,16 @@ def _format_extra(belief) -> str:
     return ""
 
 
+def _format_accusation_test(character, belief) -> str:
+    """``[P(correct)=0.42 <0.90]``: the character's confidence in its
+    best triple against its accusation threshold; ``>=`` means it would
+    accuse here."""
+    _triple, confidence = best_triple(character.confidence_fn(belief))
+    threshold = character.profile.accuse_threshold
+    op = ">=" if confidence >= threshold else "<"
+    return f"[P(correct)={confidence:.2f} {op}{threshold:.2f}]"
+
+
 def _format_mask(mask, state) -> str:
     """Card x holder grid: ``#`` located, ``x`` still possible, ``.`` ruled out."""
     holders = list(range(state.n_players)) + [ENVELOPE]
@@ -205,10 +297,21 @@ def _format_mask(mask, state) -> str:
     return "\n".join(lines)
 
 
-def _print_hands(state) -> None:
+def _print_hands(state, labels=None) -> None:
     print("\ndealt hands (omniscient, never visible to an agent):")
     for p in range(state.n_players):
-        print(f"  {_player_label(state, p)}: {', '.join(sorted(state.hands[p]))}")
+        print(f"  {_player_label(state, p, labels)}: {', '.join(sorted(state.hands[p]))}")
+
+
+def _print_seats(state, labels) -> None:
+    print("seats: " + ", ".join(_player_label(state, p, labels) for p in range(state.n_players)))
+
+
+def _write_json(path_text: str, data: dict) -> None:
+    path = Path(path_text)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    print(f"\nSaved: {path}")
 
 
 # ---------------------------------------------------------------------
@@ -217,33 +320,38 @@ def _print_hands(state) -> None:
 
 
 def cmd_agents(args) -> int:
-    """Print the registered suspect agents and their methods."""
-    print("Registered agents (suspect: method):")
+    """Print the registered suspect agents, their methods, and their
+    preset personality dials."""
+    print("Registered agents (suspect: method; preset dials):")
     for spec in list_agent_specs():
         print(f"- {spec.name}: {spec.description}")
+        dials = " ".join(f"{name}={value:.2f}" for name, value in spec.profile.to_dict().items())
+        confidence = "DS belief" if spec.confidence_fn is ds_belief_confidence else "probabilities"
+        print(f"    {dials}  (accuses on {confidence})")
     return 0
 
 
 def cmd_play(args) -> int:
-    """Play one `RandomBot` game and print the outcome (and event log)."""
-    state, events = _play_random_game(args)
-    print(f"seed={args.seed} players={args.players} ({', '.join(state.suspects_in_play)})")
+    """Play one game and print the outcome (and event log)."""
+    state, events, labels = _play_game(args)
+    print(f"seed={args.seed} players={args.players} roster={args.roster}")
+    _print_seats(state, labels)
     if args.verbose:
         print()
         for event in events:
             if isinstance(event, MoveEvent):
                 tag = " (secret passage)" if event.used_secret_passage else ""
                 print(
-                    f"turn {event.turn}: {_player_label(state, event.player)} -> "
+                    f"turn {event.turn}: {_player_label(state, event.player, labels)} -> "
                     f"{_node_label(event.destination)}{tag}"
                 )
             elif isinstance(event, SuggestionEvent):
-                print(_describe_suggestion(state, event.suggestion, event.turn))
+                print(_describe_suggestion(state, event.suggestion, event.turn, labels))
             elif isinstance(event, AccusationEvent):
                 a = event.accusation
                 verdict = "CORRECT" if a.correct else "wrong, eliminated"
                 print(
-                    f"turn {event.turn}: {_player_label(state, a.accuser)} accuses "
+                    f"turn {event.turn}: {_player_label(state, a.accuser, labels)} accuses "
                     f"{a.suspect}/{a.weapon}/{a.room} -- {verdict}"
                 )
     final = events[-1]
@@ -254,35 +362,42 @@ def cmd_play(args) -> int:
         f"accusations: {len(state.accusation_log)}"
     )
     if final.winner is not None:
-        print(f"Winner: {_player_label(state, final.winner)}")
+        print(f"Winner: {_player_label(state, final.winner, labels)}")
     elif not any(state.active):
         print("No winner -- every player accused incorrectly.")
     else:
         print(f"No winner -- hit the {args.max_turns}-turn cap.")
     if args.hands:
-        _print_hands(state)
+        _print_hands(state, labels)
     return 0
 
 
 def cmd_trace(args) -> int:
     """Replay one game from one viewer's seat, printing the floor's
-    progress and each agent's belief after every k-th suggestion."""
-    state, events = _play_random_game(args)
+    progress, each character's belief after every k-th suggestion, and
+    whether it would accuse on it."""
+    state, events, labels = _play_game(args)
     if not 0 <= args.viewer < state.n_players:
         raise SystemExit(f"--viewer must be in 0..{state.n_players - 1} for {state.n_players} players")
-    agents = _build_agents(_parse_agent_names(args.agents), args.seed)
+    characters = _build_characters(_parse_agent_names(args.agents), args.seed)
     suggestion_turns = [e.turn for e in events if isinstance(e, SuggestionEvent)]
 
-    print(f"seed={args.seed} players={args.players} viewer={_player_label(state, args.viewer)}")
+    print(
+        f"seed={args.seed} players={args.players} roster={args.roster} "
+        f"viewer={_player_label(state, args.viewer, labels)}"
+    )
     print(f"viewer's hand: {', '.join(sorted(state.hands[args.viewer]))}")
     print(f"truth (hidden from every agent): envelope = {'/'.join(state.envelope)}")
-    print("belief columns: S/W/R = suspect/weapon/room; Card* = proven by the floor")
+    print(
+        "belief columns: S/W/R = suspect/weapon/room; Card* = proven by the floor; "
+        "P(correct) = confidence in the best triple vs the character's accuse_threshold"
+    )
 
     started = time.perf_counter()
-    steps = belief_trace(state, args.viewer, agents, every=args.every)
+    steps = belief_trace(state, args.viewer, characters, every=args.every)
     elapsed = time.perf_counter() - started
 
-    width = max(len(name) for name in agents) + 2
+    width = max(len(name) for name in characters) + 2
     for step in steps:
         print()
         if step.suggestion is None:
@@ -290,7 +405,7 @@ def cmd_trace(args) -> int:
         else:
             print(
                 f"--- k={step.k}: "
-                f"{_describe_suggestion(state, step.suggestion, suggestion_turns[step.k - 1])}"
+                f"{_describe_suggestion(state, step.suggestion, suggestion_turns[step.k - 1], labels)}"
             )
         mask = step.obs.mask
         solution = mask.solution()
@@ -305,22 +420,24 @@ def cmd_trace(args) -> int:
             extra = _format_extra(belief)
             if extra:
                 line += f"  {extra}"
+            line += f"  {_format_accusation_test(characters[name], belief)}"
             print(line)
 
-    print(f"\n{len(steps)} steps x {len(agents)} agents in {elapsed:.1f}s")
+    print(f"\n{len(steps)} steps x {len(characters)} agents in {elapsed:.1f}s")
     return 0
 
 
 def cmd_floor(args) -> int:
     """Show the deduction floor: the card x holder grid for one viewer at
     one point in a game, or every viewer's convergence over the game."""
-    state, _events = _play_random_game(args)
+    state, _events, labels = _play_game(args)
     total = len(state.suggestion_log)
 
     if args.convergence:
         points = floor_convergence(state)
         head = f"{'k':>4}" + "".join(f"{'P' + str(p):>6}" for p in range(state.n_players))
-        print(f"seed={args.seed} players={args.players} ({', '.join(state.suspects_in_play)})")
+        print(f"seed={args.seed} players={args.players} roster={args.roster}")
+        _print_seats(state, labels)
         print(
             "cards located (of 21) per viewer after k suggestions; * = envelope proven; "
             "rows where nothing changed are skipped\n"
@@ -351,8 +468,8 @@ def cmd_floor(args) -> int:
     mask = obs.mask
 
     print(
-        f"seed={args.seed} players={args.players} viewer={_player_label(state, args.viewer)} "
-        f"after k={k} of {total} suggestions"
+        f"seed={args.seed} players={args.players} roster={args.roster} "
+        f"viewer={_player_label(state, args.viewer, labels)} after k={k} of {total} suggestions"
     )
     print(f"viewer's hand: {', '.join(sorted(state.hands[args.viewer]))}\n")
     print(_format_mask(mask, state))
@@ -360,7 +477,7 @@ def cmd_floor(args) -> int:
     if mask.or_constraints:
         print("\nopen or-constraints (holder has at least one of):")
         for cards, holder in mask.or_constraints:
-            print(f"  {_player_label(state, holder)}: {', '.join(sorted(cards))}")
+            print(f"  {_player_label(state, holder, labels)}: {', '.join(sorted(cards))}")
     solution = mask.solution()
     print(
         f"\nenvelope proven: {'/'.join(solution) if solution else 'not yet'} "
@@ -368,7 +485,7 @@ def cmd_floor(args) -> int:
     )
     print(f"truth: envelope = {'/'.join(state.envelope)}")
     if args.hands:
-        _print_hands(state)
+        _print_hands(state, labels)
     return 0
 
 
@@ -386,12 +503,13 @@ def cmd_benchmark(args) -> int:
         agents=agents,
         player_counts=player_counts,
         max_turns=args.max_turns,
+        bot=args.bot,
     )
     elapsed = time.perf_counter() - started
 
     print(result.summary_table())
     print(
-        f"\n{args.games} games, seed {args.seed}, table sizes {list(player_counts)}, "
+        f"\n{args.games} {args.bot}-bot games, seed {args.seed}, table sizes {list(player_counts)}, "
         f"{result.n_snapshots} snapshots, {elapsed:.1f}s"
     )
     if "Plum" in result.per_agent:
@@ -409,10 +527,7 @@ def cmd_benchmark(args) -> int:
                 f"{c.alpha / (c.alpha + c.beta):>8.3f}{c.alpha + c.beta - 2.0:>10.2f}"
             )
     if args.json:
-        path = Path(args.json)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(result.to_dict(), indent=2), encoding="utf-8")
-        print(f"\nSaved: {path}")
+        _write_json(args.json, result.to_dict())
     return 0
 
 
@@ -426,18 +541,20 @@ def cmd_train_mustard(args) -> int:
         checkpoints=checkpoints,
         max_depth=args.max_depth,
         min_samples_leaf=args.min_samples_leaf,
+        training_bot=args.bot,
+        smoothing_m=args.smoothing_m,
     )
     started = time.perf_counter()
     tree = agent.tree
     elapsed = time.perf_counter() - started
-    rows = training_rows(args.games, args.seed, checkpoints)
+    rows = training_rows(args.games, args.seed, checkpoints, args.bot)
     if not rows:
         raise SystemExit("no training rows -- every game ended before a single suggestion?")
     positives = sum(label for _features, label in rows)
     summary = summarize_tree(tree)
 
     print(
-        f"training set: {len(rows)} rows from {args.games} RandomBot games "
+        f"training set: {len(rows)} rows from {args.games} {args.bot}-bot games "
         f"(seeds {args.seed}..{args.seed + args.games - 1}) at checkpoints {list(checkpoints)}"
     )
     print(
@@ -447,7 +564,8 @@ def cmd_train_mustard(args) -> int:
     print(f"trained in {elapsed:.1f}s (rows and tree are cached per settings within a process)")
     print(
         f"tree: {summary.n_nodes} nodes, {summary.n_leaves} leaves, depth {summary.depth} "
-        f"(--max-depth {args.max_depth}, --min-samples-leaf {args.min_samples_leaf})"
+        f"(--max-depth {args.max_depth}, --min-samples-leaf {args.min_samples_leaf}, "
+        f"--smoothing-m {args.smoothing_m})"
     )
     print("splits per feature:")
     for name in FEATURE_NAMES:
@@ -464,7 +582,9 @@ def cmd_train_mustard(args) -> int:
         eval_seeds = set(range(args.eval_seed, args.eval_seed + args.eval_games))
         train_seeds = set(range(args.seed, args.seed + args.games))
         overlap = len(eval_seeds & train_seeds)
-        print(f"\nheld-out evaluation: {args.eval_games} games from seed {args.eval_seed}")
+        print(
+            f"\nheld-out evaluation: {args.eval_games} {args.bot}-bot games from seed {args.eval_seed}"
+        )
         if overlap:
             print(f"  WARNING: {overlap} evaluation seed(s) overlap the training seeds -- not held out")
         result = run_benchmark(
@@ -472,6 +592,7 @@ def cmd_train_mustard(args) -> int:
             seed=args.eval_seed,
             checkpoints=checkpoints,
             agents={"Mustard": agent},
+            bot=args.bot,
         )
         print(result.summary_table())
     return 0
@@ -491,7 +612,7 @@ def cmd_snapshots(args) -> int:
     started = time.perf_counter()
     for snap in generate_snapshots(
         args.games, args.seed, checkpoints=checkpoints,
-        max_turns=args.max_turns, player_counts=player_counts,
+        max_turns=args.max_turns, player_counts=player_counts, bot=args.bot,
     ):
         n_snapshots += 1
         n_players = snap.obs.n_players
@@ -508,7 +629,7 @@ def cmd_snapshots(args) -> int:
     elapsed = time.perf_counter() - started
 
     print(
-        f"{args.games} games, seed {args.seed}, checkpoints {list(checkpoints)}, "
+        f"{args.games} {args.bot}-bot games, seed {args.seed}, checkpoints {list(checkpoints)}, "
         f"table sizes {list(player_counts)}: {n_snapshots} snapshots in {elapsed:.1f}s"
     )
     print("\ngames per table size, and suggestions per game at the last checkpoint:")
@@ -540,24 +661,159 @@ def cmd_snapshots(args) -> int:
     return 0
 
 
+def _print_arena_footer(result, player_counts, store) -> None:
+    print(
+        f"\n{result.n_games} games, seed {result.seed}, table sizes {list(player_counts)}, "
+        f"{result.seconds:.1f}s; mean {result.mean_turns:.1f} turns; "
+        f"{100 * result.decided_rate:.0f}% decided by a correct accusation"
+    )
+    print(
+        "win%/wrong% = games won / games with a wrong accusation, per game, +- binomial std; "
+        "1st_acc = mean turn of the first accusation; never% = games without one; "
+        "leaked = distinct own cards shown; named = suggestions naming an own card"
+    )
+    if store is not None:
+        print(f"records: run {result.run_id} in {store.describe()}")
+
+
+def cmd_arena(args) -> int:
+    """Play N games among characters and bots and print per-player metrics."""
+    try:
+        roster = parse_roster(args.roster.split(","))
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    profiles = _parse_dial_settings(args.set)
+    player_counts = (args.players,) if args.players else DEFAULT_PLAYER_COUNTS
+    store = open_store(args.store) if args.store else None
+
+    result = run_arena(
+        n_games=args.games,
+        seed=args.seed,
+        roster=roster,
+        player_counts=player_counts,
+        max_turns=args.max_turns,
+        profiles=profiles,
+        store=store,
+        run_id=args.run_id,
+    )
+    print(result.summary_table())
+    _print_arena_footer(result, player_counts, store)
+    if args.json:
+        _write_json(args.json, result.to_dict())
+    return 0
+
+
+def cmd_sweep(args) -> int:
+    """Run the arena once per value of one dial and print the pooled
+    metrics per value, with a monotonicity verdict."""
+    try:
+        roster = parse_roster(args.roster.split(","))
+        characters = [c.strip() for c in args.characters.split(",") if c.strip()] or None
+        player_counts = (args.players,) if args.players else DEFAULT_PLAYER_COUNTS
+        store = open_store(args.store) if args.store else None
+        sweep = sweep_dial(
+            args.dial,
+            args.values,
+            n_games=args.games,
+            seed=args.seed,
+            roster=roster,
+            characters=characters,
+            player_counts=player_counts,
+            max_turns=args.max_turns,
+            store=store,
+            run_id=args.run_id,
+        )
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"sweep of {args.dial} on {', '.join(sweep.characters)} "
+        f"(others at preset); {args.games} paired games per value, seed {args.seed}, "
+        f"table sizes {list(player_counts)}\n"
+    )
+    print(sweep.summary_table())
+    total = sum(r.seconds for r in sweep.results)
+    print(f"\n{len(sweep.values)} values x {args.games} games in {total:.1f}s")
+    if store is not None:
+        print(f"records: runs {sweep.results[0].run_id} .. {sweep.results[-1].run_id} in {store.describe()}")
+    if args.json:
+        _write_json(args.json, sweep.to_dict())
+    return 0
+
+
+def cmd_store(args) -> int:
+    """List the runs in a record store, or print one run's summary."""
+    store = open_store(args.uri)
+    print(f"store: {store.describe()}")
+    if args.run:
+        summary = store.get_run(args.run)
+        print(
+            f"run {args.run}: {summary['n_games']} games, seed {summary['seed']}, "
+            f"roster {', '.join(summary['roster'])}, {len(store.list_games(args.run))} records"
+        )
+        head = f"{'player':<10}{'games':>6}{'win%':>7}{'wrong%':>8}{'leaked':>8}{'named':>7}"
+        print(head)
+        print("-" * len(head))
+        for label, stats in summary["per_player"].items():
+            print(
+                f"{label:<10}{stats['games']:>6}{100 * stats['win_rate']:>7.1f}"
+                f"{100 * stats['wrong_accusation_rate']:>8.1f}{stats['mean_cards_leaked']:>8.2f}"
+                f"{stats['mean_own_cards_named']:>7.2f}"
+            )
+        return 0
+    runs = store.list_runs()
+    if not runs:
+        print("no runs stored")
+        return 0
+    for run_id in runs:
+        print(f"  {run_id}: {len(store.list_games(run_id))} game records")
+    return 0
+
+
 # ---------------------------------------------------------------------
 # Parser
 # ---------------------------------------------------------------------
 
 
+def _add_bot_arg(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--bot", choices=BOT_KINDS, default=DEFAULT_BOT,
+        help="Self-play regime: 'floor' (FloorBots, games end by deduction) or 'random'.",
+    )
+
+
+def _add_arena_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--games", type=int, default=ARENA_N_GAMES)
+    parser.add_argument("--seed", type=int, default=ARENA_SEED)
+    parser.add_argument(
+        "--roster", default=",".join(DEFAULT_ROSTER),
+        help="Comma-separated suspect names and/or 'floor'/'random' bot seats.",
+    )
+    parser.add_argument(
+        "--players", type=int, default=None,
+        help="Fix the table size instead of cycling 3..6 across games.",
+    )
+    parser.add_argument("--max-turns", type=int, default=ARENA_MAX_TURNS)
+    parser.add_argument(
+        "--store", default="",
+        help="Save every game record and the run summary here: a directory or gs://bucket/prefix.",
+    )
+    parser.add_argument("--run-id", default=None, help="Run id for the store (default derived).")
+    parser.add_argument("--json", default="", help="Also write the result to this JSON path.")
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the top-level parser and its subcommand tree."""
     parser = argparse.ArgumentParser(
-        description="clude maintainer CLI: play, trace, inspect, benchmark, train.",
+        description="clude maintainer CLI: play, trace, inspect, benchmark, train, arena.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    agents_p = sub.add_parser("agents", help="List the six registered agents.")
+    agents_p = sub.add_parser("agents", help="List the six registered agents and their presets.")
     agents_p.set_defaults(fn=cmd_agents)
 
     play_p = sub.add_parser(
-        "play", help="Play one RandomBot game; --verbose prints the event log.",
+        "play", help="Play one game; --verbose prints the event log.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     _add_game_args(play_p)
@@ -620,6 +876,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Fix the table size instead of cycling 3..6 across games.",
     )
     bench_p.add_argument("--max-turns", type=int, default=DEFAULT_MAX_TURNS)
+    _add_bot_arg(bench_p)
     bench_p.add_argument(
         "--show-green", action="store_true", help="Print Green's per-arm Beta posteriors after the run.",
     )
@@ -638,6 +895,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     mustard_p.add_argument("--max-depth", type=int, default=DEFAULT_MAX_DEPTH)
     mustard_p.add_argument("--min-samples-leaf", type=int, default=DEFAULT_MIN_SAMPLES_LEAF)
+    mustard_p.add_argument(
+        "--smoothing-m", type=float, default=DEFAULT_SMOOTHING_M,
+        help="m-estimate weight for leaf values (0 = plain means, hard zeros possible).",
+    )
+    mustard_p.add_argument(
+        "--bot", choices=BOT_KINDS, default=DEFAULT_TRAINING_BOT,
+        help="Self-play regime for training and evaluation games.",
+    )
     mustard_p.add_argument("--render", action="store_true", help="Print the whole tree.")
     mustard_p.add_argument(
         "--eval-games", type=int, default=20,
@@ -659,7 +924,41 @@ def build_parser() -> argparse.ArgumentParser:
         "--players", type=int, default=None, help="Fix the table size instead of cycling 3..6.",
     )
     snaps_p.add_argument("--max-turns", type=int, default=DEFAULT_MAX_TURNS)
+    _add_bot_arg(snaps_p)
     snaps_p.set_defaults(fn=cmd_snapshots)
+
+    arena_p = sub.add_parser(
+        "arena", help="Play N games among characters/bots and report win and accusation metrics.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    _add_arena_args(arena_p)
+    arena_p.add_argument(
+        "--set", action="append", default=[], metavar="LABEL.DIAL=VALUE",
+        help="Override one preset dial, e.g. Scarlett.accuse_threshold=0.3 (repeatable).",
+    )
+    arena_p.set_defaults(fn=cmd_arena)
+
+    sweep_p = sub.add_parser(
+        "sweep", help="Run the arena once per value of one dial, on the same deals each time.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    sweep_p.add_argument("--dial", required=True, choices=DIALS)
+    sweep_p.add_argument("--values", type=float, nargs="+", required=True)
+    sweep_p.add_argument(
+        "--characters", default="",
+        help="Comma-separated characters to set the dial on (default: every character in the roster).",
+    )
+    _add_arena_args(sweep_p)
+    sweep_p.set_defaults(fn=cmd_sweep)
+
+    store_p = sub.add_parser(
+        "store", help="List the runs in a record store (a directory or gs://bucket/prefix).",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    store_p.add_argument("--uri", default=DEFAULT_STORE, help="Store location.")
+    store_p.add_argument("--run", default="", help="Print this run's stored summary.")
+    store_p.add_argument("--list", action="store_true", help="List runs (the default action).")
+    store_p.set_defaults(fn=cmd_store)
 
     return parser
 

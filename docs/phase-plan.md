@@ -11,7 +11,7 @@ to the next phase.
 | 2 | Finished `ConstraintPropagator` deduction floor; convergence tests | done |
 | 3 | Six strategy agents, each emitting a masked/renormalized belief vector; no action selection yet | done |
 | 4 | Benchmark harness measuring the six methods' relative strength; `docs/strategy-glossary.md` filled in | done |
-| 5 | Personality parameter profiles turning beliefs into actions; self-play checks that dials move win rate | planned -- see `docs/phase5-plan.md` (for discussion) |
+| 5 | Personality parameter profiles turning beliefs into actions; self-play checks that dials move win rate | done -- plan and David's decisions in `docs/phase5-plan.md`, results in `docs/strategy-glossary.md` |
 | 6 | LLM wrapper: menu of legal actions + persona -> structured action + dialogue, illegal/malformed falls back to top-scored action | not started |
 | 7 | Logbooks: persistent, per-character, written after every game | not started |
 | 8 | Flask/Cloud Run front end -> chat (staggered, capped concurrency, chattiness-gated) -> human seats | not started |
@@ -143,6 +143,53 @@ call, any UI, and the real `clude_training` self-play pipeline.
 Explicitly out of scope for Phase 4: any change to the six agents'
 algorithms in response to their benchmark scores (see above), action
 selection, personality parameters, any LLM call, any UI.
+
+## Phase 5 scope
+
+Planned in `docs/phase5-plan.md` (David's answers to its six decisions
+are recorded there) and built in the five sub-phases it lays out:
+
+- **5a, the engine seam.** `clude_core.engine.PlayerProtocol` replaces
+  `RandomBotProtocol`: the four decisions take the seat's
+  `ClueObservation` first, built by an `observer` injected into
+  `run_game` (default `ClueObservation.for_player`, so `clude_core` still
+  never imports the floor; `clude_constraints.observe` for anything that
+  needs a mask). The refuter is told `shown_to`; the accusation sees
+  this turn's refutation. Golden fingerprints of seeded `RandomBot`
+  games proved the seam byte-identical before anything else changed.
+- **5b, the self-play regime and calibration.** `clude_constraints.FloorBot`
+  is the standard opponent (`--bot floor`, now the default for
+  `generate_snapshots`, the benchmark, and Mustard's training); Mustard's
+  leaves are m-estimates and his features gain `distinct_namers` and
+  `named_beside_located`; White starts unresolved cards at the floor's
+  prior and reports per-opponent `repeat_probability`/`closeness`;
+  Green's arm reward is a rank per snapshot, and the Phase 4 test now
+  demands his arms *separate*. Two Phase 1 rules bugs were found by the
+  first games with intent and fixed: a token could not leave a room
+  except by secret passage (`board.reachable` treated the start room as
+  terminal), and a boxed-in hallway token had no legal move. One floor
+  fix: satisfied or-constraints are dropped rather than kept as open.
+- **5c, the personality layer.** `clude_agents.personality.Profile` (five
+  dials, six presets, `to_dict`/`from_dict`), `features.py` (shared
+  room-choice features, softmax sampling), `character.py`
+  (`Character(agent, profile, confidence_fn)` implementing
+  `PlayerProtocol`; Peacock's confidence is her DS lower bound),
+  `AGENT_SPECS` gaining `profile` and `confidence_fn`, and
+  `SeededAgentMixin.choose_destination` getting its real default. One
+  unit test per decision.
+- **5d, the arena and storage.** `clude_training.arena` (seat rotation,
+  table-size cycling, FloorBot fill, Green's `observe` per game, metrics
+  with n and binomial std) and `clude_training.sweep` (paired runs per
+  dial value, `monotone`). `clude_storage` started a phase early:
+  `GameRecord` and `LocalStore`/`GcsStore` behind one interface, the
+  `clude-game-data` bucket created, and the arena writing to either.
+- **5e, tuning.** Sweeps of all five dials, the presets adjusted, and
+  the results written up in `docs/strategy-glossary.md`.
+
+Explicitly out of scope for Phase 5, and still not done: any LLM call,
+any UI, chat, logbooks (beyond what `GameRecord` stores for Phase 7 to
+read), danger/urgency dials, and any change to a method's core algorithm
+beyond its absence-of-evidence case.
 
 ## Open questions
 

@@ -7,6 +7,7 @@ adjacency, secret passages, starting positions).
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Union
 
 from .domain import ROOMS
@@ -104,6 +105,11 @@ def reachable(start: Node, roll: int, occupied: frozenset[HallwayCell]) -> set[N
     ends that path (a token can't move through a room and out the other
     side in one turn), but a room reached in fewer than `roll` steps is
     still a valid destination -- movement is "up to" the roll, not exact.
+    The *starting* node is always expanded, room or not: a token leaves
+    the room it stands in through either of its doors. (Through Phase 4
+    it could not -- the start room was treated as terminal too, so a
+    token could only ever leave a room by secret passage. Fixed in
+    Phase 5b once FloorBot games exposed the resulting pile-ups.)
 
     Parameters
     ----------
@@ -125,8 +131,8 @@ def reachable(start: Node, roll: int, occupied: frozenset[HallwayCell]) -> set[N
     for _ in range(roll):
         next_frontier: set[Node] = set()
         for node in frontier:
-            if isinstance(node, str):
-                continue  # rooms are terminal for this turn's movement
+            if isinstance(node, str) and node != start:
+                continue  # rooms reached this turn are terminal
             for nb in neighbors(node):
                 if nb in visited:
                     continue
@@ -144,6 +150,39 @@ def reachable(start: Node, roll: int, occupied: frozenset[HallwayCell]) -> set[N
 def room_of(node: Node) -> str | None:
     """The room a node represents, or None if it's a hallway cell."""
     return node if isinstance(node, str) else None
+
+
+@lru_cache(maxsize=None)
+def room_distances(node: Node) -> dict[str, int]:
+    """Steps from `node` to every room, by breadth-first search over
+    hallway cells, rooms (passed through) and secret passages (one
+    step), ignoring other tokens and the per-turn rule that entering a
+    room ends movement. A proximity measure, not a turn count.
+
+    Parameters
+    ----------
+    node : Node
+        A room name or `HallwayCell` (both hashable, so results cache).
+
+    Returns
+    -------
+    dict[str, int]
+        Room -> steps; 0 for `node` itself when it is a room.
+    """
+    dist: dict[Node, int] = {node: 0}
+    frontier: list[Node] = [node]
+    while frontier:
+        next_frontier: list[Node] = []
+        for n in frontier:
+            neighbours = list(neighbors(n))
+            if isinstance(n, str) and n in SECRET_PASSAGES:
+                neighbours.append(SECRET_PASSAGES[n])
+            for nb in neighbours:
+                if nb not in dist:
+                    dist[nb] = dist[n] + 1
+                    next_frontier.append(nb)
+        frontier = next_frontier
+    return {room: dist[room] for room in ROOMS}
 
 
 def node_sort_key(node: Node) -> tuple:

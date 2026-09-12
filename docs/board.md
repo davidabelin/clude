@@ -1,6 +1,6 @@
 # Board
 
-Dave chose full board movement for Phase 1 (grid/graph of rooms and
+David chose full board movement for Phase 1 (grid/graph of rooms and
 hallways, dice rolls, secret passages, hallway blocking) over abstracting
 movement away. This documents where the topology came from and what is a
 deliberate simplification.
@@ -55,7 +55,7 @@ different mapping (Scarlett/Study, Mustard/Library, White/Billiard,
 Green/Conservatory, Peacock/Dining, Plum/Hall) from an unverifiable summary,
 which could reflect a different edition of the board. The table above is
 the one grounded directly in measured coordinates from a single citable
-source, so it's what's implemented. If Dave has a physical board to check
+source, so it's what's implemented. If David has a physical board to check
 against, `clude_core/board.py`'s `START_POSITIONS` is the one place to fix.
 
 ## Simplification: hallway cell counts are not pixel-exact
@@ -77,9 +77,18 @@ literal visual board rendering (a Phase 8 UI concern, not engine logic).
   at the last free cell, you don't forfeit the rest of your turn for
   future turns -- just this move truncates there).
 - Reaching a room ends movement immediately, even with roll remaining.
+- From a room, you leave through either of its two doors into the
+  adjoining hallway chain, again up to the roll (an adjacent room is five
+  steps away, so it takes a 5 or a 6 to cross in one turn). Through
+  Phase 4 the engine got this wrong -- the starting room was treated as
+  terminal too, so a token could only ever leave a room by secret
+  passage -- which is why every early self-play game piled up in one
+  room; fixed in Phase 5b (`board.reachable`).
 - From a room, you may also stay without moving, or -- if that room has a
   secret passage -- take it instead of rolling, moving instantly to the
   connected room and ending movement there.
+- A hallway token boxed in by other tokens on both sides has no move and
+  simply stays put that turn (`engine.legal_moves` offers only ``stay``).
 - A suggestion may only name the room the suggesting player currently
   occupies. Making a suggestion moves the named suspect's token into that
   room (official rule), which can reposition another character ahead of

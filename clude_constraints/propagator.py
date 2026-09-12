@@ -43,7 +43,12 @@ class ConstraintError(ValueError):
 
 @dataclass(frozen=True)
 class ConstraintResult:
-    """The output of `propagate`: what's still logically possible."""
+    """The output of `propagate`: what's still logically possible.
+
+    `or_constraints` holds only constraints that are still open: not
+    yet satisfied by a located card, and with at least two cards the
+    holder could still hold (a single survivor is promoted to a fact).
+    """
 
     possible_holders: dict[str, frozenset[Holder]]
     or_constraints: tuple[tuple[frozenset[str], int], ...]
@@ -104,6 +109,12 @@ class _Working:
         changed = False
         still_open = []
         for cards, holder in self.or_constraints:
+            if any(self.holders[c] == {holder} for c in cards):
+                # Already satisfied by a located card: nothing left to
+                # infer, and keeping it would misreport the holder as
+                # still needing one of the *other* cards (Phase 5 fix;
+                # Plum's search filtered these itself, Peacock did not).
+                continue
             remaining = frozenset(c for c in cards if holder in self.holders[c])
             if not remaining:
                 raise ConstraintError(

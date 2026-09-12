@@ -5,7 +5,10 @@ Owner: David (David Abelin, github.com/davidabelin). Solo project.
 
 ## Status (September 2026)
 
-The design was worked out in claude.ai conversations. No engine code exists yet.
+The design was worked out in claude.ai conversations. Phases 1-5 of
+`docs/phase-plan.md` are built and tested: engine, deduction floor, the
+six agents, the benchmark, and the personality layer with its arena,
+sweeps, and game-record storage. Phase 6 (the LLM wrapper) is next.
 `legacy/` holds code from an earlier chat, which is material to port from rather than a foundation to build on.
 Read `legacy/README.md` before touching it, because several pieces are unfinished.
 
@@ -103,6 +106,11 @@ None outstanding as of 2026-09-11. Resolved:
 - Windows 11 laptop ("Orbit"): i7-11800H, 32 GB RAM, RTX 3080 Laptop GPU.
 - Editor: VS Code.
 - For CUDA to engage, Python may need to be added to Windows' high-performance GPU app list.
+- Google Cloud: project `clude-game`, bucket `gs://clude-game-data`
+  (billing enabled 2026-09-12). The service-account key is
+  `clude-game-sa.json` at the repo root: gitignored, never commit it,
+  never print or copy its contents. `clude_storage` finds it by that
+  path or via `CLUDE_GCS_CREDENTIALS`; see `docs/architecture.md`.
 
 ## First session
 

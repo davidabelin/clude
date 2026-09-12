@@ -25,12 +25,27 @@ DEFAULT_NODE_BUDGET = 200_000
 DEFAULT_SAMPLE_BUDGET = 2_000
 
 
+def _holder_order(holder: Holder) -> tuple:
+    """Sort key giving holder sets a fixed iteration order: seats in
+    order, then the envelope.
+
+    `mask.possible_holders` values are frozensets mixing seat ints with
+    the string `ENVELOPE`, and a str's hash -- hence its position in
+    set iteration -- changes with every Python process (hash
+    randomization). Iterating them raw made the search order, the node
+    budget cutoff, and the sampling fallback's draws differ between
+    processes for the same seed, which broke arena reproducibility at
+    5-6 players (tests/test_determinism.py).
+    """
+    return (1, 0) if holder == ENVELOPE else (0, holder)
+
+
 class _Search:
     """Mutable backtracking state, shared by exact search and the
     sampling fallback. Card domains are fixed at construction (taken
-    straight from `mask.possible_holders`) and never mutated; only
-    `assignment`/`capacity`/`envelope_used` change as cards are placed
-    and unplaced along the current path.
+    from `mask.possible_holders`, in `_holder_order`) and never mutated;
+    only `assignment`/`capacity`/`envelope_used` change as cards are
+    placed and unplaced along the current path.
     """
 
     def __init__(self, obs: ClueObservation, mask: ConstraintResult):
@@ -39,7 +54,7 @@ class _Search:
             key=lambda c: len(mask.possible_holders[c]),  # most-constrained-first
         )
         self.domains: dict[str, tuple[Holder, ...]] = {
-            c: tuple(mask.possible_holders[c]) for c in self.unresolved
+            c: tuple(sorted(mask.possible_holders[c], key=_holder_order)) for c in self.unresolved
         }
         self.capacity: dict[int, int] = {
             p: mask.hand_sizes[p] - sum(1 for c in ALL_CARDS if mask.holder_of(c) == p)

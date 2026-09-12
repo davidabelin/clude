@@ -45,6 +45,7 @@ from clude_agents.bandit import RevealedOutcome
 from clude_agents.base import mask_and_normalize
 from clude_core.domain import ROOMS, SUSPECTS, WEAPONS
 from clude_training.self_play import (
+    DEFAULT_BOT,
     DEFAULT_CHECKPOINTS,
     DEFAULT_MAX_TURNS,
     DEFAULT_PLAYER_COUNTS,
@@ -142,6 +143,7 @@ class BenchmarkResult:
     n_games: int = 0
     seed: int = 0
     player_counts: tuple = DEFAULT_PLAYER_COUNTS
+    bot: str = DEFAULT_BOT
     n_snapshots: int = 0
     per_agent: dict = field(default_factory=dict)  # name -> {checkpoint: _Accumulator}
     agents: dict = field(default_factory=dict)  # name -> agent instance
@@ -174,6 +176,7 @@ class BenchmarkResult:
             "seed": self.seed,
             "checkpoints": list(self.checkpoints),
             "player_counts": list(self.player_counts),
+            "bot": self.bot,
             "n_snapshots": self.n_snapshots,
             "per_agent": {
                 name: {str(cp): acc.to_dict() for cp, acc in cells.items()}
@@ -196,6 +199,7 @@ def run_benchmark(
     agents: Optional[dict] = None,
     player_counts: tuple = DEFAULT_PLAYER_COUNTS,
     max_turns: int = DEFAULT_MAX_TURNS,
+    bot: str = DEFAULT_BOT,
 ) -> BenchmarkResult:
     """Run agents (plus the uniform baseline) over shared self-play
     snapshots and score each one's belief against the eventual ground
@@ -203,9 +207,10 @@ def run_benchmark(
 
     Parameters
     ----------
-    n_games, seed, checkpoints, player_counts, max_turns
+    n_games, seed, checkpoints, player_counts, max_turns, bot
         Passed to `generate_snapshots`; `player_counts` fixes or cycles
-        the table size.
+        the table size, `bot` picks the self-play regime (``"floor"``
+        by default since Phase 5, ``"random"`` for the Phase 4 one).
     agents : dict[str, AgentProtocol] or None
         Agents to score, keyed by display name. Default: all six from
         the registry. Pass a subset to benchmark one method, or a
@@ -233,12 +238,14 @@ def run_benchmark(
         n_games=n_games,
         seed=seed,
         player_counts=tuple(player_counts),
+        bot=bot,
         per_agent={name: {cp: _Accumulator() for cp in checkpoints} for name in names},
         agents=agents,
     )
 
     for snap in generate_snapshots(
-        n_games, seed, checkpoints=checkpoints, max_turns=max_turns, player_counts=player_counts
+        n_games, seed, checkpoints=checkpoints, max_turns=max_turns,
+        player_counts=player_counts, bot=bot,
     ):
         result.n_snapshots += 1
         result.per_agent[UNIFORM][snap.checkpoint].update(

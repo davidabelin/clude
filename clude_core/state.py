@@ -65,11 +65,18 @@ class ClueObservation:
 
     @staticmethod
     def for_player(state: GameState, viewer: int) -> "ClueObservation":
+        """Build `viewer`'s observation of `state` (no `mask`).
+
+        Called before every decision of every turn since Phase 5a, so it
+        is kept cheap: a suggestion the viewer is entitled to see in full
+        (they suggested or refuted it) or that has nothing to hide is
+        reused as-is; only the rest are copied with `card_shown` redacted.
+        """
         redacted = []
         for s in state.suggestion_log:
-            visible_card = (
-                s.card_shown if viewer in (s.suggester, s.refuter) else None
-            )
+            if s.card_shown is None or viewer in (s.suggester, s.refuter):
+                redacted.append(s)
+                continue
             redacted.append(
                 Suggestion(
                     suggester=s.suggester,
@@ -78,7 +85,7 @@ class ClueObservation:
                     room=s.room,
                     refuter=s.refuter,
                     shown_to=s.shown_to,
-                    card_shown=visible_card,
+                    card_shown=None,
                 )
             )
         return ClueObservation(

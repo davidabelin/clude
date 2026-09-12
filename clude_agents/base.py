@@ -11,7 +11,11 @@ from typing import Any, Protocol
 
 from clude_constraints import ENVELOPE, ConstraintResult
 from clude_core.domain import ROOMS, SUSPECTS, WEAPONS
+from clude_core.engine import MoveChoice
 from clude_core.state import ClueObservation
+
+from .features import pick_destination
+from .personality import Profile
 
 CATEGORIES: tuple[list[str], ...] = (SUSPECTS, WEAPONS, ROOMS)
 
@@ -40,10 +44,12 @@ class ClueBelief:
 
 class AgentProtocol(Protocol):
     """Same shape as `rps_agents/base.py`, phase-scoped per
-    docs/architecture.md: through Phase 4 `select_action` returns a
-    belief only, never a chosen game action. `choose_destination` is a
-    Phase 5 slot, reserved now so this protocol doesn't need a breaking
-    change later -- see `SeededAgentMixin.choose_destination`.
+    docs/architecture.md: `select_action` returns a belief only, never
+    a chosen game action -- `clude_agents.character.Character` turns
+    that belief plus a `Profile` into the engine's four decisions.
+    `choose_destination` is the one decision the protocol itself owns,
+    so a method can reason about rooms its own way; the shared default
+    lives on `SeededAgentMixin`.
     """
 
     name: str
@@ -55,13 +61,22 @@ class AgentProtocol(Protocol):
         and renormalized against `obs.mask` (see `mask_and_normalize`)."""
         ...
 
+    def choose_destination(
+        self, obs: ClueObservation, legal_moves: list, room_features: list, profile: Profile
+    ) -> MoveChoice:
+        """Pick where to move this turn. `room_features` is
+        `clude_agents.features.room_features(obs, belief, legal_moves)`
+        -- shared arithmetic; the pick is this agent's own. `profile`
+        supplies the character's `curiosity` and `temperature`."""
+        ...
+
     def observe(self, transition: Any) -> None: ...
 
 
 class SeededAgentMixin:
     """Deterministic RNG plumbing for methods that need one (sampling
-    fallbacks, Thompson sampling, tie-breaking). Mirrors
-    `rps_agents.heuristic.common.RNGMixin`.
+    fallbacks, Thompson sampling, tie-breaking), plus the default room
+    choice. Mirrors `rps_agents.heuristic.common.RNGMixin`.
     """
 
     def __init__(self) -> None:
@@ -70,11 +85,15 @@ class SeededAgentMixin:
     def reset(self, seed: "int | None") -> None:
         self.rng.seed(seed)
 
-    def choose_destination(self, obs, legal_moves, room_features):
-        """Phase 5 slot (see docs/architecture.md's room/suggestion
-        target-selection note) -- not implemented until the personality
-        layer exists to drive it."""
-        raise NotImplementedError("room/destination choice is Phase 5")
+    def choose_destination(
+        self, obs: ClueObservation, legal_moves: list, room_features: list, profile: Profile
+    ) -> MoveChoice:
+        """Default: softmax over the profile's curiosity-weighted blend of
+        each choice's information and proximity (`features.pick_destination`),
+        drawn from this agent's own RNG. Override per method for a
+        different room policy."""
+        del obs, legal_moves  # the features already cover every legal move
+        return pick_destination(room_features, profile, self.rng)
 
 
 def mask_and_normalize(

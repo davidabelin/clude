@@ -7,9 +7,9 @@ a name-keyed registry, one module per method, sibling packages by concern.
 
 ```
 clude/
-  clude_core/          # domain model, ClueObservation, event log, GameState
-  clude_constraints/    # the deduction floor (finished ConstraintPropagator)
-  clude_agents/          # AgentProtocol + AgentSpec registry + one module per method
+  clude_core/          # domain model, board, ClueObservation, event log, GameState, rules engine
+  clude_constraints/   # the deduction floor (ConstraintPropagator) and FloorBot
+  clude_agents/        # AgentProtocol + AgentSpec registry + one module per method
     base.py
     naive_bayes.py        # Scarlett
     exact_enum.py          # Plum
@@ -17,10 +17,13 @@ clude/
     decision_tree.py         # Mustard
     bandit.py                  # Green
     markov.py                   # White
-  clude_training/       # self-play loop, decision-tree/bandit training, benchmarks
-  clude_storage/         # logbooks, game logs, trained model artifacts
-  clude_web/              # Flask/Cloud Run app, chat, UI (phase 8+)
-  scripts/
+    personality.py     # Profile: the five dials, six presets
+    features.py        # shared room-choice features and softmax sampling
+    character.py       # Character(agent, profile): the four engine decisions
+  clude_training/      # self-play snapshots, belief benchmark, replay, arena, sweeps
+  clude_storage/       # game records; local and Cloud Storage record stores
+  clude_web/           # Flask/Cloud Run app, chat, UI (phase 8+, not started)
+  scripts/             # clude_cli.py
   tests/
   docs/
 ```
@@ -28,6 +31,13 @@ clude/
 `legacy/` is not a dependency of any of the above. It is read, and its ideas
 and fixes are ported in; nothing imports `legacy` directly once a package
 supersedes it. See `legacy/README.md` for what came from where.
+
+Import direction, which the tests rely on: `clude_core` imports nothing
+else; `clude_constraints` imports `clude_core`; `clude_training.self_play`
+imports both but never `clude_agents`; `clude_agents` imports all three;
+`clude_training.benchmark/trace/arena/sweep` and `clude_storage` sit on
+top. `clude_training/__init__.py` stays empty of submodule imports so
+Mustard's tree can depend on `self_play` without a cycle.
 
 ## Environment
 
@@ -44,7 +54,10 @@ pip install -r requirements.txt
 ```
 
 No conda environment is used for this project, so as not to depend on the
-machine's miniconda install being on `PATH`.
+machine's miniconda install being on `PATH`. The only non-test dependency
+is `google-cloud-storage`, imported lazily and only by `gs://` record
+stores (see "Cloud Storage" below); everything else is the standard
+library.
 
 ## The deduction floor (`clude_constraints`)
 
@@ -83,7 +96,7 @@ every agent:
 @dataclass(frozen=True)
 class ConstraintResult:
     possible_holders: dict[str, frozenset[Holder]]  # Holder = int | 'envelope'
-    or_constraints: tuple[tuple[frozenset[str], int], ...]  # still-unresolved joint constraints
+    or_constraints: tuple[tuple[frozenset[str], int], ...]  # still-open joint constraints
     hand_sizes: dict[int, int]
 
     def holder_of(self, card: str) -> Holder | None: ...   # resolved holder, or None
@@ -106,10 +119,17 @@ original pseudocode above:
 scratch every call (own hand, then every suggestion's eliminations/OR
 constraints/hard reveals, then a fixpoint loop over OR-constraint
 collapse, the category rule, and hand-size saturation). Verified sound by
-`tests/test_constraints.py`: across many real random-bot games, replayed
+`tests/test_constraints.py`: across many real bot games, replayed
 through every player's `ClueObservation`, the floor never rules out the
 true holder of any card, and at least one player reaches full certainty
 given enough turns.
+
+Phase 5 fix: an or-constraint that a located card already satisfies is now
+dropped rather than kept as "open". Keeping it was harmless to the mask
+(it could never eliminate anything) but Peacock read the surviving,
+still-unlocated members as live evidence against those cards, and the
+`floor` CLI printed satisfied constraints as open. Plum's search already
+filtered them itself.
 
 ## `ClueObservation`
 
@@ -136,14 +156,18 @@ class ClueObservation:
     active_players: tuple[bool, ...]
     hand_sizes: dict[int, int]
     suggestion_log: tuple[Suggestion, ...]
-    accusation_log: tuple[tuple[int, str, str, str, bool], ...]  # (player, s, w, r, correct)
+    accusation_log: tuple[Accusation, ...]
     turn: int
-    mask: ConstraintResult    # recomputed fresh each call; no agent can go stale
+    mask: ConstraintResult | None   # recomputed fresh each call; no agent can go stale
 ```
 
 This is the most expensive object in the repo to change later, since all six
-agents and the event log key off it — it is written once, in Phase 1, before
-any agent code.
+agents and the event log key off it — it was written once, in Phase 1,
+before any agent code, and has not needed a field since. Positions are
+deliberately not in it: nothing an agent decides today needs them (room
+choice is driven by the legal-move list, which already encodes where the
+mover is), and adding them is a one-line, defaulted change if a danger
+feature ever needs them.
 
 **As implemented (Phase 3):** `mask` is `Optional[ConstraintResult] = None`
 in `clude_core.state`, not required as sketched above — `clude_constraints`
@@ -154,11 +178,52 @@ already depends on `clude_core`, so `clude_core` cannot import
 observation and attaches a freshly computed mask, and every observation
 reaching an agent's `select_action` is expected to have gone through it.
 
+## The engine seam (Phase 5a)
+
+`clude_core.engine.run_game` asks every seat four questions through
+`PlayerProtocol`, each with that seat's `ClueObservation` first:
+
+```python
+class PlayerProtocol(Protocol):
+    def choose_movement(self, obs, choices: list[MoveChoice], rng) -> MoveChoice: ...
+    def choose_suggestion(self, obs, room: str, rng) -> tuple[str, str] | None: ...
+    def choose_accusation(self, obs, rng) -> tuple[str, str, str] | None: ...
+    def choose_card_to_show(self, obs, candidates: list[str], shown_to: int, rng) -> str: ...
+```
+
+The observation is built by an injectable `observer: Callable[[GameState,
+int], ClueObservation]`, defaulting to `ClueObservation.for_player`, so
+`clude_core` still never imports the deduction floor; anything that needs
+a mask (`FloorBot`, every `Character`) is run with
+`observer=clude_constraints.observe`. One observation serves a turn's
+movement and suggestion decisions (nothing a `ClueObservation` carries
+changes between them), a fresh one is built for the accusation once the
+suggestion has resolved so its refutation is visible, and the refuter
+gets its own observation -- from which the suggestion being refuted is
+still absent, hence the explicit `shown_to`. Building an observation
+consumes no RNG, so the seam left every seeded `RandomBot` game
+byte-identical (`tests/test_engine.py` carries golden fingerprints).
+
+Three implementations exist: `clude_core.bots.RandomBot` (ignores the
+observation, draws from the engine RNG), `clude_constraints.FloorBot`
+(below), and `clude_agents.character.Character` (below). A player with
+its own RNG must leave the engine's alone, so that a seeded game's deal
+*and* dice depend only on the seed -- the property the arena's paired
+comparisons rest on.
+
+Two rules bugs surfaced as soon as players with intent existed, both
+fixed in Phase 5b: `board.reachable` treated the *starting* room as
+terminal, so a token could only ever leave a room by secret passage
+(every earlier self-play game piled up in one room for that reason); and
+a hallway token boxed in by other tokens had no legal move at all, where
+Clue simply has it stay put (`legal_moves` now offers ``stay`` in that
+case). The golden fingerprints were regenerated once, after those fixes.
+
 ## `AgentProtocol`
 
-Same shape as `rps_agents/base.py`, phase-scoped: through Phase 4 it returns
-numbers only, not a chosen game action. The personality layer (Phase 5) is
-what turns those numbers plus a parameter profile into an actual move.
+Same shape as `rps_agents/base.py`. `select_action` returns numbers only,
+never a chosen game action; the personality layer is what turns those
+numbers plus a parameter profile into an actual move.
 
 ```python
 class AgentProtocol(Protocol):
@@ -168,39 +233,37 @@ class AgentProtocol(Protocol):
 
     def select_action(self, obs: ClueObservation) -> ClueBelief:
         """Return this agent's belief over the 21 cards, already masked and
-        renormalized against obs.mask. Phase 5+ callers additionally pass
-        this through a personality profile to obtain a ClueAction."""
+        renormalized against obs.mask."""
         ...
 
     def choose_destination(
         self,
         obs: ClueObservation,
         legal_moves: list[MoveChoice],
-        room_features: dict[str, RoomFeatures],
+        room_features: list[ChoiceFeatures],
+        profile: Profile,
     ) -> MoveChoice:
-        """Phase 5. Pick where to move this turn. `room_features` covers
-        only the room-type entries in `legal_moves`; shared feature
-        extraction, per-agent decision -- see the note above. A `HumanAgent`
-        implements this by asking the UI instead of a model, through the
-        same signature."""
+        """Pick where to move this turn. `room_features` is shared
+        arithmetic over the agent's own belief and the board; the pick is
+        the agent's. The default (SeededAgentMixin) is a softmax over the
+        profile's curiosity-weighted blend; any method may override it."""
         ...
 
-    def observe(self, transition: ClueTransition) -> None: ...
+    def observe(self, transition: RevealedOutcome) -> None: ...
 ```
 
 `AGENT_SPECS` is a name-keyed registry (`clude_agents/__init__.py`), same
-pattern as `rps_agents.heuristic.AGENT_SPECS`, keyed by suspect name.
+pattern as `rps_agents.heuristic.AGENT_SPECS`, keyed by suspect name. Since
+Phase 5 each spec also carries the character's preset `Profile` and its
+`confidence_fn`, and `build_character(name)` returns a playable seat.
 
 **As implemented (Phase 3):** `ClueBelief` is `{probabilities: dict[str,
 float], extra: dict[str, Any]}` -- `extra` is where a method reports
 whatever doesn't fit a flat per-card probability (Peacock's raw
-Belief/Plausibility bounds, Green's selected arm). `choose_destination`'s
-reserved slot is realized as `SeededAgentMixin.choose_destination`,
-raising `NotImplementedError("room/destination choice is Phase 5")` --
-every agent inherits it as-is until Phase 5 gives it something to do.
-`ClueTransition` doesn't exist yet; only Green's `observe` does anything
-today, against a narrower placeholder (`RevealedOutcome`, just the solved
-envelope) documented in `clude_agents/bandit.py`.
+Belief/Plausibility bounds, Green's selected arm, White's per-opponent
+repeat probabilities and closeness proxy). Only Green's `observe` does
+anything, against `RevealedOutcome` (just the solved envelope), which is
+all any agent has needed so far.
 
 ## Method-to-suspect mapping
 
@@ -220,14 +283,11 @@ drifts from the true posterior. That's wrong for Plum (who needs the real
 posterior) but is exactly Scarlett's character flaw, so it becomes her
 method once it's routed through the deduction floor.
 
-## Per-turn data flow (Phases 1-3 scope)
+## Per-turn data flow
 
 ```
-GameState ──► ConstraintPropagator.propagate()
-                     |
-                     v
-              ConstraintResult (known + or_constraints)
-                     |
+GameState ──► observer (clude_constraints.observe) ──► ClueObservation + mask
+                                   |
        +-------------+------+------+------+------+-------------+
        v             v      v      v      v      v             v
   NaiveBayes    ExactEnum  DShafer  DTree  Bandit  Markov
@@ -236,12 +296,17 @@ GameState ──► ConstraintPropagator.propagate()
        +-------------+-- masked/renormalized against mask -----+
                                    |
                                    v
-                     belief vector per agent (21 cards)
-                [Phase 3 stops here -- logged for UI/benchmark]
+                     ClueBelief per agent (21 cards + extra)
                                    |
-                        -- Phase 5 adds --
+                        -- Phase 5 (Character + Profile) --
                                    v
-                personality profile -> scored legal actions
+          movement (features + curiosity/temperature) ─► MoveChoice
+          suggestion (belief softmax, bluff_rate)      ─► (suspect, weapon)
+          accusation (confidence_fn product >= threshold) ─► triple or None
+          card to show (secrecy)                        ─► card
+                                   |
+                                   v
+                        engine applies, appends events
                                    |
                         -- Phase 6 adds --
                                    v
@@ -263,7 +328,7 @@ and by opponent-danger (does refuting there teach a dangerous opponent too
 much).
 
 This is a **policy/action-selection** concern, not one of the six inference
-methods, so it belongs in the Phase 5 personality layer, not `clude_agents`.
+methods, so it belongs in the personality layer, not in the methods.
 
 **Refined per David:** room choice must stay a genuine trainable input for
 each character, not one shared analytic formula deciding for all six --
@@ -271,31 +336,137 @@ that would collapse the "six distinct methods" design exactly where it
 matters most (an action every character actually takes, every turn). The
 split:
 
-- **Shared and deterministic -- feature extraction only.** For each room
-  reachable this turn (the subset of `legal_moves()`'s output where
-  `board.room_of(destination)` is not None), compute a numeric feature
-  vector: this agent's own masked probability that the room card is the
-  envelope's (already sitting in its belief vector -- no new computation),
-  reachability/distance, opponent-danger, whether anything's even left to
-  learn by suggesting there. Arithmetic over shared inputs, safe to share
-  like `ConstraintResult` is.
-- **Not shared -- the decision itself.** Turning that feature vector into
-  a pick is per-agent: `choose_destination(obs, legal_moves, room_features)
-  -> MoveChoice`, trainable/tunable per character like its belief method,
-  not a fixed formula. A human player is presented the identical reachable-
-  room menu and feature vector (surfaced in the UI) and picks directly
-  through the same interface point -- real parity between LLM characters
-  and human seats.
+- **Shared and deterministic -- feature extraction only.**
+  `clude_agents.features.room_features(obs, belief, choices)` gives every
+  legal move a `ChoiceFeatures`: the room it lands in this turn (if any),
+  the room it is heading for, `information` (the agent's own masked
+  P(that room card is the envelope's), discounted 0.7 per step still to
+  go) and `proximity` (1 for a room this turn, else `1 / (1 + steps to
+  the nearest room)`). Arithmetic over shared inputs, safe to share like
+  `ConstraintResult` is. `board.room_distances` (breadth-first over
+  hallways, rooms and secret passages) is the distance measure.
+- **Not shared -- the decision itself.** `choose_destination(obs,
+  legal_moves, room_features, profile) -> MoveChoice` is per-agent. The
+  default on `SeededAgentMixin` scores each choice as
+  `curiosity * information + (1 - curiosity) * proximity` and samples a
+  softmax at the profile's `temperature` from the agent's own RNG; any
+  method may override it. A human player is presented the identical
+  reachable-room menu and feature vector (surfaced in the UI) and picks
+  directly through the same interface point -- real parity between LLM
+  characters and human seats.
 
-Starting point for the feature side: `legacy/info_agent.py`'s
-`InformationAgent.best_suggestion(current_room)` already takes the room as
-given and searches suspect/weapon only, with a placeholder expected-info-
-gain calc to replace; `legacy/opponent_model.py`'s `danger_score`/
-`safe_to_suggest` is the opponent-danger half.
+Not yet in the features: opponent danger. docs/phase5-plan.md defers a
+`w_danger` dial until there is a measured signal for it; White's
+`closeness` proxy in `ClueBelief.extra` is the candidate input.
 
-Implementation is still Phase 5 (action selection), but `AgentProtocol`
-should reserve the slot now so Phase 3 doesn't need a breaking change
-later -- see the protocol sketch below.
+## Personality layer (Phase 5c)
+
+`clude_agents.personality.Profile` is five floats, all-numeric and
+slider-ready, each owning one engine decision and meant to move one arena
+metric (the keep-a-dial rule: a dial that moves nothing monotonically in a
+sweep is cut):
+
+| Dial | Decision | Meaning | Metric it should move |
+|---|---|---|---|
+| `accuse_threshold` | accusation | accuse once P(correct) reaches this | wrong-accusation rate, turn of first accusation |
+| `bluff_rate` | suggestion | P(naming one of my own cards instead of an honest pick) | own cards named |
+| `curiosity` | movement | 1 = chase the most probable room, 0 = enter the nearest room | win rate |
+| `secrecy` | card to show | 1 = re-show what this player has already seen, 0 = indifferent | own cards leaked |
+| `temperature` | the three sampled decisions | softmax temperature over scores in [0, 1]; 0 = greedy | win rate |
+
+`clude_agents.character.Character(agent, profile, confidence_fn)`
+implements `PlayerProtocol`: one `select_action` per distinct observation
+(so at most two per turn), then the four decisions off that belief. The
+accusation is a threshold test, not a sample: P(correct) is the product
+of the three category maxima of `confidence_fn(belief)`, which is the
+belief's probabilities for five characters and the Dempster-Shafer
+*belief* (lower bound) for Peacock -- her caution comes from her method,
+not from a faked-up threshold, and `confidence_source` is therefore a
+per-spec function rather than a profile field. The honest suggestion
+never names a card in the character's own hand; only the `bluff_rate`
+coin flip does. Everything random is drawn from the character's own RNG.
+
+Presets live in `personality.PRESETS`, one per suspect; Mustard and White
+sit at the neutral `accuse_threshold` on purpose, so that any wrong
+accusation of theirs is attributable to the method (their calibration is
+the flaw) rather than to a dial. How the presets were tuned, and what the
+sweeps showed, is in `docs/strategy-glossary.md`.
+
+## Self-play regimes: `RandomBot` and `FloorBot` (Phase 5b)
+
+`clude_constraints.FloorBot` is the standard self-play opponent: a
+seventh, characterless player that uses only the shared floor. Suspect
+and weapon are uniform over cards neither in its hand nor located by the
+floor (once a category is exhausted, its proven envelope card, which
+nobody can refute, so the suggestion tests the others cleanly); it
+accuses exactly when `mask.solution()` is not None; it shows a uniform
+card. Movement deviates from docs/phase5-plan.md's "uniform over legal
+moves", which was measured not to produce games that end: it prefers a
+move landing in a room the floor has not located, else the move closest
+to one, and once every room is located, a room nobody else can refute.
+`RandomBot` is kept as the Phase 1 baseline (`--bot random`).
+
+`clude_training.self_play.generate_snapshots(..., bot="floor")` is what
+Mustard's tree trains on by default now, and what the benchmark scores
+against. The `snapshots` CLI shows the difference: FloorBot games end in
+about 12-23 suggestions with a third of viewers holding a proven
+envelope at the end, where the old regime ran 80-180 suggestions with a
+floor that plateaued early.
+
+Three calibration changes landed with the regime, per the plan's
+decision 3 and 4: Mustard's leaves are m-estimates (no hard zeros), White
+starts every unresolved card at the floor's prior (an unnamed card is
+unsuspicious, not impossible), and Green's arm reward is a rank on each
+snapshot rather than an absolute score the floor dominated. Each is an
+absence-of-evidence fix, not a change to the method.
+
+## Arena, sweeps and game records (Phase 5d)
+
+`clude_training.arena.run_arena` plays N whole games through the seam
+with `clude_constraints.observe`, seats rotating across games and the
+table size cycling 3..6, missing seats filled with `FloorBot`s. Per roster
+label it reports win rate and wrong-accusation rate with binomial std,
+mean turn of first accusation and the never-accused rate, distinct own
+cards leaked, suggestions naming an own card, and ms per belief call.
+Characters are built once per run and reset once, so Green's posteriors
+persist and his `observe` at each game's end is what "learns across
+games" means. Every game's deal and dice depend only on `seed + g`, so a
+`sweep_dial` (the arena once per value of one dial, same seed) is a
+paired comparison, and `SweepResult.monotone(metric)` is the keep-a-dial
+test.
+
+Every game can be written as a `clude_storage.GameRecord`: seats (label,
+suspect token, kind, profile dials), the deal, the full omniscient event
+log, and the outcome; the run summary goes beside them. Phase 7's
+logbooks are meant to read these -- a seat's own view is rebuilt from
+`events` with `ClueObservation.for_player`'s redaction rule -- and
+`docs/architecture.md`'s Seat/identity model expects `SeatRecord.label`
+to grow a human identity rather than be replaced.
+
+## Cloud Storage
+
+Decision 6 of docs/phase5-plan.md: game records can go to Google Cloud
+Storage as well as a local directory, through one `RecordStore` interface
+(`clude_storage.stores`). Facts, as set up on 2026-09-12:
+
+- Project `clude-game`, bucket `gs://clude-game-data` (us-central1,
+  Standard class, uniform bucket-level access, public access prevention
+  enforced). Created with the service account after David enabled
+  billing on the project; the free tier covers this usage.
+- Credentials: the service-account key `clude-game-sa.json` at the repo
+  root, which is gitignored and must never be committed or pasted
+  anywhere. `GcsStore` finds it via the `CLUDE_GCS_CREDENTIALS`
+  environment variable, else that default path, else application default
+  credentials. Nothing in the repo reads the key except the client
+  library.
+- Layout is identical locally and remotely: `runs/<run_id>.json` and
+  `games/<run_id>/<index>.json`. `python scripts/clude_cli.py arena
+  --store gs://clude-game-data/arena` writes there; `store --uri
+  gs://clude-game-data/arena` lists it. The default store is the local
+  `data/` directory (gitignored).
+- `tests/test_storage.py` exercises the GCS backend against an in-memory
+  double; set `CLUDE_GCS_LIVE=1` to run one round trip against the real
+  bucket.
 
 ## Deferred legacy code
 
@@ -318,19 +489,22 @@ That line is already close to unbreakable by construction. `resolve_suggestion`
 a player already known to hold a match. There is no code path today where a
 player is asked "can you refute?" and allowed to answer untruthfully; the
 question the engine actually asks is "which of these do you want to show,"
-and only to someone who has no honest way to say "none."
+and only to someone who has no honest way to say "none". Phase 5's
+`Character.choose_card_to_show` keeps that shape: it ranks the candidates
+the engine hands it and never invents one.
 
 This matters for every later phase that adds a decision point the current
 engine doesn't have: once chat and human/LLM seats exist (Phase 8), nothing
 should ever let a typed or spoken claim ("I don't have that") substitute
 for this ground-truth check for the *formal* refutation step. Bluffing
 stays legal everywhere else -- idle chat about your hand, claims outside a
-suggestion you're party to, side-bets -- because none of that is the
-system verifying a required reveal. Expulsion is therefore a backstop
-invariant (a protocol violation should be unreachable if the UI/agent
-layer is built correctly), not a mechanic that needs new state-machine
-branches. Worth a regression test once Phase 6+ introduces any path where
-a seat's own claim is consulted before the engine's ground truth is.
+suggestion you're party to, side-bets, and now the `bluff_rate` dial's
+own-card suggestions -- because none of that is the system verifying a
+required reveal. Expulsion is therefore a backstop invariant (a protocol
+violation should be unreachable if the UI/agent layer is built correctly),
+not a mechanic that needs new state-machine branches. Worth a regression
+test once Phase 6+ introduces any path where a seat's own claim is
+consulted before the engine's ground truth is.
 
 ## Deployment cost
 
@@ -348,7 +522,9 @@ those ever pushes real cost, cheaper always-on alternatives for this scale
 are Fly.io's free allowance (small VM, no cold start, supports
 websockets natively) or self-hosting on Orbit behind a tunnel (Tailscale
 Funnel or Cloudflare Tunnel) -- free, but only reachable while the laptop
-is on. Not needed yet; revisit if a Cloud Run bill ever shows up.
+is on. Not needed yet; revisit if a Cloud Run bill ever shows up. The
+Cloud Storage bucket above is in the same boat: a few hundred kilobytes
+per arena run, inside the always-free 5 GB-months for US regions.
 
 ## Seats and player identity (proposed, not yet confirmed)
 
@@ -358,16 +534,19 @@ Phase 7 builds logbooks, but the identity model is recorded now so neither
 phase needs a breaking change later.
 
 - **Seat** -- one of the six suspect slots for a single game. Already
-  exactly `suspects_in_play[i]` in `GameState`; nothing new here.
+  exactly `suspects_in_play[i]` in `GameState`; nothing new here. The
+  arena's `SeatRecord` (seat index, suspect token, roster label, kind,
+  profile) is the first persisted form of it.
 - **`PlayerIdentity`** -- who's behind a seat, persistent *across* games.
   Deliberately kept out of `clude_core`/`clude_agents`: a `SeatAssignment
   {seat_index, suspect, identity}` map is built at table setup, before
   `engine.setup()` deals, and lives in `clude_web`/`clude_storage`. The
   engine and all six agents stay identity-agnostic and index-based, so
-  none of Phases 1-3 needs to change for this.
+  none of Phases 1-5 needed to change for this.
   - LLM occupant: identity is intrinsic and seat-locked --
     `MissScarlettbot` is always naive Bayes, always Scarlett. No auth,
-    no seat mobility.
+    no seat mobility. (The arena rotates characters through seats for
+    measurement fairness; that is a maintainer tool, not the game.)
   - Human occupant: identity must be independent of seat, since
     remembering a human's tells across games only makes sense if the
     same person is recognized whether they're piloting Plum tonight and
@@ -383,7 +562,7 @@ phase needs a breaking change later.
      Zenbot-shaped: `title`, `key_insights`, `lessons_learned`,
      `final_outcome`, plus a `reads` list (zenbot's
      `session_evaluations` -- one per opponent faced that game:
-     identity, evaluation, notes).
+     identity, evaluation, notes). Derivable from a `GameRecord`.
   2. **Per-opponent dossier**, keyed by identity alone, mutable, updated
      after every game -- zenbot's `user_instructions`, but rolling
      rather than per-session. This is what "remember tells across
@@ -396,5 +575,5 @@ phase needs a breaking change later.
 
 ## Open questions
 
-Carried from `CLAUDE.md`; not yet decided: none, as of 2026-09-11 (see
+Carried from `CLAUDE.md`; not yet decided: none, as of 2026-09-12 (see
 `CLAUDE.md` and `docs/phase-plan.md` for what was resolved).
