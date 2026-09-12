@@ -258,6 +258,26 @@ def _brute_force_envelope_marginal(obs, mask, max_states=50_000):
     return {c: n / completions for c, n in counts.items()}, unresolved
 
 
+def test_exact_enum_reports_which_path_produced_its_answer():
+    bots = {p: RandomBot() for p in range(3)}
+    state, _events = engine.run_game(3, bots, seed=2, max_turns=25)
+    obs = clude_constraints.observe(state, 0)
+    unresolved = [c for c in ALL_CARDS if obs.mask.holder_of(c) is None]
+    assert len(unresolved) > 1
+
+    exact = ExactEnumAgent()
+    exact.reset(0)
+    belief = exact.select_action(obs)
+    assert belief.extra["method"] in {"exact", "sampled"}
+    assert belief.extra["nodes"] > 0
+
+    starved = ExactEnumAgent(node_budget=1, sample_budget=50)
+    starved.reset(0)
+    belief = starved.select_action(obs)
+    assert belief.extra["method"] == "sampled"
+    assert 0 < belief.extra["valid_samples"] <= 50
+
+
 def test_exact_enum_matches_independent_brute_force():
     checked_any = False
     for seed in range(20):
@@ -346,6 +366,32 @@ def test_decision_tree_recovers_a_perfectly_separable_split():
     tree = _build_tree(rows, depth=0, max_depth=4, min_samples_leaf=5)
     assert _predict(tree, (0.0, 0.0)) < 0.5
     assert _predict(tree, (1.0, 1.0)) > 0.5
+
+
+def test_tree_summary_and_render_agree_on_shape():
+    from clude_agents.decision_tree import FEATURE_NAMES, render_tree, summarize_tree
+
+    rows = [((0.0, 0.0), 0), ((1.0, 1.0), 1)] * 30
+    tree = _build_tree(rows, depth=0, max_depth=4, min_samples_leaf=5)
+    summary = summarize_tree(tree)
+    assert summary.n_leaves >= 2
+    assert summary.depth >= 1
+    assert summary.n_nodes == summary.n_leaves + sum(summary.feature_use.values())
+    assert set(summary.feature_use) <= set(FEATURE_NAMES)
+    assert summary.leaf_predictions == tuple(sorted(summary.leaf_predictions))
+
+    rendered = render_tree(tree)
+    assert rendered.count("leaf p=") == summary.n_leaves
+    assert "(n=60)" in rendered  # the root saw every row
+
+
+def test_trained_mustard_exposes_its_tree():
+    from clude_agents.decision_tree import DecisionTreeAgent, summarize_tree
+
+    agent = DecisionTreeAgent(n_training_games=2, training_seed=5)
+    summary = summarize_tree(agent.tree)
+    assert summary.n_nodes >= 1
+    assert agent.tree.n_samples > 0
 
 
 # ---------------------------------------------------------------------

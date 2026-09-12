@@ -145,14 +145,30 @@ def _exact_or_sampled_scores(
     node_budget: int,
     sample_budget: int,
     rng,
-) -> dict[str, float]:
+) -> tuple[dict[str, float], dict[str, Any]]:
+    """Return ``(raw_scores, diagnostics)``.
+
+    ``diagnostics`` reports which path produced the scores so callers
+    (the benchmark's timing/fallback columns, the trace CLI) can see how
+    often Plum actually gets to be exact: ``method`` is ``"resolved"``
+    (nothing left to search), ``"exact"`` (search finished within
+    `node_budget`) or ``"sampled"`` (fallback); ``nodes`` is the search
+    nodes visited; ``completions`` counts consistent deals found by exact
+    search; ``valid_samples`` counts accepted rejection samples.
+    """
     search = _Search(obs, mask)
+    diagnostics: dict[str, Any] = {
+        "method": "resolved", "nodes": 0, "completions": 0, "valid_samples": 0,
+    }
     if not search.unresolved:
-        return {}
+        return {}, diagnostics
 
     finished = search.backtrack(0, node_budget)
+    diagnostics["nodes"] = search.nodes
     if finished and search.completions > 0:
-        return {c: n / search.completions for c, n in search.envelope_counts.items()}
+        diagnostics["method"] = "exact"
+        diagnostics["completions"] = search.completions
+        return {c: n / search.completions for c, n in search.envelope_counts.items()}, diagnostics
 
     # Sampling fallback: noisier, and biased toward whatever random
     # construction order happens to survive most often -- an honest
@@ -169,9 +185,11 @@ def _exact_or_sampled_scores(
             if holder == ENVELOPE:
                 counts[card] += 1
 
+    diagnostics["method"] = "sampled"
+    diagnostics["valid_samples"] = valid_samples
     if valid_samples == 0:
-        return {}
-    return {c: n / valid_samples for c, n in counts.items()}
+        return {}, diagnostics
+    return {c: n / valid_samples for c, n in counts.items()}, diagnostics
 
 
 class ExactEnumAgent(SeededAgentMixin):
@@ -191,14 +209,19 @@ class ExactEnumAgent(SeededAgentMixin):
 
     def select_action(self, obs: ClueObservation) -> ClueBelief:
         """Enumerate (or sample) consistent deals and take the empirical
-        marginal P(card is the envelope's) over completions."""
+        marginal P(card is the envelope's) over completions.
+
+        `ClueBelief.extra` carries the search diagnostics documented on
+        `_exact_or_sampled_scores` (``method``, ``nodes``, ...), so a
+        caller can tell an exact answer from a sampled one.
+        """
         assert obs.mask is not None, (
             "select_action requires a masked observation (see clude_constraints.observe)"
         )
-        raw = _exact_or_sampled_scores(
+        raw, diagnostics = _exact_or_sampled_scores(
             obs, obs.mask, self.node_budget, self.sample_budget, self.rng
         )
-        return ClueBelief(probabilities=mask_and_normalize(raw, obs.mask))
+        return ClueBelief(probabilities=mask_and_normalize(raw, obs.mask), extra=diagnostics)
 
     def observe(self, transition: Any) -> None:
         """No-op -- recomputed from scratch every call, like the

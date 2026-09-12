@@ -38,6 +38,18 @@ DEFAULT_MAX_DEPTH = 6
 DEFAULT_MIN_SAMPLES_LEAF = 20
 MAX_TURN_FOR_NORMALIZATION = 50.0
 
+# Positional names for the tuple `_features` returns, in order -- the only
+# place the feature layout is spelled out, so tree inspection tooling
+# (`render_tree`, `summarize_tree`, the `train-mustard` CLI) stays in sync.
+FEATURE_NAMES: tuple = (
+    "possible_holders_frac",
+    "or_constraint_involvement",
+    "times_named_unrefuted",
+    "times_named_total",
+    "turn_fraction",
+    "category_size_frac",
+)
+
 Row = tuple  # tuple[tuple[float, ...], int] -- (features, label)
 
 
@@ -81,6 +93,7 @@ class _TreeNode:
     threshold: float = 0.0
     left: "Optional[_TreeNode]" = None
     right: "Optional[_TreeNode]" = None
+    n_samples: int = 0
 
 
 def _gini(labels: list) -> float:
@@ -121,11 +134,11 @@ def _build_tree(rows: list, depth: int, max_depth: int, min_samples_leaf: int) -
         or len(rows) < 2 * min_samples_leaf
         or len(set(labels)) <= 1
     ):
-        return _TreeNode(is_leaf=True, prediction=mean)
+        return _TreeNode(is_leaf=True, prediction=mean, n_samples=len(rows))
 
     split = _best_split(rows, n_features=len(rows[0][0]))
     if split is None:
-        return _TreeNode(is_leaf=True, prediction=mean)
+        return _TreeNode(is_leaf=True, prediction=mean, n_samples=len(rows))
 
     _gain, fi, threshold = split
     left_rows = [(x, y) for x, y in rows if x[fi] <= threshold]
@@ -136,6 +149,7 @@ def _build_tree(rows: list, depth: int, max_depth: int, min_samples_leaf: int) -
         threshold=threshold,
         left=_build_tree(left_rows, depth + 1, max_depth, min_samples_leaf),
         right=_build_tree(right_rows, depth + 1, max_depth, min_samples_leaf),
+        n_samples=len(rows),
     )
 
 
@@ -145,23 +159,110 @@ def _predict(node: _TreeNode, x: tuple) -> float:
     return node.prediction
 
 
+@dataclass(frozen=True)
+class TreeSummary:
+    """Shape statistics for one trained tree, for inspection tooling.
+
+    Parameters
+    ----------
+    n_nodes : int
+        Internal nodes plus leaves.
+    n_leaves : int
+    depth : int
+        Longest root-to-leaf path in edges; 0 for a single-leaf tree.
+    feature_use : dict[str, int]
+        How many internal nodes split on each feature, keyed by
+        `FEATURE_NAMES`. A feature the tree never splits on is absent.
+    leaf_predictions : tuple[float, ...]
+        Every leaf's mean label, ascending -- how spread out the tree's
+        possible outputs are.
+    """
+
+    n_nodes: int
+    n_leaves: int
+    depth: int
+    feature_use: dict
+    leaf_predictions: tuple
+
+
+def summarize_tree(node: _TreeNode) -> TreeSummary:
+    """Walk a tree and collect its `TreeSummary`."""
+    feature_use: dict = {}
+    leaves: list = []
+    n_nodes = 0
+    max_depth = 0
+
+    def walk(n: _TreeNode, depth: int) -> None:
+        nonlocal n_nodes, max_depth
+        n_nodes += 1
+        max_depth = max(max_depth, depth)
+        if n.is_leaf:
+            leaves.append(n.prediction)
+            return
+        name = FEATURE_NAMES[n.feature_index]
+        feature_use[name] = feature_use.get(name, 0) + 1
+        walk(n.left, depth + 1)
+        walk(n.right, depth + 1)
+
+    walk(node, 0)
+    return TreeSummary(
+        n_nodes=n_nodes,
+        n_leaves=len(leaves),
+        depth=max_depth,
+        feature_use=feature_use,
+        leaf_predictions=tuple(sorted(leaves)),
+    )
+
+
+def render_tree(node: _TreeNode, indent: str = "  ") -> str:
+    """Render a tree as indented text, one node per line.
+
+    Internal nodes print as ``feature <= threshold`` with the left (true)
+    branch first; leaves print their prediction and how many training
+    rows reached them.
+    """
+    lines: list = []
+
+    def walk(n: _TreeNode, depth: int) -> None:
+        pad = indent * depth
+        if n.is_leaf:
+            lines.append(f"{pad}leaf p={n.prediction:.3f} (n={n.n_samples})")
+            return
+        lines.append(
+            f"{pad}{FEATURE_NAMES[n.feature_index]} <= {n.threshold:.3f} (n={n.n_samples})"
+        )
+        walk(n.left, depth + 1)
+        walk(n.right, depth + 1)
+
+    walk(node, 0)
+    return "\n".join(lines)
+
+
 _ROWS_CACHE: dict = {}
 _TREE_CACHE: dict = {}
+
+
+def training_rows(n_training_games: int, training_seed: int, checkpoints: tuple) -> list:
+    """The (features, label) rows Mustard trains on for these settings,
+    generated once and cached at module level. Exposed so tooling can
+    inspect the training set (size, label balance) without retraining."""
+    rows_key = (n_training_games, training_seed, checkpoints)
+    if rows_key not in _ROWS_CACHE:
+        _ROWS_CACHE[rows_key] = _generate_training_rows(
+            n_training_games, training_seed, checkpoints
+        )
+    return _ROWS_CACHE[rows_key]
 
 
 def _cached_tree(
     n_training_games: int, training_seed: int, checkpoints: tuple,
     max_depth: int, min_samples_leaf: int,
 ) -> _TreeNode:
-    rows_key = (n_training_games, training_seed, checkpoints)
-    if rows_key not in _ROWS_CACHE:
-        _ROWS_CACHE[rows_key] = _generate_training_rows(
-            n_training_games, training_seed, checkpoints
-        )
-    tree_key = rows_key + (max_depth, min_samples_leaf)
+    rows = training_rows(n_training_games, training_seed, checkpoints)
+    tree_key = (n_training_games, training_seed, checkpoints, max_depth, min_samples_leaf)
     if tree_key not in _TREE_CACHE:
         _TREE_CACHE[tree_key] = _build_tree(
-            _ROWS_CACHE[rows_key], depth=0, max_depth=max_depth, min_samples_leaf=min_samples_leaf
+            rows, depth=0, max_depth=max_depth, min_samples_leaf=min_samples_leaf
         )
     return _TREE_CACHE[tree_key]
 
@@ -198,6 +299,12 @@ class DecisionTreeAgent(SeededAgentMixin):
                 self.min_samples_leaf,
             )
         return self._tree
+
+    @property
+    def tree(self) -> _TreeNode:
+        """The trained tree, training it first if needed -- for
+        `summarize_tree`/`render_tree`."""
+        return self._ensure_trained()
 
     def select_action(self, obs: ClueObservation) -> ClueBelief:
         """Score every still-unresolved card with the trained tree's

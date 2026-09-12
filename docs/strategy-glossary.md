@@ -107,7 +107,7 @@ is "probability card `c` is in the envelope" unless noted otherwise.
 
 ## Phase 4 benchmark results
 
-`clude_training.benchmark.run_benchmark` (`python scripts/benchmark.py`)
+`clude_training.benchmark.run_benchmark` (`python scripts/clude_cli.py benchmark`)
 scores all six agents' belief against the eventual ground truth over
 shared `RandomBot` self-play snapshots, at four checkpoints per game (25/
 50/75/100% of that game's suggestions). Three metrics -- Brier score,
@@ -153,6 +153,29 @@ Findings, and what they mean:
   a stronger, more legible flaw than a softened one. Revisit if Phase 5
   self-play shows either of them losing so badly it stops being fun to
   play against.
+
+### Calibration note (2026-09-11, measured with the CLI)
+
+Where the bad log-loss actually comes from, over 20 games (seed 4004,
+checkpoints 0.5 and 1.0, 540 scored categories per agent):
+
+| Agent | Categories with a hard 0 on the true card | Share of total log-loss from those | Log-loss on the rest |
+|---|---|---|---|
+| Mustard | 27 (5.0%) | 69% | 0.50 |
+| White | 40 (7.4%) | 79% | 0.45 |
+| Scarlett | 0 | 0% | 0.59 |
+| Plum | 0 | 0% | 0.53 |
+
+So both flaws are, as currently measured, almost entirely a hard-zero
+artifact, not a ranking or pattern-matching failure: away from those
+cases Mustard and White are calibrated as well as Plum. The mechanisms
+are mechanical -- a tree leaf with no positive training rows predicts
+exactly 0.0 (`train-mustard` prints `leaf predictions: min 0.000`), and
+White gives raw score 0 to any card no opponent has named yet (visible
+in any `trace`: `S: ... Mustard 0.00` while Mustard is the murderer).
+`mask_and_normalize` passes a raw 0 straight through as probability 0,
+and `-log(0)` is clamped to about 20.7. Whether to keep this is a Phase
+5 decision; see `docs/phase5-plan.md`.
 
 ## Registry and factories
 

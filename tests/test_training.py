@@ -1,14 +1,19 @@
 """Phase 4: self-play snapshot generation and the belief-quality
-benchmark.
+benchmark, plus the post-game replay helpers in `clude_training.trace`.
 """
 from __future__ import annotations
 
+import json
 import math
 
 import pytest
 
+from clude_agents import build_agent
+from clude_core import engine
+from clude_core.bots import RandomBot
 from clude_training.benchmark import _Accumulator, run_benchmark
 from clude_training.self_play import generate_snapshots
+from clude_training.trace import belief_trace, floor_convergence
 
 
 def test_generate_snapshots_shape():
@@ -33,6 +38,66 @@ def test_generate_snapshots_is_reproducible():
     a = [(s.game_index, s.viewer, s.checkpoint, s.envelope) for s in generate_snapshots(5, seed=9)]
     b = [(s.game_index, s.viewer, s.checkpoint, s.envelope) for s in generate_snapshots(5, seed=9)]
     assert a == b
+
+
+def test_generate_snapshots_can_fix_the_table_size():
+    snaps = list(generate_snapshots(3, seed=1, checkpoints=(1.0,), player_counts=(5,)))
+    assert snaps
+    assert all(s.obs.n_players == 5 for s in snaps)
+
+
+# ---------------------------------------------------------------------
+# Post-game replay: belief_trace / floor_convergence
+# ---------------------------------------------------------------------
+
+
+def _finished_game(seed=3, n_players=3, max_turns=60):
+    bots = {p: RandomBot() for p in range(n_players)}
+    state, _events = engine.run_game(n_players, bots, seed=seed, max_turns=max_turns)
+    assert state.suggestion_log, "need a game with at least one suggestion"
+    return state
+
+
+def _scarlett(seed=0):
+    agent = build_agent("Scarlett")
+    agent.reset(seed)
+    return {"Scarlett": agent}
+
+
+def test_belief_trace_covers_every_suggestion_and_ends_on_the_full_game():
+    state = _finished_game()
+    steps = belief_trace(state, viewer=0, agents=_scarlett())
+    total = len(state.suggestion_log)
+    assert [s.k for s in steps] == list(range(total + 1))
+    assert steps[0].suggestion is None
+    assert steps[-1].suggestion == steps[-1].obs.suggestion_log[-1]
+    assert len(steps[-1].obs.suggestion_log) == total
+    assert all(set(s.beliefs) == {"Scarlett"} for s in steps)
+    assert all(s.obs.my_index == 0 and s.obs.mask is not None for s in steps)
+
+
+def test_belief_trace_every_keeps_both_endpoints():
+    state = _finished_game()
+    total = len(state.suggestion_log)
+    steps = belief_trace(state, viewer=1, agents=_scarlett(), every=4)
+    ks = [s.k for s in steps]
+    assert ks[0] == 0 and ks[-1] == total
+    assert all(k % 4 == 0 for k in ks[1:-1])
+    with pytest.raises(ValueError):
+        belief_trace(state, viewer=1, agents=_scarlett(), every=0)
+
+
+def test_floor_convergence_is_monotone_for_every_viewer():
+    state = _finished_game(seed=4, n_players=4, max_turns=120)
+    points = floor_convergence(state)
+    assert [p.k for p in points] == list(range(len(state.suggestion_log) + 1))
+    for viewer in range(state.n_players):
+        located = [p.resolved[viewer] for p in points]
+        assert located == sorted(located), f"viewer {viewer} lost a located card"
+        assert all(0 <= n <= 21 for n in located)
+        # Once proven, the envelope stays proven.
+        solved = [p.solved[viewer] for p in points]
+        assert solved == sorted(solved)
 
 
 # ---------------------------------------------------------------------
@@ -135,3 +200,31 @@ def test_benchmark_lets_green_learn_across_games():
     # x 1 checkpoint x n_players-ish viewers per game x 20 games).
     total_evidence = sum(c.alpha + c.beta - 2.0 for c in green.candidates.values())
     assert total_evidence > 50
+
+
+def test_benchmark_accepts_an_agent_subset_and_records_call_cost():
+    result = run_benchmark(
+        n_games=3, seed=11, checkpoints=(1.0,), agents=_scarlett(), player_counts=(3,)
+    )
+    assert set(result.per_agent) == {"Scarlett", "uniform"}
+    assert result.n_snapshots == 3 * 3  # three 3-player games, one checkpoint
+    cell = result.per_agent["Scarlett"][1.0]
+    assert cell.n_calls == result.n_snapshots
+    assert cell.seconds >= 0.0 and cell.ms_per_call >= 0.0
+    assert result.per_agent["uniform"][1.0].n_calls == 0
+
+    data = result.to_dict()
+    json.dumps(data)  # must be serializable as-is
+    assert data["per_agent"]["Scarlett"]["1.0"]["n_calls"] == cell.n_calls
+    assert data["player_counts"] == [3]
+
+
+def test_benchmark_counts_plums_sampling_fallbacks():
+    from clude_agents.exact_enum import ExactEnumAgent
+
+    # A one-node budget forces the fallback on every unresolved snapshot.
+    plum = ExactEnumAgent(node_budget=1, sample_budget=20)
+    result = run_benchmark(n_games=2, seed=11, checkpoints=(0.5,), agents={"Plum": plum})
+    cell = result.per_agent["Plum"][0.5]
+    assert cell.sampled_calls > 0
+    assert cell.sampled_calls <= cell.n_calls

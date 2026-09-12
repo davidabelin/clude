@@ -11,7 +11,7 @@ to the next phase.
 | 2 | Finished `ConstraintPropagator` deduction floor; convergence tests | done |
 | 3 | Six strategy agents, each emitting a masked/renormalized belief vector; no action selection yet | done |
 | 4 | Benchmark harness measuring the six methods' relative strength; `docs/strategy-glossary.md` filled in | done |
-| 5 | Personality parameter profiles turning beliefs into actions; self-play checks that dials move win rate | not started |
+| 5 | Personality parameter profiles turning beliefs into actions; self-play checks that dials move win rate | planned -- see `docs/phase5-plan.md` (for discussion) |
 | 6 | LLM wrapper: menu of legal actions + persona -> structured action + dialogue, illegal/malformed falls back to top-scored action | not started |
 | 7 | Logbooks: persistent, per-character, written after every game | not started |
 | 8 | Flask/Cloud Run front end -> chat (staggered, capped concurrency, chattiness-gated) -> human seats | not started |
@@ -40,7 +40,8 @@ not after them.
   resolution, accusation resolution, win/loss detection.
 - Dumb bots: uniform-random choice among legal moves. No inference.
 - A full game loop runnable headlessly end to end, plus a CLI entry point
-  (`scripts/`) to play/watch one game.
+  (`scripts/`) to play/watch one game -- now `python scripts/clude_cli.py
+  play`; see `docs/cli.md`.
 - `tests/`: rules-engine correctness (legal moves, refutation order,
   accusation resolution, game termination).
 
@@ -120,7 +121,10 @@ call, any UI, and the real `clude_training` self-play pipeline.
   built once and never reset mid-run (David's call, 2026-09-11), so his
   Beta posteriors accumulate real cross-game learning instead of
   cold-starting every game.
-- `scripts/benchmark.py`: CLI, mirrors `scripts/play_game.py`.
+- CLI: `python scripts/clude_cli.py benchmark`. (The original
+  `scripts/benchmark.py` and `scripts/play_game.py` were folded into the
+  unified `scripts/clude_cli.py` alongside `trace`, `floor`,
+  `train-mustard`, and `snapshots` -- see `docs/cli.md`.)
 - `tests/test_training.py`: snapshot-generation shape and reproducibility,
   `_Accumulator` arithmetic checked against closed-form expectations on
   synthetic beliefs, an end-to-end run confirming at least one real

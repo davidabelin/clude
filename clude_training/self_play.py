@@ -20,6 +20,7 @@ from clude_core.state import ClueObservation, GameState
 
 DEFAULT_MAX_TURNS = 150
 DEFAULT_CHECKPOINTS: tuple = (0.25, 0.5, 0.75, 1.0)
+DEFAULT_PLAYER_COUNTS: tuple = (3, 4, 5, 6)
 
 
 @dataclass(frozen=True)
@@ -52,11 +53,13 @@ class Snapshot:
     checkpoint: float
 
 
-def _truncate(state: GameState, k: int) -> GameState:
+def truncate_state(state: GameState, k: int) -> GameState:
     """A copy of `state` as if only its first `k` suggestions had
     happened yet -- for sampling one finished game at varied amounts of
     revealed evidence. Accusations are cleared and everyone is marked
-    active, since Phase 3/4 only care about suggestion-log evidence."""
+    active, since Phase 3/4 only care about suggestion-log evidence.
+    `turn` is set to `k` (the step index, in training terms), not the
+    real turn the k-th suggestion happened on."""
     return replace(
         state,
         suggestion_log=state.suggestion_log[:k],
@@ -71,17 +74,19 @@ def generate_snapshots(
     seed: int,
     checkpoints: tuple = DEFAULT_CHECKPOINTS,
     max_turns: int = DEFAULT_MAX_TURNS,
+    player_counts: tuple = DEFAULT_PLAYER_COUNTS,
 ) -> Iterator[Snapshot]:
     """Play `n_games` headless `RandomBot` games and yield a `Snapshot`
     for every (game, viewer, checkpoint) combination.
 
-    Player count cycles 3..6 across games so training/benchmark data
-    isn't biased toward one table size. A game with zero suggestions
-    (vanishingly rare, but possible within `max_turns`) contributes no
-    snapshots rather than dividing by zero.
+    Player count cycles through `player_counts` across games (3..6 by
+    default) so training/benchmark data isn't biased toward one table
+    size; pass a single-element tuple to fix it. A game with zero
+    suggestions (vanishingly rare, but possible within `max_turns`)
+    contributes no snapshots rather than dividing by zero.
     """
     for g in range(n_games):
-        n_players = 3 + (g % 4)
+        n_players = player_counts[g % len(player_counts)]
         bots = {p: RandomBot() for p in range(n_players)}
         state, _events = engine.run_game(n_players, bots, seed=seed + g, max_turns=max_turns)
         total = len(state.suggestion_log)
@@ -89,7 +94,7 @@ def generate_snapshots(
             continue
         for checkpoint in checkpoints:
             k = max(1, round(total * checkpoint))
-            snap_state = _truncate(state, k)
+            snap_state = truncate_state(state, k)
             for viewer in range(n_players):
                 obs = clude_constraints.observe(snap_state, viewer)
                 yield Snapshot(
