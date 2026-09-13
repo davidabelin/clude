@@ -6,7 +6,7 @@ import pytest
 from clude_core import board, engine
 from clude_core.bots import RandomBot
 from clude_core.domain import ALL_CARDS
-from clude_core.events import GameOverEvent
+from clude_core.events import AccusationEvent, GameOverEvent, MoveEvent, RemarkEvent, SuggestionEvent
 from clude_core.state import ClueObservation
 
 
@@ -234,3 +234,72 @@ def test_for_player_redacts_only_what_the_viewer_may_not_see():
             entitled = viewer in (original.suggester, original.refuter)
             assert visible.card_shown == (original.card_shown if entitled else None)
             assert visible.cards() == original.cards()
+
+
+# ---------------------------------------------------------------------
+# Phase 6a: the SpeakingPlayer hook
+# ---------------------------------------------------------------------
+
+
+class _Talker(RandomBot):
+    """A RandomBot that buffers one line per decision, so the engine's
+    `SpeakingPlayer` hook has something to drain."""
+
+    def __init__(self):
+        self.lines = []
+        self.heard = []
+
+    def hear(self, remark):
+        self.heard.append(remark)
+
+    def take_remarks(self):
+        out, self.lines = self.lines, []
+        return out
+
+    def choose_movement(self, obs, choices, rng):
+        self.lines.append("Off I go.")
+        return super().choose_movement(obs, choices, rng)
+
+    def choose_suggestion(self, obs, room, rng):
+        self.lines.append(f"Something happened in the {room}.")
+        return super().choose_suggestion(obs, room, rng)
+
+    def choose_accusation(self, obs, rng):
+        self.lines.append("Hmm.")
+        return super().choose_accusation(obs, rng)
+
+    def choose_card_to_show(self, obs, candidates, shown_to, rng):
+        self.lines.append("Have a look at this.")
+        return super().choose_card_to_show(obs, candidates, shown_to, rng)
+
+
+def test_speaking_players_remarks_follow_their_decisions_and_change_nothing_else():
+    assert isinstance(_Talker(), engine.SpeakingPlayer)
+    assert not isinstance(RandomBot(), engine.SpeakingPlayer)
+
+    bots = {0: _Talker(), 1: RandomBot(), 2: RandomBot()}
+    _state, events = engine.run_game(3, bots, seed=5, max_turns=30)
+    remarks = [e for e in events if isinstance(e, RemarkEvent)]
+    assert remarks and all(r.seat == 0 for r in remarks)
+    assert {r.about for r in remarks} >= {"move", "accuse"}
+    assert not bots[0].lines, "every buffered line was drained"
+    assert not bots[0].heard, "nobody else at this table speaks"
+
+    for i, event in enumerate(events):
+        if not isinstance(event, RemarkEvent):
+            continue
+        previous = events[i - 1]
+        if event.about == "move":
+            assert isinstance(previous, MoveEvent) and previous.player == 0
+        elif event.about == "suggest":
+            assert isinstance(previous, SuggestionEvent) and previous.suggestion.suggester == 0
+        elif event.about == "show":
+            assert isinstance(previous, SuggestionEvent) and previous.suggestion.refuter == 0
+        elif event.about == "accuse" and isinstance(previous, AccusationEvent):
+            assert previous.accusation.accuser == 0
+        assert event.turn == previous.turn
+
+    # Remarks are the only difference: the same seed with a silent bot
+    # in seat 0 plays the identical game.
+    _state, silent = engine.run_game(3, {p: RandomBot() for p in range(3)}, seed=5, max_turns=30)
+    assert [e for e in events if not isinstance(e, RemarkEvent)] == silent

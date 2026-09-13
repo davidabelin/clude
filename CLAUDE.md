@@ -8,7 +8,10 @@ Owner: David (David Abelin, github.com/davidabelin). Solo project.
 The design was worked out in claude.ai conversations. Phases 1-5 of
 `docs/phase-plan.md` are built and tested: engine, deduction floor, the
 six agents, the benchmark, and the personality layer with its arena,
-sweeps, and game-record storage. Phase 6 (the LLM wrapper) is next.
+sweeps, and game-record storage. Phase 6 (the LLM wrapper, `clude_llm`)
+is built and tested on fake backends; its live smoke test, persona
+tuning and arena measurements wait on an `ANTHROPIC_API_KEY`
+(`docs/phase6-plan.md`, section 8). Phase 7 (logbooks) is next.
 `legacy/` holds code from an earlier chat, which is material to port from rather than a foundation to build on.
 Read `legacy/README.md` before touching it, because several pieces are unfinished.
 
@@ -111,6 +114,9 @@ None outstanding as of 2026-09-11. Resolved:
   `clude-game-sa.json` at the repo root: gitignored, never commit it,
   never print or copy its contents. `clude_storage` finds it by that
   path or via `CLUDE_GCS_CREDENTIALS`; see `docs/architecture.md`.
+- Claude API: `ANTHROPIC_API_KEY` in the environment (or an `ant auth
+  login` profile), resolved by the SDK; never in the repo. Without it
+  every LLM seat falls back to its headless character.
 
 ## First session
 

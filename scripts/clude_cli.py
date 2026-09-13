@@ -53,13 +53,34 @@ from clude_agents.decision_tree import (
     summarize_tree,
     training_rows,
 )
+from clude_agents.explain import (
+    describe_suggestion,
+    format_accusation_test,
+    format_belief,
+    format_extra,
+    format_mask,
+    seat_label,
+    seat_labels,
+)
 from clude_agents.personality import DIALS, preset
-from clude_constraints import ENVELOPE
 from clude_core import board, engine
 from clude_core.bots import RandomBot
-from clude_core.domain import ALL_CARDS, ROOMS, SUSPECTS, WEAPONS
-from clude_core.events import AccusationEvent, GameOverEvent, MoveEvent, SuggestionEvent
+from clude_core.domain import ALL_CARDS
+from clude_core.events import AccusationEvent, GameOverEvent, MoveEvent, RemarkEvent, SuggestionEvent
 from clude_core.state import ClueObservation
+from clude_llm import (
+    DEFAULT_MODEL,
+    LLMCharacter,
+    LLMSettings,
+    NullBackend,
+    accusation_menu,
+    movement_menu,
+    open_backend,
+    show_menu,
+    suggestion_menu,
+    user_prompt,
+)
+from clude_llm.anthropic_backend import estimate_cost
 from clude_storage import open_store
 from clude_training.arena import (
     DEFAULT_MAX_TURNS as ARENA_MAX_TURNS,
@@ -84,7 +105,6 @@ from clude_training.self_play import (
 from clude_training.sweep import sweep_dial
 from clude_training.trace import belief_trace, floor_convergence, resolved_count
 
-CATEGORY_TAGS = (("S", SUSPECTS), ("W", WEAPONS), ("R", ROOMS))
 DEFAULT_STORE = "data"
 
 
@@ -96,10 +116,7 @@ DEFAULT_STORE = "data"
 def _player_label(state, player: int, labels=None) -> str:
     """``P2 White``, or ``P2 White (Plum)`` when a different character
     occupies the White token."""
-    text = f"P{player} {state.suspects_in_play[player]}"
-    if labels is not None and labels[player] != state.suspects_in_play[player]:
-        text += f" ({labels[player]})"
-    return text
+    return seat_label(state.suspects_in_play, player, labels)
 
 
 def _node_label(node) -> str:
@@ -127,9 +144,90 @@ def _add_game_args(parser: argparse.ArgumentParser) -> None:
     )
 
 
-def _play_game(args):
+def _add_llm_args(parser: argparse.ArgumentParser) -> None:
+    """The Phase 6 flags: pilot the roster's characters with an LLM."""
+    parser.add_argument(
+        "--llm", action="store_true",
+        help="Wrap every character seat in an LLMCharacter (docs/phase6-plan.md).",
+    )
+    parser.add_argument(
+        "--llm-backend", default="anthropic",
+        help="'anthropic', 'null' (never answers: the headless twin), 'record:PATH' or 'replay:PATH'.",
+    )
+    parser.add_argument("--llm-model", default=DEFAULT_MODEL, help="Model id for the anthropic backend.")
+    parser.add_argument(
+        "--llm-characters", default="",
+        help="Comma-separated subset of the roster's characters to wrap (default: all of them).",
+    )
+
+
+def _open_llm_backend(args):
+    """`open_backend` for the CLI flags, with `LLMSettings`' defaults for
+    the Anthropic backend's knobs."""
+    settings = LLMSettings(model=args.llm_model)
+    try:
+        return open_backend(
+            args.llm_backend, model=settings.model, effort=settings.effort,
+            max_tokens=settings.max_tokens, timeout=settings.timeout,
+            server_fallbacks=settings.server_fallbacks,
+        )
+    except (ValueError, FileNotFoundError, ImportError) as exc:
+        raise SystemExit(f"--llm-backend {args.llm_backend!r}: {exc}") from exc
+
+
+def _llm_kwargs(args) -> dict:
+    """`run_arena` / `sweep_dial` keyword arguments for the ``--llm`` flags;
+    empty without ``--llm``."""
+    if not getattr(args, "llm", False):
+        return {}
+    wanted = [name.strip() for name in args.llm_characters.split(",") if name.strip()]
+    unknown = [name for name in wanted if name not in AGENT_SPECS]
+    if unknown:
+        raise SystemExit(f"--llm-characters: unknown {unknown}; run `agents` for the names")
+    return {
+        "llm_backend": _open_llm_backend(args),
+        "llm_settings": LLMSettings(model=args.llm_model),
+        "llm_characters": wanted or None,
+    }
+
+
+def _print_llm_cost(per_player: dict, model: str, n_games: int) -> None:
+    stats = [s for s in per_player.values() if s.llm_decisions]
+    if not stats:
+        return
+    cost = estimate_cost(
+        model,
+        sum(s.llm_input_tokens for s in stats),
+        sum(s.llm_output_tokens for s in stats),
+        sum(s.llm_cached_tokens for s in stats),
+    )
+    if cost is not None:
+        print(f"estimated LLM cost at list prices: ${cost:.4f} for {n_games} games")
+
+
+def _wrap_llm_seats(args, players: dict, labels: list) -> dict:
+    """Replace the chosen character seats with `LLMCharacter`s sharing one
+    backend; returns ``{seat: wrapper}``."""
+    wanted = {name.strip() for name in args.llm_characters.split(",") if name.strip()}
+    unknown = wanted - set(AGENT_SPECS)
+    if unknown:
+        raise SystemExit(f"--llm-characters: unknown {sorted(unknown)}; run `agents` for the names")
+    backend = _open_llm_backend(args)
+    settings = LLMSettings(model=args.llm_model)
+    wrapped = {}
+    for seat, label in enumerate(labels):
+        if label in AGENT_SPECS and (not wanted or label in wanted):
+            wrapper = LLMCharacter(players[seat], backend, settings=settings)
+            wrapper.reset(args.seed)
+            players[seat] = wrapped[seat] = wrapper
+    return wrapped
+
+
+def _play_game(args, llm_seats: dict = None):
     """One finished game from the shared game args: ``(state, events,
-    labels)`` where `labels` names each seat's occupant."""
+    labels)`` where `labels` names each seat's occupant. With ``--llm``
+    the character seats are wrapped first and, if `llm_seats` is given,
+    recorded in it as ``{seat: LLMCharacter}``."""
     n = args.players
     roster = args.roster.strip()
     if roster == "random":
@@ -155,6 +253,10 @@ def _play_game(args):
                 players[seat] = clude_constraints.FloorBot(rng=random.Random(fill_seed(args.seed, seat)))
             else:
                 players[seat] = RandomBot()
+        if getattr(args, "llm", False):
+            wrapped = _wrap_llm_seats(args, players, labels)
+            if llm_seats is not None:
+                llm_seats.update(wrapped)
         observer = clude_constraints.observe
     state, events = engine.run_game(
         n, players, seed=args.seed, max_turns=args.max_turns, observer=observer
@@ -204,99 +306,6 @@ def _parse_dial_settings(items) -> dict:
     return profiles
 
 
-def _describe_suggestion(state, suggestion, turn=None, labels=None) -> str:
-    """One line for a suggestion as a given observer sees it: the card
-    shown is named only if `suggestion.card_shown` was left visible."""
-    who = _player_label(state, suggestion.suggester, labels)
-    cards = f"{suggestion.suspect}/{suggestion.weapon}/{suggestion.room}"
-    if suggestion.refuter is None:
-        outcome = "nobody could refute"
-    elif suggestion.card_shown is not None:
-        outcome = f"{_player_label(state, suggestion.refuter, labels)} showed {suggestion.card_shown}"
-    else:
-        outcome = f"{_player_label(state, suggestion.refuter, labels)} showed a card (hidden)"
-    prefix = f"turn {turn}: " if turn is not None else ""
-    return f"{prefix}{who} suggests {cards} -- {outcome}"
-
-
-def _format_belief(probabilities: dict, mask, top: int, all_cards: bool) -> str:
-    """Per category: the still-possible cards by descending probability
-    (top `top` unless `all_cards`), or ``Card*`` once the floor has
-    proven that category."""
-    parts = []
-    for tag, category in CATEGORY_TAGS:
-        proven = next((c for c in category if mask.holder_of(c) == ENVELOPE), None)
-        if proven is not None:
-            parts.append(f"{tag}: {proven}*")
-            continue
-        ranked = sorted(
-            (c for c in category if mask.is_possible(c, ENVELOPE)),
-            key=lambda c: -probabilities[c],
-        )
-        if not all_cards:
-            ranked = ranked[:top]
-        parts.append(f"{tag}: " + " ".join(f"{c} {probabilities[c]:.2f}" for c in ranked))
-    return "  |  ".join(parts)
-
-
-def _format_extra(belief) -> str:
-    """The method-specific diagnostics an agent put in `ClueBelief.extra`,
-    compactly: Plum's exact/sampled path, Green's chosen arm, Peacock's
-    belief/plausibility bounds for her top card per category."""
-    extra = belief.extra
-    if "method" in extra:
-        if extra["method"] == "exact":
-            return f"[exact: {extra['completions']} deals, {extra['nodes']} nodes]"
-        if extra["method"] == "sampled":
-            return (
-                f"[sampled: {extra['valid_samples']} valid samples, "
-                f"budget hit at {extra['nodes']} nodes]"
-            )
-        return "[resolved]"
-    if "selected_arm" in extra:
-        return f"[arm: {extra['selected_arm']}]"
-    if "belief" in extra and "plausibility" in extra:
-        pieces = []
-        for tag, category in CATEGORY_TAGS:
-            top_card = max(category, key=lambda c: belief.probabilities[c])
-            if top_card in extra["belief"]:
-                pieces.append(
-                    f"{tag} {extra['belief'][top_card]:.2f}/{extra['plausibility'][top_card]:.2f}"
-                )
-        return "[bel/pl of top: " + " ".join(pieces) + "]" if pieces else ""
-    return ""
-
-
-def _format_accusation_test(character, belief) -> str:
-    """``[P(correct)=0.42 <0.90]``: the character's confidence in its
-    best triple against its accusation threshold; ``>=`` means it would
-    accuse here."""
-    _triple, confidence = best_triple(character.confidence_fn(belief))
-    threshold = character.profile.accuse_threshold
-    op = ">=" if confidence >= threshold else "<"
-    return f"[P(correct)={confidence:.2f} {op}{threshold:.2f}]"
-
-
-def _format_mask(mask, state) -> str:
-    """Card x holder grid: ``#`` located, ``x`` still possible, ``.`` ruled out."""
-    holders = list(range(state.n_players)) + [ENVELOPE]
-    head = f"{'card':<14}" + "".join(
-        f"{('Env' if h == ENVELOPE else 'P' + str(h)):>5}" for h in holders
-    )
-    lines = [head]
-    for _tag, category in CATEGORY_TAGS:
-        for card in category:
-            located = mask.holder_of(card)
-            cells = []
-            for h in holders:
-                if located is not None:
-                    cells.append("#" if h == located else ".")
-                else:
-                    cells.append("x" if mask.is_possible(card, h) else ".")
-            lines.append(f"{card:<14}" + "".join(f"{cell:>5}" for cell in cells))
-    return "\n".join(lines)
-
-
 def _print_hands(state, labels=None) -> None:
     print("\ndealt hands (omniscient, never visible to an agent):")
     for p in range(state.n_players):
@@ -333,20 +342,24 @@ def cmd_agents(args) -> int:
 
 def cmd_play(args) -> int:
     """Play one game and print the outcome (and event log)."""
-    state, events, labels = _play_game(args)
+    llm_seats: dict = {}
+    state, events, labels = _play_game(args, llm_seats)
     print(f"seed={args.seed} players={args.players} roster={args.roster}")
     _print_seats(state, labels)
     if args.verbose:
         print()
+        names = seat_labels(state.suspects_in_play, labels)
         for event in events:
-            if isinstance(event, MoveEvent):
+            if isinstance(event, RemarkEvent):
+                print(f'turn {event.turn}: {names[event.seat]} says: "{event.text}"')
+            elif isinstance(event, MoveEvent):
                 tag = " (secret passage)" if event.used_secret_passage else ""
                 print(
                     f"turn {event.turn}: {_player_label(state, event.player, labels)} -> "
                     f"{_node_label(event.destination)}{tag}"
                 )
             elif isinstance(event, SuggestionEvent):
-                print(_describe_suggestion(state, event.suggestion, event.turn, labels))
+                print(describe_suggestion(event.suggestion, names, event.turn))
             elif isinstance(event, AccusationEvent):
                 a = event.accusation
                 verdict = "CORRECT" if a.correct else "wrong, eliminated"
@@ -369,6 +382,67 @@ def cmd_play(args) -> int:
         print(f"No winner -- hit the {args.max_turns}-turn cap.")
     if args.hands:
         _print_hands(state, labels)
+    if llm_seats:
+        print("\nLLM seats:")
+        for seat, wrapper in sorted(llm_seats.items()):
+            s = wrapper.summary()
+            print(
+                f"  {_player_label(state, seat, labels)}: {s['decisions']} decisions, "
+                f"{s['llm_calls']} calls, {s['fallbacks']} fallbacks, {s['deviations']} deviations, "
+                f"{s['remarks']} remarks; tokens in/out/cached "
+                f"{s['input_tokens']}/{s['output_tokens']}/{s['cached_tokens']}; "
+                f"{s['llm_seconds']:.1f}s; backend {s['backend']}, model {s['model']}"
+            )
+        totals = [wrapper.summary() for wrapper in llm_seats.values()]
+        cost = estimate_cost(
+            args.llm_model,
+            sum(s["input_tokens"] for s in totals),
+            sum(s["output_tokens"] for s in totals),
+            sum(s["cached_tokens"] for s in totals),
+        )
+        if cost is not None:
+            print(f"  estimated cost at list prices: ${cost:.4f}")
+    return 0
+
+
+def cmd_prompt(args) -> int:
+    """Print exactly what one seat's LLM would be sent for one decision at
+    one point in a game. No call is made; positions are the game's final
+    ones, so ``--decision move`` uses them with ``--roll``."""
+    state, _events, labels = _play_game(args)
+    if not 0 <= args.viewer < state.n_players:
+        raise SystemExit(f"--viewer must be in 0..{state.n_players - 1} for {state.n_players} players")
+    total = len(state.suggestion_log)
+    k = total if args.at is None else args.at
+    if not 0 <= k <= total:
+        raise SystemExit(f"--at must be in 0..{total} (this game has {total} suggestions)")
+    name = args.agent.strip() or (labels[args.viewer] if labels[args.viewer] in AGENT_SPECS else "")
+    if name not in AGENT_SPECS:
+        raise SystemExit(
+            f"seat {args.viewer} is occupied by {labels[args.viewer]!r}; pass --agent NAME to render a "
+            "character's prompt for it"
+        )
+    character = build_character(name)
+    character.reset(args.seed)
+    truncated = truncate_state(state, k)
+    obs = clude_constraints.observe(truncated, args.viewer)
+    if args.decision == "move":
+        choices = engine.legal_moves(truncated, args.viewer, args.roll)
+        menu = movement_menu(character, obs, choices)
+    elif args.decision == "suggest":
+        menu = suggestion_menu(character, obs)
+    elif args.decision == "accuse":
+        menu = accusation_menu(character, obs)
+    else:
+        hand = sorted(obs.own_hand)
+        menu = show_menu(character, obs, hand[:2] or hand, (args.viewer + 1) % state.n_players)
+    wrapper = LLMCharacter(character, NullBackend())
+    system = wrapper.system_prompt()
+    user = user_prompt(obs, character.select_action(obs), character, menu, [])
+    print(f"=== system ({len(system.split())} words; persona {wrapper.persona.source}) ===")
+    print(system)
+    print(f"=== user ({len(user.split())} words; seat P{args.viewer}, after k={k} of {total} suggestions) ===")
+    print(user)
     return 0
 
 
@@ -398,6 +472,7 @@ def cmd_trace(args) -> int:
     elapsed = time.perf_counter() - started
 
     width = max(len(name) for name in characters) + 2
+    names = seat_labels(state.suspects_in_play, labels)
     for step in steps:
         print()
         if step.suggestion is None:
@@ -405,7 +480,7 @@ def cmd_trace(args) -> int:
         else:
             print(
                 f"--- k={step.k}: "
-                f"{_describe_suggestion(state, step.suggestion, suggestion_turns[step.k - 1], labels)}"
+                f"{describe_suggestion(step.suggestion, names, suggestion_turns[step.k - 1])}"
             )
         mask = step.obs.mask
         solution = mask.solution()
@@ -416,11 +491,11 @@ def cmd_trace(args) -> int:
             floor_line += f"; {len(mask.or_constraints)} open or-constraint(s)"
         print(floor_line)
         for name, belief in step.beliefs.items():
-            line = f"{name:<{width}}{_format_belief(belief.probabilities, mask, args.top, args.all_cards)}"
-            extra = _format_extra(belief)
+            line = f"{name:<{width}}{format_belief(belief.probabilities, mask, args.top, args.all_cards)}"
+            extra = format_extra(belief)
             if extra:
                 line += f"  {extra}"
-            line += f"  {_format_accusation_test(characters[name], belief)}"
+            line += f"  {format_accusation_test(characters[name], belief)}"
             print(line)
 
     print(f"\n{len(steps)} steps x {len(characters)} agents in {elapsed:.1f}s")
@@ -472,7 +547,7 @@ def cmd_floor(args) -> int:
         f"viewer={_player_label(state, args.viewer, labels)} after k={k} of {total} suggestions"
     )
     print(f"viewer's hand: {', '.join(sorted(state.hands[args.viewer]))}\n")
-    print(_format_mask(mask, state))
+    print(format_mask(mask, state.n_players))
     print("\n# = located holder, x = still possible, . = ruled out")
     if mask.or_constraints:
         print("\nopen or-constraints (holder has at least one of):")
@@ -686,18 +761,24 @@ def cmd_arena(args) -> int:
     player_counts = (args.players,) if args.players else DEFAULT_PLAYER_COUNTS
     store = open_store(args.store) if args.store else None
 
-    result = run_arena(
-        n_games=args.games,
-        seed=args.seed,
-        roster=roster,
-        player_counts=player_counts,
-        max_turns=args.max_turns,
-        profiles=profiles,
-        store=store,
-        run_id=args.run_id,
-    )
+    try:
+        result = run_arena(
+            n_games=args.games,
+            seed=args.seed,
+            roster=roster,
+            player_counts=player_counts,
+            max_turns=args.max_turns,
+            profiles=profiles,
+            store=store,
+            run_id=args.run_id,
+            **_llm_kwargs(args),
+        )
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
     print(result.summary_table())
     _print_arena_footer(result, player_counts, store)
+    if args.llm:
+        _print_llm_cost(result.per_player, args.llm_model, args.games)
     if args.json:
         _write_json(args.json, result.to_dict())
     return 0
@@ -722,6 +803,7 @@ def cmd_sweep(args) -> int:
             max_turns=args.max_turns,
             store=store,
             run_id=args.run_id,
+            **_llm_kwargs(args),
         )
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
@@ -735,6 +817,9 @@ def cmd_sweep(args) -> int:
     print(f"\n{len(sweep.values)} values x {args.games} games in {total:.1f}s")
     if store is not None:
         print(f"records: runs {sweep.results[0].run_id} .. {sweep.results[-1].run_id} in {store.describe()}")
+    if args.llm:
+        pooled = {row.value: row.stats for row in sweep.rows}
+        _print_llm_cost(pooled, args.llm_model, args.games * len(sweep.values))
     if args.json:
         _write_json(args.json, sweep.to_dict())
     return 0
@@ -819,7 +904,29 @@ def build_parser() -> argparse.ArgumentParser:
     _add_game_args(play_p)
     play_p.add_argument("--verbose", action="store_true", help="Print every move/suggestion/accusation.")
     play_p.add_argument("--hands", action="store_true", help="Also print the dealt hands.")
+    _add_llm_args(play_p)
     play_p.set_defaults(fn=cmd_play)
+
+    prompt_p = sub.add_parser(
+        "prompt", help="Print the LLM prompt one seat would be sent for one decision; no call is made.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    _add_game_args(prompt_p)
+    prompt_p.add_argument("--viewer", type=int, default=0, help="Whose seat to render.")
+    prompt_p.add_argument(
+        "--at", type=int, default=None,
+        help="After this many suggestions (default: the whole game).",
+    )
+    prompt_p.add_argument(
+        "--decision", choices=("move", "suggest", "accuse", "show"), default="suggest",
+        help="Which of the four decisions to render the menu for.",
+    )
+    prompt_p.add_argument(
+        "--agent", default="",
+        help="Character to render for the seat (default: its roster occupant).",
+    )
+    prompt_p.add_argument("--roll", type=int, default=6, help="Die roll for --decision move.")
+    prompt_p.set_defaults(fn=cmd_prompt)
 
     trace_p = sub.add_parser(
         "trace", help="Replay one game's belief trace from one viewer's seat.",
@@ -936,6 +1043,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--set", action="append", default=[], metavar="LABEL.DIAL=VALUE",
         help="Override one preset dial, e.g. Scarlett.accuse_threshold=0.3 (repeatable).",
     )
+    _add_llm_args(arena_p)
     arena_p.set_defaults(fn=cmd_arena)
 
     sweep_p = sub.add_parser(
@@ -949,6 +1057,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Comma-separated characters to set the dial on (default: every character in the roster).",
     )
     _add_arena_args(sweep_p)
+    _add_llm_args(sweep_p)
     sweep_p.set_defaults(fn=cmd_sweep)
 
     store_p = sub.add_parser(

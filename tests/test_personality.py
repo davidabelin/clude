@@ -41,7 +41,7 @@ def test_profile_round_trips_through_dict_and_rejects_unknown_dials():
     assert set(original.to_dict()) == set(DIALS)
     assert Profile.from_dict({}) == NEUTRAL
     with pytest.raises(ValueError):
-        Profile.from_dict({"chattiness": 0.5})
+        Profile.from_dict({"charm": 0.5})
     with pytest.raises(ValueError):
         original.with_dials(urgency=0.5)
     assert original.with_dials(secrecy=0.9).secrecy == 0.9

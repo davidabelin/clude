@@ -408,3 +408,34 @@ trusts and slower than everyone. The std on 16-20 games is 8-12 points,
 so the order among the middle four is noise. What held across every
 run of this seed, tuned or not: Scarlett last with the most wrong
 accusations, and White, Peacock and Plum at zero.
+
+
+## Phase 6: LLM-piloted characters
+
+The wrapper (`docs/llm-wrapper.md`) lets a model choose within a leash
+of each character's own scores and adds table talk; the design and the
+four decisions behind it are in `docs/phase6-plan.md`. Everything is
+built and tested on fake backends: a backend that never answers
+reproduces every character golden byte for byte, and an adversarial one
+with full rope cannot move an event. Two dials joined `Profile`,
+`leash` (0.25 for everyone) and `chattiness` (0.5), pending the sweep
+below.
+
+**Results: not yet measured.** The machine this was built on has no API
+credentials, so the numbers that belong here are still to be produced:
+
+1. the twin comparison, `arena --games 24 --players 4 --roster
+   Scarlett,Plum,Peacock,floor --seed 7007` with and without `--llm`
+   (same deals and dice), reporting per character the change in `win%`
+   and `wrong%` with their binomial std, plus the LLM table's
+   `fallb%`, `deviate%`, `talk/g` and `tok/g`;
+2. `sweep --dial leash --values 0 0.25 0.5 1 --llm`, the keep-a-dial
+   test: `deviation_rate` should rise monotonically with the rope, and
+   whatever `wrong%` does against the twin is the cost of decision 2's
+   symmetric window;
+3. the `leash` and `chattiness` presets those two runs suggest, per
+   character, and a paragraph per character on whether the voice in its
+   persona file survived contact with real play.
+
+Until then the arena reports the `null` backend's control numbers only,
+which by construction equal the Phase 5 tuned table above.

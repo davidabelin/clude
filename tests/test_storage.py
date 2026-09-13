@@ -10,7 +10,7 @@ import pytest
 
 from clude_core import engine
 from clude_core.bots import RandomBot
-from clude_core.events import GameOverEvent, MoveEvent
+from clude_core.events import GameOverEvent, MoveEvent, RemarkEvent
 from clude_storage import (
     GameRecord,
     GcsStore,
@@ -23,6 +23,7 @@ from clude_storage import (
     open_store,
     split_gcs_uri,
 )
+from clude_storage.records import RECORD_VERSION
 from clude_storage.stores import game_key, run_key, validate_run_id
 
 
@@ -53,6 +54,27 @@ def test_events_round_trip_through_json():
         event_to_json("not an event")
     with pytest.raises(ValueError):
         event_from_json({"type": "teleport", "turn": 1})
+
+
+def test_remarks_round_trip_and_version_one_records_still_load():
+    remark = RemarkEvent(3, 1, "I have my suspicions.", "suggest")
+    data = event_to_json(remark)
+    assert data["type"] == "remark"
+    assert event_from_json(json.loads(json.dumps(data))) == remark
+
+    state, events = _finished_game()
+    with_talk = [*events[:-1], remark, events[-1]]
+    record = GameRecord.from_game("run-b", 0, 4, state, with_talk, _seats(state))
+    assert record.version == RECORD_VERSION == 2
+    back = GameRecord.from_dict(json.loads(json.dumps(record.to_dict())))
+    assert back.events == with_talk
+    assert back.winner == record.winner
+
+    # A document written before remarks existed loads unchanged.
+    old = GameRecord.from_game("run-c", 0, 4, state, events, _seats(state)).to_dict()
+    old["version"] = 1
+    assert all(e["type"] != "remark" for e in old["events"])
+    assert GameRecord.from_dict(old).version == 1
 
 
 def test_game_record_round_trips_and_is_json_serializable():

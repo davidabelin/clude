@@ -2,3 +2,7 @@ pytest>=8.0
 # Only needed for gs:// record stores (clude_storage.GcsStore); everything
 # else is the standard library, and the package is imported lazily.
 google-cloud-storage>=3.0
+# Only needed to pilot characters with a real model (clude_llm's
+# AnthropicBackend); imported lazily, so the suite and every other backend
+# run without it. Credentials: ANTHROPIC_API_KEY (docs/architecture.md).
+anthropic>=1.5

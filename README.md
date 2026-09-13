@@ -18,8 +18,12 @@ rules engine and event log, the deduction floor, the six strategy
 agents, a self-play benchmark of their belief quality, and now the
 personality layer that turns each agent's belief into moves, with an
 arena and dial sweeps to measure it and game records stored locally or
-in Cloud Storage. Phase 6 -- the LLM wrapper -- is next. There is no UI
-and no chat yet.
+in Cloud Storage. Phase 6, the LLM wrapper (`clude_llm`), is built and
+tested on fake backends: a model chooses within a leash of each
+character's own scores and adds a line of table talk, and anything
+illegal or failed falls back to the character. Its live checks and arena
+measurements wait on an API key ([docs/phase6-plan.md](docs/phase6-plan.md)).
+There is no UI and no chat yet.
 
 ## Quick start
 
@@ -31,9 +35,10 @@ python -m pytest
 python scripts/clude_cli.py --help
 ```
 
-Python 3.14 in a plain venv, no conda. `pytest` and `google-cloud-storage`
-are the only dependencies; the latter is imported only for `gs://` record
-stores, so everything else runs on the standard library.
+Python 3.14 in a plain venv, no conda. `pytest`, `google-cloud-storage`
+and `anthropic` are the only dependencies; the last two are imported
+lazily (for `gs://` record stores and for LLM-piloted seats), so
+everything else runs on the standard library.
 
 ## Try it
 
@@ -45,6 +50,8 @@ python scripts/clude_cli.py floor --seed 1 --roster floor --convergence  # watch
 python scripts/clude_cli.py benchmark --games 12                         # score the six methods' beliefs
 python scripts/clude_cli.py arena --games 24                             # who wins, who accuses wrongly
 python scripts/clude_cli.py sweep --dial accuse_threshold --values 0.2 0.6 1.0
+python scripts/clude_cli.py play --roster Plum,Scarlett,floor --llm --verbose   # LLM-piloted seats (needs ANTHROPIC_API_KEY)
+python scripts/clude_cli.py prompt --roster Plum,Scarlett,floor --viewer 1     # what that seat's model would be sent
 ```
 
 [docs/cli.md](docs/cli.md) explains every subcommand and how to read
@@ -57,6 +64,7 @@ clude_core/          domain model, board, event log, GameState/ClueObservation, 
 clude_constraints/   the shared deduction floor (constraint propagation) and FloorBot
 clude_agents/        AgentProtocol, the AgentSpec registry, one module per method,
                      and the personality layer (Profile, features, Character)
+clude_llm/           the LLM wrapper: menus, personas, prompts, backends, LLMCharacter
 clude_training/      self-play snapshots, the belief benchmark, post-game replay, arena, sweeps
 clude_storage/       game records; local-directory and Cloud Storage record stores
 scripts/             clude_cli.py, the maintainer CLI
@@ -92,6 +100,8 @@ five personality dials. Each is documented in
 - [docs/architecture.md](docs/architecture.md) -- package layout, the deduction floor, `ClueObservation`, the engine seam, `AgentProtocol`, the personality layer, storage
 - [docs/phase-plan.md](docs/phase-plan.md) -- what each phase delivered and what is out of scope
 - [docs/phase5-plan.md](docs/phase5-plan.md) -- the Phase 5 plan, David's decisions, and how the build departed from it
+- [docs/phase6-plan.md](docs/phase6-plan.md) -- the Phase 6 plan, David's decisions, and what was built
+- [docs/llm-wrapper.md](docs/llm-wrapper.md) -- how an LLM pilots a character: menus, leash, personas, backends, cost
 - [docs/strategy-glossary.md](docs/strategy-glossary.md) -- each method in plain language, with benchmark and arena results
 - [docs/cli.md](docs/cli.md) -- the maintainer CLI
 - [docs/board.md](docs/board.md) -- board topology and its simplifications

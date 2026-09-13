@@ -34,6 +34,9 @@ SWEEP_METRICS: tuple = (
     "mean_cards_leaked",
     "mean_own_cards_named",
     "reshow_rate",
+    "fallback_rate",
+    "deviation_rate",
+    "remarks_per_game",
 )
 
 
@@ -96,17 +99,20 @@ class SweepResult:
         header = (
             f"{self.dial:<18}{'games':>6}{'win%':>7}{'+-':>5}{'wrong%':>8}{'+-':>5}"
             f"{'1st_acc':>9}{'never%':>8}{'leaked':>8}{'named':>7}{'reshow%':>9}{'turns':>7}"
+            f"{'deviate%':>10}{'talk/g':>8}"
         )
         lines = [header, "-" * len(header)]
         for row in self.rows:
             s = row.stats
             first = f"{s.mean_first_accusation_turn:>9.1f}" if s.first_accusation_turns else f"{'-':>9}"
             reshow = f"{100 * s.reshow_rate:>9.1f}" if s.reshow_choices else f"{'-':>9}"
+            deviate = f"{100 * s.deviation_rate:>10.1f}" if s.llm_played else f"{'-':>10}"
+            talk = f"{s.remarks_per_game:>8.2f}" if s.llm_decisions else f"{'-':>8}"
             lines.append(
                 f"{row.value:<18.3f}{s.games:>6}{100 * s.win_rate:>7.1f}{100 * s.win_rate_std:>5.1f}"
                 f"{100 * s.wrong_accusation_rate:>8.1f}{100 * s.wrong_accusation_std:>5.1f}"
                 f"{first}{100 * s.never_accused_rate:>8.1f}{s.mean_cards_leaked:>8.2f}"
-                f"{s.mean_own_cards_named:>7.2f}{reshow}{row.mean_turns:>7.1f}"
+                f"{s.mean_own_cards_named:>7.2f}{reshow}{row.mean_turns:>7.1f}{deviate}{talk}"
             )
         verdicts = []
         for metric in SWEEP_METRICS:
@@ -146,6 +152,9 @@ def sweep_dial(
     max_turns: int = DEFAULT_MAX_TURNS,
     store=None,
     run_id: Optional[str] = None,
+    llm_backend=None,
+    llm_settings=None,
+    llm_characters=None,
 ) -> SweepResult:
     """Run the arena once per value of `dial`, setting it on every swept
     character (their other dials stay at preset), and pool the swept
@@ -162,6 +171,9 @@ def sweep_dial(
         `roster`. Characters not swept keep their presets.
     n_games, seed, roster, player_counts, max_turns, store
         Passed to `run_arena`; the same `seed` for every value.
+    llm_backend, llm_settings, llm_characters
+        Passed to `run_arena` (Phase 6): sweep a dial with the characters
+        LLM-piloted, the `leash` sweep being the point.
     run_id : str or None
         Prefix for each value's run id (``<run_id>-<dial>-<value>``);
         default ``sweep-<seed>-<n_games>``.
@@ -198,6 +210,9 @@ def sweep_dial(
             profiles=profiles,
             store=store,
             run_id=f"{run_id}-{dial}-{value:g}",
+            llm_backend=llm_backend,
+            llm_settings=llm_settings,
+            llm_characters=llm_characters,
         )
         sweep.results.append(result)
         sweep.rows.append(

@@ -154,7 +154,7 @@ def test_arena_runs_stores_and_exports(cli, capsys, tmp_path):
     detail = _run(cli, capsys, "store", "--uri", str(store), "--run", "smoke")
     assert "run smoke: 2 games" in detail and "Scarlett" in detail
     with pytest.raises(SystemExit):
-        cli.main(["arena", "--games", "1", "--set", "Scarlett.chattiness=1"])
+        cli.main(["arena", "--games", "1", "--set", "Scarlett.charm=1"])
     with pytest.raises(SystemExit):
         cli.main(["arena", "--games", "1", "--roster", "Nobody"])
 
@@ -170,3 +170,61 @@ def test_sweep_prints_a_row_per_value_and_a_verdict(cli, capsys):
     assert "2 values x 2 games" in out
     with pytest.raises(SystemExit):
         cli.main(["sweep", "--dial", "secrecy", "--values", "0.5", "--roster", "floor", "--games", "1"])
+
+
+def test_play_with_llm_seats_on_the_null_backend_matches_the_headless_game(cli, capsys):
+    roster = ("--roster", "Scarlett,Peacock")
+    plain = _run(cli, capsys, "play", *SMALL_GAME, *roster, "--verbose")
+    llm = _run(cli, capsys, "play", *SMALL_GAME, *roster, "--verbose", "--llm", "--llm-backend", "null")
+    assert "LLM seats:" in llm and "backend null" in llm and "0 remarks" in llm
+    assert llm.split("\nLLM seats:")[0] == plain  # the null backend is the headless twin, line for line
+    subset = _run(
+        cli, capsys, "play", *SMALL_GAME, *roster, "--llm", "--llm-backend", "null",
+        "--llm-characters", "Peacock",
+    )
+    trailer = subset.split("LLM seats:")[1]
+    assert trailer.count(" decisions,") == 1 and "P1 Mustard (Peacock)" in trailer
+    with pytest.raises(SystemExit):
+        cli.main(["play", *SMALL_GAME, *roster, "--llm", "--llm-backend", "bogus"])
+    with pytest.raises(SystemExit):
+        cli.main(["play", *SMALL_GAME, *roster, "--llm", "--llm-backend", "null", "--llm-characters", "Nobody"])
+
+
+def test_prompt_prints_the_system_and_user_prompt_without_calling(cli, capsys):
+    out = _run(cli, capsys, "prompt", *SMALL_GAME, "--roster", "Scarlett,Peacock", "--viewer", "1", "--at", "2")
+    assert "=== system" in out and "persona" in out and "Mrs. Peacock" in out
+    assert "=== user" in out and "seat P1, after k=2" in out
+    assert "Suspect options" in out and "Answer with JSON only" in out
+    move = _run(cli, capsys, "prompt", *SMALL_GAME, "--roster", "Scarlett,Peacock", "--decision", "move", "--roll", "3")
+    assert "Decision: where to move." in move
+    for decision in ("accuse", "show"):
+        assert "=== user" in _run(cli, capsys, "prompt", *SMALL_GAME, "--roster", "Scarlett,Peacock", "--decision", decision)
+    borrowed = _run(cli, capsys, "prompt", *SMALL_GAME, "--roster", "Scarlett,Peacock", "--viewer", "2", "--agent", "Plum")
+    assert "Professor Plum" in borrowed and "playing the White token" in borrowed
+    with pytest.raises(SystemExit):
+        cli.main(["prompt", *SMALL_GAME, "--roster", "Scarlett,Peacock", "--viewer", "2"])
+    with pytest.raises(SystemExit):
+        cli.main(["prompt", *SMALL_GAME, "--roster", "Scarlett,Peacock", "--at", "999"])
+
+
+def test_arena_and_sweep_take_llm_seats_on_the_null_backend(cli, capsys, tmp_path):
+    out = _run(
+        cli, capsys, "arena", "--games", "2", "--seed", "3", "--roster", "Scarlett,White",
+        "--players", "3", "--max-turns", "40", "--llm", "--llm-backend", "null",
+        "--store", str(tmp_path), "--json", str(tmp_path / "a.json"),
+    )
+    assert "LLM seats:" in out and "fallb%" in out and "estimated LLM cost" in out
+    assert (tmp_path / "runs" / "llm-3-2.json").exists()
+    data = json.loads((tmp_path / "a.json").read_text(encoding="utf-8"))
+    assert data["llm"]["backend"] == "null" and data["per_player"]["Scarlett"]["kind"] == "llm"
+    assert data["per_player"]["Scarlett"]["fallback_rate"] == 1.0
+    out = _run(
+        cli, capsys, "sweep", "--dial", "leash", "--values", "0", "1", "--games", "1", "--seed", "3",
+        "--roster", "Scarlett,floor", "--players", "3", "--max-turns", "40", "--llm", "--llm-backend", "null",
+    )
+    assert "sweep of leash on Scarlett" in out and "deviate%" in out
+    with pytest.raises(SystemExit):
+        cli.main([
+            "arena", "--games", "1", "--roster", "Scarlett,floor", "--players", "3",
+            "--llm", "--llm-backend", "null", "--llm-characters", "Plum",
+        ])

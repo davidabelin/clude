@@ -1,7 +1,10 @@
 """Phase 5c: `Character` -- one unit test per engine decision, plus a
-full game among the six."""
+full game among the six. Phase 6a adds the pure scoring helpers the LLM
+wrapper builds its menus from, and golden fingerprints of seeded
+character games that the split must not have moved."""
 from __future__ import annotations
 
+import hashlib
 import random
 
 import pytest
@@ -11,14 +14,18 @@ from clude_agents import AGENT_SPECS, ClueBelief, build_character
 from clude_agents.character import (
     Character,
     best_triple,
+    cards_exposed,
     ds_belief_confidence,
     probabilities_confidence,
+    show_scores,
+    suggestion_candidates,
 )
 from clude_agents.naive_bayes import NaiveBayesAgent
 from clude_agents.personality import Profile
 from clude_core import engine
 from clude_core.domain import ALL_CARDS, ROOMS, SUSPECTS, WEAPONS, Suggestion
 from clude_core.events import GameOverEvent
+from clude_training.arena import fill_seed
 
 from tests.test_agents import make_obs
 
@@ -35,6 +42,27 @@ def _fresh_obs(own_hand=(), n_players=3):
     sizes = {p: 6 for p in range(n_players)}
     sizes[0] = len(own_hand) if own_hand else 6
     return make_obs(n_players, 0, set(own_hand), sizes, [])
+
+
+def _character_game(seed: int, n_players: int, roster: tuple, max_turns: int = 200):
+    """Characters in the first seats (each reset with its seat index),
+    `FloorBot`s in the rest, the same way `scripts/clude_cli.py play`
+    and the golden-capture script seat them."""
+    players = {}
+    for seat in range(n_players):
+        if seat < len(roster):
+            character = build_character(roster[seat])
+            character.reset(seat)
+            players[seat] = character
+        else:
+            players[seat] = clude_constraints.FloorBot(rng=random.Random(fill_seed(seed, seat)))
+    return engine.run_game(
+        n_players, players, seed=seed, max_turns=max_turns, observer=clude_constraints.observe
+    )
+
+
+def _digest(events) -> str:
+    return hashlib.sha256("\n".join(repr(e) for e in events).encode()).hexdigest()
 
 
 def test_best_triple_takes_the_product_of_category_maxima():
@@ -142,21 +170,102 @@ def test_character_ignores_the_engine_rng():
     assert picks_a == picks_b
 
 
-def test_six_characters_play_a_full_game_deterministically():
-    def play():
-        players = {}
-        for seat, name in enumerate(sorted(AGENT_SPECS)[:4]):
-            character = build_character(name)
-            character.reset(seat)
-            players[seat] = character
-        return engine.run_game(4, players, seed=17, max_turns=120, observer=clude_constraints.observe)
+# ---------------------------------------------------------------------
+# Phase 6a: the pure scoring helpers behind each decision
+# ---------------------------------------------------------------------
 
-    state_a, events_a = play()
-    state_b, events_b = play()
+
+def test_suggestion_candidates_are_the_honest_options_with_belief_scores():
+    own = {"Scarlett", "Knife"}
+    obs = _fresh_obs(own)
+    character = _character(Profile())
+    belief = character.select_action(obs)
+    suspects, scores = suggestion_candidates(obs, belief, SUSPECTS)
+    assert suspects == [c for c in SUSPECTS if c != "Scarlett"]
+    assert scores == [belief.probabilities[c] for c in suspects]
+    weapons, _ = suggestion_candidates(obs, belief, WEAPONS)
+    assert "Knife" not in weapons and len(weapons) == len(WEAPONS) - 1
+
+
+def test_cards_exposed_and_show_scores_match_the_decision():
+    shown_before = Suggestion(1, "Mustard", "Rope", "Kitchen", refuter=0, shown_to=1, card_shown="Rope")
+    obs = make_obs(3, 0, {"Rope", "Mustard", "Knife"}, {0: 3, 1: 8, 2: 7}, [shown_before], turn=1)
+    assert cards_exposed(obs, 1) == ({"Rope"}, {"Rope"})
+    assert cards_exposed(obs, 2) == (set(), {"Rope"})
+    candidates = ["Knife", "Mustard", "Rope"]
+    assert show_scores(candidates, {"Rope"}, {"Rope"}, 1.0) == [0.0, 0.0, 1.0]
+    assert show_scores(candidates, set(), {"Rope"}, 0.5) == [0.0, 0.0, 0.25]
+    assert show_scores(candidates, {"Rope"}, {"Rope"}, 0.0) == [0.0, 0.0, 0.0]
+
+
+def test_movement_scores_and_accusation_test_are_pure():
+    """The menu helpers read the belief and draw nothing from the RNG, so
+    a wrapper can call them and then fall back to the sampled decision
+    with the RNG stream exactly where the headless character had it."""
+    obs = _fresh_obs()
+    choices = [engine.MoveChoice("move", r) for r in ROOMS[:4]]
+    character = _character(Profile(temperature=1.0), seed=5)
+    before = character.rng.getstate()
+
+    features, scores = character.movement_scores(obs, choices)
+    assert [f.choice for f in features] == choices
+    assert len(scores) == len(choices) and all(0.0 <= s <= 1.0 for s in scores)
+    triple, confidence = character.accusation_test(obs)
+    assert len(triple) == 3 and 0.0 <= confidence <= 1.0
+    belief = character.select_action(obs)
+    suggestion_candidates(obs, belief, SUSPECTS)
+    cards_exposed(obs, 1)
+
+    assert character.rng.getstate() == before
+    assert character.n_calls == 1
+    # And the decision reports the very numbers the pure view computed.
+    character.choose_accusation(obs, ENGINE_RNG)
+    assert (character.last_triple, character.last_confidence) == (triple, confidence)
+
+
+# ---------------------------------------------------------------------
+# Full games: determinism and golden fingerprints
+# ---------------------------------------------------------------------
+
+# Event-log fingerprints of seeded character games, captured on the
+# Phase 5 code immediately before Phase 6a split scoring from sampling.
+# They pin the character layer the way `tests/test_engine.py`'s goldens
+# pin the rules engine: a change here means a character's behaviour
+# moved, which no Phase 6 work is supposed to do. Regenerate
+# deliberately if a method or a preset is meant to change.
+GOLDEN_CHARACTER_GAMES = {
+    (23, 5, ("Scarlett", "Peacock", "Mustard", "White")): (
+        "cf5d0435384d5cbf69e30eed0b6a66bdc69c092b3b061f19053729843e031505", 74,
+    ),
+    (9, 3, ("Scarlett", "White", "Mustard")): (
+        "567c035ac09e095f93150f2883fdc62aa0f892b84fa9da152afece1805b5200e", 47,
+    ),
+    (31, 4, ("Peacock", "Scarlett")): (
+        "e977f43bac88d272be4119f6ab3b7d66934bf70b0143080d449854c97a1bbd0f", 28,
+    ),
+}
+GOLDEN_FOUR_CHARACTER_GAME = (
+    "74a32e60b368193d29cbf9165d3493b51b0843f914d8a0c63cef911d0ce5f2d5", 36,
+)
+
+
+@pytest.mark.parametrize("seed,n_players,roster", sorted(GOLDEN_CHARACTER_GAMES))
+def test_seeded_character_games_match_the_pre_split_golden_logs(seed, n_players, roster):
+    expected_digest, expected_events = GOLDEN_CHARACTER_GAMES[(seed, n_players, roster)]
+    _state, events = _character_game(seed, n_players, roster)
+    assert len(events) == expected_events
+    assert _digest(events) == expected_digest
+
+
+def test_six_characters_play_a_full_game_deterministically():
+    roster = tuple(sorted(AGENT_SPECS)[:4])  # Green, Mustard, Peacock, Plum: the expensive four
+    state_a, events_a = _character_game(17, 4, roster, max_turns=120)
+    state_b, events_b = _character_game(17, 4, roster, max_turns=120)
     assert isinstance(events_a[-1], GameOverEvent)
     assert [repr(e) for e in events_a] == [repr(e) for e in events_b]
     assert state_a.suggestion_log, "characters in a room always suggest"
-    # No character ever wastes an honest suggestion on a card it holds
-    # unless it was bluffing, and every accusation respected the threshold.
     for accusation in state_a.accusation_log:
         assert accusation.accuser in range(4)
+    expected_digest, expected_events = GOLDEN_FOUR_CHARACTER_GAME
+    assert len(events_a) == expected_events
+    assert _digest(events_a) == expected_digest

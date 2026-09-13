@@ -14,10 +14,16 @@ the game it describes.
 What Phase 7 should expect to find here, per game: `seats` (who sat
 where -- seat index, suspect token, roster label, kind, and the
 character's `Profile` dials at the time), the deal (`envelope`,
-`hands`), the full `events` list in order, and the outcome (`winner`,
-`turns`, counts). Human identities are not here yet; `SeatRecord.label`
-is the roster label ("Plum", "floor"), which Phase 8's seat assignment
-is expected to extend rather than replace.
+`hands`), the full `events` list in order -- including, since Phase 6,
+every `RemarkEvent` of table talk, interleaved with the actions it
+accompanied -- and the outcome (`winner`, `turns`, counts). Human
+identities are not here yet; `SeatRecord.label` is the roster label
+("Plum", "floor"), which Phase 8's seat assignment is expected to
+extend rather than replace.
+
+`RECORD_VERSION` history: 1 (Phase 5d) the shape above without remarks;
+2 (Phase 6a) adds the ``remark`` event type. A version-1 document loads
+unchanged, since it simply contains no remarks.
 """
 from __future__ import annotations
 
@@ -27,10 +33,17 @@ from typing import Optional
 
 from clude_core.board import HallwayCell
 from clude_core.domain import Accusation, Suggestion
-from clude_core.events import AccusationEvent, GameEvent, GameOverEvent, MoveEvent, SuggestionEvent
+from clude_core.events import (
+    AccusationEvent,
+    GameEvent,
+    GameOverEvent,
+    MoveEvent,
+    RemarkEvent,
+    SuggestionEvent,
+)
 from clude_core.state import GameState
 
-RECORD_VERSION = 1
+RECORD_VERSION = 2
 
 
 def node_to_json(node):
@@ -93,12 +106,12 @@ def _accusation_from_json(data: dict) -> Accusation:
 
 def event_to_json(event: GameEvent) -> dict:
     """One event as a JSON object with a ``type`` tag: ``move``,
-    ``suggestion``, ``accusation`` or ``game_over``.
+    ``suggestion``, ``accusation``, ``game_over`` or ``remark``.
 
     Raises
     ------
     TypeError
-        For an object that is not one of the four event types.
+        For an object that is not one of the five event types.
     """
     if isinstance(event, MoveEvent):
         return {
@@ -118,6 +131,14 @@ def event_to_json(event: GameEvent) -> dict:
             "turn": event.turn,
             "winner": event.winner,
             "solution": list(event.solution),
+        }
+    if isinstance(event, RemarkEvent):
+        return {
+            "type": "remark",
+            "turn": event.turn,
+            "seat": event.seat,
+            "text": event.text,
+            "about": event.about,
         }
     raise TypeError(f"not a game event: {event!r}")
 
@@ -144,6 +165,8 @@ def event_from_json(data: dict) -> GameEvent:
     if kind == "game_over":
         winner = data.get("winner")
         return GameOverEvent(turn, None if winner is None else int(winner), tuple(data["solution"]))
+    if kind == "remark":
+        return RemarkEvent(turn, int(data["seat"]), str(data["text"]), str(data["about"]))
     raise ValueError(f"unknown event type {kind!r}")
 
 
@@ -160,9 +183,12 @@ class SeatRecord:
     label : str
         Roster label: a character name or a bot kind (``"floor"``).
     kind : str
-        ``"character"``, ``"floor"`` or ``"random"``.
+        ``"character"``, ``"llm"`` (an LLM piloting a character, Phase 6),
+        ``"floor"`` or ``"random"``.
     profile : dict or None
         The character's `Profile.to_dict()` at play time; None for bots.
+    model : str or None
+        The model id behind an ``"llm"`` seat; None otherwise.
     """
 
     seat: int
@@ -170,6 +196,7 @@ class SeatRecord:
     label: str
     kind: str
     profile: Optional[dict] = None
+    model: Optional[str] = None
 
     def to_dict(self) -> dict:
         return {
@@ -178,6 +205,7 @@ class SeatRecord:
             "label": self.label,
             "kind": self.kind,
             "profile": self.profile,
+            "model": self.model,
         }
 
     @classmethod
@@ -188,6 +216,7 @@ class SeatRecord:
             label=data["label"],
             kind=data["kind"],
             profile=data.get("profile"),
+            model=data.get("model"),
         )
 
 
@@ -213,6 +242,10 @@ class GameRecord:
     winner : int or None
     turns : int
     n_suggestions, n_accusations : int
+    llm_log : dict or None
+        Seat -> that seat's LLM decision audit, a list of
+        `clude_llm.Decision.to_dict()` objects (Phase 6); None when no
+        seat was LLM-piloted.
     created_at : str
         ISO-8601 UTC timestamp of when the record was built.
     version : int
@@ -231,12 +264,14 @@ class GameRecord:
     turns: int
     n_suggestions: int
     n_accusations: int
+    llm_log: Optional[dict] = None
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     version: int = RECORD_VERSION
 
     @classmethod
     def from_game(
-        cls, run_id: str, game_index: int, seed: int, state: GameState, events: list, seats: list
+        cls, run_id: str, game_index: int, seed: int, state: GameState, events: list, seats: list,
+        llm_log: Optional[dict] = None,
     ) -> "GameRecord":
         """Build a record from a finished `engine.run_game` result."""
         final = events[-1] if events else None
@@ -254,6 +289,7 @@ class GameRecord:
             turns=state.turn,
             n_suggestions=len(state.suggestion_log),
             n_accusations=len(state.accusation_log),
+            llm_log=llm_log,
         )
 
     def to_dict(self) -> dict:
@@ -273,12 +309,16 @@ class GameRecord:
             "turns": self.turns,
             "n_suggestions": self.n_suggestions,
             "n_accusations": self.n_accusations,
+            "llm_log": (
+                None if self.llm_log is None
+                else {str(seat): log for seat, log in self.llm_log.items()}
+            ),
             "created_at": self.created_at,
         }
 
     @classmethod
     def from_dict(cls, data: dict) -> "GameRecord":
-        """Inverse of `to_dict`."""
+        """Inverse of `to_dict`. Accepts every `RECORD_VERSION` so far."""
         return cls(
             run_id=data["run_id"],
             game_index=int(data["game_index"]),
@@ -292,6 +332,10 @@ class GameRecord:
             turns=int(data["turns"]),
             n_suggestions=int(data["n_suggestions"]),
             n_accusations=int(data["n_accusations"]),
+            llm_log=(
+                None if data.get("llm_log") is None
+                else {int(seat): log for seat, log in data["llm_log"].items()}
+            ),
             created_at=data.get("created_at", ""),
             version=int(data.get("version", RECORD_VERSION)),
         )

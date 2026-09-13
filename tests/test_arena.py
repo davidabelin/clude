@@ -129,7 +129,7 @@ def test_sweep_of_accuse_threshold_moves_wrong_accusations():
     json.dumps(sweep.to_dict())
     assert "monotone:" in sweep.summary_table()
     with pytest.raises(ValueError):
-        sweep_dial("chattiness", [0.5], n_games=1, roster=("Scarlett",))
+        sweep_dial("charm", [0.5], n_games=1, roster=("Scarlett",))
     with pytest.raises(ValueError):
         sweep_dial("secrecy", [0.5], n_games=1, roster=("floor",))
     with pytest.raises(ValueError):

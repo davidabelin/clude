@@ -17,14 +17,15 @@ disk unless you pass `--json` or `--store`.
 | Subcommand | Question it answers | Phase it exercises |
 |---|---|---|
 | `agents` | What agents are registered, and what are their preset dials? | 3, 5 |
-| `play` | What does one headless game look like? | 1, 5 |
+| `play` | What does one headless game look like, with or without LLM-piloted seats? | 1, 5, 6 |
+| `prompt` | What exactly would this seat's LLM be sent, right now, for this decision? | 6 |
 | `trace` | What did each character believe after every suggestion, and would it have accused? | 2-3, 5 |
 | `floor` | What has the deduction floor proven, and how fast does it close in? | 2 |
 | `benchmark` | How good is each method's belief, and what does a call cost? | 4 |
 | `train-mustard` | What tree do these hyperparameters give, and does it help? | 3-4 |
 | `snapshots` | What does the self-play training/benchmark data look like? | 4-5 |
-| `arena` | Who wins, who accuses wrongly, who leaks, over N full games? | 5 |
-| `sweep` | Does one dial move a metric monotonically? | 5 |
+| `arena` | Who wins, who accuses wrongly, who leaks, over N full games -- and, with `--llm`, what the model's rope cost each character? | 5, 6 |
+| `sweep` | Does one dial move a metric monotonically? (`--llm` for the two Phase 6 dials.) | 5, 6 |
 | `store` | What runs are in a record store, local or in the bucket? | 5 |
 
 The three one-game commands (`play`, `trace`, `floor`) share
@@ -82,6 +83,50 @@ personality layer choosing every move.
 
 The event log is omniscient: it always names the card shown. `trace`
 and `floor` show the redacted, per-seat view instead.
+
+```
+python scripts/clude_cli.py play --roster Plum,Scarlett,floor --llm --llm-backend null --verbose
+python scripts/clude_cli.py play --roster Plum,Scarlett,floor --llm --llm-characters Scarlett
+python scripts/clude_cli.py play --roster Plum,Scarlett,floor --llm --llm-backend replay:data/exports/llm-1.json
+```
+
+`--llm` (Phase 6) pilots the roster's character seats with an LLM
+(`clude_llm.LLMCharacter`, docs/phase6-plan.md): each decision offers the
+model the character's own leashed menu, and any reply that is not an
+allowed option falls back to the character's own choice.
+`--llm-backend` picks the model source: `anthropic` (the default; the
+real API, 6c), `null` (never answers, so the game is the headless one
+event for event -- the control), `record:PATH` (the real API, every
+exchange saved) or `replay:PATH` (a saved recording, no spend).
+`--llm-model` names the model and `--llm-characters` restricts wrapping
+to a subset of the roster. With `--verbose`, remarks print inline as
+`turn 7: P1 Mustard (Plum) says: "..."`; a trailer lists each LLM
+seat's decisions, calls, fallbacks, deviations (a played option that
+scored below the character's best), remarks, tokens and seconds.
+
+## `prompt`
+
+```
+python scripts/clude_cli.py prompt --seed 1 --players 3 --roster Scarlett,Peacock --viewer 1 --at 2
+python scripts/clude_cli.py prompt --seed 1 --roster Plum,Scarlett,floor --viewer 2 --agent Peacock --decision accuse
+python scripts/clude_cli.py prompt --seed 1 --roster Plum,Scarlett,floor --decision move --roll 4
+```
+
+Prints the two prompts an LLM-piloted seat would be sent for one
+decision at one point in a game (Phase 6): the system prompt (the
+character's persona file plus `clude_llm/personas/rules.md`, the part
+the API caches) and the user prompt (the seat's hand, what the floor has
+proven, its method's top cards and accusation test, the suggestion log
+as that seat saw it, and the leashed menu). No call is made. `--viewer`
+picks the seat, `--at` the number of suggestions revealed (default the
+whole game), `--decision` which menu to render, and `--agent` which
+character's method and persona to use when the seat is a bot, or to try
+another character in that seat. Positions are the finished game's, so
+`--decision move` lists the legal moves from there for `--roll`.
+
+This is the review tool for two things: reading what a character is
+told before editing its persona file, and checking that nothing in the
+user prompt is information the seat could not have.
 
 ## `trace`
 
@@ -370,6 +415,39 @@ baseline, whose records are in the bucket as `arena-tuned-24`; the
 untuned first pass, the sweeps, and what changed are in
 `docs/strategy-glossary.md`.
 
+`--llm` (Phase 6) pilots the roster's characters with an LLM, with the
+same `--llm-backend`, `--llm-model` and `--llm-characters` flags as
+`play`; the default run id becomes `llm-<seed>-<games>`, the seats are
+recorded as `kind="llm"` with the model and each game's decision audit,
+and a second table follows the first:
+
+```
+LLM seats:
+player     games  decis  asked  fallb%  deviate%  talk/g    tok/g  llm ms
+-------------------------------------------------------------------------
+Scarlett       2     38     11    100.0         -    0.00        0       0
+```
+
+- `decis` is every decision the seat made; `asked` those that were the
+  model's to make (a menu with one allowed option is decided by the
+  character, with no call).
+- `fallb%` is, of the asked decisions, the share that fell back to the
+  character (backend error, refusal, malformed reply, a letter not on
+  the menu or not allowed, budget). On the `null` backend it is 100.
+- `deviate%` is, of the choices the model actually played, the share
+  that scored below the character's own best option (for the
+  accusation, differed from its threshold answer); `-` when nothing
+  was played.
+- `talk/g` is remarks per game, `tok/g` input plus output tokens per
+  game, `llm ms` wall-clock per model call. A line after the footer
+  estimates the run's cost at list prices.
+
+The comparison that matters is paired: the same command with and
+without `--llm` plays the same deals and dice, so the difference in
+`win%` and `wrong%` is what the model's rope did to each character.
+`--llm-backend null` reproduces the plain run exactly and is the
+control. See `docs/llm-wrapper.md`.
+
 ## `sweep`
 
 ```
@@ -398,6 +476,10 @@ sweeps use `Scarlett,floor,Mustard,floor,...`) makes the pooled `win%`
 mean "characters versus purely logical players", with the FloorBot seats
 as an untouched control group in each run's own table (`--json` keeps
 every run).
+
+`--llm` (with the same flags as `arena`) sweeps with the characters
+LLM-piloted; `sweep --dial leash --llm` is the keep-a-dial test for the
+leash, and the table gains `deviate%` and `talk/g` columns.
 
 ## `store`
 

@@ -7,17 +7,28 @@ observation is built by an injectable `observer`, defaulting to
 `ClueObservation.for_player`, so this package still never imports the
 deduction floor -- callers who want a masked view pass
 `clude_constraints.observe` (see docs/architecture.md).
+
+A seat that also implements `SpeakingPlayer` (Phase 6) has its buffered
+table talk appended to the event log as `RemarkEvent`s right after each
+decision; every other seat's game is untouched by that hook.
 """
 from __future__ import annotations
 
 import random
 from dataclasses import dataclass
-from typing import Callable, Optional, Protocol
+from typing import Callable, Optional, Protocol, runtime_checkable
 
 from . import board
 from .board import Node
 from .domain import ALL_CARDS, Accusation, ROOMS, Suggestion, SUSPECTS, WEAPONS, players_after
-from .events import AccusationEvent, GameEvent, GameOverEvent, MoveEvent, SuggestionEvent
+from .events import (
+    AccusationEvent,
+    GameEvent,
+    GameOverEvent,
+    MoveEvent,
+    RemarkEvent,
+    SuggestionEvent,
+)
 from .state import ClueObservation, GameState
 
 MIN_PLAYERS = 3
@@ -83,6 +94,28 @@ class PlayerProtocol(Protocol):
         """Return which of `candidates` (the named cards this seat holds,
         sorted) to show to `shown_to`. The suggestion being refuted is
         not yet in `obs.suggestion_log`."""
+        ...
+
+
+@runtime_checkable
+class SpeakingPlayer(Protocol):
+    """Optional extension of `PlayerProtocol` for seats that talk
+    (Phase 6's LLM characters).
+
+    After each decision the engine asks the deciding seat -- and, once a
+    suggestion has resolved, its refuter -- for the lines it buffered,
+    and appends them to the event log as `RemarkEvent`s in order, right
+    after the decision's own event; every other speaking seat is told each
+    line through `hear`. A player without these methods is never asked,
+    so nothing about its games changes.
+    """
+
+    def take_remarks(self) -> list[str]:
+        """Return, and clear, the lines buffered since the last call."""
+        ...
+
+    def hear(self, remark: RemarkEvent) -> None:
+        """Be told a remark another seat just made (never this seat's own)."""
         ...
 
 
@@ -207,6 +240,22 @@ def resolve_accusation(
     return accusation
 
 
+def _append_remarks(
+    events: list[GameEvent], bots: dict[int, PlayerProtocol], seat: int, turn: int, about: str
+) -> None:
+    """Drain `seat`'s buffered table talk into `events`, if it speaks, and
+    let every other speaking seat hear each line."""
+    player = bots[seat]
+    if not isinstance(player, SpeakingPlayer):
+        return
+    for text in player.take_remarks():
+        remark = RemarkEvent(turn, seat, text, about)
+        events.append(remark)
+        for other, listener in bots.items():
+            if other != seat and isinstance(listener, SpeakingPlayer):
+                listener.hear(remark)
+
+
 def run_game(
     n_players: int,
     bots: dict[int, PlayerProtocol],
@@ -221,7 +270,8 @@ def run_game(
     n_players : int
         Table size, 3-6.
     bots : dict[int, PlayerProtocol]
-        One player per seat index.
+        One player per seat index. A seat that also implements
+        `SpeakingPlayer` has its remarks appended after each decision.
     seed : int or None
         Seeds the deal, the dice, and any player that draws from the
         engine RNG.
@@ -260,6 +310,7 @@ def run_game(
         events.append(
             MoveEvent(state.turn, player, state.positions[player], choice.kind == "secret_passage")
         )
+        _append_remarks(events, bots, player, state.turn, "move")
 
         room = board.room_of(state.positions[player])
         if room is not None:
@@ -270,16 +321,21 @@ def run_game(
                     state, player, suspect, weapon, bots, rng, observer
                 )
                 events.append(SuggestionEvent(state.turn, suggestion))
+                _append_remarks(events, bots, player, state.turn, "suggest")
+                if suggestion.refuter is not None:
+                    _append_remarks(events, bots, suggestion.refuter, state.turn, "show")
                 obs = observer(state, player)
 
         accused = bots[player].choose_accusation(obs, rng)
+        accusation: Optional[Accusation] = None
         if accused is not None:
             suspect, weapon, room2 = accused
             accusation = resolve_accusation(state, player, suspect, weapon, room2)
             events.append(AccusationEvent(state.turn, accusation))
-            if accusation.correct:
-                events.append(GameOverEvent(state.turn, player, state.envelope))
-                return state, events
+        _append_remarks(events, bots, player, state.turn, "accuse")
+        if accusation is not None and accusation.correct:
+            events.append(GameOverEvent(state.turn, player, state.envelope))
+            return state, events
 
     events.append(GameOverEvent(state.turn, None, state.envelope))
     return state, events

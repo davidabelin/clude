@@ -1,5 +1,6 @@
 """Personality profiles: the numeric dials that turn a character's
-belief into choices (Phase 5c).
+belief into choices (Phase 5c), plus the two Phase 6 dials that govern
+how an LLM pilots the same character.
 
 A `Profile` is all-numeric and slider-ready. Each dial owns exactly one
 engine decision and is meant to move exactly one arena metric
@@ -13,10 +14,15 @@ monotonically in a sweep gets cut, not tuned.
 | `curiosity` | movement | 1 = chase the most probable room, 0 = enter the nearest room | (with the rest) win rate |
 | `secrecy` | card to show | 1 = re-show what this player has already seen, 0 = indifferent | own cards leaked |
 | `temperature` | all three sampled decisions | softmax temperature over scores in [0, 1]; 0 = greedy | win rate (down as it rises) |
+| `leash` | every LLM-piloted decision (Phase 6) | how far below its method's best-scored option an LLM character may pick: 0 = only the headless pick, 1 = any legal option; also widens the accusation window symmetrically around `accuse_threshold` | deviation rate; wrong-accusation rate against the headless twin |
+| `chattiness` | table talk (Phase 6) | P(a line the LLM offered is actually said) | remarks per game |
 
-How each is consumed is in `clude_agents.character`; the six presets
+How the first five are consumed is in `clude_agents.character`; the
+headless `Character` ignores `leash` and `chattiness`, which only
+`clude_llm.LLMCharacter` reads (docs/phase6-plan.md). The six presets
 below are the intended flavors from CLAUDE.md as a first pass, tuned in
-Phase 5e against the arena (`docs/strategy-glossary.md`). Mustard and
+Phase 5e against the arena (`docs/strategy-glossary.md`); the two Phase 6
+dials start at their defaults for everyone until 6d's sweep. Mustard and
 White stay on the neutral `accuse_threshold` deliberately, so that any
 wrong accusation of theirs is attributable to their belief method, not
 to a dial (the "don't encode the flaw twice" rule).
@@ -25,13 +31,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 
-DIALS: tuple = ("accuse_threshold", "bluff_rate", "curiosity", "secrecy", "temperature")
-UNIT_DIALS: tuple = ("accuse_threshold", "bluff_rate", "curiosity", "secrecy")
+DIALS: tuple = (
+    "accuse_threshold", "bluff_rate", "curiosity", "secrecy", "temperature", "leash", "chattiness",
+)
+UNIT_DIALS: tuple = ("accuse_threshold", "bluff_rate", "curiosity", "secrecy", "leash", "chattiness")
 
 
 @dataclass(frozen=True)
 class Profile:
-    """One character's dial settings. All fields are floats; the four in
+    """One character's dial settings. All fields are floats; the six in
     `UNIT_DIALS` must lie in [0, 1], `temperature` must be >= 0.
 
     Raises
@@ -45,6 +53,8 @@ class Profile:
     curiosity: float = 0.5
     secrecy: float = 0.5
     temperature: float = 0.1
+    leash: float = 0.25
+    chattiness: float = 0.5
 
     def __post_init__(self) -> None:
         for name in UNIT_DIALS:

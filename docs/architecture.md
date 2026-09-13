@@ -20,6 +20,8 @@ clude/
     personality.py     # Profile: the five dials, six presets
     features.py        # shared room-choice features and softmax sampling
     character.py       # Character(agent, profile): the four engine decisions
+    explain.py         # plain-text views of a seat's knowledge: CLI, LLM prompt, later UI
+  clude_llm/           # Phase 6 (in progress): menus, personas, LLM backends, LLMCharacter
   clude_training/      # self-play snapshots, belief benchmark, replay, arena, sweeps
   clude_storage/       # game records; local and Cloud Storage record stores
   clude_web/           # Flask/Cloud Run app, chat, UI (phase 8+, not started)
@@ -219,6 +221,18 @@ a hallway token boxed in by other tokens had no legal move at all, where
 Clue simply has it stay put (`legal_moves` now offers ``stay`` in that
 case). The golden fingerprints were regenerated once, after those fixes.
 
+Phase 6a added one optional extension to the seam without touching
+`PlayerProtocol`: a seat that also implements `SpeakingPlayer`
+(`take_remarks() -> list[str]`, a `runtime_checkable` Protocol) has
+whatever lines it buffered appended to the event log as `RemarkEvent`s
+right after each decision -- the mover after its `MoveEvent`, the
+suggester and then the refuter after the `SuggestionEvent`, and the
+accuser after its accusation decision whether or not it accused. Players
+without the method are never asked, so every golden fingerprint held.
+Remarks are public and have no game effect; they exist so replay and
+Phase 8's live view get dialogue interleaved with the actions it
+accompanied, in one ordered log.
+
 ## `AgentProtocol`
 
 Same shape as `rps_agents/base.py`. `select_action` returns numbers only,
@@ -310,8 +324,9 @@ GameState ──► observer (clude_constraints.observe) ──► ClueObservati
                                    |
                         -- Phase 6 adds --
                                    v
-              LLM: menu of legal actions + persona -> action + dialogue
-              (invalid/malformed response falls back to top-scored action)
+              LLM: leashed menu of legal actions + persona -> action + remark
+              (illegal/malformed/failed response falls back to the
+               character's own decision above; docs/phase6-plan.md)
 ```
 
 ## Room/suggestion target selection is not the same problem as belief
@@ -386,11 +401,76 @@ per-spec function rather than a profile field. The honest suggestion
 never names a card in the character's own hand; only the `bluff_rate`
 coin flip does. Everything random is drawn from the character's own RNG.
 
+Since Phase 6a the scoring behind each decision is also available on its
+own, RNG-free: `suggestion_candidates`, `cards_exposed` and `show_scores`
+(module level in `character.py`) and `Character.movement_scores` /
+`accusation_test`. The sampled decisions call these same helpers, with
+the bluff coin still flipped first, so the split moved no seeded game
+(`tests/test_character.py` carries golden fingerprints, captured on the
+Phase 5 code, that prove it). `clude_agents.explain` renders a seat's
+belief, the floor's grid and the suggestion log as text from an
+observation and seat labels alone -- lifted from the CLI so the LLM
+prompt and, later, a human's screen use the very same lines.
+
 Presets live in `personality.PRESETS`, one per suspect; Mustard and White
 sit at the neutral `accuse_threshold` on purpose, so that any wrong
 accusation of theirs is attributable to the method (their calibration is
 the flaw) rather than to a dial. How the presets were tuned, and what the
 sweeps showed, is in `docs/strategy-glossary.md`.
+
+## The LLM wrapper (Phase 6)
+
+Planned in `docs/phase6-plan.md` (David's four decisions are recorded
+there). `clude_llm.LLMCharacter` wraps a `Character` and implements both
+`PlayerProtocol` and `SpeakingPlayer`; the arena and CLI treat it as a
+character (`name`, `profile`, `select_action`, `reset`, `observe`,
+`n_calls`, `seconds` all delegate).
+
+One decision, every time:
+
+1. **Menu.** `clude_llm.menu` builds the legal options from the
+   character's own RNG-free scoring helpers: the engine's `MoveChoice`s
+   scored by `movement_scores`; the honest suggestion candidates by
+   belief, plus the character's own cards as labelled bluff options; the
+   engine's ground-truth refutation candidates by `secrecy`; the
+   accusation test. Best first, lettered `A`.., capped at twelve. Built
+   from the seat's `ClueObservation` only, never `GameState`.
+2. **Leash.** An option is allowed when its score is at least
+   `(1 - leash)` of the best; `leash = 0` is the headless pick, `1` any
+   legal option. Bluff options are allowed with any rope and a nonzero
+   `bluff_rate`. The accusation menu (`[accuse, pass]`) applies the leash
+   symmetrically: accusing is allowed once `P(correct) >= (1 - leash) *
+   accuse_threshold`, passing whenever P is below the threshold or there
+   is any rope. One allowed option means no call at all.
+3. **Call.** `prompt.system_prompt` (persona file + `personas/rules.md`,
+   byte-stable and cacheable) and `prompt.user_prompt` (hand, the floor's
+   proven and located cards, the belief's top cards, the accusation test,
+   the suggestion log as the seat saw it, recent table talk, the menu) go
+   to an `LLMBackend` with a fixed JSON schema (`schema.py`: two schemas
+   for the four decisions, so the API's schema cache always hits).
+4. **Parse or fall back.** An allowed letter is played and its `say` line
+   is buffered for the engine, published with probability `chattiness`
+   from the wrapper's own RNG. Anything else -- budget, backend error or
+   timeout, `refusal`, malformed JSON, an unknown or disallowed letter --
+   calls the wrapped character's own method, which spends the
+   character's RNG exactly as it would have headless. So `NullBackend`
+   reproduces the headless game byte for byte, and an adversarial
+   backend with `leash = 1` cannot move a single event
+   (`tests/test_llm.py` pins both against the character goldens).
+5. **Audit.** Every decision is a `Decision` (menu, letter, fallback
+   reason, deviation from the top option, the line, tokens, seconds),
+   stored per seat in `GameRecord.llm_log`; `SeatRecord.kind` is
+   `"llm"` with the `model`.
+
+Backends (`clude_llm.backend`): `AnthropicBackend` (6c, the SDK imported
+lazily), `NullBackend`, `ScriptedBackend` for tests, and
+`RecordingBackend`/`ReplayBackend`, which key every exchange by a digest
+of the request so a recorded game replays with no spend and a changed
+prompt surfaces as a `ReplayMiss`. `open_backend` resolves the CLI's
+``--llm-backend``. Remarks reach the other LLM seats through
+`SpeakingPlayer.hear`, called by the engine as it appends each
+`RemarkEvent`, rather than through `ClueObservation`; if a belief method
+ever wants to read table talk, that is the point to revisit.
 
 ## Self-play regimes: `RandomBot` and `FloorBot` (Phase 5b)
 
@@ -435,9 +515,20 @@ games" means. Every game's deal and dice depend only on `seed + g`, so a
 paired comparison, and `SweepResult.monotone(metric)` is the keep-a-dial
 test.
 
+Since Phase 6d `run_arena(llm_backend=...)` wraps the roster's characters
+(or `llm_characters`) in `LLMCharacter`s sharing one backend, calls
+`new_game()` on each before every game, records `kind="llm"` seats with
+their model and each game's `Decision` audit as `GameRecord.llm_log`,
+and reports an LLM table (decisions, asked, fallback and deviation
+rates, remarks and tokens per game, ms per call). The twin comparison
+is two runs on one seed, with and without a backend; `NullBackend`
+reproduces the headless run game for game.
+
 Every game can be written as a `clude_storage.GameRecord`: seats (label,
 suspect token, kind, profile dials), the deal, the full omniscient event
-log, and the outcome; the run summary goes beside them. Phase 7's
+log, and the outcome; the run summary goes beside them. `RECORD_VERSION`
+is 2 since Phase 6a, when `RemarkEvent`s joined the event log; version-1
+documents load unchanged. Phase 7's
 logbooks are meant to read these -- a seat's own view is rebuilt from
 `events` with `ClueObservation.for_player`'s redaction rule -- and
 `docs/architecture.md`'s Seat/identity model expects `SeatRecord.label`
@@ -467,6 +558,19 @@ Storage as well as a local directory, through one `RecordStore` interface
 - `tests/test_storage.py` exercises the GCS backend against an in-memory
   double; set `CLUDE_GCS_LIVE=1` to run one round trip against the real
   bucket.
+
+## Claude API credentials (Phase 6c)
+
+The `anthropic` SDK (`requirements.txt`) is imported lazily and only by
+`clude_llm.anthropic_backend`; the test suite never needs it or the
+network (`tests/test_llm.py` runs the backend against a fake client).
+Credentials resolve exactly as the SDK does: `ANTHROPIC_API_KEY` in the
+environment, else an `ant auth login` profile. Nothing is stored in the
+repo and no key file joins `clude-game-sa.json`; the key never passes
+through clude's code except as the backend's optional `api_key=`
+argument. `CLUDE_LLM_LIVE=1` runs the one live smoke test (two calls, a
+few cents); `CLUDE_LLM_MODEL` overrides its model. Spend is estimated at
+list prices by `estimate_cost` and printed by `play --llm`.
 
 ## Deferred legacy code
 
