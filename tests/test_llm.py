@@ -8,10 +8,12 @@ shows a seat only what it may see.
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import random
 from dataclasses import replace
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -59,6 +61,8 @@ from clude_training.arena import fill_seed
 
 from tests.test_agents import make_obs
 from tests.test_character import GOLDEN_CHARACTER_GAMES, _digest
+
+CLI_SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "clude_cli.py"
 
 ENGINE_RNG = random.Random(0)
 PERSONA = Persona("Test", "You are a test persona.", "test")
@@ -643,6 +647,29 @@ def test_anthropic_backend_live_smoke():
     second = backend.complete(request)
     assert second.ok, second.error
     assert second.cached_tokens > 0, "the system prefix should be served from the prompt cache"
+
+
+LLM_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "llm_seed1.json"
+
+
+@pytest.mark.skipif(not LLM_FIXTURE.exists(), reason=f"missing fixture {LLM_FIXTURE}")
+def test_recorded_llm_game_replays_offline(capsys):
+    """`tests/fixtures/llm_seed1.json` was recorded from a real game
+    (docs/phase6-plan.md section 8: the seed 1, 3-player, Scarlett+Peacock
+    game). Replaying it must reproduce the same transcript without ever
+    touching the network."""
+    spec = importlib.util.spec_from_file_location("clude_cli", CLI_SCRIPT)
+    cli = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(cli)
+    argv = [
+        "play", "--seed", "1", "--players", "3", "--roster", "Scarlett,Peacock",
+        "--llm", "--llm-backend", f"replay:{LLM_FIXTURE}", "--verbose",
+    ]
+    assert cli.main(argv) == 0
+    out = capsys.readouterr().out
+    assert "Envelope: Mustard/Rope/Ballroom" in out
+    assert "Winner: P2 White (floor)" in out
+    assert "Turns played: 23; suggestions: 20; accusations: 2" in out
 
 
 # ---------------------------------------------------------------------

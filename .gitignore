@@ -5,3 +5,4 @@ __pycache__/
 .pytest_cache/
 clude-game-sa.json
 /data/
+.env
