@@ -12,7 +12,7 @@ to the next phase.
 | 3 | Six strategy agents, each emitting a masked/renormalized belief vector; no action selection yet | done |
 | 4 | Benchmark harness measuring the six methods' relative strength; `docs/strategy-glossary.md` filled in | done |
 | 5 | Personality parameter profiles turning beliefs into actions; self-play checks that dials move win rate | done -- plan and David's decisions in `docs/phase5-plan.md`, results in `docs/strategy-glossary.md` |
-| 6 | LLM wrapper: leashed menu of legal actions + persona -> structured action + remark; anything illegal, malformed or failed falls back to the character's own decision | built (6a-6d) and tested on fake backends; the live smoke test, persona tuning and the arena measurements wait on API credentials -- `docs/phase6-plan.md` |
+| 6 | LLM wrapper: leashed menu of legal actions + persona -> structured action + remark; anything illegal, malformed or failed falls back to the character's own decision | done: built (6a-6d), tested on fake backends, and live-checked, persona-tuned and measured on Opus 5 on 2026-09-13; a per-character leash sweep is the open follow-up -- `docs/phase6-plan.md` |
 | 7 | Logbooks: persistent, per-character, written after every game | not started |
 | 8 | Flask/Cloud Run front end -> chat (staggered, capped concurrency, chattiness-gated) -> human seats | not started |
 
@@ -216,25 +216,28 @@ lands.
   adversarial backends to the character goldens, every fallback path,
   reveal integrity under random letters, RNG-free menus, fixed schemas,
   the prompt's redaction, and record/replay.
-- **6c, the real backend (built; live checks pending credentials).**
+- **6c, the real backend (done).**
   `clude_llm/anthropic_backend.py` (`AnthropicBackend`: cached system
   block, `output_config` format + effort, 30 s timeout, one SDK retry,
   server-side refusal fallbacks on by default, every error a fallback
   result; `estimate_cost`), six persona files, the `prompt` subcommand,
   `anthropic>=1.5` in `requirements.txt`, unit tests on a fake client and
-  a `CLUDE_LLM_LIVE=1` smoke test. Not yet done, because the machine
-  this was built on has no API credentials: the live smoke test, a few
-  real games read for persona tuning, and the recorded fixture under
-  `tests/fixtures/`.
-- **6d, the arena (built; measurements pending credentials).**
+  a `CLUDE_LLM_LIVE=1` smoke test. The live checks were done on
+  2026-09-13. The smoke test passes. Two games were read for persona
+  tuning, which led to a no-repetition rule in `rules.md` and a
+  no-decimals line for Plum. Two recorded fixtures under
+  `tests/fixtures/` replay offline.
+- **6d, the arena (done).**
   `run_arena(llm_backend=..., llm_settings=..., llm_characters=...)` and
   `sweep_dial` likewise; `PlayerStats` gains the LLM counters and rates
   (`fallback_rate`, `deviation_rate`, `remarks_per_game`,
   `tokens_per_game`, `llm_ms_per_call`); an LLM table under the arena
   table; `kind="llm"` seats with their model and each game's `Decision`
   audit in the records; `arena --llm` and `sweep --llm` with a cost
-  estimate; `docs/llm-wrapper.md`. The twin runs, the `leash` sweep and
-  the presets they would set are the measurements still to run.
+  estimate; `docs/llm-wrapper.md`. Measured 2026-09-13: the twin run
+  and the `leash` sweep, with results in `docs/strategy-glossary.md`.
+  Presets were left unchanged, and a per-character leash sweep is the
+  open follow-up.
 
 ## Open questions
 

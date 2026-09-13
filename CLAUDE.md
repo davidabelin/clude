@@ -8,10 +8,32 @@ Owner: David (David Abelin, github.com/davidabelin). Solo project.
 The design was worked out in claude.ai conversations. Phases 1-5 of
 `docs/phase-plan.md` are built and tested: engine, deduction floor, the
 six agents, the benchmark, and the personality layer with its arena,
-sweeps, and game-record storage. Phase 6 (the LLM wrapper, `clude_llm`)
-is built and tested on fake backends; its live smoke test, persona
-tuning and arena measurements wait on an `ANTHROPIC_API_KEY`
-(`docs/phase6-plan.md`, section 8). Phase 7 (logbooks) is next.
+sweeps, and game-record storage.
+
+Phase 6 (the LLM wrapper, `clude_llm`) is complete as of 2026-09-13. The
+record is in `docs/phase6-plan.md` section 8, and the numbers are in
+`docs/strategy-glossary.md` under "Phase 6".
+
+- The live smoke test passes on Opus 5.
+- The personas were tuned from two real games. `rules.md` gained a
+  no-repetition rule, and Plum stopped reciting decimals.
+- `tests/fixtures/llm_seed1.json` and `llm_seed2.json` replay offline.
+  They are keyed on the prompt text, so **re-record them after any
+  persona or `rules.md` edit**.
+- The twin arena found that an LLM table costs Plum 44 points of win
+  rate (75% to 31%). The table ends games before his slow, exact
+  counting finishes. It also cut Mustard's wrong accusations from 37.5%
+  to 6.2%.
+- The leash sweep was inconclusive per character, so the presets stay
+  at `leash` 0.25 and `chattiness` 0.5.
+- Open follow-up, David's call: a per-character leash sweep
+  (`--llm-characters Plum`, then Mustard, with `--json`). It would show
+  whether more rope helps the table at the cost of the six methods
+  staying distinct.
+- Live spend so far is about $23. An LLM seat-game costs $0.07-0.11,
+  but the leash-0 games ran long.
+
+Phase 7 (logbooks) is next.
 `legacy/` holds code from an earlier chat, which is material to port from rather than a foundation to build on.
 Read `legacy/README.md` before touching it, because several pieces are unfinished.
 
@@ -116,7 +138,14 @@ None outstanding as of 2026-09-11. Resolved:
   path or via `CLUDE_GCS_CREDENTIALS`; see `docs/architecture.md`.
 - Claude API: `ANTHROPIC_API_KEY` in the environment (or an `ant auth
   login` profile), resolved by the SDK; never in the repo. Without it
-  every LLM seat falls back to its headless character.
+  every LLM seat falls back to its headless character. The key must be
+  **workspace-scoped** -- an org-level key 400s on every call asking for
+  an `anthropic-workspace-id` header, which the backend does not send.
+  The key lives in a gitignored `.env`, but nothing loads that file:
+  export it into the environment first, e.g. in PowerShell
+  `$env:ANTHROPIC_API_KEY = (Get-Content .env | Where-Object { $_ -match '^ANTHROPIC_API_KEY=' }) -replace '^ANTHROPIC_API_KEY=', ''`.
+  Note that PowerShell tool calls do not share shell state, so set it in
+  the same call as the command that needs it.
 
 ## First session
 

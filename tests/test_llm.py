@@ -12,6 +12,7 @@ import importlib.util
 import json
 import os
 import random
+import re
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
@@ -649,27 +650,64 @@ def test_anthropic_backend_live_smoke():
     assert second.cached_tokens > 0, "the system prefix should be served from the prompt cache"
 
 
-LLM_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "llm_seed1.json"
+FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures"
+
+# (fixture, seed, players, roster, envelope, winner, tally) per recorded game.
+RECORDED_GAMES = [
+    (
+        "llm_seed1.json", "1", "3", "Scarlett,Peacock",
+        "Mustard/Rope/Ballroom", "P0 Scarlett",
+        "Turns played: 16; suggestions: 13; accusations: 1",
+    ),
+    (
+        "llm_seed2.json", "2", "4", "Plum,Mustard,Green,White",
+        "Scarlett/Candlestick/Ballroom", "P3 Green (White)",
+        "Turns played: 4; suggestions: 3; accusations: 1",
+    ),
+]
 
 
-@pytest.mark.skipif(not LLM_FIXTURE.exists(), reason=f"missing fixture {LLM_FIXTURE}")
-def test_recorded_llm_game_replays_offline(capsys):
-    """`tests/fixtures/llm_seed1.json` was recorded from a real game
-    (docs/phase6-plan.md section 8: the seed 1, 3-player, Scarlett+Peacock
-    game). Replaying it must reproduce the same transcript without ever
-    touching the network."""
+@pytest.mark.parametrize(
+    "fixture,seed,players,roster,envelope,winner,tally", RECORDED_GAMES,
+    ids=[row[0].removesuffix(".json") for row in RECORDED_GAMES],
+)
+def test_recorded_llm_games_replay_offline(
+    capsys, fixture, seed, players, roster, envelope, winner, tally
+):
+    """The recorded games in `tests/fixtures/` replay byte for byte with
+    no network: the wrapper's only source of answers is the recording, so
+    a miss means the prompt moved, not that the model changed its mind.
+
+    `LLMRequest.key()` hashes the system prompt, so editing any persona
+    file or `rules.md` invalidates every key here and these start
+    missing. Re-record the affected game, e.g.
+
+        python scripts/clude_cli.py play --seed 1 --players 3 \\
+            --roster Scarlett,Peacock --llm \\
+            --llm-backend record:tests/fixtures/llm_seed1.json --verbose
+
+    and update its row in `RECORDED_GAMES` from the transcript it prints.
+    The envelope follows from the seed and stays put; the winner and the
+    turn count do not, because the model's choices are its own and are
+    not reproducible across recordings."""
+    path = FIXTURE_DIR / fixture
+    if not path.exists():
+        pytest.skip(f"missing fixture {path}")
     spec = importlib.util.spec_from_file_location("clude_cli", CLI_SCRIPT)
     cli = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(cli)
     argv = [
-        "play", "--seed", "1", "--players", "3", "--roster", "Scarlett,Peacock",
-        "--llm", "--llm-backend", f"replay:{LLM_FIXTURE}", "--verbose",
+        "play", "--seed", seed, "--players", players, "--roster", roster,
+        "--llm", "--llm-backend", f"replay:{path}", "--verbose",
     ]
     assert cli.main(argv) == 0
     out = capsys.readouterr().out
-    assert "Envelope: Mustard/Rope/Ballroom" in out
-    assert "Winner: P2 White (floor)" in out
-    assert "Turns played: 23; suggestions: 20; accusations: 2" in out
+    assert f"Envelope: {envelope}" in out
+    assert f"Winner: {winner}" in out
+    assert tally in out
+    # A strict replay turns a prompt change into a miss, which the wrapper
+    # swallows as a fallback; no seat may fall back or the recording is stale.
+    assert not re.search(r", [1-9]\d* fallbacks", out)
 
 
 # ---------------------------------------------------------------------

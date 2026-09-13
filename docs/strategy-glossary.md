@@ -414,28 +414,131 @@ accusations, and White, Peacock and Plum at zero.
 
 The wrapper (`docs/llm-wrapper.md`) lets a model choose within a leash
 of each character's own scores and adds table talk; the design and the
-four decisions behind it are in `docs/phase6-plan.md`. Everything is
-built and tested on fake backends: a backend that never answers
-reproduces every character golden byte for byte, and an adversarial one
-with full rope cannot move an event. Two dials joined `Profile`,
-`leash` (0.25 for everyone) and `chattiness` (0.5), pending the sweep
-below.
+four decisions behind it are in `docs/phase6-plan.md`. On fake backends,
+a backend that never answers reproduces every character golden byte for
+byte, and an adversarial one with full rope cannot move an event. Two
+dials joined `Profile`: `leash` (0.25 for everyone) and `chattiness`
+(0.5). The live measurements below, on Opus 5, left both where they
+were.
 
-**Results: not yet measured.** The machine this was built on has no API
-credentials, so the numbers that belong here are still to be produced:
+### Twin comparison (2026-09-13)
 
-1. the twin comparison, `arena --games 24 --players 4 --roster
-   Scarlett,Plum,Peacock,floor --seed 7007` with and without `--llm`
-   (same deals and dice), reporting per character the change in `win%`
-   and `wrong%` with their binomial std, plus the LLM table's
-   `fallb%`, `deviate%`, `talk/g` and `tok/g`;
-2. `sweep --dial leash --values 0 0.25 0.5 1 --llm`, the keep-a-dial
-   test: `deviation_rate` should rise monotonically with the rope, and
-   whatever `wrong%` does against the twin is the cost of decision 2's
-   symmetric window;
-3. the `leash` and `chattiness` presets those two runs suggest, per
-   character, and a paragraph per character on whether the voice in its
-   persona file survived contact with real play.
+`arena --seed 7007 --games 24 --players 4`, run twice on the same deals
+and dice, once headless and once with `--llm`. The roster is the default
+six rather than the `Scarlett,Plum,Peacock,floor` the plan first
+sketched, so that every character is measured; each plays 16 of the 24
+games. Every game in both runs ended in a correct accusation.
 
-Until then the arena reports the `null` backend's control numbers only,
-which by construction equal the Phase 5 tuned table above.
+| | win% base | win% LLM | wrong% base | wrong% LLM | 1st_acc base | 1st_acc LLM |
+|---|---|---|---|---|---|---|
+| Scarlett | 12.5 | 12.5 | 37.5 | 31.2 | 23.4 | 19.3 |
+| Mustard | 12.5 | **37.5** | 37.5 | **6.2** | 22.2 | 18.1 |
+| White | 12.5 | 25.0 | 0.0 | 0.0 | 29.5 | 22.5 |
+| Green | 25.0 | 31.2 | 6.2 | 6.2 | 30.0 | 17.3 |
+| Peacock | 12.5 | 12.5 | 0.0 | 0.0 | 24.0 | 18.5 |
+| Plum | **75.0** | **31.2** | 0.0 | 0.0 | 27.8 | 26.2 |
+
+Binomial std is 6-12pp on 16 games, so read only the large moves. Plum's
+-43.8 is about 3 sigma and Mustard's wrong% -31.2 about 2.3 sigma; his
+win% +25.0 is 1.7 sigma and suggestive; White's and Green's gains sit
+inside the noise.
+
+| | decis | asked | fallb% | deviate% | talk/g | tok/g |
+|---|---|---|---|---|---|---|
+| Scarlett | 254 | 121 | 0.0 | 0.8 | 3.50 | 9760 |
+| Mustard | 302 | 145 | 0.0 | 0.7 | 4.00 | 11691 |
+| White | 302 | 143 | 0.0 | 5.6 | 3.88 | 11791 |
+| Green | 326 | 131 | 0.0 | 0.8 | 3.50 | 11865 |
+| Peacock | 328 | 142 | 0.0 | 2.1 | 3.75 | 12755 |
+| Plum | 289 | 125 | 0.0 | 3.2 | 3.44 | 10752 |
+
+24 games in 2054s, $6.98 at list prices. **No seat fell back once**, in
+807 calls across 1801 decisions, so every number above is the model
+choosing and not the API failing.
+
+**Plum's collapse is the finding, and it is not about Plum's seat.** He
+deviated from his own method on 3.2% of played choices; that cannot cost
+44 points. What changed is the table. Mean game length fell from 26.8
+turns to 20.3, and every opponent's first accusation came earlier --
+Green 30.0 to 17.3, White 29.5 to 22.5, Mustard 22.2 to 18.1 -- while
+Plum's own barely moved, 27.8 to 26.2. He is the slowest accuser in the
+game, and exact enumeration's edge was always that the others flailed
+long enough for him to finish counting. An LLM-piloted table stops
+flailing and ends the game before he gets there. The method did not get
+worse; the field got faster.
+
+Mustard is the mirror image. His wrong accusations fell from 37.5% of
+games to 6.2% and his win rate tripled: a decision tree that
+pattern-matches into confident errors is exactly the character an extra
+judgment layer can rescue, and the leash let it. Scarlett was rescued
+much less (37.5 to 31.2), which fits -- her overconfidence is in the
+belief itself, and the leash bounds choices, not beliefs.
+
+One unplanned effect: LLM seats bluff markedly less. Suggestions naming
+one of the seat's own cards fell across the board -- White 3.69 to 0.25,
+Mustard 2.44 to 0.31, Scarlett 1.50 to 0.44 -- while cards actually
+leaked barely moved. The model treats naming its own card as a wasted
+question rather than a feint. Given that talking about your own hand is
+a settled house decision and the characters are meant to learn what
+over-sharing costs, this is a dial to revisit rather than a win: the
+personas currently give them no reason to pay for a bluff.
+
+### Leash sweep (2026-09-13)
+
+`sweep --dial leash --values 0 0.25 0.5 1 --llm --games 8 --players 3
+--seed 7007`: all six characters swept together, 8 paired games per
+value (24 seat-games), 3538s, $14.99. The run cost twice its estimate
+because the leash-0 games ran 50 turns.
+
+| leash | wrong% | +- | 1st_acc | never% | named | turns | deviate% | talk/g |
+|---|---|---|---|---|---|---|---|---|
+| 0 | 25.0 | 8.8 | 41.1 | 41.7 | 6.42 | 50.4 | 0.0 | 4.92 |
+| 0.25 | 16.7 | 7.6 | 24.2 | 50.0 | 1.46 | 26.9 | 1.7 | 6.21 |
+| 0.5 | 0.0 | 0.0 | 19.1 | 66.7 | 0.46 | 19.1 | 11.1 | 6.08 |
+| 1.0 | 8.3 | 5.6 | 20.1 | 58.3 | 0.96 | 21.4 | 4.1 | 8.88 |
+
+**win% is omitted because it carries no information here.** It reads 33.3
+at every value by construction: every seat at every 3-player table is a
+swept character, and each game has exactly one winner. A pooled sweep of
+all six cannot show who gains from the rope. That takes sweeping one
+character against the others at preset.
+
+What the table does show:
+
+- **The first quarter of rope buys the most.** From leash 0 to 0.25, games
+  halve (50.4 to 26.9 turns), and own-card naming falls from 6.42 to
+  1.46. At leash 0 the model may only break ties on the character's own
+  score, and it breaks them slowly and bluffily.
+- **wrong% falls to zero at 0.5** (16.7 to 0.0, about 2 sigma on 24 games)
+  and games are shortest there, 19.1 turns. At 1.0 two wrong accusations
+  come back. That is within noise, but not what "more judgment is
+  better" predicts.
+- **The keep-a-dial test fails as posed.** Plan 6d asked that
+  `deviation_rate` rise monotonically with the rope. It goes 0.0, 1.7,
+  11.1, then 4.1. The likely cause is the metric, not the dial. The rate
+  divides by choices the model *played*, and a wider leash sends it more
+  menus, including lopsided ones where it rightly takes the top option.
+  The denominator swells with agreement, so the rate can fall while the
+  count of deviations rises. `talk/g` jumping to 8.88 at 1.0 fits: more
+  calls, more chances to speak. That is a hypothesis. This run did not
+  save `--json`, which carries `llm_deviations` and `llm_played`. The
+  monotone quantity to test next time is the count, or deviations per
+  decision.
+- Chattiness was not swept. `talk/g` sits at 3.4-4.0 per seat in the
+  twin run and nothing in the transcripts reads as too much or too little,
+  so there is no evidence to move it.
+
+**Presets: unchanged, on purpose.** `leash` stays 0.25 and `chattiness`
+0.5 for everyone. Table-wide, the sweep points at 0.5: shortest games, no
+wrong accusations, cheapest per game. But three things argue against
+acting on it yet. The evidence is pooled, so it cannot say whether 0.5
+helps each character or just some. It is 8 games per value. And the twin
+run already shows that a faster LLM table costs Plum 44 points, so more
+rope probably costs him more. Whether that is acceptable is a design
+question about how distinct the six methods should stay, not a tuning
+question. The follow-up that would settle it is a per-character sweep
+(`--llm-characters Plum`, then Mustard) at leash 0.25 and 0.5, with
+`--json`.
+
+Per-character notes on whether each persona's voice survived real play
+are in `docs/phase6-plan.md`, section 8, under 6c.

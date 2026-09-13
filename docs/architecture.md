@@ -572,6 +572,15 @@ argument. `CLUDE_LLM_LIVE=1` runs the one live smoke test (two calls, a
 few cents); `CLUDE_LLM_MODEL` overrides its model. Spend is estimated at
 list prices by `estimate_cost` and printed by `play --llm`.
 
+In practice, as of 2026-09-13:
+
+- The key must be scoped to a workspace. An organisation-level key gets
+  a 400 on every call asking for an `anthropic-workspace-id` header, and
+  the backend does not send one.
+- The key sits in a gitignored `.env` at the repo root, but nothing
+  loads that file. Export the variable into the environment before
+  running. `docs/llm-wrapper.md` has measured per-game costs.
+
 ## Deferred legacy code
 
 `legacy/dqn.py`, `legacy/gnn.py`, `legacy/ml_agent.py`, and

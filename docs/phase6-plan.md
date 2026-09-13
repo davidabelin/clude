@@ -1,8 +1,10 @@
 # Phase 6 Plan: the LLM wrapper (approved 2026-09-12)
 
-Status: **approved 2026-09-12; 6a-6d built the same day and tested on
-fake backends. The live smoke test, persona tuning and the arena
-measurements wait on API credentials.** David's answers to the four
+Status: **complete. Approved 2026-09-12, and 6a-6d were built the same
+day and tested on fake backends. The live smoke test, persona tuning and
+arena measurements followed on 2026-09-13.** One open follow-up remains:
+a per-character leash sweep before any preset changes (section 8, 6d).
+David's answers to the four
 decisions are in section 6; what was actually built, and where it
 departed from this plan, is in section 8. Same shape as `docs/phase5-plan.md`: what the code
 dictates, the design, sub-phases, decisions, out of scope.
@@ -347,7 +349,7 @@ wait until then.
   same seed as the character's, so the character's stream is untouched
   even when the LLM speaks.
 
-### 6c, the real backend (2026-09-12; live checks pending)
+### 6c, the real backend (2026-09-12; live checks done 2026-09-13)
 
 - `AnthropicBackend` calls `client.beta.messages.create` with the
   `server-side-fallback-2026-07-01` beta and `fallbacks="default"` while
@@ -362,15 +364,70 @@ wait until then.
 - The `prompt` subcommand renders from the finished game's positions
   (`truncate_state` keeps them), so `--decision move` shows the menu
   text for a plausible roll, not a real turn's legal moves.
-- Not done here, for lack of credentials on the build machine: the live
-  smoke test (`CLUDE_LLM_LIVE=1 python -m pytest tests/test_llm.py -k live`),
-  reading a handful of real games to tune the six persona files, and
-  recording the offline fixture, e.g.
+- The live smoke test passes
+  (`CLUDE_LLM_LIVE=1 python -m pytest tests/test_llm.py -k live`), and
+  prompt caching is real: the system block carries
+  `cache_control: ephemeral`, and a recorded 4-seat game read 57.6K
+  cached tokens against 68.9K fresh -- 46%, saving about $0.26 on a
+  $0.43 game. Mind the arithmetic: `input_tokens` and
+  `cache_read_input_tokens` are disjoint (that is why `estimate_cost`
+  bills them separately at $5 and $0.50 per MTok), so the share is
+  `cached / (input + cached)`. Dividing by `input` alone overstates it
+  badly, and can exceed 100%.
+- **The key must be workspace-scoped.** An organisation-level key fails
+  every call with a 400, "not scoped to a workspace, so this request
+  must include the anthropic-workspace-id header". The backend sends no
+  such header by design; create the key inside a workspace instead.
+- The offline fixture is `tests/fixtures/llm_seed1.json`, recorded with
   `python scripts/clude_cli.py play --seed 1 --players 3 --roster Scarlett,Peacock --llm --llm-backend record:tests/fixtures/llm_seed1.json --verbose`
-  followed by a replay test in `tests/test_llm.py`. Those are the first
-  three things to do once `ANTHROPIC_API_KEY` is set.
+  and replayed by `test_recorded_llm_game_replays_offline`.
+  **The fixture is coupled to the prompt text**: `LLMRequest.key()`
+  hashes the system block, so editing any persona or `rules.md`
+  invalidates every key and the replay starts missing. Re-record it and
+  update the transcript landmarks whenever the personas change. The
+  envelope follows from the seed and holds; the winner and turn count do
+  not, because the model's choices are its own and are not deterministic
+  across recordings.
+- Persona tuning, from two recorded games: seed 1 (3 players,
+  Scarlett+Peacock, 23 turns) and seed 2 (4 players,
+  Plum+Mustard+Green+White, 39 turns). Both fixtures on disk are
+  *re-recordings* made after the edits below, so they are shorter and
+  their transcripts differ; the observations here come from the
+  originals, which the edits then invalidated.
+  - Both defects were about *talk*, not choices: across all six seats
+    there were no fallbacks and only five deviations, so the leash and
+    the menus held.
+  - **Repetition**, fixed in `rules.md` for everyone. Late in a game the
+    deduction narrows and every remaining remark wants to be the same
+    remark; Peacock restated a line almost verbatim three turns apart.
+    The prompt already showed her the last eight remarks, so this was
+    never a plumbing gap — she could see the repeat and made it anyway.
+    The new paragraph tells the characters to say nothing rather than
+    restate. It works: in seed 2's twenty-turn stalemate the table went
+    quiet instead of looping, and the re-recorded seed 1 has no
+    duplicates.
+  - **Plum recited his numbers**, against `rules.md`'s "no reciting your
+    numbers", in three of seven lines ("0.26 and 0.21, the two largest
+    fractions on the board"). His own persona invited it: "it is a
+    fraction, and you know its denominator". Fixed in `Plum.md` by
+    routing the restraint through his pedantry -- quoting decimals is
+    showing your working, which is what undergraduates do -- rather than
+    by bolting on a second prohibition.
+  - Mustard, Green and White needed no edits. Green's bandit ensemble
+    surfaced unprompted as borrowing other players' reasoning ("Scarlett's
+    fractions were quite persuasive, so I'll poke somewhere she hasn't"),
+    and White's Markov model as reading people rather than cards
+    ("Mustard's stopped fishing for the Candlestick and started asking
+    about rooms"). Both are the method audible in the voice, which is
+    what the personas were for. Mustard volunteered that he held a room
+    he was standing in -- a real tell, in bounds under the over-sharing
+    decision, and exactly the kind of thing the logbooks should punish
+    later.
+  - Scarlett was left alone. She explained her arithmetic once in five
+    lines, which her persona already forbids; one borderline line is too
+    thin to tune on.
 
-### 6d, the arena (2026-09-12; measurements pending)
+### 6d, the arena (2026-09-12; measured 2026-09-13)
 
 - `run_arena` takes `llm_backend`, `llm_settings` and `llm_characters`;
   the wrapped characters share one backend, get `new_game()` before
@@ -390,7 +447,29 @@ wait until then.
 - `NullBackend` in the arena reproduces the headless run's winners and
   turn counts game for game, which is the paired-comparison guarantee
   the twin runs rest on (`tests/test_llm.py`).
-- Still to run, once credentials exist: the twin comparison
-  (`arena ... --seed 7007` with and without `--llm`, 12-24 games at 3-4
-  seats), `sweep --dial leash --llm`, and the `leash`/`chattiness`
-  presets those numbers suggest; results to `docs/strategy-glossary.md`.
+- Measured on Opus 5, full tables and analysis in
+  `docs/strategy-glossary.md` under "Phase 6". Total live spend for 6c
+  and 6d was about $22.60 at list prices.
+  - Twin run: `arena --seed 7007 --games 24 --players 4`, headless and
+    `--llm`, all six characters ($6.98). No fallbacks in 807 calls. The
+    results: Plum falls from 75% to 31% (about 3 sigma), because the
+    LLM table ends games sooner (26.8 to 20.3 turns) and he is the
+    slowest accuser. Mustard's wrong accusations drop from 37.5% to 6.2%
+    and his win rate triples. LLM seats name their own cards far less
+    often than the headless characters do.
+  - Sweep: `sweep --dial leash --values 0 0.25 0.5 1 --llm --games 8
+    --players 3` ($14.99). The first quarter of rope halves game length.
+    wrong% reaches zero at 0.5. `deviation_rate` is not monotone (0.0,
+    1.7, 11.1, 4.1), which fails the keep-a-dial test as posed. The
+    likely cause is the metric's denominator, since played choices grow
+    with the leash. This is unconfirmed, because that run saved no
+    `--json`.
+  - Pooled win% in that sweep is 33.3 at every value by construction.
+    All seats are swept characters, so the sweep cannot show per-character
+    effects.
+- **Presets left at `leash` 0.25 and `chattiness` 0.5.** The pooled sweep
+  favours 0.5. But it is 8 games per value, it cannot see individual
+  characters, and more rope likely deepens Plum's loss. That makes it a
+  design call about keeping the six methods distinct, not a tuning call.
+  Open follow-up: a per-character leash sweep (`--llm-characters Plum`,
+  then Mustard, at 0.25 and 0.5, with `--json`).

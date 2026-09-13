@@ -109,6 +109,14 @@ resolved by the SDK; nothing is stored in the repo. With no credentials
 the backend returns an authentication error on every call and the game
 falls back throughout, which the `play --llm` trailer makes visible.
 
+The key has to be **workspace-scoped**. An organisation-level key fails
+every call with a 400 -- "not scoped to a workspace, so this request
+must include the anthropic-workspace-id header" -- and since the backend
+sends no such header, every seat falls back and the run is worthless.
+Create the key inside a workspace. A `.env` at the repo root is
+gitignored but nothing loads it: export the variable into the
+environment before running, or the SDK will not see it.
+
 Call settings (`LLMSettings`): model `claude-opus-5`, `effort` low,
 `max_tokens` 2048, timeout 30 s, one SDK retry, server-side refusal
 fallbacks on, budget 200 calls or 500K tokens per game, eight lines of
@@ -116,11 +124,28 @@ recent table talk in the prompt.
 
 ## Cost
 
-One call is roughly 1.5K cached and 1K fresh input tokens and 150
-output tokens. Most menus have one allowed option at the default leash
-(refutations especially), so a game asks the model far less often than
-it decides: in a three-seat game at seed 1, Scarlett made 19 decisions
-and 5 calls. `play --llm` prints an estimate at list prices per game.
+Most menus have one allowed option at the default leash (refutations
+especially), so a game asks the model far less often than it decides:
+at seed 1 Scarlett made 7 calls across 17 decisions, Peacock 11 across
+18. `play --llm` prints an estimate at list prices per game.
+
+Measured on Opus 5 (2026-09-13), at list prices:
+
+| Game | Seats | Turns | Cost | Cached |
+|---|---|---|---|---|
+| seed 1, 3 players, 2 LLM seats | 2 | 16 | $0.14 | 52% |
+| seed 2, 4 players, 4 LLM seats | 4 | 39 | $0.43 | 46% |
+
+That is roughly **$0.07-0.11 per LLM seat-game**, which is the number to
+budget an arena with: a 24-game, 4-seat run is order $10.
+
+Read the usage fields carefully: `input_tokens` counts only the *fresh*
+tokens and `cache_read_input_tokens` the cached ones, disjointly -- so
+the cache share is `cached / (input + cached)`, not `cached / input`,
+and `estimate_cost` bills them separately at $5 and $0.50 per MTok. On
+seed 2 that is 57.6K cached against 68.9K fresh: 46%, and about $0.26
+saved on a $0.43 game. Expect the share to fall as a game lengthens,
+since the cached system block is fixed while the per-turn state grows.
 
 ## Measuring it
 

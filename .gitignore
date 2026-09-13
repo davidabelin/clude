@@ -6,3 +6,5 @@ __pycache__/
 clude-game-sa.json
 /data/
 .env
+commit_msg.md
+docs/commit_msg_correction.md
