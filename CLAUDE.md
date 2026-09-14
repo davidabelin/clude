@@ -58,6 +58,7 @@ is `docs/phase6-plan.md` section 8; the numbers are in
   re-recorded fixtures: make `movement_scores` prefer a step toward a
   live room over a cleared one (changes headless Plum and the goldens
   too), and/or have the prompt present scores as preference, not order.
+  Deferred behind Phase 7 by David: logbooks first.
 - **Retracted:** the twin arena's "the leash rescues Mustard" reading.
   Alone on the model his win rate does not move at any leash and his
   wrong% at the preset is worse than headless; the twin improvement was
@@ -124,6 +125,20 @@ it; `docs/phase-plan.md` has the disposition of every file.
   human plays next (see Seats, below).
 - **Python 3.14 in a plain venv, no conda. Deployment target Cloud Run**,
   budget permitting (`docs/architecture.md` has the cost caveat).
+- **Leash presets stand** at `leash` 0.25 and `chattiness` 0.5
+  (2026-09-13, after the per-character ladders). The parking fix in
+  `movement_scores` waits: David wants the logbook system working
+  first, expects Plum's own post-game notes may teach him out of the
+  parking before a scoring change is tried, and wants no more paid runs
+  at ladder scale (~$10-20 each) until then.
+- **Logbook entries are modelled on `docs/zenbot_memories.json`**, the
+  self-written per-session memory format from David's zenbot project,
+  which works well there. Same shape for Clue -- date and serial, title,
+  what happened, evaluations, key insights, lessons learned, outcome,
+  standing instructions -- minus the koans, and written by the
+  character's own model after each game.
+- **Commit messages are printed in the reply, never written into
+  `commit_msg.md`** by me (David declined that, 2026-09-13).
 
 ## Architecture in brief
 
@@ -191,17 +206,12 @@ Suggestions to raise, not decisions to implement.
 
 ## Open questions (ask, don't assume)
 
-- **Leash presets versus distinctness.** The pooled sweep favours leash
-  0.5 table-wide (shortest games, no wrong accusations), but more rope
-  moves every character toward the model's judgment and costs Plum most.
-  How distinct must the six methods stay? Wait for the per-character
-  ladders, then put the numbers to David.
-- **The tie-break fixed point** (Status, above): fix in the wrapper, in
-  `movement_scores`, or both? It changes behaviour at every leash, so it
-  needs a re-measure and re-recorded fixtures.
-- **`docs/zenbot_memories.json`** is a per-session memory-entry template
-  from David's zenbot project, tracked here. Its purpose in clude is
-  unconfirmed; it may be a model for Phase 7 logbook entries.
+None outstanding as of 2026-09-13. Phase 7 has not been planned yet;
+its plan doc is where the next questions get asked (logbook schema,
+what a character reads back before a game, how the dossier reaches the
+prompt). Resolved that day: leash presets stand; the parking fix waits
+behind logbooks; `docs/zenbot_memories.json` is the logbook model; no
+writing into `commit_msg.md`.
 
 ## Working with David
 
@@ -295,5 +305,6 @@ Suggestions to raise, not decisions to implement.
   be absent on a fresh clone; the rule itself is stated above.
 - `docs/clude_floorplan_wikimedia.svg` -- board floorplan reference from
   Wikimedia; check its licence before any publishing.
-- `docs/zenbot_memories.json` -- see Open questions.
+- `docs/zenbot_memories.json` -- the per-session memory template from
+  David's zenbot project; the model for Phase 7 logbook entries.
 - `legacy/README.md` -- what the legacy code is and what is wrong with it.
