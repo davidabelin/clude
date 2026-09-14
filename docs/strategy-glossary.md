@@ -467,12 +467,17 @@ long enough for him to finish counting. An LLM-piloted table stops
 flailing and ends the game before he gets there. The method did not get
 worse; the field got faster.
 
-Mustard is the mirror image. His wrong accusations fell from 37.5% of
-games to 6.2% and his win rate tripled: a decision tree that
-pattern-matches into confident errors is exactly the character an extra
-judgment layer can rescue, and the leash let it. Scarlett was rescued
-much less (37.5 to 31.2), which fits -- her overconfidence is in the
-belief itself, and the leash bounds choices, not beliefs.
+Mustard looked like the mirror image: wrong accusations down from
+37.5% of games to 6.2%, win rate tripled. The first reading was that a
+decision tree that pattern-matches into confident errors is exactly the
+character an extra judgment layer can rescue. **The per-character ladder
+below does not bear that out.** With only Mustard on the model, his
+wrong% at the preset leash is 41.7% against 25% headless, and his win
+rate does not move outside noise at any leash. Whatever improved him in
+the twin run came from the table -- five other LLM-piloted seats ending
+games sooner and cleaner -- not from the model improving his own
+choices. Scarlett's smaller change (37.5 to 31.2) should be read the
+same way.
 
 One unplanned effect: LLM seats bluff markedly less. Suggestions naming
 one of the seat's own cards fell across the board -- White 3.69 to 0.25,
@@ -536,9 +541,167 @@ helps each character or just some. It is 8 games per value. And the twin
 run already shows that a faster LLM table costs Plum 44 points, so more
 rope probably costs him more. Whether that is acceptable is a design
 question about how distinct the six methods should stay, not a tuning
-question. The follow-up that would settle it is a per-character sweep
-(`--llm-characters Plum`, then Mustard) at leash 0.25 and 0.5, with
-`--json`.
+question. The per-character ladders below settled it the same day:
+neither character gains from more rope, and the presets stand.
+
+### Per-character leash ladders (2026-09-13)
+
+The pooled sweep could not see who gains from the rope, so this runs
+one character on the model at a time. Fixed 3-seat table `Plum,Mustard,
+Green`, seed 7007, 24 games per value, the swept character alone
+LLM-piloted and the other two headless at preset. One headless run on
+the same deals is the baseline for both (`ladder-headless` in
+`data/llm`). Because every run shares deals and dice, games can be
+paired: "lost / gained" counts games the character won headless but not
+at that leash, and the reverse.
+
+#### Mustard
+
+`sweep --dial leash --values 0 0.25 0.5 1 --characters Mustard --llm
+--llm-characters Mustard --roster Plum,Mustard,Green --players 3 --games
+24 --seed 7007`: 3013 s, $8.94, no fallbacks in 1176 calls.
+
+| | win% | wrong% | 1st_acc | never% | named | turns | played | devs | dev/decision |
+|---|---|---|---|---|---|---|---|---|---|
+| headless | 25.0 | 25.0 | 16.9 | 50.0 | 2.08 | 24.0 | -- | -- | -- |
+| leash 0 | 25.0 | 16.7 | 16.2 | 58.3 | 2.04 | 21.3 | 148 | 0 | 0.0% |
+| leash 0.25 | 33.3 | 41.7 | 16.7 | 25.0 | 0.75 | 21.6 | 254 | 2 | 0.4% |
+| leash 0.5 | 29.2 | 25.0 | 15.7 | 45.8 | 1.21 | 22.0 | 347 | 10 | 1.7% |
+| leash 1 | 33.3 | 25.0 | 15.4 | 41.7 | 0.83 | 19.1 | 427 | 10 | 2.0% |
+
+Paired against headless, games lost / gained: leash 0, 4 / 4; 0.25,
+3 / 5; 0.5, 4 / 5; 1, 3 / 5. Opponents' win% headless then at each
+leash: Plum 62.5, then 50.0, 50.0, 45.8, 54.2; Green 12.5, then 25.0,
+16.7, 25.0, 12.5.
+
+- **The leash does not move Mustard.** A net of 0 to +2 games out of 24
+  at every value is inside the 9-point binomial std, and wrong% wanders
+  (16.7, 41.7, 25.0, 25.0) with no direction. This is the run that
+  retires the twin arena's "rescue" reading above.
+- **The model barely uses the rope.** At leash 1 it may play anything
+  legal on 427 decisions and departs from Mustard's top choice on 10.
+  The persona and the "best first" menu make it deferential; the leash
+  is an upper bound it never approaches.
+- **Keep-a-dial passes on the right metric.** Deviations per *decision*
+  rise monotonically, 0.0, 0.4, 1.7, 2.0%. The library's
+  `deviation_rate` divides by choices played instead, and played grows
+  from 148 to 427 with the leash while deviations plateau at 10, so it
+  reads 0.0, 0.8, 2.9, 2.3 and fails. This confirms the denominator
+  explanation offered for the pooled sweep; the metric should change.
+- **`talk/g` rises with the leash** (2.75 to 7.62) and is the only
+  metric the library calls monotone. It is not a chattiness effect: the
+  gate is applied per call, and a wider leash means more calls. The two
+  Phase 6 dials are coupled through the menu; a chattiness that meant
+  "lines per game" would have to be gated per decision instead.
+- **Even leash 0 is not the headless game.** With zero deviations,
+  Plum's win rate on the same deals still falls from 62.5 to 50.0,
+  because the model breaks Mustard's ties differently from his RNG and
+  the trajectories diverge from there. The null-backend twin is exact;
+  the leash-0 twin is not, and should not be used as a control.
+
+#### Plum
+
+`sweep --dial leash --values 0.25 0.5 1 --characters Plum --llm
+--llm-characters Plum --roster Plum,Mustard,Green --players 3 --games
+24 --seed 7007`. The leash-0 leg was started and cut after its first
+game ran 90 turns (below); its one record is kept as
+`ladder-plum-leash-0-aborted`.
+
+4248 s, $18.13, no fallbacks in 1712 calls. Plum costs about 2.5 times
+what Mustard does per game: his games run longer and he is asked more
+(380 to 817 played decisions per leg against Mustard's 148 to 427).
+
+| | win% | wrong% | 1st_acc | never% | named | turns | played | devs | dev/decision |
+|---|---|---|---|---|---|---|---|---|---|
+| headless | 62.5 | 0.0 | 25.9 | 37.5 | 0.88 | 24.0 | -- | -- | -- |
+| leash 0.25 | 58.3 | 0.0 | 35.1 | 41.7 | 1.33 | 30.3 | 380 | 26 | 3.0% |
+| leash 0.5 | 45.8 | 0.0 | 40.3 | 54.2 | 0.88 | 29.8 | 515 | 44 | 5.2% |
+| leash 1 | 58.3 | 4.2 | 37.2 | 37.5 | 1.25 | 32.8 | 817 | 81 | 8.8% |
+
+Paired against headless, games lost / gained: leash 0.25, 4 / 3; 0.5,
+7 / 3; 1, 4 / 3. Opponents' win% headless then at each leash: Mustard
+25.0, then 25.0, 25.0, 20.8; Green 12.5, then 16.7, 29.2, 20.8.
+Deviations per decision rise monotonically (3.0, 5.2, 8.8%), as they
+did for Mustard, and the model uses more of Plum's rope than Mustard's.
+
+- **Win rate does not track the leash.** 58.3, 45.8, 58.3; a paired net
+  of -1, -4, -1 games. The dip at 0.5 is 1.2 sigma. What every leash
+  does cost him is time: his first accusation comes 10 to 15 turns
+  later than headless at every value, and the table's games run 30 to
+  33 turns instead of 24.
+- **He parks, and on this table he gets away with it.** The next
+  paragraphs show the mechanism; the count of games with five or more
+  parked moves goes 0, 4, 8 across the three legs while his win rate
+  does not fall with it, because Mustard and Green at preset do not
+  punish a stall. Against the twin arena's LLM-piloted table they did:
+  that is the 44-point collapse, read together with this run. Plum's
+  loss there is his own parking plus opponents fast enough to make it
+  fatal.
+- **Full rope brings his first wrong accusation** in any run (4.2%, one
+  game). Headless Plum never accuses wrongly.
+
+**What the rope does to Plum is let him park.** The mechanism is visible
+in every long game and is not the leash. Plum's `movement_scores`
+gives 0.20 to any room he can enter and suggest in this turn, whatever
+its probability, and about 0.13 to a hallway step toward the room his
+count actually favours. Once he stands in a room the floor has already
+cleared, "stay and suggest here" is his top-scored move, and the escape
+hallway is only *allowed* at leash >= 0.34. Headless Plum has the same
+scores but samples them (`sample_softmax`, temperature 0.05), so he
+drifts out within a few turns. The model does not sample: it takes the
+top-scored option as an instruction, even when the note beside it reads
+`P(envelope room) 0.00` and an allowed option beside it reads 0.25.
+
+Counting, per leg, the move calls where the model chose a
+zero-probability room while an allowed option led toward a live one:
+
+| leash | move calls | such calls | chose "stay" | games with 5+ |
+|---|---|---|---|---|
+| 0.25 | 141 | 12 | 10 (83%) | 0 |
+| 0.5 | 253 | 109 | 103 (94%) | 4 |
+| 1 | 274 | 110 | 101 (92%) | 8 |
+
+At 0.25 the escape is rarely on the menu, so Plum plays almost his
+headless game. At 0.5 and 1 it is on the menu and he declines it more
+than nine times in ten. The worst case, game 7 at 0.5, is 126 turns: from turn 26 to 98
+the model was offered "stay in the Ballroom (0.20, P 0.00)" against an
+allowed "hallway toward the Study (0.13, P 0.25)" on 37 consecutive
+calls and stayed on all 37, suggesting Scarlett/Candlestick/Ballroom 38
+times with the suspect and weapon already right and the Billiard the
+answer. He still won that game, at turn 126, because the two headless
+seats learned nothing from a suggestion that was refuted the same way
+every turn. The aborted leash-0 game is the same shape with ties
+instead of a gap: three enterable rooms at 0.20, all cleared, "stay"
+listed first, chosen eight times out of eight.
+
+So more rope does not help Plum; it only offers him more chances to do
+this. The fix is not a leash value. Two candidates, neither done:
+`movement_scores` should not score a cleared room above a step toward
+a live one (this is the target-selection problem `docs/architecture.md`
+already separates from belief, and it would change headless Plum too,
+with the goldens); and the wrapper could shuffle tied options or say in
+the prompt that the scores are the character's preference, not an
+order. Either changes behaviour at every leash and needs a re-measure
+and re-recorded fixtures.
+
+#### Verdict on the presets
+
+`leash` stays at 0.25 and `chattiness` at 0.5 for everyone. Two
+characters measured alone, 24 paired games per value each, and neither
+gains from more rope: Mustard does not move, Plum loses time and, on a
+faster table, games. 0.25 is also the value at which Plum's parking is
+rarest, because the escape is seldom on the menu to be declined. The
+pooled sweep's tilt toward 0.5 was a table effect of six LLM seats
+ending games faster, not any character playing better. Chattiness was
+not swept and is coupled to the leash through the per-call gate
+(`talk/g` for Plum: 5.0, 7.2, 11.9 across the three legs).
+
+The dial-keeping rule is met for `leash` on deviations per decision,
+for both characters. The arena's `deviation_rate` should be redefined
+with `llm_decisions` as its denominator before the next sweep.
+
+The ladder JSONs (`ladder_headless.json`, `ladder_mustard.json`,
+`ladder_plum.json`) sit beside their game records in `data/llm`.
 
 Per-character notes on whether each persona's voice survived real play
 are in `docs/phase6-plan.md`, section 8, under 6c.

@@ -18,12 +18,13 @@ rules engine and event log, the deduction floor, the six strategy
 agents, a self-play benchmark of their belief quality, and now the
 personality layer that turns each agent's belief into moves, with an
 arena and dial sweeps to measure it and game records stored locally or
-in Cloud Storage. Phase 6, the LLM wrapper (`clude_llm`), is built and
-tested on fake backends: a model chooses within a leash of each
-character's own scores and adds a line of table talk, and anything
-illegal or failed falls back to the character. Its live checks and arena
-measurements wait on an API key ([docs/phase6-plan.md](docs/phase6-plan.md)).
-There is no UI and no chat yet.
+in Cloud Storage. Phase 6, the LLM wrapper (`clude_llm`), is done: a
+model chooses within a leash of each character's own scores and adds a
+line of table talk, and anything illegal or failed falls back to the
+character. It is live-checked, persona-tuned and measured on Opus 5
+([docs/phase6-plan.md](docs/phase6-plan.md), results in
+[docs/strategy-glossary.md](docs/strategy-glossary.md)). Phase 7,
+logbooks, is next. There is no UI and no chat yet.
 
 ## Quick start
 

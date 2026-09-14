@@ -467,9 +467,40 @@ wait until then.
   - Pooled win% in that sweep is 33.3 at every value by construction.
     All seats are swept characters, so the sweep cannot show per-character
     effects.
-- **Presets left at `leash` 0.25 and `chattiness` 0.5.** The pooled sweep
-  favours 0.5. But it is 8 games per value, it cannot see individual
-  characters, and more rope likely deepens Plum's loss. That makes it a
-  design call about keeping the six methods distinct, not a tuning call.
-  Open follow-up: a per-character leash sweep (`--llm-characters Plum`,
-  then Mustard, at 0.25 and 0.5, with `--json`).
+- **Per-character leash ladders** (same day; glossary, "Per-character
+  leash ladders"): one character on the model at a time, on a fixed
+  3-seat table `Plum,Mustard,Green`, seed 7007, 24 paired games per
+  value, with a free headless baseline on the same deals and every
+  record stored under `data/llm` (`ladder-*`). Mustard at 0 / 0.25 /
+  0.5 / 1 ($8.94); Plum at 0.25 / 0.5 / 1 ($18.13; his leash-0 leg was
+  cut after one 90-turn game, kept as `ladder-plum-leash-0-aborted`).
+  No fallbacks in either.
+  - Mustard does not move at any leash (paired net 0 to +2 games in 24).
+    This retracts the twin run's "the leash rescues Mustard": alone on
+    the model his wrong% at the preset is 41.7% against 25% headless.
+  - Plum: 62.5% headless, then 58.3 / 45.8 / 58.3; paired net -1 / -4 /
+    -1; first accusation 10-15 turns later at every leash.
+  - The mechanism, quantified from the stored menus: the model plays
+    the character's top-scored option as an order where the character
+    samples it, and Plum's `movement_scores` puts "suggest in any room
+    I can enter" (0.20) above "step toward the room my count favours"
+    (~0.13) regardless of room probability. Standing in a cleared room
+    he stays: at leash 0.5 he declined an allowed escape toward a live
+    room on 103 of 109 such calls; at 1, 101 of 110. One game ran 126
+    turns on 38 repetitions of one suggestion, and he still won it,
+    because headless opponents do not punish a stall -- the twin
+    arena's LLM table did, which is his 44-point loss there.
+  - Keep-a-dial passes for `leash` on deviations per decision (Mustard
+    0.0 / 0.4 / 1.7 / 2.0%, Plum 3.0 / 5.2 / 8.8%). `deviation_rate`
+    should be redefined over `llm_decisions`.
+  - Leash 0 is not a control: with zero deviations the model's
+    tie-breaks still diverge the game from headless (Plum -12.5 points
+    on the same deals with Mustard at leash 0).
+- **Presets stand at `leash` 0.25 and `chattiness` 0.5.** Neither
+  measured character gains from more rope, and 0.25 is where Plum's
+  parking is rarest. The open work is not a dial value but
+  `Character.movement_scores` (a cleared room should not outscore a
+  step toward a live one; this changes headless Plum and the goldens)
+  and possibly the prompt's "best first" framing. Both need a re-measure
+  and re-recorded fixtures. Chattiness is coupled to the leash through
+  the per-call gate and was not swept.
