@@ -560,8 +560,11 @@ absence-of-evidence fix, not a change to the method.
 ## Arena, sweeps and game records (Phase 5d)
 
 `clude_training.arena.run_arena` plays N whole games through the seam
-with `clude_constraints.observe`, seats rotating across games and the
-table size cycling 3..6, missing seats filled with `FloorBot`s. Per roster
+with `clude_constraints.observe`, each character on its own suspect's
+token and fills on the lowest free tokens, seats in board order
+(`seat_lineup`; since 2026-09-14, before which seats rotated across
+games), the table size cycling 3..6, missing seats filled with
+`FloorBot`s. Per roster
 label it reports win rate and wrong-accusation rate with binomial std,
 mean turn of first accusation and the never-accused rate, distinct own
 cards leaked, suggestions naming an own card, and ms per belief call.
@@ -699,17 +702,20 @@ is on. Not needed yet; revisit if a Cloud Run bill ever shows up. The
 Cloud Storage bucket above is in the same boat: a few hundred kilobytes
 per arena run, inside the always-free 5 GB-months for US regions.
 
-## Seats and player identity (proposed, not yet confirmed)
+## Seats and player identity (the cludebot half built; the human half proposed)
 
 Answers "how do human players play, and how are they recognized across
-games" (`CLAUDE.md`). Not yet implemented -- Phase 8 builds seats and
-Phase 7 builds logbooks, but the identity model is recorded now so neither
-phase needs a breaking change later.
+games" (`CLAUDE.md`). The cludebot half was built on 2026-09-14 (a
+character is locked to its own token; below); Phase 8 builds human
+seats and Phase 7 built logbooks, and the identity model is recorded
+here so neither needs a breaking change.
 
-- **Seat** -- one of the six suspect slots for a single game. Already
-  exactly `suspects_in_play[i]` in `GameState`; nothing new here. The
-  arena's `SeatRecord` (seat index, suspect token, roster label, kind,
-  profile) is the first persisted form of it.
+- **Seat** -- one of the six suspect slots for a single game. Exactly
+  `suspects_in_play[i]` in `GameState`, now chosen by the caller
+  (`engine.run_game(..., suspects=...)`) and carried to every player
+  and prompt as `ClueObservation.suspects`. The arena's `SeatRecord`
+  (seat index, suspect token, roster label, kind, profile) is the
+  first persisted form of it.
 - **`PlayerIdentity`** -- who's behind a seat, persistent *across* games.
   Deliberately kept out of `clude_core`/`clude_agents`: a `SeatAssignment
   {seat_index, suspect, identity}` map is built at table setup, before
@@ -718,8 +724,15 @@ phase needs a breaking change later.
   none of Phases 1-5 needed to change for this.
   - LLM occupant: identity is intrinsic and seat-locked --
     `MissScarlettbot` is always naive Bayes, always Scarlett. No auth,
-    no seat mobility. (The arena rotates characters through seats for
-    measurement fairness; that is a maintainer tool, not the game.)
+    no seat mobility. **Built 2026-09-14** (David: "Plum must never
+    play Scarlett's seat"): `clude_training.arena.seat_lineup` puts
+    each character on its own token, every other player on the
+    lowest free token, and orders the seats as the board does; the
+    arena and `play` seat every table with it, and a larger roster
+    rotates only who sits out. Every character golden was re-captured
+    and both LLM fixtures re-recorded that day; measurements before
+    it (Phase 5's sweeps, Phase 6's twin arena and ladders) rotated
+    characters through seats.
   - Human occupant: identity must be independent of seat, since
     remembering a human's tells across games only makes sense if the
     same person is recognized whether they're piloting Plum tonight and

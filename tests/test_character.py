@@ -45,19 +45,25 @@ def _fresh_obs(own_hand=(), n_players=3):
 
 
 def _character_game(seed: int, n_players: int, roster: tuple, max_turns: int = 200):
-    """Characters in the first seats (each reset with its seat index),
-    `FloorBot`s in the rest, the same way `scripts/clude_cli.py play`
-    and the golden-capture script seat them."""
+    """Each character on its own token (reset with its seat index),
+    `FloorBot`s on the lowest free tokens, seats in board order: the way
+    `scripts/clude_cli.py play` and the arena seat a table
+    (`seat_lineup`)."""
+    from clude_training.arena import seat_lineup
+
+    lineup = list(roster) + ["floor"] * (n_players - len(roster))
+    labels, suspects = seat_lineup(lineup)
     players = {}
-    for seat in range(n_players):
-        if seat < len(roster):
-            character = build_character(roster[seat])
+    for seat, label in enumerate(labels):
+        if label in AGENT_SPECS:
+            character = build_character(label)
             character.reset(seat)
             players[seat] = character
         else:
             players[seat] = clude_constraints.FloorBot(rng=random.Random(fill_seed(seed, seat)))
     return engine.run_game(
-        n_players, players, seed=seed, max_turns=max_turns, observer=clude_constraints.observe
+        n_players, players, seed=seed, max_turns=max_turns, observer=clude_constraints.observe,
+        suspects=suspects,
     )
 
 
@@ -228,24 +234,26 @@ def test_movement_scores_and_accusation_test_are_pure():
 # ---------------------------------------------------------------------
 
 # Event-log fingerprints of seeded character games, captured on the
-# Phase 5 code immediately before Phase 6a split scoring from sampling.
+# Phase 5 code immediately before Phase 6a split scoring from sampling
+# and re-captured on 2026-09-14 when characters were locked to their
+# own tokens (`seat_lineup`): every seat moved, so every game did.
 # They pin the character layer the way `tests/test_engine.py`'s goldens
 # pin the rules engine: a change here means a character's behaviour
 # moved, which no Phase 6 work is supposed to do. Regenerate
 # deliberately if a method or a preset is meant to change.
 GOLDEN_CHARACTER_GAMES = {
     (23, 5, ("Scarlett", "Peacock", "Mustard", "White")): (
-        "cf5d0435384d5cbf69e30eed0b6a66bdc69c092b3b061f19053729843e031505", 74,
+        "88d81450fcf1bc8c626b9795e4c96bfb51c22c732cf1dfdb8165c93d63b51707", 72,
     ),
     (9, 3, ("Scarlett", "White", "Mustard")): (
-        "567c035ac09e095f93150f2883fdc62aa0f892b84fa9da152afece1805b5200e", 47,
+        "a2eb02a68f4f5485fd01c9b465e0f9a24f204172d32dd801dd8acb679dccc4e9", 25,
     ),
     (31, 4, ("Peacock", "Scarlett")): (
-        "e977f43bac88d272be4119f6ab3b7d66934bf70b0143080d449854c97a1bbd0f", 28,
+        "ae7393291b281ec3f2d03f3ec0f2e786de7bbb03464d03ece3a6fc33ce9d88bb", 42,
     ),
 }
 GOLDEN_FOUR_CHARACTER_GAME = (
-    "74a32e60b368193d29cbf9165d3493b51b0843f914d8a0c63cef911d0ce5f2d5", 36,
+    "a0b46c990a84d544832f9853f40b9e1e94b20dc1bfa866f820507a33d90fbc56", 69,
 )
 
 

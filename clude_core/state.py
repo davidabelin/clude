@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Optional
 
 from .board import Node
-from .domain import Accusation, Suggestion
+from .domain import Accusation, SUSPECTS, Suggestion
 
 if TYPE_CHECKING:
     from clude_constraints import ConstraintResult
@@ -62,6 +62,15 @@ class ClueObservation:
     accusation_log: tuple[Accusation, ...]
     turn: int
     mask: "Optional[ConstraintResult]" = None
+    suspects_in_play: tuple[str, ...] = ()
+
+    @property
+    def suspects(self) -> tuple[str, ...]:
+        """The suspect token in each seat, in seat order. An observation
+        built by hand without `suspects_in_play` (older tests) gets the
+        first `n_players` suspects, which is what the engine seated
+        before characters were locked to their own tokens."""
+        return self.suspects_in_play or tuple(SUSPECTS[: self.n_players])
 
     @staticmethod
     def for_player(state: GameState, viewer: int) -> "ClueObservation":
@@ -97,4 +106,5 @@ class ClueObservation:
             suggestion_log=tuple(redacted),
             accusation_log=tuple(state.accusation_log),
             turn=state.turn,
+            suspects_in_play=tuple(state.suspects_in_play),
         )

@@ -10,9 +10,9 @@ see), and later shown to a human player. Lifted out of
 
 Seat labels are plain strings, one per seat index, built with
 `seat_labels`: ``P1 Mustard``, or ``P1 Mustard (Plum)`` when Plum's
-method is piloting the Mustard token. The engine always seats
-`SUSPECTS[:n_players]` in order, so a caller with only an observation
-can build them from `obs.n_players` alone.
+method is piloting the Mustard token. `ClueObservation.suspects` names
+the token in each seat, so a caller with only an observation can build
+them.
 """
 from __future__ import annotations
 

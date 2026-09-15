@@ -44,7 +44,8 @@ from clude_training.replay import seat_view
 from .persona import DISPLAY_NAMES
 
 MAX_AUDIT_LINES = 60
-"""Decisions listed in the debrief before the rest are summarised."""
+"""Decision lines listed in the debrief before the rest are summarised (a run
+of identical decisions is one line)."""
 
 
 def _table_names(record: GameRecord) -> list:
@@ -108,24 +109,66 @@ def _deal_lines(record: GameRecord, seat: int, names: Sequence[str]) -> list:
     return lines
 
 
+AUDIT_KINDS = (
+    ("move", "Moves"), ("suggest", "Suggestions"), ("show", "Cards shown"), ("accuse", "Accusation calls"),
+)
+"""The decision kinds in the order the audit lists them, with headings."""
+
+
+def _option_notes(decision) -> str:
+    """The menu note(s) beside the option(s) the model chose, joined:
+    what the model was told about them at the time."""
+    options = {o.get("label"): o for o in (getattr(decision, "menu", None) or {}).get("options", [])}
+    notes = []
+    for label in str(getattr(decision, "chosen", "") or "").split("/"):
+        note = (options.get(label) or {}).get("note")
+        if note:
+            notes.append(note)
+    return "; ".join(notes)
+
+
 def _audit_lines(decisions: Sequence) -> list:
+    """The decisions the model was asked, grouped by kind, each with the
+    note the menu showed beside the chosen option, and a run of the same
+    decision collapsed into one line ("turns 28-98, 37 times running")
+    so a stall reads as a stall. What the character said is in the
+    table talk and not repeated here."""
     asked = [d for d in decisions if getattr(d, "called", False)]
     singles = sum(1 for d in decisions if not getattr(d, "called", False) and not d.fallback)
     fallbacks = sum(1 for d in decisions if d.fallback)
     lines = []
     if not asked:
         lines.append("  (none: every decision had one option or was your method's alone)")
-    for d in asked[:MAX_AUDIT_LINES]:
+    runs: list = []  # [kind, text, first turn, last turn, count]
+    for d in asked:
         if d.fallback:
             tail = f" -- fell back to your method ({d.fallback})"
         elif d.deviated:
             tail = " -- below your method's top option"
         else:
             tail = ""
-        said = f' and said "{d.said}"' if d.spoke and d.said else ""
-        lines.append(f"  turn {d.turn} {d.kind}: {d.action or 'your method decided'}{tail}{said}")
-    if len(asked) > MAX_AUDIT_LINES:
-        lines.append(f"  ... and {len(asked) - MAX_AUDIT_LINES} more.")
+        note = _option_notes(d)
+        text = f"{d.action or 'your method decided'}{f' [{note}]' if note else ''}{tail}"
+        last = next((r for r in reversed(runs) if r[0] == d.kind), None)
+        if last is not None and last[1] == text:
+            last[3] = d.turn
+            last[4] += 1
+        else:
+            runs.append([d.kind, text, d.turn, d.turn, 1])
+    shown = 0
+    for kind, heading in AUDIT_KINDS:
+        of_kind = [r for r in runs if r[0] == kind]
+        if not of_kind or shown >= MAX_AUDIT_LINES:
+            continue
+        lines.append(f"  {heading}:")
+        for _, text, first, last_turn, count in of_kind:
+            if shown >= MAX_AUDIT_LINES:
+                break
+            when = f"turn {first}" if count == 1 else f"turns {first}-{last_turn}, {count} times running"
+            lines.append(f"    {when}: {text}")
+            shown += 1
+    if len(runs) > MAX_AUDIT_LINES:
+        lines.append(f"  ... and {len(runs) - MAX_AUDIT_LINES} more.")
     lines.append(
         f"  ({len(decisions)} decisions in all: {singles} with a single option, "
         f"{len(asked)} put to you, {fallbacks} decided by your method after a fallback.)"
@@ -219,7 +262,8 @@ def debrief_prompt(
         lines.append("Nobody spoke at the table.")
     lines += [
         "",
-        "The decisions put to you this game:",
+        "The decisions put to you this game, by kind, with what the menu said beside "
+        "the option you chose (a repeated decision is one line):",
         *_audit_lines(decisions),
         "",
         "Your final belief against the truth:",
@@ -250,9 +294,10 @@ def debrief_prompt(
         "- title: a short title for this game.",
         f"- summary: one or two sentences, at most {SUMMARY_WORDS} words, on what to remember "
         "of it.",
-        f"- flags: two to {MAX_FLAGS} short lowercase keywords that connect this game to "
-        "others; reuse your existing flags where they fit and coin a new one only for "
-        "something new.",
+        f"- flags: two to {MAX_FLAGS} short lowercase keywords for the patterns of play that "
+        "connect this game to others (not the result or the table size, which the entry "
+        "records already); reuse your existing flags where they fit and coin a new one "
+        "only for something new.",
         "- what_happened: the game as you experienced it, in a paragraph.",
         "- evaluations: one per opponent at the table, with an evaluation of how they played "
         "and notes on what gave them away, if anything, now that you can check their claims "

@@ -93,10 +93,12 @@ def _wrapped(profile: Profile, responses, seed: int = 0, settings=None) -> LLMCh
 
 def _llm_game(seed, n_players, roster, make_backend, max_turns=200, settings=None, **dials):
     """`tests.test_character._character_game` with every character wrapped."""
+    from clude_training.arena import seat_lineup
+
+    labels, suspects = seat_lineup(list(roster) + ["floor"] * (n_players - len(roster)))
     players, wrappers = {}, {}
-    for seat in range(n_players):
-        if seat < len(roster):
-            name = roster[seat]
+    for seat, name in enumerate(labels):
+        if name in PRESETS:
             profile = PRESETS[name].with_dials(**dials) if dials else None
             wrapper = LLMCharacter(
                 build_character(name, profile), make_backend(),
@@ -107,7 +109,8 @@ def _llm_game(seed, n_players, roster, make_backend, max_turns=200, settings=Non
         else:
             players[seat] = clude_constraints.FloorBot(rng=random.Random(fill_seed(seed, seat)))
     state, events = engine.run_game(
-        n_players, players, seed=seed, max_turns=max_turns, observer=clude_constraints.observe
+        n_players, players, seed=seed, max_turns=max_turns, observer=clude_constraints.observe,
+        suspects=suspects,
     )
     return state, events, wrappers
 
@@ -653,16 +656,18 @@ def test_anthropic_backend_live_smoke():
 FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures"
 
 # (fixture, seed, players, roster, envelope, winner, tally) per recorded game.
+# Both re-recorded on 2026-09-14 when characters were locked to their own
+# tokens: the seat labels in every prompt moved, so every key did.
 RECORDED_GAMES = [
     (
         "llm_seed1.json", "1", "3", "Scarlett,Peacock",
-        "Mustard/Rope/Ballroom", "P0 Scarlett",
-        "Turns played: 16; suggestions: 13; accusations: 1",
+        "Mustard/Rope/Ballroom", "P1 Mustard (floor)",
+        "Turns played: 21; suggestions: 17; accusations: 2",
     ),
     (
         "llm_seed2.json", "2", "4", "Plum,Mustard,Green,White",
-        "Scarlett/Candlestick/Ballroom", "P3 Green (White)",
-        "Turns played: 4; suggestions: 3; accusations: 1",
+        "Scarlett/Candlestick/Ballroom", "P1 White",
+        "Turns played: 14; suggestions: 11; accusations: 1",
     ),
 ]
 

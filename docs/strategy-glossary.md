@@ -708,9 +708,18 @@ are in `docs/phase6-plan.md`, section 8, under 6c.
 
 ## Phase 7: memory (2026-09-14)
 
-Built, not yet measured live; the design is in `docs/phase7-plan.md`
-and the working guide in `docs/logbooks.md`. What it changes about the
-methods and the dials:
+Built and live-checked; the design is in `docs/phase7-plan.md` and the
+working guide in `docs/logbooks.md`. What it changes about the methods
+and the dials:
+
+**Seating, first.** Every measurement above was made with characters
+rotating through seats and tokens (Plum played the Scarlett token in
+one game and White's in the next). Since 2026-09-14 a character is
+locked to its own token (`CLAUDE.md`, "Seat-locked characters"):
+`Plum,Mustard,Green` seats Mustard, Green, Plum in that turn order in
+every game. Runs from that date on are not paired with the earlier
+ones, however alike the flags; the paired leash-0.5 run below was
+therefore played fresh on both legs.
 
 - **A third LLM dial, `memory`** (default 0 for every preset), sets how
   much of its own logbook an LLM-piloted character reads before a
@@ -741,6 +750,94 @@ methods and the dials:
 - **The narrative tier does not widen a menu.** Whatever a character's
   notes say, the model still picks among the options its leash allows,
   so Plum's parking (above) is unreachable by memory at the preset
-  leash: his escape is on the menu only at leash >= 0.34. Testing
-  whether his own notes teach him out of it needs a paired run at
-  leash 0.5 with the logbook on and off, about $10-13 with debriefs.
+  leash: his escape is on the menu only at leash >= 0.34. At leash
+  0.5, where it is, his own notes cut his stalls by more than half
+  over 24 games and bring two early accusations (next section).
+
+### Plum's logbook at leash 0.5 (2026-09-14)
+
+The Phase 7d measurement: does Plum's own logbook teach him out of the
+parking? Fixed seating (Mustard, Green, Plum), seed 7007, 24 paired
+games, Plum alone on the model at `leash` 0.5 and `memory` 0 (he reads
+the head: tally, standing instructions, dossiers), the other two
+headless at preset. The off leg has no logbook; the on leg gives one to
+Plum only (`--logbook-characters Plum`), starting empty, so it is a
+learning curve: game g is played on the entries of games 0 to g-1.
+
+```
+arena --games 24 --players 3 --roster Plum,Mustard,Green --seed 7007 --llm --llm-characters Plum --set Plum.leash=0.5 --store data/llm --run-id seated-plum-leash-0.5
+arena ... --logbook data/llm --logbook-characters Plum --run-id seated-plum-leash-0.5-logbook
+```
+
+Off leg 1252 s, $4.63; on leg 2035 s, $5.56 ($3.32 of decisions and
+$2.24 for the 24 debriefs: $0.093 and 42 s each). No fallbacks in 855
+calls. `data/llm/pair_report.py` prints the comparison and
+`parking_report.py` the counts.
+
+| | win% | wrong% | 1st_acc | never% | turns | played | devs | dev/decision | talk/g | tok/g |
+|---|---|---|---|---|---|---|---|---|---|---|
+| logbook off | 54.2 | 0.0 | 20.5 | 45.8 | 25.6 | 478 | 40 | 5.2% | 6.54 | 31,689 |
+| logbook on | 50.0 | 8.3 | 21.7 | 41.7 | 20.6 | 353 | 52 | 8.8% | 5.67 | 28,480 |
+
+Paired by game, Plum lost 7 and gained 6 (net -1). Opponents' win%:
+Mustard 33.3 to 25.0, Green 12.5 to 20.8.
+
+Parking, as counted for the ladders (move calls where the model chose
+a zero-probability room while an allowed option led toward a live one):
+
+| | move calls | such calls | chose "stay" | games with 5+ stays |
+|---|---|---|---|---|
+| logbook off | 210 | 104 | 97 (93%) | 8 |
+| logbook on | 169 | 48 | 40 (83%) | 2 |
+
+By quarter of the run, stays on the same six deals: off 36, 11, 13, 37;
+on 25, 6, 6, 3. Mean turns by quarter: off 36.0, 14.5, 22.5, 29.5; on
+17.8, 20.2, 20.0, 24.3.
+
+- **The notes do teach him out of the parking, mostly.** On the same
+  deals his stalls fall from 97 to 40 over the run, and in the last
+  quarter from 37 to 3; games with a long stall from 8 to 2; games run
+  five turns shorter. The first entry lands before game 2, so even the
+  first quarter differs. He names the fault himself: "room-anchoring",
+  "redundant-testing" and "slow-tempo" are among his most-used flags
+  (11, 10 and 10 of 24 entries), and by the end his standing
+  instructions say to keep a list of the rooms nobody has named and to
+  probe only from rooms his count still permits. What remains of the
+  parking is deliberate: "once I occupy a room nobody can refute, stay
+  in it and grind", which is a room he holds himself, used as ballast,
+  and is sound.
+- **The price is haste.** Two wrong accusations, at P(correct) 0.50
+  (game 2, "had to flip a coin") and 0.80 (game 21, "accused the leader
+  at four-fifths"), both below his 0.90 threshold and both inside the
+  window leash 0.5 opens; the off leg never accused below 1.00, and
+  headless Plum never accuses wrongly. The notes push tempo
+  ("slow-tempo" and "tempo-discipline" on nineteen entries between
+  them) and the model took the early-accusation rope it had always been
+  offered. Entry #22's lesson adds the instruction not to accuse below
+  threshold on a two-way room split, which is the logbook correcting
+  its own excess, one game late.
+- **Net, on this table, a wash in wins** (-1 of 24, well inside the
+  10-point std): the stalls he sheds are repaid by the two eliminations.
+  The ladders showed Mustard and Green at preset do not punish a stall,
+  so the parking cost him little here; against a faster table (the twin
+  arena) the same reduction should be worth more.
+- **The model overrides the method more with memory:** deviations per
+  decision 5.2% to 8.8%, and "off-method-pick" is a flag he uses nine
+  times ("walked off-method to the one room nobody had named"). The
+  logbook is a second voice beside the method's numbers, and the leash
+  is what bounds it.
+- **The entries and the head read well.** Titles are specific, summaries
+  are precis, flags recur (ten flags on seven or more entries each),
+  dossiers are verified against the face-up deal ("she held five weapons
+  and named the sixth four times"), and the eight standing instructions
+  are Clue strategy in Plum's voice. `logbook show --uri data/llm
+  --identity Plum` has all of it.
+- **Cost.** A debrief is $0.09 and 42 s; the read-back at `memory` 0
+  is inside the decision cost, which fell ($4.63 to $3.32) because the
+  games got shorter. The on leg is 63% longer in wall time, all of it
+  debriefs.
+- **Not measured:** the `memory` dial above 0 (a sweep on this logbook
+  is `sweep --dial memory --llm --logbook data/llm --logbook-characters
+  Plum`), the preset leash 0.25 (where the escape is not on the menu
+  and the notes cannot act), and whether the head trained here helps
+  on a different table.

@@ -1,8 +1,9 @@
 # Phase 7 Plan: playerbot memory, the logbooks (approved 2026-09-14)
 
-Status: **approved 2026-09-14; 7a-7c built the same day. 7d (one live
-run to read the entries and tune the debrief prompt) waits for a yes on
-$1.50-3.00.** David's answers to the three decisions are in section 6;
+Status: **approved 2026-09-14; 7a-7c built the same day; 7d's live
+run, the debrief timeout fix, the audit and flag tuning,
+`--logbook-characters`, fixed seating and the paired leash-0.5
+measurement all done the same day. Phase 7 is complete.** David's answers to the three decisions are in section 6;
 what was actually built, and where it departed from this plan, is in
 section 8. Same
 shape as `docs/phase6-plan.md`: what the code dictates, the design,
@@ -519,3 +520,63 @@ leash-0.5 learning run is priced above as an option, not planned).
   back in game two, and writing nothing read-only.
 - Suite: 246 passed, 2 skipped; every golden and both fixtures
   untouched.
+
+### 7d, the live run and what it changed (2026-09-14)
+
+- **The smoke run wrote nothing.** `arena --games 6 --players 3 --roster
+  Plum,Mustard,Green --seed 7007 --llm --llm-characters Plum --store
+  data/llm --logbook data/llm --run-id logbook-smoke`: 760 s, $1.56, and
+  `entries 0`. Every debrief timed out at the wrapper's 30 s call
+  timeout, and the SDK's one retry made that 62 s of nothing per game.
+  Fix: `LLMRequest.timeout`, `LLMSettings.debrief_timeout = 180`, passed
+  per call by `AnthropicBackend.complete` as a call option (not a param,
+  so the pinned params test holds). The six stored games were then
+  debriefed from their records with a scratch script that rebuilds the
+  `Decision`s from `llm_log`: 33-48 s and $0.06-0.11 each. That logbook
+  is kept at `data/llm-smoke` (rotating seats, leash 0.25, the prompt
+  before the tuning below).
+- **What the entries showed.** Persona voice throughout; summaries are
+  precis; tells are checked against the face-up deal ("he accused the
+  Study while holding the Study"); eight specific standing instructions
+  by entry 2. By entry 3 ("Thirty Turns in the Conservatory") Plum names
+  the repetition trap himself and writes the instruction to move when
+  his move and suggestion repeat, although at leash 0.25 the escape was
+  never on his menu (`parking_report.py`: no allowed escape in his
+  83-turn game), which is the limit recorded in 7c. Flags were spent on
+  the table and the result ("three-handed", "large-hand", "won"/"lost"
+  on every entry).
+- **Prompt tuning, two changes.** The decision audit is grouped by kind,
+  carries the note the menu showed beside the chosen option, and
+  collapses a run of one decision into one line ("turns 28-98, 37 times
+  running"), so a stall reads as a stall and the character sees
+  "P(envelope room = Ballroom) 0.00" beside his own choice; what he said
+  is no longer repeated from the table talk. The flags instruction asks
+  for patterns of play, not the result or the table size. `logbook show
+  --entry` now prints the standing instructions and dossiers an entry
+  wrote (`render_entry(full=True)`).
+- **`--logbook-characters`** on `play`, `arena` and `sweep`
+  (`run_arena(logbook_characters=...)`, `ArenaResult.memory
+  ["characters"]`): only the named characters get a logbook, so one
+  character's memory can be measured with the rest of the table exactly
+  as it plays without memory.
+- **Fixed seating, mid-run** (David: "No more characters moving their
+  seats"; "Plum must never play Scarlett's seat"): `seat_lineup`, the
+  engine's `suspects`, `ClueObservation.suspects`; recorded in
+  `CLAUDE.md` and `docs/architecture.md`. Every character golden was
+  re-captured and both LLM fixtures re-recorded ($0.32). It also meant
+  the paired leash-0.5 run needed both legs fresh, since the ladder's
+  leash-0.5 leg rotated seats.
+- **The measurement** (`docs/strategy-glossary.md`, "Plum's logbook at
+  leash 0.5"): 24 paired games, Plum alone on the model at leash 0.5
+  and `memory` 0, logbook on (Plum only, from empty) against off.
+  His stalls fall from 97 to 40 over the run and from 37 to 3 in the
+  last quarter on the same deals, games with a long stall from 8 to
+  2, games five turns shorter; the price is two wrong accusations at
+  P 0.50 and 0.80 inside the leash window, so wins are a wash (net
+  -1). Deviations per decision 5.2% to 8.8%. Debriefs $0.093 and 42 s
+  each, $2.24 for the leg. Every entry parsed; no fallbacks. The 7d
+  check list holds: persona voice, precis summaries, recurring flags,
+  bounded and specific standing instructions, dossiers verified
+  against the deal.
+- Spend for 7d: smoke $1.56, six retro-debriefs $0.53, fixtures $0.32,
+  the two legs $4.63 and $5.56; about $12.60 in all.

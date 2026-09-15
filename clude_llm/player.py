@@ -66,9 +66,10 @@ class LLMSettings:
     debrief : bool
         Write a logbook entry after each game when a logbook is attached
         (Phase 7c); False skips the call.
-    debrief_effort, debrief_max_tokens
-        The debrief's own effort and room: a reflective task, unlike a
-        move, gets ``medium`` and 4096 by default.
+    debrief_effort, debrief_max_tokens, debrief_timeout
+        The debrief's own effort, room and patience: a reflective task,
+        unlike a move, gets ``medium``, 4096 tokens and 180 s by default
+        (at medium effort it runs 40-90 s, past a move's 30 s).
     """
 
     model: str = DEFAULT_MODEL
@@ -83,6 +84,7 @@ class LLMSettings:
     debrief: bool = True
     debrief_effort: str = "medium"
     debrief_max_tokens: int = 4096
+    debrief_timeout: float = 180.0
 
     def to_dict(self) -> dict:
         return dict(vars(self))
@@ -286,6 +288,7 @@ class LLMCharacter:
             kind=LOGBOOK_KIND,
             effort=self.settings.debrief_effort,
             max_tokens=self.settings.debrief_max_tokens,
+            timeout=self.settings.debrief_timeout,
         )
         started = time.perf_counter()
         try:

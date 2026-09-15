@@ -39,9 +39,9 @@ class LLMRequest:
     `memory` (Phase 7) is the character's logbook block, sent as a second
     cached system block after the persona; empty when the character has
     nothing to read back, in which case the request, its `key` and the
-    API call are exactly the Phase 6 ones. `effort` and `max_tokens`
-    override the backend's defaults for one call (the debrief asks for
-    more of both) and are not part of the key.
+    API call are exactly the Phase 6 ones. `effort`, `max_tokens` and
+    `timeout` override the backend's defaults for one call (the debrief
+    asks for more of all three) and are not part of the key.
     """
 
     system: str
@@ -51,6 +51,7 @@ class LLMRequest:
     memory: str = ""
     effort: Optional[str] = None
     max_tokens: Optional[int] = None
+    timeout: Optional[float] = None
 
     def key(self) -> str:
         """A stable digest of everything the model is sent: system, user

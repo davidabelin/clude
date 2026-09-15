@@ -178,7 +178,7 @@ are recorded there) and built in the five sub-phases it lays out:
   `AGENT_SPECS` gaining `profile` and `confidence_fn`, and
   `SeededAgentMixin.choose_destination` getting its real default. One
   unit test per decision.
-- **5d, the arena and storage.** `clude_training.arena` (seat rotation,
+- **5d, the arena and storage.** `clude_training.arena` (fixed seating by token since 2026-09-14, seat rotation before,
   table-size cycling, FloorBot fill, Green's `observe` per game, metrics
   with n and binomial std) and `clude_training.sweep` (paired runs per
   dial value, `monotone`). `clude_storage` started a phase early:

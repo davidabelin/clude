@@ -119,13 +119,35 @@ class SpeakingPlayer(Protocol):
         ...
 
 
-def setup(n_players: int, rng: random.Random) -> GameState:
+def setup(n_players: int, rng: random.Random, suspects=None) -> GameState:
     """Deal a new game: pick the envelope, deal the rest round-robin, and
-    place each in-play suspect's token at its starting hallway cell."""
+    place each in-play suspect's token at its starting hallway cell.
+
+    `suspects` names the token in each seat, in seat order (the board's
+    turn order); default the first `n_players` suspects. The deal draws
+    from `rng` the same way whatever the seating, so one seed is one
+    deal at every table.
+
+    Raises
+    ------
+    ValueError
+        On a table size outside 3-6, or `suspects` that are not
+        `n_players` distinct suspect names.
+    """
     if not (MIN_PLAYERS <= n_players <= MAX_PLAYERS):
         raise ValueError(f"Clue supports {MIN_PLAYERS}-{MAX_PLAYERS} players")
-
-    suspects_in_play = SUSPECTS[:n_players]
+    if suspects is None:
+        suspects_in_play = list(SUSPECTS[:n_players])
+    else:
+        suspects_in_play = list(suspects)
+        if (
+            len(suspects_in_play) != n_players
+            or len(set(suspects_in_play)) != n_players
+            or any(s not in SUSPECTS for s in suspects_in_play)
+        ):
+            raise ValueError(
+                f"suspects must be {n_players} distinct names from {SUSPECTS}, got {suspects_in_play}"
+            )
     envelope = (rng.choice(SUSPECTS), rng.choice(WEAPONS), rng.choice(ROOMS))
     remaining = [c for c in ALL_CARDS if c not in envelope]
     rng.shuffle(remaining)
@@ -262,6 +284,7 @@ def run_game(
     seed: Optional[int] = None,
     max_turns: int = 300,
     observer: Observer = ClueObservation.for_player,
+    suspects=None,
 ) -> tuple[GameState, list[GameEvent]]:
     """Play one full headless game and return the final state and event log.
 
@@ -285,9 +308,14 @@ def run_game(
         suggestion decision of a turn -- nothing a `ClueObservation`
         carries changes between them -- and a fresh one is built for the
         accusation once this turn's suggestion has resolved.
+    suspects : sequence of str or None
+        The token in each seat, in seat order (`setup`); default the
+        first `n_players` suspects. A character plays its own suspect's
+        token (`clude_training.arena.seat_lineup` seats a table that
+        way), so seat `i` is `suspects[i]`'s.
     """
     rng = random.Random(seed)
-    state = setup(n_players, rng)
+    state = setup(n_players, rng, suspects)
     events: list[GameEvent] = []
     turns_taken = 0
     idx = 0

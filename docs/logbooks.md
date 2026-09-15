@@ -100,7 +100,11 @@ The block can only steer the model among the options its leash allows;
 it never widens a menu. Plum's escape from a cleared room is on his
 menu only at leash 0.34 or more, so at the preset 0.25 his notes cannot
 unpark him whatever they say (`docs/strategy-glossary.md`,
-"Per-character leash ladders").
+"Per-character leash ladders"). At leash 0.5, where the escape is on
+the menu, they do: over 24 games his stalls fell by more than half
+and to almost nothing by the last quarter, at the price of two
+accusations below his threshold (glossary, "Plum's logbook at leash
+0.5").
 
 ## The debrief
 
@@ -109,12 +113,14 @@ After a game an LLM-piloted seat is asked, under its persona and rules
 outcome and the envelope, its hand, **the whole deal face up** (so a
 claim about a hand can now be checked), the suggestions as it saw them
 live, the table talk with its own lines marked, the decisions the model
-was asked to make (deviations and fallbacks marked), its final belief
+was asked to make (by kind, each with the note the menu showed beside
+the chosen option, deviations and fallbacks marked, and a run of the
+same decision collapsed into one line so a stall reads as one), its final belief
 against the truth, its head, an index of its earlier entries with their
 flags, and the field-by-field instructions. The reply is JSON against
 `LOGBOOK_SCHEMA` (`clude_llm.schema`), at effort `medium` with 4096
-tokens of room (`LLMSettings.debrief_effort`, `debrief_max_tokens`;
-`debrief=False` skips it). Any error, refusal or malformed reply means
+tokens of room and its own 180 s timeout (`LLMSettings.debrief_effort`,
+`debrief_max_tokens`, `debrief_timeout`; `debrief=False` skips it). Any error, refusal or malformed reply means
 no entry and a reason in `LLMCharacter.last_debrief`; the game is
 unaffected. The debrief's tokens count toward the game just played.
 
@@ -144,6 +150,9 @@ python scripts/clude_cli.py train-mustard --logbook data/llm --eval-games 8
   `--logbook-readonly` reads and writes nothing, which is what a fair
   comparison against a fixed memory needs. `sweep --logbook` is always
   read-only, so the `memory` dial can be swept on one logbook state.
+  `--logbook-characters Plum` gives only the named characters a
+  logbook, so one character's memory can be measured with the rest
+  of the table exactly as it plays without memory.
 - `play --store` now writes a single game's record (and a one-game run
   summary) so a game played from the CLI can leave memory.
 - `logbook reset` is the fairness control: forget the head and method
@@ -157,13 +166,16 @@ python scripts/clude_cli.py train-mustard --logbook data/llm --eval-games 8
 ## Cost
 
 Measured on Opus 5 in Phase 6, an LLM seat-game costs about $0.07-0.11
-(Plum about $0.25). The debrief adds one call per seat per game: about
-1.5K cached plus 3-5K fresh input tokens and 0.9-1.3K output plus
-thinking at medium effort, roughly $0.06-0.12. Read-back at `memory` 0
+(Plum about $0.25). The debrief adds one call per seat per game,
+measured on six Plum games (2026-09-14): 2.5-7K fresh input tokens,
+2K cached, 1.8-3.1K output including thinking, 33-48 s at medium
+effort, $0.06-0.11 (mean $0.09). Read-back at `memory` 0
 is a few hundred cached tokens per call, near nothing; at depth 1 with
 twenty entries roughly $0.15-0.20 per seat-game (one cache write, then
-cached reads). `play --llm` and the arena footer estimate the run's
-cost including the debriefs.
+cached reads). Over the 24-game run of 7d the 24 debriefs cost $2.24,
+$0.093 and 42 s each, and the on leg's decisions cost less than the
+off leg's because the games got shorter. `play --llm` and the arena
+footer estimate a run's cost including the debriefs.
 
 ## Where things are
 

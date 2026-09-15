@@ -48,7 +48,7 @@ def test_play_verbose_prints_events_and_outcome(cli, capsys):
 
 def test_play_with_a_character_roster(cli, capsys):
     out = _run(cli, capsys, "play", *SMALL_GAME, "--roster", "Plum,Scarlett", "--verbose")
-    assert "seats: P0 Scarlett (Plum), P1 Mustard (Scarlett), P2 White (floor)" in out
+    assert "seats: P0 Scarlett, P1 Mustard (floor), P2 Plum" in out
     assert "suggests" in out
     out = _run(cli, capsys, "play", *SMALL_GAME, "--roster", "floor")
     assert "roster=floor" in out
@@ -67,7 +67,7 @@ def test_play_store_writes_a_record_and_logbook_commands_read_the_store(cli, cap
     store = LocalStore(tmp_path)
     assert store.list_games("smoke") == [0]
     record = GameRecord.from_dict(store.get_game("smoke", 0))
-    assert [s.kind for s in record.seats] == ["character", "character", "floor"]
+    assert [s.kind for s in record.seats] == ["character", "floor", "character"]  # Scarlett, a fill on Mustard, Plum
     assert record.seats[0].profile["memory"] == 0.0
     out = _run(cli, capsys, "store", "--uri", str(tmp_path))
     assert "smoke: 1 game records" in out
@@ -78,7 +78,7 @@ def test_play_store_writes_a_record_and_logbook_commands_read_the_store(cli, cap
     assert "no logbook for Plum" in out
 
     Logbook(store, "Plum").add_entry(LogbookEntry.build(
-        "Plum", 1, record, 0,
+        "Plum", 1, record, 2,  # Plum sits at seat 2: Scarlett, a fill on Mustard, Plum
         {"title": "First night", "summary": "Short.", "flags": ["opening"],
          "standing_instructions": ["Leave cleared rooms."],
          "dossiers": [{"opponent": "Scarlett", "read": "Accuses early."}]},
@@ -170,6 +170,15 @@ def test_play_and_arena_with_logbooks_feed_method_memory(cli, capsys, tmp_path):
     assert "=== memory (" in out and "Bluster less." in out and "Entries #0001 to #0001" in out
     with pytest.raises(SystemExit):
         cli.main(["train-mustard", "--games", "2", "--seed", "7", "--eval-games", "0", "--logbook", str(tmp_path / "empty")])
+
+    # --logbook-characters gives only the named characters a logbook.
+    out = _run(cli, capsys, *game, "--seed", "6", "--store", uri, "--run-id", "m3", "--logbook",
+               "--logbook-characters", "White")
+    assert "method memory updated for White in" in out
+    assert memory.n_games(Logbook(store, "Mustard").method()) == 4
+    assert memory.n_games(Logbook(store, "White").method()) == 3
+    with pytest.raises(SystemExit):
+        cli.main([*game, "--store", uri, "--logbook", "--logbook-characters", "Nobody"])
 
 
 def test_trace_prints_every_step_and_the_accusation_test(cli, capsys):
@@ -299,7 +308,7 @@ def test_play_with_llm_seats_on_the_null_backend_matches_the_headless_game(cli, 
         "--llm-characters", "Peacock",
     )
     trailer = subset.split("LLM seats:")[1]
-    assert trailer.count(" decisions,") == 1 and "P1 Mustard (Peacock)" in trailer
+    assert trailer.count(" decisions,") == 1 and "P2 Peacock" in trailer
     with pytest.raises(SystemExit):
         cli.main(["play", *SMALL_GAME, *roster, "--llm", "--llm-backend", "bogus"])
     with pytest.raises(SystemExit):
@@ -307,18 +316,18 @@ def test_play_with_llm_seats_on_the_null_backend_matches_the_headless_game(cli, 
 
 
 def test_prompt_prints_the_system_and_user_prompt_without_calling(cli, capsys):
-    out = _run(cli, capsys, "prompt", *SMALL_GAME, "--roster", "Scarlett,Peacock", "--viewer", "1", "--at", "2")
+    out = _run(cli, capsys, "prompt", *SMALL_GAME, "--roster", "Scarlett,Peacock", "--viewer", "2", "--at", "2")
     assert "=== system" in out and "persona" in out and "Mrs. Peacock" in out
-    assert "=== user" in out and "seat P1, after k=2" in out
+    assert "=== user" in out and "seat P2, after k=2" in out
     assert "Suspect options" in out and "Answer with JSON only" in out
     move = _run(cli, capsys, "prompt", *SMALL_GAME, "--roster", "Scarlett,Peacock", "--decision", "move", "--roll", "3")
     assert "Decision: where to move." in move
     for decision in ("accuse", "show"):
         assert "=== user" in _run(cli, capsys, "prompt", *SMALL_GAME, "--roster", "Scarlett,Peacock", "--decision", decision)
-    borrowed = _run(cli, capsys, "prompt", *SMALL_GAME, "--roster", "Scarlett,Peacock", "--viewer", "2", "--agent", "Plum")
-    assert "Professor Plum" in borrowed and "playing the White token" in borrowed
+    borrowed = _run(cli, capsys, "prompt", *SMALL_GAME, "--roster", "Scarlett,Peacock", "--viewer", "1", "--agent", "Plum")
+    assert "Professor Plum" in borrowed and "playing the Mustard token" in borrowed
     with pytest.raises(SystemExit):
-        cli.main(["prompt", *SMALL_GAME, "--roster", "Scarlett,Peacock", "--viewer", "2"])
+        cli.main(["prompt", *SMALL_GAME, "--roster", "Scarlett,Peacock", "--viewer", "1"])
     with pytest.raises(SystemExit):
         cli.main(["prompt", *SMALL_GAME, "--roster", "Scarlett,Peacock", "--at", "999"])
 

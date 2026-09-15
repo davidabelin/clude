@@ -98,7 +98,7 @@ def test_logbook_schema_and_parse():
 def test_request_key_and_backend_params_change_only_with_a_memory_block():
     plain = LLMRequest("sys", "user", CHOICE_SCHEMA, "move")
     assert plain.key() == LLMRequest("sys", "user", CHOICE_SCHEMA, "move", memory="").key()
-    assert plain.key() == LLMRequest("sys", "user", CHOICE_SCHEMA, "move", effort="max", max_tokens=9).key()
+    assert plain.key() == LLMRequest("sys", "user", CHOICE_SCHEMA, "move", effort="max", max_tokens=9, timeout=9.0).key()
     remembering = LLMRequest("sys", "user", CHOICE_SCHEMA, "move", memory="From your logbook: ...")
     assert remembering.key() != plain.key()
 
@@ -108,15 +108,18 @@ def test_request_key_and_backend_params_change_only_with_a_memory_block():
     call = fake.beta.messages.calls[-1]
     assert call["system"] == [{"type": "text", "text": "sys", "cache_control": {"type": "ephemeral"}}]
     assert call["max_tokens"] == 2048 and call["output_config"]["effort"] == "low"
+    assert "timeout" not in call, "a move uses the client's timeout"
 
     backend.complete(LLMRequest("sys", "user", LOGBOOK_SCHEMA, LOGBOOK_KIND,
-                                memory="From your logbook: ...", effort="medium", max_tokens=4096))
+                                memory="From your logbook: ...", effort="medium", max_tokens=4096,
+                                timeout=180.0))
     call = fake.beta.messages.calls[-1]
     assert call["system"] == [
         {"type": "text", "text": "sys", "cache_control": {"type": "ephemeral"}},
         {"type": "text", "text": "From your logbook: ...", "cache_control": {"type": "ephemeral"}},
     ]
     assert call["max_tokens"] == 4096 and call["output_config"]["effort"] == "medium"
+    assert call["timeout"] == 180.0, "the debrief's own timeout rides the call, not the params"
     assert call["output_config"]["format"]["schema"] is LOGBOOK_SCHEMA
 
 
@@ -225,6 +228,7 @@ def test_debrief_writes_an_entry_and_the_next_prompt_shows_it(tmp_path):
     request = wrapper.backend.requests[-1]
     assert request.kind == LOGBOOK_KIND and request.schema is LOGBOOK_SCHEMA
     assert request.effort == "medium" and request.max_tokens == 4096 and request.memory == ""
+    assert request.timeout == 180.0
     prompt = request.user
     assert prompt.startswith("The game is over. This is your debrief, Miss Scarlett")
     assert "The deal, face up" in prompt and "P1 Mustard (Peacock) held:" in prompt

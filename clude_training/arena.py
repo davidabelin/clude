@@ -59,6 +59,7 @@ from typing import Optional
 import clude_constraints
 from clude_agents import AGENT_SPECS, build_character
 from clude_agents.bandit import RevealedOutcome
+from clude_core.domain import SUSPECTS
 from clude_core import engine
 from clude_core.bots import RandomBot
 from clude_core.events import AccusationEvent, GameOverEvent
@@ -340,7 +341,7 @@ class ArenaResult:
     games: list = field(default_factory=list)  # GameSummary
     seconds: float = 0.0
     llm: dict = field(default_factory=dict)  # backend, model, wrapped characters (Phase 6)
-    memory: dict = field(default_factory=dict)  # logbook store, readonly, who loaded (Phase 7)
+    memory: dict = field(default_factory=dict)  # logbook store, readonly, who has one, who loaded (Phase 7)
 
     @property
     def mean_turns(self) -> float:
@@ -447,14 +448,35 @@ def parse_roster(items) -> tuple:
 
 
 def lineup_for_game(roster: tuple, game_index: int, n_players: int) -> list:
-    """Seat labels for game `game_index`: the roster rotated by the game
-    index, truncated to `n_players`, padded with `FILL_LABEL`."""
+    """Who plays game `game_index`: the roster rotated by the game index
+    (so who sits out varies when the roster is larger than the table),
+    truncated to `n_players`, padded with `FILL_LABEL`. Not yet seated:
+    `seat_lineup` puts each player on a token."""
     shift = game_index % len(roster)
     rotated = list(roster[shift:]) + list(roster[:shift])
     lineup = rotated[:n_players]
     while len(lineup) < n_players:
         lineup.append(FILL_LABEL)
     return lineup
+
+
+def seat_lineup(lineup) -> tuple:
+    """Seat a game's players by token: a character plays its own
+    suspect's token, every other player (a fill bot, later a human)
+    takes the lowest unused token, and seats run in the board's suspect
+    order, which is the turn order. Returns ``(labels, suspects)``, both
+    in seat order. A character never plays another suspect's token
+    (David, 2026-09-14): Plum is always Plum, whoever else is at the
+    table.
+    """
+    lineup = list(lineup)
+    taken = {label for label in lineup if label in SUSPECTS}
+    free = [s for s in SUSPECTS if s not in taken]
+    seated = []
+    for label in lineup:
+        seated.append((label, label) if label in SUSPECTS else (label, free.pop(0)))
+    seated.sort(key=lambda pair: SUSPECTS.index(pair[1]))
+    return [label for label, _ in seated], [suspect for _, suspect in seated]
 
 
 def seat_outcome(state, events, seat: int, label: str, kind: str) -> SeatOutcome:
@@ -538,6 +560,7 @@ def run_arena(
     llm_characters=None,
     logbook_store=None,
     logbooks_readonly: bool = False,
+    logbook_characters=None,
 ) -> ArenaResult:
     """Play `n_games` games and accumulate per-player metrics.
 
@@ -580,6 +603,10 @@ def run_arena(
         record is built for that whether or not `store` is given.
     logbooks_readonly : bool
         Read the logbooks but write nothing: what a fair sweep needs.
+    logbook_characters : iterable of str or None
+        Which roster characters get a logbook; default every character
+        in the roster. The rest play exactly as they do without memory,
+        so a run can isolate one character's logbook against a baseline.
 
     Returns
     -------
@@ -588,8 +615,8 @@ def run_arena(
     Raises
     ------
     ValueError
-        On a bad roster, or an `llm_characters` name that is not a
-        character in it.
+        On a bad roster, or an `llm_characters` or `logbook_characters`
+        name that is not a character in it.
     """
     roster = parse_roster(roster)
     profiles = dict(profiles or {})
@@ -617,11 +644,15 @@ def run_arena(
     loaded: list = []
     stale: set = set()  # labels whose memory changed since it was last loaded
     if logbook_store is not None:
-        logbooks = {label: Logbook(logbook_store, label) for label in characters}
+        remembering = set(logbook_characters) if logbook_characters else set(characters)
+        bad = sorted(name for name in remembering if name not in characters)
+        if bad:
+            raise ValueError(f"logbook_characters {bad} are not characters in the roster {roster}")
+        logbooks = {label: Logbook(logbook_store, label) for label in characters if label in remembering}
         loaded = sorted(
-            label for label, ch in characters.items() if method_memory.load_into(ch, logbooks[label])
+            label for label, logbook in logbooks.items() if method_memory.load_into(characters[label], logbook)
         )
-        for label in wrapped:
+        for label in wrapped & set(logbooks):
             characters[label].attach_logbook(logbooks[label])
 
     labels = list(dict.fromkeys(list(roster) + [FILL_LABEL]))
@@ -641,14 +672,17 @@ def run_arena(
             if llm_backend is not None else {}
         ),
         memory=(
-            {"store": logbook_store.describe(), "readonly": bool(logbooks_readonly), "loaded": loaded}
+            {
+                "store": logbook_store.describe(), "readonly": bool(logbooks_readonly),
+                "characters": sorted(logbooks), "loaded": loaded,
+            }
             if logbook_store is not None else {}
         ),
     )
 
     for g in range(n_games):
         n_players = player_counts[g % len(player_counts)]
-        lineup = lineup_for_game(roster, g, n_players)
+        lineup, suspects = seat_lineup(lineup_for_game(roster, g, n_players))
         game_seed = seed + g
         players = {}
         for seat, label in enumerate(lineup):
@@ -668,7 +702,7 @@ def run_arena(
 
         state, events = engine.run_game(
             n_players, players, seed=game_seed, max_turns=max_turns,
-            observer=clude_constraints.observe,
+            observer=clude_constraints.observe, suspects=suspects,
         )
 
         for label in set(lineup) & set(characters):
@@ -702,7 +736,7 @@ def run_arena(
                 # The debrief comes before the stats below so its tokens land
                 # in this game's slice.
                 for seat, label in enumerate(lineup):
-                    if label not in characters:
+                    if label not in logbooks:
                         continue
                     if method_memory.update(logbooks[label], record, characters[label]):
                         stale.add(label)

@@ -108,7 +108,8 @@ After the game the wrapper asks the model for the game's logbook entry
 deal face up, the seat's own view of the game, its decisions, its
 final belief against the truth and its logbook so far, and a third
 fixed schema, `LOGBOOK_SCHEMA`, at effort `medium` with 4096 tokens
-(`LLMSettings.debrief_effort`, `debrief_max_tokens`; `debrief=False`
+and 180 s (`LLMSettings.debrief_effort`, `debrief_max_tokens`,
+`debrief_timeout`; `debrief=False`
 skips it). A failed or malformed debrief writes nothing and leaves the
 reason in `last_debrief`. `docs/logbooks.md` has the rest.
 
@@ -143,7 +144,9 @@ Call settings (`LLMSettings`): model `claude-opus-5`, `effort` low,
 `max_tokens` 2048, timeout 30 s, one SDK retry, server-side refusal
 fallbacks on, budget 200 calls or 500K tokens per game, eight lines of
 recent table talk in the prompt; the debrief (Phase 7) at effort
-`medium` with 4096 tokens.
+`medium` with 4096 tokens and its own 180 s timeout (at medium effort
+it runs 40-90 s; the smoke run's first six debriefs all timed out at
+30 s before it had one).
 
 ## Cost
 
@@ -162,9 +165,12 @@ Measured on Opus 5 (2026-09-13), at list prices:
 That is roughly **$0.07-0.11 per LLM seat-game**, which is the number to
 budget an arena with: a 24-game, 4-seat run is order $10. Plum's games
 run long and ask the model often, so his seat-game is about $0.25. A
-logbook (Phase 7) adds a debrief of roughly $0.06-0.12 per seat-game
-(estimated, not yet measured) and, at the default `memory` of 0, a few
-hundred cached tokens per call for the read-back.
+logbook (Phase 7) adds a debrief per seat-game, measured on six Plum
+games (2026-09-14) at $0.06-0.11, mean $0.09: 2.5-7K fresh input
+tokens, 2K cached, 1.8-3.1K output including thinking, 33-48 s at
+medium effort; over the 24-game run of 7d, 24 debriefs cost $2.24,
+$0.093 and 42 s each. At the default `memory` of 0 the read-back is a
+few hundred cached tokens per call.
 
 Read the usage fields carefully: `input_tokens` counts only the *fresh*
 tokens and `cache_read_input_tokens` the cached ones, disjointly -- so

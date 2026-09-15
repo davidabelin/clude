@@ -16,15 +16,23 @@ the plan sections above it, and over this file if they disagree.
 ## Status (2026-09-14)
 
 Phases 1-6 of `docs/phase-plan.md` are done and committed. Phase 7
-(logbooks) was planned and built the same day, 7a-7c, all on fake
-backends; its record is `docs/phase7-plan.md` section 8 and the working
-guide `docs/logbooks.md`. What remains of Phase 7 is 7d: one live run
-(quoted $1.50-3.00, needs a yes) to read real entries and tune the
-debrief prompt, then the docs' numbers. After that David wants a UX
-design pass before Phase 8 (Flask/Cloud Run front end, then chat, then
+(logbooks) was planned, built (7a-7c, on fake backends) and
+live-checked (7d) on 2026-09-14; its record is `docs/phase7-plan.md`
+section 8 and the working guide `docs/logbooks.md`. 7d found the
+debrief timing out at the wrapper's 30 s (fixed: its own 180 s), tuned
+the debrief prompt on six real entries, added `--logbook-characters`,
+and, on David's instruction mid-run, locked every character to its
+own token ("Seat-locked characters" under Settled decisions). The
+paired leash-0.5 measurement then ran (Plum on the model, his logbook
+on against off, 24 games each, `seated-plum-leash-0.5` and
+`seated-plum-leash-0.5-logbook` in `data/llm`; glossary, "Plum's
+logbook at leash 0.5"): his own notes cut his stalls by more than
+half over the run (37 to 3 in the last quarter on the same deals) at
+the price of two early accusations, so wins are a wash. Phase 7 is
+complete. Next David wants a UX design pass before Phase 8 (Flask/Cloud Run front end, then chat, then
 human seats). There is no UI and no chat yet: everything runs headless
-through `scripts/clude_cli.py`. The suite is 246 tests passing and 2
-skipped (the two live-credential tests), ~42 s.
+through `scripts/clude_cli.py`. The suite is 247 tests passing and 2
+skipped (the two live-credential tests), ~47 s.
 
 Phase 7 in short (the plan doc has the detail):
 
@@ -52,8 +60,11 @@ Phase 7 in short (the plan doc has the detail):
 - **A limit worth remembering:** the logbook steers the model only
   among options the leash allows. Plum's escape from a cleared room is
   on his menu only at leash >= 0.34, so at the preset his notes cannot
-  unpark him; testing that hypothesis needs a paired run at leash 0.5
-  with the logbook on and off (about $10-13).
+  unpark him. At leash 0.5 they can and do (above), but the same rope
+  lets the notes' push for tempo turn into accusations below his
+  threshold (P 0.50 and 0.80, both wrong). The debrief is $0.09 and
+  42 s per seat-game; it needs its own timeout (180 s), since a
+  move's 30 s kills it.
 
 Phase 6, the LLM wrapper (`clude_llm`), closed on 2026-09-13. The record
 is `docs/phase6-plan.md` section 8; the numbers are in
@@ -97,8 +108,8 @@ is `docs/phase6-plan.md` section 8; the numbers are in
   Alone on the model his win rate does not move at any leash and his
   wrong% at the preset is worse than headless; the twin improvement was
   the LLM table around him.
-- Live spend to date is about $50 at list prices ($23 through the twin
-  run and pooled sweep, $27 for the ladders). An LLM seat-game costs
+- Live spend to date is about $63 at list prices ($23 through the twin
+  run and pooled sweep, $27 for the ladders, $12.60 for Phase 7d). An LLM seat-game costs
   $0.07-0.11 for most characters but about $0.25 for Plum, whose games
   run long and ask the model often; low-leash games run longer still.
   Estimates have come in under twice: quote a range, not a point, and
@@ -180,6 +191,20 @@ it; `docs/phase-plan.md` has the disposition of every file.
   dial: 1 the entire logbook, 0.75 the most recent full entries, 0.5
   every entry's summary and flags, 0 the head only (default); the
   interpolation between those anchors is mine and can be adjusted.
+- **Seat-locked characters (2026-09-14).** A character always plays
+  its own suspect's token and never another's (David: "No more
+  characters moving their seats"; "Plum must never play Scarlett's
+  seat"). A fill bot, later a human, takes the lowest free token;
+  seats run in the board's order, so the roster `Plum,Mustard,Green`
+  seats Mustard, Green, Plum and Mustard moves first.
+  `clude_training.arena.seat_lineup` seats every table (`arena` and
+  `play`); `engine.run_game(..., suspects=...)` takes the tokens in
+  play and `ClueObservation.suspects` carries them to every player
+  and prompt; a roster larger than the table rotates only who sits
+  out. Every character golden was re-captured and both LLM fixtures
+  re-recorded that day. Every measurement before it (Phase 5 sweeps,
+  the Phase 6 twin arena and ladders) rotated characters through
+  seats.
 - **Commit messages are printed in the reply, never written into
   `commit_msg.md`** by me (David declined that, 2026-09-13).
 
@@ -215,8 +240,9 @@ Invariants to keep:
 - One `ClueObservation` contract; the event log is rich enough to replay
   every character's belief after the fact (`trace`).
 - Every game is deterministic per seed. `tests/test_character.py` holds
-  golden fingerprints of seeded character games; a scoring change that
-  moves a game must update them on purpose, never by accident.
+  golden fingerprints of seeded character games (re-captured on
+  2026-09-14 for fixed seating); a scoring change that moves a game
+  must update them on purpose, never by accident.
 - The LLM wrapper chooses only within the leash of the character's own
   scores and falls back to the character on anything illegal, malformed
   or failed. `NullBackend` reproduces the headless game byte for byte;
@@ -250,16 +276,20 @@ Suggestions to raise, not decisions to implement.
 - **Chat pacing.** Stagger arrivals, cap concurrent speakers at two; the
   chattiness dial gates participation, not just verbosity.
 - **Logbook reset** control, for fairness.
-- **Seats and player identity.** Each suspect is a Seat, occupied by a
-  human or a seat-locked cludebot. Human identity is a chosen display
-  name independent of seat. Logbooks split into an immutable per-game
-  entry and a mutable per-opponent dossier that carries tells forward.
+- **Human seats and player identity.** Each suspect is a Seat, occupied
+  by a human or its seat-locked cludebot (the cludebot half is built,
+  above). Human identity is a chosen display name independent of
+  seat, written into `SeatRecord.label` so the logbook follows it.
   Rationale in `docs/architecture.md`, "Seats and player identity".
 
 ## Open questions (ask, don't assume)
 
-None outstanding as of 2026-09-14. Phase 7d's live run needs a yes
-($1.50-3.00). Resolved 2026-09-13: leash presets stand; the parking
+One, for the UX pass or Phase 8: whether to change `movement_scores`
+now. The logbook was the hypothesis David wanted tried first; measured
+at leash 0.5 it halves Plum's stalls but cannot act at the preset
+leash 0.25, where the escape is never on his menu, and it brought early
+accusations. The scoring change remains the only fix at the preset
+(it changes headless Plum and the goldens). Resolved 2026-09-13: leash presets stand; the parking
 fix waits behind logbooks; `docs/zenbot_memories.json` is the logbook
 model; no writing into `commit_msg.md`. Resolved 2026-09-14: the three
 Phase 7 decisions above; the UX design pass comes between Phase 7 and
@@ -333,7 +363,7 @@ Phase 8.
   never print or copy its contents. `clude_storage` finds it by that
   path or via `CLUDE_GCS_CREDENTIALS`.
 - `data/` is gitignored. `data/llm` holds every stored live run (see
-  Status); `store --store data/llm` lists them.
+  Status); `store --uri data/llm` lists them.
 
 ## Docs map
 

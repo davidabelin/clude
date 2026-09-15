@@ -15,7 +15,7 @@ from typing import Optional, Sequence
 from clude_agents.character import Character
 from clude_agents.explain import describe_suggestion, format_belief, format_extra, seat_labels
 from clude_constraints import ENVELOPE
-from clude_core.domain import ALL_CARDS, SUSPECTS
+from clude_core.domain import ALL_CARDS
 from clude_core.state import ClueObservation
 
 from .menu import Menu, SuggestionMenu
@@ -118,10 +118,10 @@ def user_prompt(
             "the LLM prompt needs a masked observation: run the game with "
             "`observer=clude_constraints.observe`"
         )
-    names = list(names) if names is not None else seat_labels(SUSPECTS[: obs.n_players])
+    names = list(names) if names is not None else seat_labels(obs.suspects)
     me = names[obs.my_index]
     display = DISPLAY_NAMES.get(character.name, character.name)
-    token = SUSPECTS[obs.my_index]
+    token = obs.suspects[obs.my_index]
     who = (
         f"You are {display}, seat {me}."
         if token == character.name

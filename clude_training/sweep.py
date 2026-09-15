@@ -156,6 +156,7 @@ def sweep_dial(
     llm_settings=None,
     llm_characters=None,
     logbook_store=None,
+    logbook_characters=None,
 ) -> SweepResult:
     """Run the arena once per value of `dial`, setting it on every swept
     character (their other dials stay at preset), and pool the swept
@@ -182,6 +183,9 @@ def sweep_dial(
         Passed to `run_arena` read-only (Phase 7): every value's run
         reads the same logbooks and none writes, so the comparison stays
         paired. The `memory` dial is swept this way.
+    logbook_characters : iterable of str or None
+        Passed to `run_arena`: which characters get a logbook (default
+        all of them).
 
     Raises
     ------
@@ -220,6 +224,7 @@ def sweep_dial(
             llm_characters=llm_characters,
             logbook_store=logbook_store,
             logbooks_readonly=True,
+            logbook_characters=logbook_characters,
         )
         sweep.results.append(result)
         sweep.rows.append(

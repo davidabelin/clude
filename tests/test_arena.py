@@ -26,6 +26,17 @@ def test_lineup_rotates_truncates_and_fills():
     assert lineup_for_game(roster, 2, 5) == ["C", "A", "B", "floor", "floor"]
 
 
+def test_seat_lineup_locks_characters_to_their_own_tokens_in_board_order():
+    from clude_training.arena import seat_lineup
+
+    assert seat_lineup(["Plum", "Mustard", "Green"]) == (["Mustard", "Green", "Plum"], ["Mustard", "Green", "Plum"])
+    assert seat_lineup(["Plum", "Scarlett", "floor"]) == (["Scarlett", "floor", "Plum"], ["Scarlett", "Mustard", "Plum"])
+    assert seat_lineup(["floor", "floor", "floor"]) == (["floor"] * 3, ["Scarlett", "Mustard", "White"])
+    labels, suspects = seat_lineup(["White", "floor", "random", "Peacock"])
+    assert labels == ["floor", "random", "White", "Peacock"]
+    assert suspects == ["Scarlett", "Mustard", "White", "Peacock"]
+
+
 def test_parse_roster_validates():
     assert parse_roster(["Scarlett", " floor ", "Plum"]) == ("Scarlett", "floor", "Plum")
     with pytest.raises(ValueError):
@@ -75,7 +86,9 @@ def test_arena_with_logbooks_learns_between_games_and_stays_paired_read_only(tmp
     # Empty logbooks change nothing, read-only or not.
     empty = run_arena(**settings, logbook_store=store, logbooks_readonly=True)
     assert [g.to_dict() for g in empty.games] == [g.to_dict() for g in plain.games]
-    assert empty.memory == {"store": str(tmp_path), "readonly": True, "loaded": []}
+    assert empty.memory == {
+        "store": str(tmp_path), "readonly": True, "characters": ["Green", "Mustard", "White"], "loaded": [],
+    }
     assert Logbook(store, "Mustard").method() is None
 
     learning = run_arena(**settings, logbook_store=store)
@@ -101,6 +114,14 @@ def test_arena_with_logbooks_learns_between_games_and_stays_paired_read_only(tmp
     )
     assert all(r.memory["readonly"] for r in sweep.results)
     assert memory.n_games(Logbook(store, "Mustard").method()) == 2
+
+    # A logbook for one character leaves the others exactly as they play without memory.
+    only = run_arena(**{**settings, "n_games": 1}, logbook_store=store, run_id="only", logbook_characters=["Mustard"])
+    assert only.memory["characters"] == ["Mustard"] and only.memory["loaded"] == ["Mustard"]
+    assert memory.n_games(Logbook(store, "Mustard").method()) == 3
+    assert memory.n_games(Logbook(store, "White").method()) == 2
+    with pytest.raises(ValueError):
+        run_arena(**settings, logbook_store=store, logbook_characters=["Plum"])
 
 
 def test_seat_outcome_counts_reshows_only_where_there_was_a_choice():
@@ -137,7 +158,8 @@ def test_run_arena_small_table_reports_every_label():
     assert result.per_player["Scarlett"].n_calls > 0
     assert result.per_player["floor"].n_calls == 0
     assert len(result.games) == 3
-    assert [g.labels[0] for g in result.games] == ["Scarlett", "White", "Scarlett"]
+    # Seats are fixed by token: the rotation changes only who sits out, never where anyone sits.
+    assert [tuple(g.labels) for g in result.games] == [("Scarlett", "floor", "White")] * 3
     data = result.to_dict()
     json.dumps(data)
     assert data["profiles"]["Scarlett"]["accuse_threshold"] == pytest.approx(0.15)

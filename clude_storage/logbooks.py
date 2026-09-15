@@ -559,10 +559,11 @@ def render_index_line(entry: LogbookEntry) -> str:
     return line
 
 
-def render_entry(entry: LogbookEntry) -> str:
+def render_entry(entry: LogbookEntry, full: bool = False) -> str:
     """A whole entry as text, for the memory block and the CLI. The
-    standing instructions and dossiers it carried are left out: the head
-    holds their current versions."""
+    standing instructions and dossiers it carried are left out unless
+    `full`: the head holds their current versions, and the memory block
+    shows the head."""
     lines = [
         f"=== Entry #{entry.serial:04d}, {entry.date}, {_versus(entry)}: "
         f"{outcome_phrase(entry.outcome)} ===",
@@ -588,6 +589,12 @@ def render_entry(entry: LogbookEntry) -> str:
         lines.append(f"Final outcome: {entry.final_outcome}")
     if entry.flags:
         lines.append(f"Flags: {', '.join(entry.flags)}")
+    if full and entry.standing_instructions:
+        lines.append("Standing instructions written:")
+        lines.extend(f"- {item}" for item in entry.standing_instructions)
+    if full and entry.dossiers:
+        lines.append("Dossiers revised:")
+        lines.extend(f"- {item['opponent']}: {item.get('read', '')}".rstrip() for item in entry.dossiers)
     return "\n".join(lines)
 
 

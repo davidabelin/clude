@@ -94,6 +94,7 @@ from clude_training.arena import (
     GameSummary,
     fill_seed,
     lineup_for_game,
+    seat_lineup,
     parse_roster,
     run_arena,
 )
@@ -207,6 +208,11 @@ def _add_logbook_args(parser: argparse.ArgumentParser) -> None:
         "--logbook-readonly", action="store_true",
         help="Read the logbooks but write nothing to them (a fair comparison against a fixed memory).",
     )
+    parser.add_argument(
+        "--logbook-characters", default="",
+        help="Comma-separated subset of the roster's characters that get a logbook (default: all of "
+        "them); the rest play exactly as they do without memory.",
+    )
 
 
 def _logbook_store(args):
@@ -220,12 +226,32 @@ def _logbook_store(args):
     return open_store(uri)
 
 
+def _logbook_characters(args):
+    """The ``--logbook-characters`` names as a list, or None for all."""
+    raw = getattr(args, "logbook_characters", "") or ""
+    wanted = [name.strip() for name in raw.split(",") if name.strip()]
+    unknown = [name for name in wanted if name not in AGENT_SPECS]
+    if unknown:
+        raise SystemExit(f"--logbook-characters: unknown {unknown}; run `agents` for the names")
+    return wanted or None
+
+
+def _has_logbook(args, label: str) -> bool:
+    """Whether `label`'s seat gets a logbook under the ``--logbook`` flags."""
+    wanted = _logbook_characters(args)
+    return label in AGENT_SPECS and (wanted is None or label in wanted)
+
+
 def _logbook_kwargs(args) -> dict:
     """`run_arena` keyword arguments for the ``--logbook`` flags."""
     store = _logbook_store(args)
     if store is None:
         return {}
-    return {"logbook_store": store, "logbooks_readonly": bool(getattr(args, "logbook_readonly", False))}
+    return {
+        "logbook_store": store,
+        "logbooks_readonly": bool(getattr(args, "logbook_readonly", False)),
+        "logbook_characters": _logbook_characters(args),
+    }
 
 
 def _print_llm_cost(per_player: dict, model: str, n_games: int) -> None:
@@ -268,6 +294,7 @@ def _play_game(args, llm_seats: dict = None, players_out: dict = None):
     receives every seat's player as ``{seat: player}``."""
     n = args.players
     roster = args.roster.strip()
+    suspects = None
     if roster == "random":
         players = {p: RandomBot() for p in range(n)}
         labels = ["random"] * n
@@ -278,7 +305,7 @@ def _play_game(args, llm_seats: dict = None, players_out: dict = None):
         observer = clude_constraints.observe
     else:
         try:
-            labels = lineup_for_game(parse_roster(roster.split(",")), 0, n)
+            labels, suspects = seat_lineup(lineup_for_game(parse_roster(roster.split(",")), 0, n))
         except ValueError as exc:
             raise SystemExit(str(exc)) from exc
         players = {}
@@ -298,7 +325,7 @@ def _play_game(args, llm_seats: dict = None, players_out: dict = None):
         logbook_store = _logbook_store(args)
         for seat, label in enumerate(labels):
             if label in AGENT_SPECS:
-                if logbook_store is not None:
+                if logbook_store is not None and _has_logbook(args, label):
                     logbook = Logbook(logbook_store, label)
                     method_memory.load_into(players[seat], logbook)
                     if hasattr(players[seat], "attach_logbook"):
@@ -308,7 +335,7 @@ def _play_game(args, llm_seats: dict = None, players_out: dict = None):
     if players_out is not None:
         players_out.update(players)
     state, events = engine.run_game(
-        n, players, seed=args.seed, max_turns=args.max_turns, observer=observer
+        n, players, seed=args.seed, max_turns=args.max_turns, observer=observer, suspects=suspects
     )
     return state, events, labels
 
@@ -390,11 +417,13 @@ def _update_logbooks(args, record: GameRecord, labels: list, players: dict, llm_
         return
     updated = [
         label for seat, label in enumerate(labels)
-        if label in AGENT_SPECS
+        if _has_logbook(args, label)
         and method_memory.update(Logbook(logbook_store, label), record, players[seat])
     ]
     print(f"logbooks: method memory updated for {', '.join(updated) or 'nobody'} in {logbook_store.describe()}")
     for seat, wrapper in sorted(llm_seats.items()):
+        if not _has_logbook(args, labels[seat]):
+            continue
         entry = wrapper.debrief(record, seat)
         if entry is not None:
             print(f"  {labels[seat]} wrote entry #{entry.serial:04d}: {entry.title or '(untitled)'}")
@@ -925,7 +954,11 @@ def _print_arena_footer(result, player_counts, store) -> None:
     if result.memory:
         mode = "read-only" if result.memory.get("readonly") else "read and written"
         loaded = ", ".join(result.memory.get("loaded", [])) or "nobody"
-        print(f"logbooks: {result.memory['store']} ({mode}); memory loaded at the start for {loaded}")
+        who = ", ".join(result.memory.get("characters", [])) or "nobody"
+        print(
+            f"logbooks: {result.memory['store']} ({mode}) for {who}; "
+            f"memory loaded at the start for {loaded}"
+        )
 
 
 def cmd_arena(args) -> int:
@@ -982,6 +1015,7 @@ def cmd_sweep(args) -> int:
             store=store,
             run_id=args.run_id,
             logbook_store=_logbook_store(args),
+            logbook_characters=_logbook_characters(args),
             **_llm_kwargs(args),
         )
     except ValueError as exc:
@@ -1074,7 +1108,7 @@ def cmd_logbook_show(args) -> int:
             entry = logbook.entry(args.entry)
         except KeyError:
             raise SystemExit(f"{args.identity} has no entry #{args.entry}")
-        print(json.dumps(entry.to_dict(), indent=2) if args.raw else render_entry(entry))
+        print(json.dumps(entry.to_dict(), indent=2) if args.raw else render_entry(entry, full=True))
         return 0
     if args.memory is not None:
         try:

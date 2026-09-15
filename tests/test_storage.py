@@ -251,9 +251,9 @@ def test_records_from_a_character_game_keep_every_seat(tmp_path):
     )
     assert store.list_games("smoke") == [0, 1]
     record = GameRecord.from_dict(store.get_game("smoke", 1))
-    assert [s.label for s in record.seats] == ["floor", "Scarlett", "floor"]  # rotated by 1
-    assert record.seats[1].profile == result.profiles["Scarlett"]
-    assert record.seats[0].profile is None
+    assert [s.label for s in record.seats] == ["Scarlett", "floor", "floor"]  # seats are fixed by token
+    assert record.seats[0].profile == result.profiles["Scarlett"]
+    assert record.seats[1].profile is None
     assert isinstance(record.events[0], MoveEvent)
     summary = store.get_run("smoke")
     assert summary["n_games"] == 2

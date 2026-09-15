@@ -29,8 +29,12 @@ record store, numeric for the three methods that can use one and, for
 an LLM-piloted seat, a zenbot-shaped entry its own model writes after
 each game and reads back before the next at the depth of a `memory`
 dial ([docs/phase7-plan.md](docs/phase7-plan.md),
-[docs/logbooks.md](docs/logbooks.md)); its live check is pending.
-There is no UI and no chat yet.
+[docs/logbooks.md](docs/logbooks.md)), live-checked and measured on
+Opus 5: at leash 0.5 Plum's own notes cut his stalls by more than half
+over 24 games, at the price of two early accusations
+([docs/strategy-glossary.md](docs/strategy-glossary.md)). Since
+2026-09-14 every character is locked to its own token: Plum is always
+Plum. There is no UI and no chat yet.
 
 ## Quick start
 

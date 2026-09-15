@@ -119,7 +119,9 @@ location): method memory is loaded before the game and updated after
 it, and an LLM-piloted seat reads its logbook back at its `memory`
 dial's depth and writes an entry at the end (`docs/logbooks.md`). The
 trailer says whose memory was updated and which entries were written.
-`--logbook-readonly` reads and writes nothing.
+`--logbook-readonly` reads and writes nothing. `--logbook-characters
+Plum` gives only the named characters a logbook; the rest play exactly
+as they do without memory.
 
 ## `prompt`
 
@@ -402,9 +404,11 @@ python scripts/clude_cli.py arena --store gs://clude-game-data/arena
 ```
 
 Phase 5's arena (`clude_training.arena`): N whole games among characters
-and/or bots, seats rotating so each roster entry moves first equally
-often, table size cycling 3..6 unless `--players` fixes it, missing
-seats filled with `FloorBot`s. One row per roster label:
+and/or bots, each character on its own suspect's token and every fill
+on the lowest free one, seats in board order (so Mustard always moves
+before Plum; since 2026-09-14, before which seats rotated), a roster
+larger than the table rotating who sits out, table size cycling 3..6
+unless `--players` fixes it, missing seats filled with `FloorBot`s. One row per roster label:
 
 ```
 player     games   win%   +-  wrong%   +-  1st_acc  never%  leaked  named  reshow%  ms/call
@@ -484,6 +488,9 @@ gains an `entries` column and the footer names the logbook store. With
 memory on, a run is a learning curve rather than independent games, so
 compare runs on one seed with the logbooks in the same state,
 read-only. `--json` keeps the per-game lines for that.
+`--logbook-characters Plum` restricts the logbook to the named
+characters, so one character's memory can be measured against a
+baseline with the rest of the table unchanged (the Phase 7d run).
 
 ## `sweep`
 
@@ -520,7 +527,8 @@ leash, and the table gains `deviate%` and `talk/g` columns.
 `--logbook [URI]` (Phase 7) reads every character's logbook from that
 store at every value and writes nothing, so the sweep stays paired;
 `sweep --dial memory --llm --logbook data/llm` is how the `memory` dial
-is swept on one logbook state.
+is swept on one logbook state; `--logbook-characters` restricts it as
+for `arena`.
 
 ## `store`
 
@@ -554,7 +562,8 @@ Phase 7's memory, per identity (`docs/logbooks.md`). `list` prints
 every logbook in a store with its tally, dossier and flag counts and a
 line on its method memory. `show` prints the head (tally, standing
 instructions, every dossier) and an index of the entries; `--entry N`
-one entry as text (`--raw` for its JSON); `--memory DEPTH` exactly the
+one entry as text, with the standing instructions and dossiers it
+wrote (`--raw` for its JSON); `--memory DEPTH` exactly the
 block a character with that `memory` dial would read before a game.
 `rebuild` recomputes the head from the entries and the method memory
 from every game record in the store (`--from URI` for another store):

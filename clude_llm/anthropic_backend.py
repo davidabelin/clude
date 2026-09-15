@@ -7,7 +7,8 @@ Clue move is a short pick. A character's logbook block (Phase 7), when
 it has one, goes as a second cached system block: stable for a whole
 game, so it is written to the cache once and read cheaply after, while
 the persona block stays the prefix every game shares. A request may
-override effort and `max_tokens` (the debrief does). Credentials resolve exactly as the SDK does
+override effort, `max_tokens` and the timeout (the debrief does all three: at medium
+effort it runs well past the 30 s a move gets). Credentials resolve exactly as the SDK does
 (`ANTHROPIC_API_KEY`, or an `ant auth login` profile); an explicit
 `api_key` wins, and a `client` double can be injected for tests, the way
 `clude_storage.GcsStore` takes one. Nothing here prints or stores a key.
@@ -148,12 +149,13 @@ class AnthropicBackend:
         started = time.perf_counter()
         try:
             params = self.params(request)
+            options = {"timeout": request.timeout} if request.timeout else {}
             if self.server_fallbacks:
                 response = self.client.beta.messages.create(
-                    betas=[FALLBACK_BETA], fallbacks="default", **params
+                    betas=[FALLBACK_BETA], fallbacks="default", **params, **options
                 )
             else:
-                response = self.client.messages.create(**params)
+                response = self.client.messages.create(**params, **options)
         except Exception as exc:  # every SDK error class is a fallback here, none is retried
             return LLMResult(
                 error=f"{type(exc).__name__}: {exc}",
