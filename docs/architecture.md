@@ -771,5 +771,8 @@ here so neither needs a breaking change.
 
 ## Open questions
 
-Carried from `CLAUDE.md`; not yet decided: none, as of 2026-09-12 (see
-`CLAUDE.md` and `docs/phase-plan.md` for what was resolved).
+Carried from `CLAUDE.md`; not yet decided, as of 2026-09-15: whether to
+change `movement_scores` for Plum's parking now that the logbook has
+been tried (it halves his stalls at leash 0.5 and cannot act at the
+preset 0.25; the scoring change moves the goldens). See `CLAUDE.md`
+and `docs/phase-plan.md` for what was resolved.

@@ -12,8 +12,8 @@ to the next phase.
 | 3 | Six strategy agents, each emitting a masked/renormalized belief vector; no action selection yet | done |
 | 4 | Benchmark harness measuring the six methods' relative strength; `docs/strategy-glossary.md` filled in | done |
 | 5 | Personality parameter profiles turning beliefs into actions; self-play checks that dials move win rate | done -- plan and David's decisions in `docs/phase5-plan.md`, results in `docs/strategy-glossary.md` |
-| 6 | LLM wrapper: leashed menu of legal actions + persona -> structured action + remark; anything illegal, malformed or failed falls back to the character's own decision | done: built (6a-6d), tested on fake backends, and live-checked, persona-tuned and measured on Opus 5 on 2026-09-13; a per-character leash sweep is the open follow-up -- `docs/phase6-plan.md` |
-| 7 | Logbooks: persistent, per-character, written after every game | built (7a-7c) 2026-09-14 on fake backends: three tiers of memory, a `memory` dial, the debrief; 7d (one live run to read the entries and tune the debrief prompt) waits for a yes -- `docs/phase7-plan.md`, `docs/logbooks.md` |
+| 6 | LLM wrapper: leashed menu of legal actions + persona -> structured action + remark; anything illegal, malformed or failed falls back to the character's own decision | done: built (6a-6d), tested on fake backends, and live-checked, persona-tuned and measured on Opus 5 on 2026-09-13, with per-character leash ladders the same day (presets stand) -- `docs/phase6-plan.md` |
+| 7 | Logbooks: persistent, per-character, written after every game | done: built (7a-7c) on fake backends and live-checked and measured (7d) on Opus 5, all on 2026-09-14: three tiers of memory, a `memory` dial, the debrief, `--logbook-characters`, seat-locked characters; at leash 0.5 Plum's own notes cut his stalls by more than half at the price of two early accusations -- `docs/phase7-plan.md`, `docs/logbooks.md` |
 | 8 | Flask/Cloud Run front end -> chat (staggered, capped concurrency, chattiness-gated) -> human seats | not started |
 
 Design work on aesthetics/UX was meant to run in parallel with the
@@ -237,8 +237,9 @@ lands.
   audit in the records; `arena --llm` and `sweep --llm` with a cost
   estimate; `docs/llm-wrapper.md`. Measured 2026-09-13: the twin run
   and the `leash` sweep, with results in `docs/strategy-glossary.md`.
-  Presets were left unchanged, and a per-character leash sweep is the
-  open follow-up.
+  Presets were left unchanged; the per-character leash ladders followed
+  the same day and left them standing (glossary, "Per-character leash
+  ladders").
 
 ## Phase 7 scope
 
@@ -266,6 +267,17 @@ decisions are recorded there) and built in three sub-phases on
   resolution); `LLMCharacter.attach_logbook` / `read_back` / `debrief`;
   the arena debriefing LLM seats with an `entries` column; `prompt
   --logbook`.
+- **7d, the live run (2026-09-14).** The debrief needed its own
+  timeout (`LLMSettings.debrief_timeout`, 180 s: the wrapper's 30 s
+  killed every debrief in the smoke run); the debrief prompt was
+  tuned on six real entries; `--logbook-characters` gives only the
+  named characters a logbook; and every character was locked to its
+  own token (`seat_lineup`, `engine.run_game(..., suspects=...)`,
+  goldens and fixtures re-captured). Measured on 24 paired games with
+  Plum on the model at leash 0.5, his logbook on against off: stalls
+  fall by more than half over the run (37 to 3 in the last quarter),
+  two early accusations, wins a wash (`docs/strategy-glossary.md`,
+  "Plum's logbook at leash 0.5"). About $12.60 of live spend.
 
 Explicitly out of scope for Phase 7, and still not done: off-turn
 chat, any UI, human seats, any change to `movement_scores` or the
@@ -275,8 +287,12 @@ scale.
 
 ## Open questions
 
-Ask before assuming; do not resolve unilaterally. None outstanding as of
-2026-09-14.
+Ask before assuming; do not resolve unilaterally. One outstanding as of
+2026-09-15, for the UX pass or Phase 8: whether to change
+`movement_scores` for Plum's parking now. The logbook was tried first
+(David's choice); it halves his stalls at leash 0.5 but cannot act at
+the preset 0.25, and the scoring change moves the goldens
+(`CLAUDE.md`, "Open questions").
 
 Resolved:
 

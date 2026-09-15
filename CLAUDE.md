@@ -388,8 +388,6 @@ Phase 8.
 - `docs/commit_msg_correction.md` -- the commit-message shape David
   wants, as a WRONG/RIGHT pair. Local only: it is gitignored, so it may
   be absent on a fresh clone; the rule itself is stated above.
-- `docs/clude_floorplan_wikimedia.svg` -- board floorplan reference from
-  Wikimedia; check its licence before any publishing.
 - `docs/zenbot_memories.json` -- the per-session memory template from
   David's zenbot project; the model for Phase 7 logbook entries.
 - `legacy/README.md` -- what the legacy code is and what is wrong with it.

@@ -2,8 +2,10 @@
 
 Status: **complete. Approved 2026-09-12, and 6a-6d were built the same
 day and tested on fake backends. The live smoke test, persona tuning and
-arena measurements followed on 2026-09-13.** One open follow-up remains:
-a per-character leash sweep before any preset changes (section 8, 6d).
+arena measurements followed on 2026-09-13,** and the per-character leash
+ladders the same day (section 8, 6d; glossary, "Per-character leash
+ladders"): presets stand, and the `movement_scores` fix for Plum's
+parking is the one open question (`CLAUDE.md`).
 David's answers to the four
 decisions are in section 6; what was actually built, and where it
 departed from this plan, is in section 8. Same shape as `docs/phase5-plan.md`: what the code
