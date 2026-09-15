@@ -34,19 +34,32 @@ RECORD_FORMAT_VERSION = 1
 @dataclass(frozen=True)
 class LLMRequest:
     """One call: the cached `system` prefix, the per-turn `user` text, the
-    fixed response `schema`, and the decision `kind` it is for."""
+    fixed response `schema`, and the decision `kind` it is for.
+
+    `memory` (Phase 7) is the character's logbook block, sent as a second
+    cached system block after the persona; empty when the character has
+    nothing to read back, in which case the request, its `key` and the
+    API call are exactly the Phase 6 ones. `effort` and `max_tokens`
+    override the backend's defaults for one call (the debrief asks for
+    more of both) and are not part of the key.
+    """
 
     system: str
     user: str
     schema: dict
     kind: str
+    memory: str = ""
+    effort: Optional[str] = None
+    max_tokens: Optional[int] = None
 
     def key(self) -> str:
-        """A stable digest of everything the model is sent."""
-        payload = json.dumps(
-            {"system": self.system, "user": self.user, "schema": self.schema}, sort_keys=True
-        )
-        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+        """A stable digest of everything the model is sent: system, user
+        and schema, plus the memory block only when there is one, so
+        every recording made before logbooks existed still replays."""
+        payload: dict = {"system": self.system, "user": self.user, "schema": self.schema}
+        if self.memory:
+            payload["memory"] = self.memory
+        return hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
 
 
 @dataclass
@@ -155,12 +168,18 @@ class RecordingBackend:
         result = self.inner.complete(request)
         system_key = hashlib.sha256(request.system.encode("utf-8")).hexdigest()
         self.data["systems"][system_key] = request.system
-        self.data["entries"][request.key()] = {
+        entry = {
             "kind": request.kind,
             "system": system_key,
             "user": request.user,
             "result": result.to_dict(),
         }
+        if request.memory:
+            # The block repeats on every call of a game; store it once, by digest.
+            memory_key = hashlib.sha256(request.memory.encode("utf-8")).hexdigest()
+            self.data["systems"][memory_key] = request.memory
+            entry["memory"] = memory_key
+        self.data["entries"][request.key()] = entry
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.write_text(json.dumps(self.data, indent=1), encoding="utf-8")
         return result

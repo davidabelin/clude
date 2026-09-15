@@ -61,6 +61,48 @@ def test_binomial_std_and_player_stats_arithmetic():
     assert stats.games == 4 and stats.wins == 2
 
 
+def test_arena_with_logbooks_learns_between_games_and_stays_paired_read_only(tmp_path):
+    from clude_storage import LocalStore, Logbook
+    from clude_training import memory
+
+    store = LocalStore(tmp_path)
+    settings = dict(
+        n_games=2, seed=5, roster=("Mustard", "White", "Green"), player_counts=(3,), max_turns=50,
+    )
+    plain = run_arena(**settings)
+    assert plain.memory == {}
+
+    # Empty logbooks change nothing, read-only or not.
+    empty = run_arena(**settings, logbook_store=store, logbooks_readonly=True)
+    assert [g.to_dict() for g in empty.games] == [g.to_dict() for g in plain.games]
+    assert empty.memory == {"store": str(tmp_path), "readonly": True, "loaded": []}
+    assert Logbook(store, "Mustard").method() is None
+
+    learning = run_arena(**settings, logbook_store=store)
+    assert learning.memory["readonly"] is False
+    for label in ("Mustard", "White", "Green"):
+        assert memory.n_games(Logbook(store, label).method()) == 2, label
+    assert Logbook(store, "floor").method() is None
+    # The first game is played on empty memory, so it is the plain one.
+    assert learning.games[0].to_dict() == plain.games[0].to_dict()
+
+    # A fixed memory, read-only, reproduces itself and writes nothing.
+    again = run_arena(**settings, logbook_store=store, logbooks_readonly=True)
+    once_more = run_arena(**settings, logbook_store=store, logbooks_readonly=True)
+    assert [g.to_dict() for g in again.games] == [g.to_dict() for g in once_more.games]
+    assert sorted(again.memory["loaded"]) == ["Green", "Mustard", "White"]
+    assert memory.n_games(Logbook(store, "Mustard").method()) == 2
+    assert json.loads(json.dumps(again.to_dict()))["memory"]["readonly"] is True
+
+    # A sweep reads the same logbooks at every value and never writes.
+    sweep = sweep_dial(
+        "curiosity", [0.2, 0.8], n_games=1, seed=5, roster=("Mustard", "floor"), characters=["Mustard"],
+        player_counts=(3,), max_turns=40, logbook_store=store,
+    )
+    assert all(r.memory["readonly"] for r in sweep.results)
+    assert memory.n_games(Logbook(store, "Mustard").method()) == 2
+
+
 def test_seat_outcome_counts_reshows_only_where_there_was_a_choice():
     from clude_core.domain import Suggestion
     from clude_core.events import GameOverEvent

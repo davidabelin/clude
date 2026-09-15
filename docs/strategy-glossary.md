@@ -705,3 +705,42 @@ The ladder JSONs (`ladder_headless.json`, `ladder_mustard.json`,
 
 Per-character notes on whether each persona's voice survived real play
 are in `docs/phase6-plan.md`, section 8, under 6c.
+
+## Phase 7: memory (2026-09-14)
+
+Built, not yet measured live; the design is in `docs/phase7-plan.md`
+and the working guide in `docs/logbooks.md`. What it changes about the
+methods and the dials:
+
+- **A third LLM dial, `memory`** (default 0 for every preset), sets how
+  much of its own logbook an LLM-piloted character reads before a
+  game: the head (its standing instructions, its dossiers on the
+  opponents present, its tally) at 0; plus every entry's summary and
+  flags at 0.5; plus whole entries above that, all of them at 1. The
+  keep-a-dial test for it is `sweep --dial memory --llm --logbook URI`,
+  which reads one logbook state at every value and writes nothing;
+  tokens per game rise with it trivially, and whether win rate or
+  wrong accusations move with depth is the open measurement.
+- **Mustard's tree can train on stored games.** With a logbook,
+  `rows_from_view` rows from every seat's view of every game in the
+  store join his 25-game self-play base. Rebuilt from the 193 stored
+  ladder games (10,703 rows) and scored on 8 held-out FloorBot games,
+  a noisy first look: mid-game log-loss 1.50 to 1.15 and Brier 0.0895
+  to 0.0824 (better), the end checkpoint 0.11 to 0.15 log-loss and
+  0.99 to 0.94 top-1 (worse). The tree now pattern-matches three-seat
+  character games rather than FloorBot self-play, which is the
+  character; a benchmark on character games is the fair test.
+- **White's chain starts from a known opponent's habits.** A remembered
+  opponent's repeat/new transition frequencies replace the Laplace
+  prior at the prior's own mass (four pseudo-counts), so the live
+  sequence weighs exactly as before and only the chain's starting
+  shape is informed. Rebuilt from the same store: 902 / 985 / 1,211
+  transitions for Green / Mustard / Plum.
+- **Green's posteriors persist** across runs instead of dying with the
+  process.
+- **The narrative tier does not widen a menu.** Whatever a character's
+  notes say, the model still picks among the options its leash allows,
+  so Plum's parking (above) is unreachable by memory at the preset
+  leash: his escape is on the menu only at leash >= 0.34. Testing
+  whether his own notes teach him out of it needs a paired run at
+  leash 0.5 with the logbook on and off, about $10-13 with debriefs.

@@ -56,6 +56,122 @@ def test_play_with_a_character_roster(cli, capsys):
         cli.main(["play", *SMALL_GAME, "--roster", "Nobody"])
 
 
+def test_play_store_writes_a_record_and_logbook_commands_read_the_store(cli, capsys, tmp_path):
+    from clude_storage import GameRecord, LocalStore, Logbook, LogbookEntry
+
+    out = _run(
+        cli, capsys, "play", *SMALL_GAME, "--roster", "Plum,Scarlett",
+        "--store", str(tmp_path), "--run-id", "smoke",
+    )
+    assert "record: run smoke game 0 in" in out
+    store = LocalStore(tmp_path)
+    assert store.list_games("smoke") == [0]
+    record = GameRecord.from_dict(store.get_game("smoke", 0))
+    assert [s.kind for s in record.seats] == ["character", "character", "floor"]
+    assert record.seats[0].profile["memory"] == 0.0
+    out = _run(cli, capsys, "store", "--uri", str(tmp_path))
+    assert "smoke: 1 game records" in out
+
+    out = _run(cli, capsys, "logbook", "list", "--uri", str(tmp_path))
+    assert "no logbooks" in out
+    out = _run(cli, capsys, "logbook", "show", "--uri", str(tmp_path), "--identity", "Plum")
+    assert "no logbook for Plum" in out
+
+    Logbook(store, "Plum").add_entry(LogbookEntry.build(
+        "Plum", 1, record, 0,
+        {"title": "First night", "summary": "Short.", "flags": ["opening"],
+         "standing_instructions": ["Leave cleared rooms."],
+         "dossiers": [{"opponent": "Scarlett", "read": "Accuses early."}]},
+    ))
+    out = _run(cli, capsys, "logbook", "list", "--uri", str(tmp_path))
+    assert "Plum: 1 entries; 1 games:" in out
+    out = _run(cli, capsys, "logbook", "show", "--uri", str(tmp_path), "--identity", "Plum")
+    assert "head: serial 1" in out and "#0001" in out and "First night" in out
+    assert "Your read on Scarlett" in out
+    out = _run(cli, capsys, "logbook", "show", "--uri", str(tmp_path), "--identity", "Plum", "--entry", "1")
+    assert out.startswith("=== Entry #0001")
+    out = _run(cli, capsys, "logbook", "show", "--uri", str(tmp_path), "--identity", "Plum", "--memory", "1")
+    assert "Full entries" in out
+    out = _run(cli, capsys, "logbook", "show", "--uri", str(tmp_path), "--identity", "Plum", "--raw")
+    assert json.loads(out)["serial"] == 1
+    with pytest.raises(SystemExit):
+        cli.main(["logbook", "show", "--uri", str(tmp_path), "--identity", "Plum", "--entry", "7"])
+    out = _run(cli, capsys, "logbook", "reset", "--uri", str(tmp_path), "--identity", "Plum", "--keep-entries")
+    assert "1 documents removed (entries kept)" in out
+    out = _run(cli, capsys, "logbook", "reset", "--uri", str(tmp_path), "--identity", "Plum")
+    assert "1 documents removed" in out
+    out = _run(cli, capsys, "logbook", "list", "--uri", str(tmp_path))
+    assert "no logbooks" in out or "Plum: 0 entries" in out
+
+
+def test_play_and_arena_with_logbooks_feed_method_memory(cli, capsys, tmp_path):
+    from clude_storage import GameRecord, LocalStore, Logbook
+    from clude_training import memory
+
+    uri = str(tmp_path)
+    game = ("play", "--players", "3", "--seed", "3", "--max-turns", "40", "--roster", "Mustard,White,Green")
+    with pytest.raises(SystemExit):
+        cli.main([*game, "--logbook"])  # no store to default to
+    out = _run(cli, capsys, *game, "--store", uri, "--run-id", "m1", "--logbook")
+    assert "method memory updated for Mustard, White, Green" in out
+    out = _run(cli, capsys, *game, "--seed", "4", "--store", uri, "--run-id", "m2", "--logbook")
+    assert "method memory updated for Mustard, White, Green" in out
+    out = _run(cli, capsys, *game, "--seed", "5", "--logbook", uri, "--logbook-readonly")
+    assert "read-only, nothing written" in out
+    store = LocalStore(tmp_path)
+    assert memory.n_games(Logbook(store, "Mustard").method()) == 2
+
+    out = _run(cli, capsys, "logbook", "list", "--uri", uri)
+    assert "Mustard's tree:" in out and "from 2 stored games" in out
+    assert "White's chains: 2 stored games" in out and "Green's posteriors after 2 games" in out
+    out = _run(cli, capsys, "logbook", "show", "--uri", uri, "--identity", "White")
+    assert "method memory: White's chains" in out
+    out = _run(cli, capsys, "logbook", "rebuild", "--uri", uri, "--identity", "Mustard")
+    assert "rebuilt from 2 game records" in out
+    out = _run(cli, capsys, "logbook", "rebuild", "--uri", uri, "--identity", "Green")
+    assert "accumulated live" in out
+    out = _run(cli, capsys, "logbook", "rebuild", "--uri", uri, "--identity", "Plum")
+    assert "memoryless" in out
+
+    out = _run(
+        cli, capsys, "arena", "--games", "2", "--players", "3", "--roster", "Mustard,floor",
+        "--seed", "3", "--logbook", uri,
+    )
+    assert "logbooks: " in out and "(read and written)" in out and "loaded at the start for Mustard" in out
+    assert memory.n_games(Logbook(store, "Mustard").method()) == 4
+    out = _run(
+        cli, capsys, "sweep", "--dial", "memory", "--values", "0", "1", "--games", "1", "--seed", "3",
+        "--players", "3", "--roster", "Mustard,floor", "--logbook", uri,
+    )
+    assert "sweep of memory on Mustard" in out
+    assert memory.n_games(Logbook(store, "Mustard").method()) == 4
+    out = _run(
+        cli, capsys, "train-mustard", "--games", "2", "--seed", "7", "--max-depth", "3",
+        "--min-samples-leaf", "5", "--eval-games", "0", "--logbook", uri,
+    )
+    assert "memory rows from 4 stored games" in out
+
+    # An LLM seat on the null backend writes no entry, and says so.
+    out = _run(
+        cli, capsys, "play", "--players", "3", "--seed", "3", "--max-turns", "40",
+        "--roster", "Scarlett,floor", "--llm", "--llm-backend", "null", "--logbook", uri,
+    )
+    assert "Scarlett wrote no entry (error: null backend" in out
+    out = _run(cli, capsys, "prompt", "--players", "3", "--seed", "3", "--roster", "Scarlett,floor",
+               "--logbook", uri)
+    assert "=== memory: Scarlett has nothing to read back" in out
+    from clude_storage import LogbookEntry
+    record = GameRecord.from_dict(store.get_game("m1", 0))
+    Logbook(store, "Mustard").add_entry(LogbookEntry.build(
+        "Mustard", 1, record, 0, {"standing_instructions": ["Bluster less."], "summary": "S.", "flags": ["x"]},
+    ))
+    out = _run(cli, capsys, "prompt", "--players", "3", "--seed", "3", "--roster", "Mustard,White,Green",
+               "--logbook", uri, "--memory", "0.5")
+    assert "=== memory (" in out and "Bluster less." in out and "Entries #0001 to #0001" in out
+    with pytest.raises(SystemExit):
+        cli.main(["train-mustard", "--games", "2", "--seed", "7", "--eval-games", "0", "--logbook", str(tmp_path / "empty")])
+
+
 def test_trace_prints_every_step_and_the_accusation_test(cli, capsys):
     out = _run(
         cli, capsys, "trace", *SMALL_GAME, "--agents", "Scarlett,Peacock", "--every", "5",

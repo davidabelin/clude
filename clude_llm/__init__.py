@@ -32,10 +32,11 @@ from .menu import (
     suggestion_menu,
     within_leash,
 )
+from .logbook import debrief_prompt, resolve_opponents
 from .persona import DISPLAY_NAMES, Persona, load_persona, load_rules
 from .player import Decision, LLMCharacter, LLMSettings
 from .prompt import system_prompt, user_prompt
-from .schema import LABELS, MAX_OPTIONS, parse_response, schema_for
+from .schema import LABELS, LOGBOOK_KIND, LOGBOOK_SCHEMA, MAX_OPTIONS, parse_response, schema_for
 
 __all__ = [
     "DEFAULT_MODEL",
@@ -47,6 +48,8 @@ __all__ = [
     "LLMRequest",
     "LLMResult",
     "LLMSettings",
+    "LOGBOOK_KIND",
+    "LOGBOOK_SCHEMA",
     "MAX_OPTIONS",
     "Menu",
     "NullBackend",
@@ -59,11 +62,13 @@ __all__ = [
     "SuggestionMenu",
     "accusation_menu",
     "build_llm_character",
+    "debrief_prompt",
     "load_persona",
     "load_rules",
     "movement_menu",
     "open_backend",
     "parse_response",
+    "resolve_opponents",
     "schema_for",
     "show_menu",
     "suggestion_menu",

@@ -13,11 +13,12 @@ to the next phase.
 | 4 | Benchmark harness measuring the six methods' relative strength; `docs/strategy-glossary.md` filled in | done |
 | 5 | Personality parameter profiles turning beliefs into actions; self-play checks that dials move win rate | done -- plan and David's decisions in `docs/phase5-plan.md`, results in `docs/strategy-glossary.md` |
 | 6 | LLM wrapper: leashed menu of legal actions + persona -> structured action + remark; anything illegal, malformed or failed falls back to the character's own decision | done: built (6a-6d), tested on fake backends, and live-checked, persona-tuned and measured on Opus 5 on 2026-09-13; a per-character leash sweep is the open follow-up -- `docs/phase6-plan.md` |
-| 7 | Logbooks: persistent, per-character, written after every game | not started |
+| 7 | Logbooks: persistent, per-character, written after every game | built (7a-7c) 2026-09-14 on fake backends: three tiers of memory, a `memory` dial, the debrief; 7d (one live run to read the entries and tune the debrief prompt) waits for a yes -- `docs/phase7-plan.md`, `docs/logbooks.md` |
 | 8 | Flask/Cloud Run front end -> chat (staggered, capped concurrency, chattiness-gated) -> human seats | not started |
 
-Design work on aesthetics/UX runs in parallel with the model phases (1-4),
-not after them.
+Design work on aesthetics/UX was meant to run in parallel with the
+model phases (1-4). It did not, and is now its own pass between Phase 7
+and Phase 8 (David, 2026-09-14).
 
 ## Legacy code disposition
 
@@ -239,10 +240,43 @@ lands.
   Presets were left unchanged, and a per-character leash sweep is the
   open follow-up.
 
+## Phase 7 scope
+
+Planned in `docs/phase7-plan.md` (David's answers to its three
+decisions are recorded there) and built in three sub-phases on
+2026-09-14, all on fake backends; the working guide is
+`docs/logbooks.md`.
+
+- **7a, Tier 0 and the documents.** `clude_training/replay.py` (a
+  stored record back into a `GameState`, any seat's masked view, the
+  self-play `Snapshot`s); generic document methods on both stores;
+  `clude_storage/logbooks.py` (`LogbookEntry`, `LogbookHead`,
+  `Dossier`, `Logbook`, the memory-depth renderer); the `memory` dial;
+  `play --store`; `logbook list | show | reset`.
+- **7b, method memory.** `rows_from_view` and `extra_rows` for
+  Mustard, per-identity transition priors and `set_table` for White,
+  `state_dict` / `load_state` for Green; `Character.new_game(table)`;
+  `clude_training/memory.py` (load, update, rebuild, describe);
+  `--logbook` and `--logbook-readonly` on `play` and `arena`,
+  read-only `--logbook` on `sweep`, `logbook rebuild`, `train-mustard
+  --logbook`. Rebuilt from the 193 stored ladder games in 3 s.
+- **7c, narrative memory.** `LOGBOOK_SCHEMA`; `LLMRequest.memory` as a
+  second cached system block, with per-request effort and
+  `max_tokens`; `clude_llm/logbook.py` (the debrief prompt, opponent
+  resolution); `LLMCharacter.attach_logbook` / `read_back` / `debrief`;
+  the arena debriefing LLM seats with an `entries` column; `prompt
+  --logbook`.
+
+Explicitly out of scope for Phase 7, and still not done: off-turn
+chat, any UI, human seats, any change to `movement_scores` or the
+presets, any change to a method's core algorithm beyond the memory
+seams, the `memory` sweep itself, and any measurement run at ladder
+scale.
+
 ## Open questions
 
 Ask before assuming; do not resolve unilaterally. None outstanding as of
-2026-09-11.
+2026-09-14.
 
 Resolved:
 

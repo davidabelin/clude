@@ -13,13 +13,47 @@ phase's plan doc ends with an "as implemented" section that records what
 was actually built and where it departed from the plan: trust that over
 the plan sections above it, and over this file if they disagree.
 
-## Status (2026-09-13)
+## Status (2026-09-14)
 
 Phases 1-6 of `docs/phase-plan.md` are done and committed. Phase 7
-(logbooks) is next and not started; Phase 8 (Flask/Cloud Run front end,
-then chat, then human seats) follows. There is no UI and no chat yet:
-everything runs headless through `scripts/clude_cli.py`. The suite is
-211 tests passing and 2 skipped (the two live-credential tests), ~22 s.
+(logbooks) was planned and built the same day, 7a-7c, all on fake
+backends; its record is `docs/phase7-plan.md` section 8 and the working
+guide `docs/logbooks.md`. What remains of Phase 7 is 7d: one live run
+(quoted $1.50-3.00, needs a yes) to read real entries and tune the
+debrief prompt, then the docs' numbers. After that David wants a UX
+design pass before Phase 8 (Flask/Cloud Run front end, then chat, then
+human seats). There is no UI and no chat yet: everything runs headless
+through `scripts/clude_cli.py`. The suite is 246 tests passing and 2
+skipped (the two live-credential tests), ~42 s.
+
+Phase 7 in short (the plan doc has the detail):
+
+- **Three tiers of memory per identity** (a `SeatRecord.label`), in the
+  record store under `logbooks/<identity>/`: the record (Tier 0, with
+  `clude_training.replay` rebuilding any seat's view from it); method
+  memory (Tier 1, `method.json`, `clude_training.memory`): Mustard's
+  tree trains on rows from every stored game, White's chain starts
+  from a known opponent's transition frequencies, Green's posteriors
+  persist; and narrative memory (Tier 2): a zenbot-shaped entry per
+  game the character's own model writes at a debrief that sees the
+  deal face up, plus a rolling head (tally, standing instructions, a
+  dossier per opponent, a flag index).
+- **The `memory` dial** (eighth on `Profile`, default 0) sets what an
+  LLM seat reads back: the head at 0, entries' summaries and flags up
+  to 0.5, whole entries above, everything at 1. The block is a second
+  cached system block; an empty logbook sends none, so every fixture
+  and golden held.
+- **Off by default.** `--logbook [URI]` on `play`/`arena` turns memory
+  on; `--logbook-readonly` and `sweep --logbook` read only; `logbook
+  list|show|reset|rebuild` inspects and resets it; `play --store`
+  persists single games. Mustard's and White's memory was rebuilt from
+  the 193 stored ladder games in 3 s; retraining Mustard on it takes
+  2 s.
+- **A limit worth remembering:** the logbook steers the model only
+  among options the leash allows. Plum's escape from a cleared room is
+  on his menu only at leash >= 0.34, so at the preset his notes cannot
+  unpark him; testing that hypothesis needs a paired run at leash 0.5
+  with the logbook on and off (about $10-13).
 
 Phase 6, the LLM wrapper (`clude_llm`), closed on 2026-09-13. The record
 is `docs/phase6-plan.md` section 8; the numbers are in
@@ -136,7 +170,16 @@ it; `docs/phase-plan.md` has the disposition of every file.
   which works well there. Same shape for Clue -- date and serial, title,
   what happened, evaluations, key insights, lessons learned, outcome,
   standing instructions -- minus the koans, and written by the
-  character's own model after each game.
+  character's own model after each game. Built in Phase 7 with two
+  additions David asked for: a `summary` and `flags` per entry, so
+  entries connect.
+- **Phase 7 decisions (2026-09-14).** The debrief sees the whole deal
+  face up (a post-mortem with cards on the table; it cannot leak into
+  the next deal and lets a dossier verify a tell). All three numeric
+  memories are in (Mustard, White, Green). Read-back is the `memory`
+  dial: 1 the entire logbook, 0.75 the most recent full entries, 0.5
+  every entry's summary and flags, 0 the head only (default); the
+  interpolation between those anchors is mine and can be adjusted.
 - **Commit messages are printed in the reply, never written into
   `commit_msg.md`** by me (David declined that, 2026-09-13).
 
@@ -152,11 +195,17 @@ Built; the detail is in `docs/architecture.md`.
   per method, `personality.py` (Profile, dials, presets), `character.py`
   (belief -> action), `explain.py` (text formatters).
 - `clude_training` -- self-play snapshots, the belief benchmark, `trace`
-  (per-seat belief replay), the arena and dial sweeps.
-- `clude_storage` -- `GameRecord`/`SeatRecord`, `LocalStore`, `GcsStore`.
-- `clude_llm` -- menus, schemas, prompts, personas (`personas/*.md` and
-  `rules.md`), backends (`NullBackend`, `ScriptedBackend`,
-  `RecordingBackend`/`ReplayBackend`, `AnthropicBackend`), `LLMCharacter`.
+  (per-seat belief replay), `replay` (a stored record back into a
+  `GameState` or any seat's view), `memory` (Tier 1 method memory), the
+  arena and dial sweeps.
+- `clude_storage` -- `GameRecord`/`SeatRecord`, `LocalStore`, `GcsStore`
+  (with generic document methods), `logbooks` (`LogbookEntry`,
+  `LogbookHead`, `Logbook`, the memory-depth renderer).
+- `clude_llm` -- menus, schemas (three, `LOGBOOK_SCHEMA` the third),
+  prompts, personas (`personas/*.md` and `rules.md`), backends
+  (`NullBackend`, `ScriptedBackend`, `RecordingBackend`/`ReplayBackend`,
+  `AnthropicBackend`), `LLMCharacter` (with `attach_logbook`,
+  `read_back`, `debrief`), `logbook` (the debrief prompt).
 - `scripts/clude_cli.py` -- the maintainer CLI; `tests/` -- pytest.
 
 Invariants to keep:
@@ -172,11 +221,14 @@ Invariants to keep:
   scores and falls back to the character on anything illegal, malformed
   or failed. `NullBackend` reproduces the headless game byte for byte;
   that twin is what every LLM measurement is paired against.
-- Mustard trains in-process on 25 FloorBot self-play games (seed 2026,
-  `decision_tree.py`); nothing feeds stored records into him yet, and
-  White's Markov model sees only the current game. Both are Phase 7's
-  business. The first 56 LLM games were run without `--store` and are
-  lost; every live run since goes to `data/llm`.
+- Memory is off by default and changes nothing when off: Mustard's
+  default tree is still the 25 FloorBot self-play games (seed 2026) and
+  White's chain still starts from the Laplace prior. With `--logbook`
+  they load their method memory from the store; determinism is then
+  "per seed and logbook state". A fixture or golden must never depend
+  on a logbook. The first 56 LLM games were run without `--store` and
+  are lost; every live run since goes to `data/llm`, which now also
+  holds Mustard's and White's rebuilt method memory under `logbooks/`.
 
 ## Proposed, not yet confirmed by David
 
@@ -206,12 +258,12 @@ Suggestions to raise, not decisions to implement.
 
 ## Open questions (ask, don't assume)
 
-None outstanding as of 2026-09-13. Phase 7 has not been planned yet;
-its plan doc is where the next questions get asked (logbook schema,
-what a character reads back before a game, how the dossier reaches the
-prompt). Resolved that day: leash presets stand; the parking fix waits
-behind logbooks; `docs/zenbot_memories.json` is the logbook model; no
-writing into `commit_msg.md`.
+None outstanding as of 2026-09-14. Phase 7d's live run needs a yes
+($1.50-3.00). Resolved 2026-09-13: leash presets stand; the parking
+fix waits behind logbooks; `docs/zenbot_memories.json` is the logbook
+model; no writing into `commit_msg.md`. Resolved 2026-09-14: the three
+Phase 7 decisions above; the UX design pass comes between Phase 7 and
+Phase 8.
 
 ## Working with David
 
@@ -261,9 +313,10 @@ writing into `commit_msg.md`.
   bucket test.
 - CLI: `& .venv\Scripts\python.exe scripts\clude_cli.py <cmd> --help`,
   where `<cmd>` is `agents`, `play`, `prompt`, `trace`, `floor`,
-  `benchmark`, `train-mustard`, `snapshots`, `arena`, `sweep` or
-  `store`. Every command is deterministic per `--seed`. `docs/cli.md`
-  explains each and how to read its output.
+  `benchmark`, `train-mustard`, `snapshots`, `arena`, `sweep`, `store`
+  or `logbook`. Every command is deterministic per `--seed` (and, with
+  `--logbook`, per logbook state). `docs/cli.md` explains each and how
+  to read its output.
 - Claude API: `ANTHROPIC_API_KEY` in the environment (or an `ant auth
   login` profile), resolved by the SDK; never in the repo. Without it
   every LLM seat falls back to its headless character. The key must be
@@ -290,12 +343,14 @@ writing into `commit_msg.md`.
   storage, credentials, deployment cost, Seats proposal.
 - `docs/phase-plan.md` -- the eight phases with status, legacy
   disposition, scope of each built phase.
-- `docs/phase5-plan.md`, `docs/phase6-plan.md` -- plan, David's
-  decisions, and "as implemented".
+- `docs/phase5-plan.md`, `docs/phase6-plan.md`, `docs/phase7-plan.md`
+  -- plan, David's decisions, and "as implemented".
 - `docs/strategy-glossary.md` -- each method in plain language; the
   benchmark, dial sweeps, tuned presets, and the Phase 6 measurements.
 - `docs/llm-wrapper.md` -- how a model pilots a character; credentials;
   measured costs.
+- `docs/logbooks.md` -- playerbot memory: the three tiers, the `memory`
+  dial, the debrief, the CLI, cost.
 - `docs/cli.md` -- every subcommand. `docs/board.md` -- board topology.
 - `docs/docstring-guidelines.md` -- docstring conventions.
 - `docs/pre_stage_5.md` -- the "Fab4" review that reworked Phase 5

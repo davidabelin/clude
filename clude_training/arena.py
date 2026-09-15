@@ -23,7 +23,8 @@ arena plays whole games through `engine.run_game` with
 - **ms/call** -- mean wall-clock per `select_action`, like the benchmark;
 - for LLM-piloted seats (Phase 6, `llm_backend`): decisions, how many
   were the model's to make (not single-option menus), fallback and
-  deviation rates, remarks and tokens per game, ms per model call.
+  deviation rates, remarks and tokens per game, ms per model call, and
+  (Phase 7, with a `logbook_store`) logbook entries written.
 
 Seats rotate: game `g` seats the roster rotated by `g`, truncated to
 the table size, so every entry moves first equally often and sits out
@@ -39,6 +40,13 @@ private one, so a game's deal *and* dice depend only on ``seed + g``:
 two arena runs with the same seed but different profiles play the same
 deals with the same rolls -- a paired comparison. A ``"random"`` roster
 entry (`RandomBot`) breaks that, since it draws from the engine RNG.
+
+With a `logbook_store` (Phase 7) every character reads its method
+memory from its logbook before each game and, unless
+`logbooks_readonly`, writes to it after (`clude_training.memory`), so a
+run becomes a learning curve rather than independent games: the
+comparison to make is then between runs on one seed with the logbooks
+in the same state, read-only.
 """
 from __future__ import annotations
 
@@ -55,7 +63,9 @@ from clude_core import engine
 from clude_core.bots import RandomBot
 from clude_core.events import AccusationEvent, GameOverEvent
 from clude_llm import LLMCharacter, LLMSettings
+from clude_storage.logbooks import Logbook
 from clude_storage.records import GameRecord, SeatRecord
+from clude_training import memory as method_memory
 from clude_training.self_play import DEFAULT_PLAYER_COUNTS
 
 DEFAULT_N_GAMES = 24
@@ -123,6 +133,7 @@ class PlayerStats:
     llm_fallbacks: int = 0
     llm_deviations: int = 0
     llm_remarks: int = 0
+    llm_entries: int = 0
     llm_input_tokens: int = 0
     llm_output_tokens: int = 0
     llm_cached_tokens: int = 0
@@ -276,6 +287,7 @@ class PlayerStats:
             "llm_fallbacks": self.llm_fallbacks,
             "llm_deviations": self.llm_deviations,
             "llm_remarks": self.llm_remarks,
+            "llm_entries": self.llm_entries,
             "fallback_rate": self.fallback_rate,
             "deviation_rate": self.deviation_rate,
             "remarks_per_game": self.remarks_per_game,
@@ -328,6 +340,7 @@ class ArenaResult:
     games: list = field(default_factory=list)  # GameSummary
     seconds: float = 0.0
     llm: dict = field(default_factory=dict)  # backend, model, wrapped characters (Phase 6)
+    memory: dict = field(default_factory=dict)  # logbook store, readonly, who loaded (Phase 7)
 
     @property
     def mean_turns(self) -> float:
@@ -371,7 +384,7 @@ class ArenaResult:
         ms per model call."""
         header = (
             f"{'player':<10}{'games':>6}{'decis':>7}{'asked':>7}{'fallb%':>8}{'deviate%':>10}"
-            f"{'talk/g':>8}{'tok/g':>9}{'llm ms':>8}"
+            f"{'talk/g':>8}{'entries':>8}{'tok/g':>9}{'llm ms':>8}"
         )
         lines = [header, "-" * len(header)]
         for label in dict.fromkeys(list(self.roster) + [FILL_LABEL]):
@@ -383,7 +396,7 @@ class ArenaResult:
             ms = f"{s.llm_ms_per_call:>8.0f}" if s.llm_calls else f"{'-':>8}"
             lines.append(
                 f"{label:<10}{s.games:>6}{s.llm_decisions:>7}{s.llm_asked:>7}{fallback}{deviate}"
-                f"{s.remarks_per_game:>8.2f}{s.tokens_per_game:>9.0f}{ms}"
+                f"{s.remarks_per_game:>8.2f}{s.llm_entries:>8}{s.tokens_per_game:>9.0f}{ms}"
             )
         return "\n".join(lines)
 
@@ -398,6 +411,7 @@ class ArenaResult:
             "max_turns": self.max_turns,
             "profiles": dict(self.profiles),
             "llm": dict(self.llm),
+            "memory": dict(self.memory),
             "per_player": {label: s.to_dict() for label, s in self.per_player.items()},
             "games": [g.to_dict() for g in self.games],
             "mean_turns": self.mean_turns,
@@ -486,7 +500,7 @@ def seat_outcome(state, events, seat: int, label: str, kind: str) -> SeatOutcome
 _LLM_FIELDS: dict = {
     "decisions": "llm_decisions", "singles": "llm_singles", "llm_calls": "llm_calls",
     "played": "llm_played", "fallbacks": "llm_fallbacks", "deviations": "llm_deviations",
-    "remarks": "llm_remarks", "input_tokens": "llm_input_tokens",
+    "remarks": "llm_remarks", "entries": "llm_entries", "input_tokens": "llm_input_tokens",
     "output_tokens": "llm_output_tokens", "cached_tokens": "llm_cached_tokens",
     "llm_seconds": "llm_seconds",
 }
@@ -505,7 +519,7 @@ def fill_seed(game_seed: int, seat: int) -> int:
 
 LLM_SUMMARY_KEYS: tuple = (
     "decisions", "singles", "llm_calls", "played", "fallbacks", "deviations", "remarks",
-    "input_tokens", "output_tokens", "cached_tokens", "llm_seconds",
+    "entries", "input_tokens", "output_tokens", "cached_tokens", "llm_seconds",
 )
 """The numeric keys of `LLMCharacter.summary()`, diffed per game."""
 
@@ -522,6 +536,8 @@ def run_arena(
     llm_backend=None,
     llm_settings: Optional[LLMSettings] = None,
     llm_characters=None,
+    logbook_store=None,
+    logbooks_readonly: bool = False,
 ) -> ArenaResult:
     """Play `n_games` games and accumulate per-player metrics.
 
@@ -556,6 +572,14 @@ def run_arena(
         Default `LLMSettings()`.
     llm_characters : iterable of str or None
         Which roster characters to wrap; default all of them.
+    logbook_store : RecordStore or None
+        If given, each character's logbook in it (keyed by its label)
+        supplies its method memory before every game (Phase 7,
+        `clude_training.memory.load_into`) and, unless
+        `logbooks_readonly`, absorbs the game after it; every game's
+        record is built for that whether or not `store` is given.
+    logbooks_readonly : bool
+        Read the logbooks but write nothing: what a fair sweep needs.
 
     Returns
     -------
@@ -589,6 +613,17 @@ def run_arena(
             character.reset(seed)
             characters[label] = character
 
+    logbooks: dict = {}
+    loaded: list = []
+    stale: set = set()  # labels whose memory changed since it was last loaded
+    if logbook_store is not None:
+        logbooks = {label: Logbook(logbook_store, label) for label in characters}
+        loaded = sorted(
+            label for label, ch in characters.items() if method_memory.load_into(ch, logbooks[label])
+        )
+        for label in wrapped:
+            characters[label].attach_logbook(logbooks[label])
+
     labels = list(dict.fromkeys(list(roster) + [FILL_LABEL]))
     result = ArenaResult(
         run_id=run_id,
@@ -605,6 +640,10 @@ def run_arena(
             {"backend": llm_backend.name, "model": llm_settings.model, "characters": sorted(wrapped)}
             if llm_backend is not None else {}
         ),
+        memory=(
+            {"store": logbook_store.describe(), "readonly": bool(logbooks_readonly), "loaded": loaded}
+            if logbook_store is not None else {}
+        ),
     )
 
     for g in range(n_games):
@@ -619,8 +658,11 @@ def run_arena(
                 players[seat] = clude_constraints.FloorBot(rng=Random(fill_seed(game_seed, seat)))
             else:
                 players[seat] = RandomBot()
-        for label in set(lineup) & wrapped:
-            characters[label].new_game()
+        for label in set(lineup) & stale:
+            method_memory.load_into(characters[label], logbooks[label])
+            stale.discard(label)
+        for label in set(lineup) & set(characters):
+            characters[label].new_game(lineup)
         cost_before = {label: (ch.n_calls, ch.seconds) for label, ch in characters.items()}
         llm_before = {label: characters[label].summary() for label in wrapped}
 
@@ -635,6 +677,39 @@ def run_arena(
         seats = []
         llm_log: dict = {}
         for seat, label in enumerate(lineup):
+            if label in wrapped:
+                llm_log[seat] = [d.to_dict() for d in characters[label].decisions]
+            seats.append(
+                SeatRecord(
+                    seat=seat,
+                    suspect=state.suspects_in_play[seat],
+                    label=label,
+                    kind="llm" if label in wrapped else _kind_of(label),
+                    profile=characters[label].profile.to_dict() if label in characters else None,
+                    model=llm_settings.model if label in wrapped else None,
+                )
+            )
+
+        if store is not None or logbook_store is not None:
+            record = GameRecord.from_game(
+                run_id, g, game_seed, state, events, seats, llm_log=llm_log or None
+            )
+            if store is not None:
+                store.put_game(run_id, g, record.to_dict())
+            if logbook_store is not None and not logbooks_readonly:
+                # Each character writes to its logbook: method memory for the
+                # three that have it, and the model's entry for an LLM seat.
+                # The debrief comes before the stats below so its tokens land
+                # in this game's slice.
+                for seat, label in enumerate(lineup):
+                    if label not in characters:
+                        continue
+                    if method_memory.update(logbooks[label], record, characters[label]):
+                        stale.add(label)
+                    if label in wrapped:
+                        characters[label].debrief(record, seat)
+
+        for seat, label in enumerate(lineup):
             kind = "llm" if label in wrapped else _kind_of(label)
             outcome = seat_outcome(state, events, seat, label, kind)
             if label in characters:
@@ -644,20 +719,9 @@ def run_arena(
                 if label in wrapped:
                     after = ch.summary()
                     llm_delta = {key: after[key] - llm_before[label][key] for key in LLM_SUMMARY_KEYS}
-                    llm_log[seat] = [d.to_dict() for d in ch.decisions]
                 result.per_player[label].record(outcome, ch.n_calls - calls, ch.seconds - secs, llm_delta)
             else:
                 result.per_player[label].record(outcome)
-            seats.append(
-                SeatRecord(
-                    seat=seat,
-                    suspect=state.suspects_in_play[seat],
-                    label=label,
-                    kind=kind,
-                    profile=characters[label].profile.to_dict() if label in characters else None,
-                    model=llm_settings.model if label in wrapped else None,
-                )
-            )
 
         final = events[-1]
         winner = final.winner if isinstance(final, GameOverEvent) else None
@@ -674,12 +738,6 @@ def run_arena(
                 hit_cap=winner is None and any(state.active),
             )
         )
-        if store is not None:
-            record = GameRecord.from_game(
-                run_id, g, game_seed, state, events, seats, llm_log=llm_log or None
-            )
-            store.put_game(run_id, g, record.to_dict())
-
     result.per_player = {
         label: stats for label, stats in result.per_player.items() if stats.games > 0
     }

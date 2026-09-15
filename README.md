@@ -24,7 +24,13 @@ line of table talk, and anything illegal or failed falls back to the
 character. It is live-checked, persona-tuned and measured on Opus 5
 ([docs/phase6-plan.md](docs/phase6-plan.md), results in
 [docs/strategy-glossary.md](docs/strategy-glossary.md)). Phase 7,
-logbooks, is next. There is no UI and no chat yet.
+logbooks, is built: every character has a persistent memory in the
+record store, numeric for the three methods that can use one and, for
+an LLM-piloted seat, a zenbot-shaped entry its own model writes after
+each game and reads back before the next at the depth of a `memory`
+dial ([docs/phase7-plan.md](docs/phase7-plan.md),
+[docs/logbooks.md](docs/logbooks.md)); its live check is pending.
+There is no UI and no chat yet.
 
 ## Quick start
 
@@ -53,6 +59,8 @@ python scripts/clude_cli.py arena --games 24                             # who w
 python scripts/clude_cli.py sweep --dial accuse_threshold --values 0.2 0.6 1.0
 python scripts/clude_cli.py play --roster Plum,Scarlett,floor --llm --verbose   # LLM-piloted seats (needs ANTHROPIC_API_KEY)
 python scripts/clude_cli.py prompt --roster Plum,Scarlett,floor --viewer 1     # what that seat's model would be sent
+python scripts/clude_cli.py play --roster Plum,Mustard,Green --players 3 --store data --logbook   # play with memory on
+python scripts/clude_cli.py logbook show --uri data --identity Mustard        # what a character has remembered
 ```
 
 [docs/cli.md](docs/cli.md) explains every subcommand and how to read
@@ -65,9 +73,9 @@ clude_core/          domain model, board, event log, GameState/ClueObservation, 
 clude_constraints/   the shared deduction floor (constraint propagation) and FloorBot
 clude_agents/        AgentProtocol, the AgentSpec registry, one module per method,
                      and the personality layer (Profile, features, Character)
-clude_llm/           the LLM wrapper: menus, personas, prompts, backends, LLMCharacter
-clude_training/      self-play snapshots, the belief benchmark, post-game replay, arena, sweeps
-clude_storage/       game records; local-directory and Cloud Storage record stores
+clude_llm/           the LLM wrapper: menus, personas, prompts, backends, LLMCharacter, the debrief
+clude_training/      self-play snapshots, the belief benchmark, trace, record replay, method memory, arena, sweeps
+clude_storage/       game records and logbooks; local-directory and Cloud Storage stores
 scripts/             clude_cli.py, the maintainer CLI
 tests/               pytest suite
 docs/                architecture, phase plan, strategy glossary, CLI guide
@@ -102,7 +110,9 @@ five personality dials. Each is documented in
 - [docs/phase-plan.md](docs/phase-plan.md) -- what each phase delivered and what is out of scope
 - [docs/phase5-plan.md](docs/phase5-plan.md) -- the Phase 5 plan, David's decisions, and how the build departed from it
 - [docs/phase6-plan.md](docs/phase6-plan.md) -- the Phase 6 plan, David's decisions, and what was built
+- [docs/phase7-plan.md](docs/phase7-plan.md) -- the Phase 7 plan, David's decisions, and what was built
 - [docs/llm-wrapper.md](docs/llm-wrapper.md) -- how an LLM pilots a character: menus, leash, personas, backends, cost
+- [docs/logbooks.md](docs/logbooks.md) -- playerbot memory: the three tiers, the `memory` dial, the debrief, the CLI
 - [docs/strategy-glossary.md](docs/strategy-glossary.md) -- each method in plain language, with benchmark and arena results
 - [docs/cli.md](docs/cli.md) -- the maintainer CLI
 - [docs/board.md](docs/board.md) -- board topology and its simplifications

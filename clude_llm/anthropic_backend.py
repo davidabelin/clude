@@ -3,7 +3,11 @@
 One `messages.create` per decision: the persona + rules as a cached
 system block, the per-turn text as the user message, the fixed JSON
 schema as `output_config.format`, and a low effort setting, since a
-Clue move is a short pick. Credentials resolve exactly as the SDK does
+Clue move is a short pick. A character's logbook block (Phase 7), when
+it has one, goes as a second cached system block: stable for a whole
+game, so it is written to the cache once and read cheaply after, while
+the persona block stays the prefix every game shares. A request may
+override effort and `max_tokens` (the debrief does). Credentials resolve exactly as the SDK does
 (`ANTHROPIC_API_KEY`, or an `ant auth login` profile); an explicit
 `api_key` wins, and a `client` double can be injected for tests, the way
 `clude_storage.GcsStore` takes one. Nothing here prints or stores a key.
@@ -120,17 +124,23 @@ class AnthropicBackend:
         return self._client
 
     def params(self, request: LLMRequest) -> dict:
-        """The keyword arguments of the one API call, minus the beta bits."""
+        """The keyword arguments of the one API call, minus the beta bits.
+        With a `request.memory` the system prompt is two cached blocks,
+        persona then logbook; the request's `effort` and `max_tokens`
+        win over the backend's when set."""
+        system = [{"type": "text", "text": request.system, "cache_control": {"type": "ephemeral"}}]
+        if request.memory:
+            system.append(
+                {"type": "text", "text": request.memory, "cache_control": {"type": "ephemeral"}}
+            )
         return {
             "model": self.model,
-            "max_tokens": self.max_tokens,
-            "system": [
-                {"type": "text", "text": request.system, "cache_control": {"type": "ephemeral"}}
-            ],
+            "max_tokens": request.max_tokens or self.max_tokens,
+            "system": system,
             "messages": [{"role": "user", "content": request.user}],
             "output_config": {
                 "format": {"type": "json_schema", "schema": request.schema},
-                "effort": self.effort,
+                "effort": request.effort or self.effort,
             },
         }
 

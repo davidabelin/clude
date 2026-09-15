@@ -193,6 +193,16 @@ class Character:
         """Forward the end-of-game outcome to the agent (Green learns)."""
         self.agent.observe(transition)
 
+    def new_game(self, table=None) -> None:
+        """Start a game (Phase 7): drop the cached observation and, when
+        `table` (roster labels by seat) is given, tell the agent who sits
+        where if it has `set_table` (White's per-opponent memory). Draws
+        no random numbers, so a seeded game is unchanged by it."""
+        self._cached_obs = None
+        self._cached_belief = None
+        if table is not None and hasattr(self.agent, "set_table"):
+            self.agent.set_table(list(table))
+
     def select_action(self, obs: ClueObservation) -> ClueBelief:
         """The agent's belief for `obs`, computed once per observation
         object: the engine hands the same observation to the movement

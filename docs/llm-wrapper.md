@@ -90,6 +90,28 @@ and the presets all work as for the other five. The headless
 `Character` ignores them. Presets start at `leash = 0.25`,
 `chattiness = 0.5` for everyone until the 6d sweep sets them.
 
+## Memory (Phase 7)
+
+With a logbook attached (`LLMCharacter.attach_logbook`; `--logbook` on
+the CLI) the wrapper reads the character's logbook back before each
+game at the depth of a third dial, `memory` (default 0: the head only;
+0.5 every entry's summary and flags; 1 every entry in full), and sends
+it with every decision as a **second cached system block** after the
+persona and rules (`LLMRequest.memory`). The block is stable for a
+game, so it is written to the cache once and read cheaply after, and
+the persona block stays the prefix every game shares. With no logbook,
+or an empty one, the request and its replay key are exactly the ones
+above, so every recorded fixture still replays.
+
+After the game the wrapper asks the model for the game's logbook entry
+(`debrief`): the same persona and rules, a prompt with the outcome, the
+deal face up, the seat's own view of the game, its decisions, its
+final belief against the truth and its logbook so far, and a third
+fixed schema, `LOGBOOK_SCHEMA`, at effort `medium` with 4096 tokens
+(`LLMSettings.debrief_effort`, `debrief_max_tokens`; `debrief=False`
+skips it). A failed or malformed debrief writes nothing and leaves the
+reason in `last_debrief`. `docs/logbooks.md` has the rest.
+
 ## Backends
 
 `--llm-backend` on `play`, `arena` and `sweep`:
@@ -120,7 +142,8 @@ environment before running, or the SDK will not see it.
 Call settings (`LLMSettings`): model `claude-opus-5`, `effort` low,
 `max_tokens` 2048, timeout 30 s, one SDK retry, server-side refusal
 fallbacks on, budget 200 calls or 500K tokens per game, eight lines of
-recent table talk in the prompt.
+recent table talk in the prompt; the debrief (Phase 7) at effort
+`medium` with 4096 tokens.
 
 ## Cost
 
@@ -137,7 +160,11 @@ Measured on Opus 5 (2026-09-13), at list prices:
 | seed 2, 4 players, 4 LLM seats | 4 | 39 | $0.43 | 46% |
 
 That is roughly **$0.07-0.11 per LLM seat-game**, which is the number to
-budget an arena with: a 24-game, 4-seat run is order $10.
+budget an arena with: a 24-game, 4-seat run is order $10. Plum's games
+run long and ask the model often, so his seat-game is about $0.25. A
+logbook (Phase 7) adds a debrief of roughly $0.06-0.12 per seat-game
+(estimated, not yet measured) and, at the default `memory` of 0, a few
+hundred cached tokens per call for the read-back.
 
 Read the usage fields carefully: `input_tokens` counts only the *fresh*
 tokens and `cache_read_input_tokens` the cached ones, disjointly -- so

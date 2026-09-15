@@ -21,6 +21,9 @@ Usage
     python scripts/clude_cli.py arena --games 24 --store data
     python scripts/clude_cli.py sweep --dial accuse_threshold --values 0.3 0.6 0.9
     python scripts/clude_cli.py store --uri data --list
+    python scripts/clude_cli.py play --roster Plum,Mustard,Green --store data/llm
+    python scripts/clude_cli.py logbook list --uri data/llm
+    python scripts/clude_cli.py logbook show --uri data/llm --identity Plum --memory 0.5
 """
 from __future__ import annotations
 
@@ -81,12 +84,14 @@ from clude_llm import (
     user_prompt,
 )
 from clude_llm.anthropic_backend import estimate_cost
-from clude_storage import open_store
+from clude_storage import GameRecord, Logbook, SeatRecord, list_logbooks, open_store, render_entry
+from clude_training import memory as method_memory
 from clude_training.arena import (
     DEFAULT_MAX_TURNS as ARENA_MAX_TURNS,
     DEFAULT_N_GAMES as ARENA_N_GAMES,
     DEFAULT_ROSTER,
     DEFAULT_SEED as ARENA_SEED,
+    GameSummary,
     fill_seed,
     lineup_for_game,
     parse_roster,
@@ -191,6 +196,38 @@ def _llm_kwargs(args) -> dict:
     }
 
 
+def _add_logbook_args(parser: argparse.ArgumentParser) -> None:
+    """The Phase 7 flags: give every character its logbook."""
+    parser.add_argument(
+        "--logbook", nargs="?", const="", default=None, metavar="URI",
+        help="Give every character its logbook from this store (with no URI, the --store "
+        "location): method memory read before each game and written after it (docs/phase7-plan.md).",
+    )
+    parser.add_argument(
+        "--logbook-readonly", action="store_true",
+        help="Read the logbooks but write nothing to them (a fair comparison against a fixed memory).",
+    )
+
+
+def _logbook_store(args):
+    """The logbook store for the ``--logbook`` flags, or None."""
+    uri = getattr(args, "logbook", None)
+    if uri is None:
+        return None
+    uri = uri or getattr(args, "store", "")
+    if not uri:
+        raise SystemExit("--logbook needs a store: give it a URI, or pass --store as well")
+    return open_store(uri)
+
+
+def _logbook_kwargs(args) -> dict:
+    """`run_arena` keyword arguments for the ``--logbook`` flags."""
+    store = _logbook_store(args)
+    if store is None:
+        return {}
+    return {"logbook_store": store, "logbooks_readonly": bool(getattr(args, "logbook_readonly", False))}
+
+
 def _print_llm_cost(per_player: dict, model: str, n_games: int) -> None:
     stats = [s for s in per_player.values() if s.llm_decisions]
     if not stats:
@@ -223,11 +260,12 @@ def _wrap_llm_seats(args, players: dict, labels: list) -> dict:
     return wrapped
 
 
-def _play_game(args, llm_seats: dict = None):
+def _play_game(args, llm_seats: dict = None, players_out: dict = None):
     """One finished game from the shared game args: ``(state, events,
     labels)`` where `labels` names each seat's occupant. With ``--llm``
     the character seats are wrapped first and, if `llm_seats` is given,
-    recorded in it as ``{seat: LLMCharacter}``."""
+    recorded in it as ``{seat: LLMCharacter}``; `players_out`, if given,
+    receives every seat's player as ``{seat: player}``."""
     n = args.players
     roster = args.roster.strip()
     if roster == "random":
@@ -257,11 +295,112 @@ def _play_game(args, llm_seats: dict = None):
             wrapped = _wrap_llm_seats(args, players, labels)
             if llm_seats is not None:
                 llm_seats.update(wrapped)
+        logbook_store = _logbook_store(args)
+        for seat, label in enumerate(labels):
+            if label in AGENT_SPECS:
+                if logbook_store is not None:
+                    logbook = Logbook(logbook_store, label)
+                    method_memory.load_into(players[seat], logbook)
+                    if hasattr(players[seat], "attach_logbook"):
+                        players[seat].attach_logbook(logbook)
+                players[seat].new_game(labels)
         observer = clude_constraints.observe
+    if players_out is not None:
+        players_out.update(players)
     state, events = engine.run_game(
         n, players, seed=args.seed, max_turns=args.max_turns, observer=observer
     )
     return state, events, labels
+
+
+def _seat_records(state, labels: list, players: dict, llm_seats: dict, model: str) -> list:
+    """`SeatRecord`s for one `_play_game` table, the arena's way: kind
+    from the occupant, the character's dials, the model behind an LLM
+    seat."""
+    seats = []
+    for seat, label in enumerate(labels):
+        if seat in llm_seats:
+            kind = "llm"
+        elif label in AGENT_SPECS:
+            kind = "character"
+        else:
+            kind = label
+        profile = players[seat].profile.to_dict() if kind in ("llm", "character") else None
+        seats.append(
+            SeatRecord(
+                seat=seat,
+                suspect=state.suspects_in_play[seat],
+                label=label,
+                kind=kind,
+                profile=profile,
+                model=model if kind == "llm" else None,
+            )
+        )
+    return seats
+
+
+def _play_record(args, state, events, labels: list, players: dict, llm_seats: dict) -> GameRecord:
+    """The `GameRecord` of one `play` game, as game 0 of a run named by
+    ``--run-id`` (default ``play-<seed>-<UTC timestamp>``); written to
+    ``--store`` with a one-game run summary when that flag is given."""
+    run_id = args.run_id or f"play-{args.seed}-{time.strftime('%Y%m%d-%H%M%S', time.gmtime())}"
+    llm_log = {seat: [d.to_dict() for d in wrapper.decisions] for seat, wrapper in llm_seats.items()}
+    seats = _seat_records(state, labels, players, llm_seats, getattr(args, "llm_model", DEFAULT_MODEL))
+    record = GameRecord.from_game(run_id, 0, args.seed, state, events, seats, llm_log=llm_log or None)
+    if not getattr(args, "store", ""):
+        return record
+    store = open_store(args.store)
+    store.put_game(run_id, 0, record.to_dict())
+    # A one-game run summary in the arena's shape, so `store` lists it.
+    llm = {}
+    if llm_seats:
+        first = next(iter(llm_seats.values())).summary()
+        llm = {
+            "backend": first["backend"], "model": first["model"],
+            "characters": sorted(labels[seat] for seat in llm_seats),
+        }
+    summary = GameSummary(
+        game_index=0, seed=args.seed, n_players=state.n_players, labels=tuple(labels),
+        winner_label=labels[record.winner] if record.winner is not None else None,
+        turns=state.turn, n_suggestions=len(state.suggestion_log),
+        n_accusations=len(state.accusation_log),
+        hit_cap=record.winner is None and any(state.active),
+    )
+    store.put_run(run_id, {
+        "run_id": run_id, "kind": "play", "n_games": 1, "seed": args.seed,
+        "roster": list(labels), "player_counts": [state.n_players], "max_turns": args.max_turns,
+        "profiles": {s.label: s.profile for s in seats if s.profile is not None},
+        "llm": llm, "per_player": {}, "games": [summary.to_dict()],
+        "mean_turns": float(state.turn), "decided_rate": 0.0 if record.winner is None else 1.0,
+        "seconds": 0.0,
+    })
+    print(f"\nrecord: run {run_id} game 0 in {store.describe()}")
+    return record
+
+
+def _update_logbooks(args, record: GameRecord, labels: list, players: dict, llm_seats: dict) -> None:
+    """After a `play` game with ``--logbook``: fold the record into every
+    character's method memory and have each LLM seat write its entry,
+    unless read-only."""
+    logbook_store = _logbook_store(args)
+    if logbook_store is None:
+        return
+    if getattr(args, "logbook_readonly", False):
+        print(f"logbooks: read-only, nothing written to {logbook_store.describe()}")
+        return
+    updated = [
+        label for seat, label in enumerate(labels)
+        if label in AGENT_SPECS
+        and method_memory.update(Logbook(logbook_store, label), record, players[seat])
+    ]
+    print(f"logbooks: method memory updated for {', '.join(updated) or 'nobody'} in {logbook_store.describe()}")
+    for seat, wrapper in sorted(llm_seats.items()):
+        entry = wrapper.debrief(record, seat)
+        if entry is not None:
+            print(f"  {labels[seat]} wrote entry #{entry.serial:04d}: {entry.title or '(untitled)'}")
+        else:
+            reason = wrapper.last_debrief.get("fallback", "unknown")
+            print(f"  {labels[seat]} wrote no entry ({reason})")
 
 
 def _parse_agent_names(raw: str) -> list:
@@ -343,7 +482,8 @@ def cmd_agents(args) -> int:
 def cmd_play(args) -> int:
     """Play one game and print the outcome (and event log)."""
     llm_seats: dict = {}
-    state, events, labels = _play_game(args, llm_seats)
+    players: dict = {}
+    state, events, labels = _play_game(args, llm_seats, players)
     print(f"seed={args.seed} players={args.players} roster={args.roster}")
     _print_seats(state, labels)
     if args.verbose:
@@ -382,6 +522,9 @@ def cmd_play(args) -> int:
         print(f"No winner -- hit the {args.max_turns}-turn cap.")
     if args.hands:
         _print_hands(state, labels)
+    if getattr(args, "store", "") or getattr(args, "logbook", None) is not None:
+        record = _play_record(args, state, events, labels, players, llm_seats)
+        _update_logbooks(args, record, labels, players, llm_seats)
     if llm_seats:
         print("\nLLM seats:")
         for seat, wrapper in sorted(llm_seats.items()):
@@ -422,7 +565,8 @@ def cmd_prompt(args) -> int:
             f"seat {args.viewer} is occupied by {labels[args.viewer]!r}; pass --agent NAME to render a "
             "character's prompt for it"
         )
-    character = build_character(name)
+    profile = preset(name).with_dials(memory=args.memory) if args.memory is not None else None
+    character = build_character(name, profile)
     character.reset(args.seed)
     truncated = truncate_state(state, k)
     obs = clude_constraints.observe(truncated, args.viewer)
@@ -437,10 +581,21 @@ def cmd_prompt(args) -> int:
         hand = sorted(obs.own_hand)
         menu = show_menu(character, obs, hand[:2] or hand, (args.viewer + 1) % state.n_players)
     wrapper = LLMCharacter(character, NullBackend())
+    if args.logbook:
+        wrapper.attach_logbook(Logbook(open_store(args.logbook), name))
+        wrapper.new_game(labels)
     system = wrapper.system_prompt()
     user = user_prompt(obs, character.select_action(obs), character, menu, [])
     print(f"=== system ({len(system.split())} words; persona {wrapper.persona.source}) ===")
     print(system)
+    if wrapper.memory_block:
+        print(
+            f"=== memory ({len(wrapper.memory_block.split())} words; the logbook at memory "
+            f"{character.profile.memory:.2f}, a second cached system block) ==="
+        )
+        print(wrapper.memory_block)
+    elif args.logbook:
+        print(f"=== memory: {name} has nothing to read back from {args.logbook} ===")
     print(f"=== user ({len(user.split())} words; seat P{args.viewer}, after k={k} of {total} suggestions) ===")
     print(user)
     return 0
@@ -610,6 +765,20 @@ def cmd_train_mustard(args) -> int:
     """Train Mustard's tree with explicit hyperparameters, describe it,
     and score it on held-out self-play."""
     checkpoints = tuple(args.checkpoints)
+    extra_rows: list = []
+    memory_note = ""
+    if getattr(args, "logbook", ""):
+        document = Logbook(open_store(args.logbook), "Mustard").method()
+        if document is None or document.get("kind") != "rows":
+            raise SystemExit(
+                f"no Mustard method memory in {args.logbook}; play with --logbook or run "
+                "`logbook rebuild --identity Mustard` first"
+            )
+        extra_rows = method_memory.extra_rows(document)
+        memory_note = (
+            f", plus {len(extra_rows)} memory rows from {method_memory.n_games(document)} "
+            f"stored games in {args.logbook}"
+        )
     agent = DecisionTreeAgent(
         n_training_games=args.games,
         training_seed=args.seed,
@@ -618,6 +787,7 @@ def cmd_train_mustard(args) -> int:
         min_samples_leaf=args.min_samples_leaf,
         training_bot=args.bot,
         smoothing_m=args.smoothing_m,
+        extra_rows=extra_rows,
     )
     started = time.perf_counter()
     tree = agent.tree
@@ -625,18 +795,21 @@ def cmd_train_mustard(args) -> int:
     rows = training_rows(args.games, args.seed, checkpoints, args.bot)
     if not rows:
         raise SystemExit("no training rows -- every game ended before a single suggestion?")
-    positives = sum(label for _features, label in rows)
+    all_rows = rows + extra_rows
+    positives = sum(label for _features, label in all_rows)
     summary = summarize_tree(tree)
 
     print(
         f"training set: {len(rows)} rows from {args.games} {args.bot}-bot games "
         f"(seeds {args.seed}..{args.seed + args.games - 1}) at checkpoints {list(checkpoints)}"
+        f"{memory_note}"
     )
     print(
         f"  one row per (viewer, checkpoint, card the floor hadn't located); "
-        f"{positives} positive = {positives / len(rows):.3f} (the card was the envelope's)"
+        f"{positives} positive = {positives / len(all_rows):.3f} (the card was the envelope's)"
     )
-    print(f"trained in {elapsed:.1f}s (rows and tree are cached per settings within a process)")
+    cached = "" if extra_rows else " (rows and tree are cached per settings within a process)"
+    print(f"trained in {elapsed:.1f}s{cached}")
     print(
         f"tree: {summary.n_nodes} nodes, {summary.n_leaves} leaves, depth {summary.depth} "
         f"(--max-depth {args.max_depth}, --min-samples-leaf {args.min_samples_leaf}, "
@@ -749,6 +922,10 @@ def _print_arena_footer(result, player_counts, store) -> None:
     )
     if store is not None:
         print(f"records: run {result.run_id} in {store.describe()}")
+    if result.memory:
+        mode = "read-only" if result.memory.get("readonly") else "read and written"
+        loaded = ", ".join(result.memory.get("loaded", [])) or "nobody"
+        print(f"logbooks: {result.memory['store']} ({mode}); memory loaded at the start for {loaded}")
 
 
 def cmd_arena(args) -> int:
@@ -772,6 +949,7 @@ def cmd_arena(args) -> int:
             store=store,
             run_id=args.run_id,
             **_llm_kwargs(args),
+            **_logbook_kwargs(args),
         )
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
@@ -803,6 +981,7 @@ def cmd_sweep(args) -> int:
             max_turns=args.max_turns,
             store=store,
             run_id=args.run_id,
+            logbook_store=_logbook_store(args),
             **_llm_kwargs(args),
         )
     except ValueError as exc:
@@ -851,6 +1030,108 @@ def cmd_store(args) -> int:
         return 0
     for run_id in runs:
         print(f"  {run_id}: {len(store.list_games(run_id))} game records")
+    return 0
+
+
+def _tally_line(head) -> str:
+    t = head.tally
+    return (
+        f"{t.get('games', 0)} games: won {t.get('won', 0)}, "
+        f"{t.get('wrong_accusations', 0)} wrong accusations, never accused in {t.get('never_accused', 0)}"
+    )
+
+
+def cmd_logbook_list(args) -> int:
+    """List every logbook in a store with its tally."""
+    store = open_store(args.uri)
+    print(f"store: {store.describe()}")
+    identities = list_logbooks(store)
+    if not identities:
+        print("no logbooks")
+        return 0
+    for identity in identities:
+        logbook = Logbook(store, identity)
+        head = logbook.head()
+        n_entries = len(logbook.serials())
+        print(
+            f"  {identity}: {n_entries} entries; {_tally_line(head)}; "
+            f"{len(head.dossiers)} dossiers; {len(head.flags)} flags; "
+            f"{method_memory.describe_memory(logbook.method())}"
+        )
+    return 0
+
+
+def cmd_logbook_show(args) -> int:
+    """Show one logbook: its head and index, one entry, or the memory
+    block a character would read at a given depth."""
+    store = open_store(args.uri)
+    logbook = Logbook(store, args.identity)
+    if not logbook.exists():
+        print(f"no logbook for {args.identity} in {store.describe()}")
+        return 0
+    if args.entry is not None:
+        try:
+            entry = logbook.entry(args.entry)
+        except KeyError:
+            raise SystemExit(f"{args.identity} has no entry #{args.entry}")
+        print(json.dumps(entry.to_dict(), indent=2) if args.raw else render_entry(entry))
+        return 0
+    if args.memory is not None:
+        try:
+            text = logbook.memory(args.memory)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+        print(text if text else f"(empty: {args.identity} has nothing to read back)")
+        return 0
+    head = logbook.head()
+    if args.raw:
+        print(json.dumps(head.to_dict(), indent=2))
+        return 0
+    print(f"logbook: {args.identity} in {store.describe()}")
+    print(f"head: serial {head.serial}; {_tally_line(head)}")
+    text = logbook.memory(0.0)
+    if text:
+        print(text.rstrip())
+    entries = logbook.entries()
+    if entries:
+        print(f"entries ({len(entries)}):")
+        for entry in entries:
+            title = f" {entry.title}" if entry.title else ""
+            print(f"  #{entry.serial:04d} {entry.date} {entry.game_id}:{title}")
+    print(f"method memory: {method_memory.describe_memory(logbook.method())}")
+    return 0
+
+
+def cmd_logbook_reset(args) -> int:
+    """Forget a logbook: head and method memory, and the entries too
+    unless --keep-entries."""
+    store = open_store(args.uri)
+    logbook = Logbook(store, args.identity)
+    removed = logbook.reset(keep_entries=args.keep_entries)
+    kept = " (entries kept)" if args.keep_entries else ""
+    print(f"reset {args.identity} in {store.describe()}: {removed} documents removed{kept}")
+    return 0
+
+
+def cmd_logbook_rebuild(args) -> int:
+    """Recompute a logbook's head from its entries and its method memory
+    from every game record in a store."""
+    store = open_store(args.uri)
+    source = open_store(args.from_uri) if args.from_uri else store
+    logbook = Logbook(store, args.identity)
+    head = logbook.rebuild_head()
+    print(f"head: rebuilt from {len(logbook.serials())} entries (serial {head.serial}; {_tally_line(head)})")
+    kind = method_memory.kind_for(args.identity)
+    if kind is None:
+        print(f"method memory: {args.identity}'s method is memoryless; nothing to rebuild")
+    elif kind == "state":
+        print("method memory: Green's posteriors are accumulated live; records cannot rebuild them")
+    else:
+        absorbed = method_memory.rebuild(logbook, source, kind)
+        print(
+            f"method memory: rebuilt from {absorbed} game records in {source.describe()}: "
+            f"{method_memory.describe_memory(logbook.method())}"
+        )
     return 0
 
 
@@ -904,7 +1185,15 @@ def build_parser() -> argparse.ArgumentParser:
     _add_game_args(play_p)
     play_p.add_argument("--verbose", action="store_true", help="Print every move/suggestion/accusation.")
     play_p.add_argument("--hands", action="store_true", help="Also print the dealt hands.")
+    play_p.add_argument(
+        "--store", default="",
+        help="Save the game record here (a directory or gs://bucket/prefix) as game 0 of a run.",
+    )
+    play_p.add_argument(
+        "--run-id", default=None, help="Run id for --store (default play-<seed>-<timestamp>).",
+    )
     _add_llm_args(play_p)
+    _add_logbook_args(play_p)
     play_p.set_defaults(fn=cmd_play)
 
     prompt_p = sub.add_parser(
@@ -926,6 +1215,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Character to render for the seat (default: its roster occupant).",
     )
     prompt_p.add_argument("--roll", type=int, default=6, help="Die roll for --decision move.")
+    prompt_p.add_argument(
+        "--logbook", default=None, metavar="URI",
+        help="Also render the character's memory block from its logbook in this store (Phase 7).",
+    )
+    prompt_p.add_argument(
+        "--memory", type=float, default=None,
+        help="Override the character's `memory` dial for the block (0..1; default its preset).",
+    )
     prompt_p.set_defaults(fn=cmd_prompt)
 
     trace_p = sub.add_parser(
@@ -1016,6 +1313,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Held-out benchmark games to score the tree on (0 to skip).",
     )
     mustard_p.add_argument("--eval-seed", type=int, default=DEFAULT_SEED, help="Held-out seed.")
+    mustard_p.add_argument(
+        "--logbook", default="", metavar="URI",
+        help="Also train on Mustard's method memory in this store (Phase 7), to see what it changes.",
+    )
     mustard_p.set_defaults(fn=cmd_train_mustard)
 
     snaps_p = sub.add_parser(
@@ -1044,6 +1345,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Override one preset dial, e.g. Scarlett.accuse_threshold=0.3 (repeatable).",
     )
     _add_llm_args(arena_p)
+    _add_logbook_args(arena_p)
     arena_p.set_defaults(fn=cmd_arena)
 
     sweep_p = sub.add_parser(
@@ -1058,6 +1360,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_arena_args(sweep_p)
     _add_llm_args(sweep_p)
+    sweep_p.add_argument(
+        "--logbook", nargs="?", const="", default=None, metavar="URI",
+        help="Read every character's logbook from this store (default: the --store location) at "
+        "every value, writing nothing, so the sweep stays paired; how the `memory` dial is swept.",
+    )
     sweep_p.set_defaults(fn=cmd_sweep)
 
     store_p = sub.add_parser(
@@ -1068,6 +1375,52 @@ def build_parser() -> argparse.ArgumentParser:
     store_p.add_argument("--run", default="", help="Print this run's stored summary.")
     store_p.add_argument("--list", action="store_true", help="List runs (the default action).")
     store_p.set_defaults(fn=cmd_store)
+
+    logbook_p = sub.add_parser(
+        "logbook", help="List, show or reset the logbooks in a store (Phase 7).",
+    )
+    logbook_sub = logbook_p.add_subparsers(dest="action", required=True)
+    lb_list = logbook_sub.add_parser(
+        "list", help="Every logbook in the store with its tally.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    lb_list.add_argument("--uri", default=DEFAULT_STORE, help="Store location.")
+    lb_list.set_defaults(fn=cmd_logbook_list)
+    lb_show = logbook_sub.add_parser(
+        "show", help="One logbook's head and index, one entry, or its memory block at a depth.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    lb_show.add_argument("--uri", default=DEFAULT_STORE, help="Store location.")
+    lb_show.add_argument("--identity", required=True, help="Whose logbook (a roster label).")
+    lb_show.add_argument("--entry", type=int, default=None, help="Print this entry by serial.")
+    lb_show.add_argument(
+        "--memory", type=float, default=None,
+        help="Print the memory block a character with this `memory` dial would read (0..1).",
+    )
+    lb_show.add_argument("--raw", action="store_true", help="Print JSON instead of text.")
+    lb_show.set_defaults(fn=cmd_logbook_show)
+    lb_reset = logbook_sub.add_parser(
+        "reset", help="Forget a logbook (the fairness control).",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    lb_reset.add_argument("--uri", default=DEFAULT_STORE, help="Store location.")
+    lb_reset.add_argument("--identity", required=True, help="Whose logbook to reset.")
+    lb_reset.add_argument(
+        "--keep-entries", action="store_true",
+        help="Remove only the head and method memory; keep the entries as an archive.",
+    )
+    lb_reset.set_defaults(fn=cmd_logbook_reset)
+    lb_rebuild = logbook_sub.add_parser(
+        "rebuild", help="Recompute a logbook's head from its entries and its method memory from records.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    lb_rebuild.add_argument("--uri", default=DEFAULT_STORE, help="Store holding the logbook.")
+    lb_rebuild.add_argument("--identity", required=True, help="Whose logbook to rebuild.")
+    lb_rebuild.add_argument(
+        "--from", dest="from_uri", default="",
+        help="Store whose game records to absorb (default: the logbook's own store).",
+    )
+    lb_rebuild.set_defaults(fn=cmd_logbook_rebuild)
 
     return parser
 

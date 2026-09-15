@@ -16,6 +16,13 @@ audit trail the arena's columns and Phase 7's logbooks read.
 `LLMCharacter` implements `PlayerProtocol` and `SpeakingPlayer`, and the
 duck-typed surface the arena and trace rely on (`name`, `profile`,
 `select_action`, `reset`, `observe`, `n_calls`, `seconds`).
+
+Phase 7c adds the logbook: `attach_logbook` gives the wrapper its
+`clude_storage.Logbook`; `new_game` then renders the memory block the
+`memory` dial asks for, sent with every decision as a second cached
+system block; `debrief` asks the model to write the game's entry
+afterwards (`clude_llm.logbook`). With no logbook attached, or an empty
+one, every request is byte-identical to Phase 6's.
 """
 from __future__ import annotations
 
@@ -27,12 +34,14 @@ from typing import Any, Optional
 from clude_agents.character import Character
 from clude_core.events import RemarkEvent
 from clude_core.state import ClueObservation
+from clude_storage.logbooks import LogbookEntry
 
 from .backend import DEFAULT_MODEL, LLMBackend, LLMRequest, LLMResult
+from .logbook import debrief_prompt, opponents_of, resolve_opponents
 from .menu import EPS, accusation_menu, movement_menu, show_menu, suggestion_menu
 from .persona import Persona, load_persona, load_rules
 from .prompt import system_prompt, user_prompt
-from .schema import parse_response, schema_for
+from .schema import LOGBOOK_KIND, parse_response, schema_for
 
 TRANSCRIPT_LIMIT = 200
 
@@ -54,6 +63,12 @@ class LLMSettings:
         False silences the character entirely (choices still count).
     server_fallbacks : bool
         Enable the API's server-side refusal fallbacks (6c).
+    debrief : bool
+        Write a logbook entry after each game when a logbook is attached
+        (Phase 7c); False skips the call.
+    debrief_effort, debrief_max_tokens
+        The debrief's own effort and room: a reflective task, unlike a
+        move, gets ``medium`` and 4096 by default.
     """
 
     model: str = DEFAULT_MODEL
@@ -65,6 +80,9 @@ class LLMSettings:
     recent_remarks: int = 8
     speak: bool = True
     server_fallbacks: bool = True
+    debrief: bool = True
+    debrief_effort: str = "medium"
+    debrief_max_tokens: int = 4096
 
     def to_dict(self) -> dict:
         return dict(vars(self))
@@ -144,6 +162,11 @@ class LLMCharacter:
         self._pending: list = []
         self.transcript: list = []
         self.decisions: list = []
+        self.table: list = []
+        self.logbook = None
+        self.memory_block = ""
+        self.entries_written = 0
+        self.last_debrief: dict = {}
         self.llm_calls = 0
         self.llm_seconds = 0.0
         self.input_tokens = 0
@@ -197,20 +220,104 @@ class LLMCharacter:
         self.rng.seed(None if seed is None else f"clude_llm:{seed}")
         self.new_game()
 
-    def new_game(self) -> None:
-        """Clear the transcript, the audit and the per-game budget; the
-        arena calls this between games (the totals keep accumulating)."""
+    def new_game(self, table=None) -> None:
+        """Clear the transcript, the audit and the per-game budget, and
+        pass `table` (roster labels by seat, Phase 7) to the character;
+        the arena calls this before every game (the totals keep
+        accumulating)."""
         self.transcript = []
         self._pending = []
         self.decisions = []
+        self.table = list(table) if table is not None else []
         self.game_calls = 0
         self.game_tokens = 0
+        self.character.new_game(table)
+        self.memory_block = self.read_back()
 
     def observe(self, transition: Any) -> None:
         self.character.observe(transition)
 
     def system_prompt(self) -> str:
         return self._system
+
+    # -- the logbook (Phase 7c) ---------------------------------------------
+
+    def attach_logbook(self, logbook) -> None:
+        """Give the character its `Logbook`: read back at each `new_game`
+        at the `memory` dial's depth, written by `debrief`."""
+        self.logbook = logbook
+        self.memory_block = self.read_back()
+
+    def read_back(self) -> str:
+        """The memory block for the current table: the logbook rendered
+        at `profile.memory`, with the dossiers of the opponents present
+        (every dossier when no table is known); empty with no logbook."""
+        if self.logbook is None:
+            return ""
+        return self.logbook.memory(self.profile.memory, opponents_of(self.table, self.name))
+
+    def debrief(self, record, seat: int) -> Optional[LogbookEntry]:
+        """After a game, ask the model for this game's logbook entry and
+        store it. Returns the entry, or None when no logbook is attached,
+        `settings.debrief` is off, or the call failed (the reason is in
+        `last_debrief`, as a decision's fallback would be). Tokens count
+        toward the game just played; call before `new_game`. Draws no
+        random numbers.
+
+        Parameters
+        ----------
+        record : GameRecord
+            The finished game, omniscient.
+        seat : int
+            The seat this character occupied.
+        """
+        if self.logbook is None:
+            self.last_debrief = {"called": False, "fallback": "no logbook"}
+            return None
+        if not self.settings.debrief:
+            self.last_debrief = {"called": False, "fallback": "debrief off"}
+            return None
+        head = self.logbook.head()
+        entries = self.logbook.entries()
+        request = LLMRequest(
+            system=self._system,
+            user=debrief_prompt(record, seat, self.character, self.decisions, head, entries),
+            schema=schema_for(LOGBOOK_KIND),
+            kind=LOGBOOK_KIND,
+            effort=self.settings.debrief_effort,
+            max_tokens=self.settings.debrief_max_tokens,
+        )
+        started = time.perf_counter()
+        try:
+            result = self.backend.complete(request)
+        except Exception as exc:  # any backend failure means no entry, never a crash
+            result = LLMResult(error=f"{type(exc).__name__}: {exc}")
+        if not result.seconds:
+            result.seconds = time.perf_counter() - started
+        self._account(result)
+        cost = {
+            "input_tokens": result.input_tokens, "output_tokens": result.output_tokens,
+            "cached_tokens": result.cached_tokens, "seconds": result.seconds,
+        }
+        if not result.ok:
+            reason = "refusal" if result.stop_reason == "refusal" else (
+                f"error: {result.error or result.stop_reason or 'empty reply'}"
+            )
+            self.last_debrief = {"called": True, "fallback": reason, **cost}
+            return None
+        try:
+            written = parse_response(LOGBOOK_KIND, result.text)
+        except ValueError as exc:
+            self.last_debrief = {"called": True, "fallback": f"malformed: {exc}", **cost}
+            return None
+        entry = LogbookEntry.build(
+            self.logbook.identity, self.logbook.next_serial(), record, seat,
+            resolve_opponents(written, record, seat), model=result.model or self.settings.model,
+        )
+        self.logbook.add_entry(entry)
+        self.entries_written += 1
+        self.last_debrief = {"called": True, "fallback": None, "serial": entry.serial, **cost}
+        return entry
 
     # -- SpeakingPlayer ------------------------------------------------------
 
@@ -289,6 +396,7 @@ class LLMCharacter:
             ),
             schema=schema_for(kind),
             kind=kind,
+            memory=self.memory_block,
         )
         started = time.perf_counter()
         try:
@@ -379,6 +487,7 @@ class LLMCharacter:
             "fallbacks": self.fallbacks,
             "deviations": self.deviations,
             "remarks": self.remarks_made,
+            "entries": self.entries_written,
             "input_tokens": self.input_tokens,
             "output_tokens": self.output_tokens,
             "cached_tokens": self.cached_tokens,

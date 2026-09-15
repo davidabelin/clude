@@ -134,6 +134,30 @@ class BanditAgent(SeededAgentMixin):
         self._last_predictions = {}
         self._selected = next(iter(self.arms))
 
+    def state_dict(self) -> dict:
+        """The Beta posteriors, JSON-ready: ``{"arms": {name: [alpha,
+        beta]}}``. Phase 7 memory keeps this in Green's logbook between
+        runs."""
+        return {"arms": {name: [c.alpha, c.beta] for name, c in self.candidates.items()}}
+
+    def load_state(self, state: dict) -> int:
+        """Restore posteriors from a `state_dict`, for the arms that
+        exist and pairs that are positive; other arms keep their prior.
+        Call after `reset`, which wipes them. Returns how many arms were
+        restored."""
+        restored = 0
+        for name, pair in (state or {}).get("arms", {}).items():
+            if name not in self.candidates:
+                continue
+            try:
+                alpha, beta = float(pair[0]), float(pair[1])
+            except (TypeError, ValueError, IndexError):
+                continue
+            if alpha > 0.0 and beta > 0.0:
+                self.candidates[name] = _Candidate(alpha, beta)
+                restored += 1
+        return restored
+
     def select_action(self, obs: ClueObservation) -> ClueBelief:
         """Query every arm, sample each arm's Beta posterior, and return
         the belief of whichever arm sampled highest."""

@@ -1,6 +1,7 @@
 """Personality profiles: the numeric dials that turn a character's
-belief into choices (Phase 5c), plus the two Phase 6 dials that govern
-how an LLM pilots the same character.
+belief into choices (Phase 5c), the two Phase 6 dials that govern how
+an LLM pilots the same character, and the Phase 7 dial that sets how
+much of its own logbook it reads back before a game.
 
 A `Profile` is all-numeric and slider-ready. Each dial owns exactly one
 engine decision and is meant to move exactly one arena metric
@@ -16,10 +17,12 @@ monotonically in a sweep gets cut, not tuned.
 | `temperature` | all three sampled decisions | softmax temperature over scores in [0, 1]; 0 = greedy | win rate (down as it rises) |
 | `leash` | every LLM-piloted decision (Phase 6) | how far below its method's best-scored option an LLM character may pick: 0 = only the headless pick, 1 = any legal option; also widens the accusation window symmetrically around `accuse_threshold` | deviation rate; wrong-accusation rate against the headless twin |
 | `chattiness` | table talk (Phase 6) | P(a line the LLM offered is actually said) | remarks per game |
+| `memory` | logbook read-back (Phase 7) | how much of its own logbook an LLM-piloted character reads before a game: 0 = the head only (standing instructions, dossiers on the opponents present, tally), 0.5 = plus every entry's summary and flags, 1 = every entry in full | tokens per game; win rate against depth |
 
 How the first five are consumed is in `clude_agents.character`; the
-headless `Character` ignores `leash` and `chattiness`, which only
-`clude_llm.LLMCharacter` reads (docs/phase6-plan.md). The six presets
+headless `Character` ignores `leash`, `chattiness` and `memory`, which
+only `clude_llm.LLMCharacter` reads (docs/phase6-plan.md,
+docs/phase7-plan.md). The six presets
 below are the intended flavors from CLAUDE.md as a first pass, tuned in
 Phase 5e against the arena (`docs/strategy-glossary.md`); the two Phase 6
 dials start at their defaults for everyone until 6d's sweep. Mustard and
@@ -33,13 +36,16 @@ from dataclasses import dataclass, replace
 
 DIALS: tuple = (
     "accuse_threshold", "bluff_rate", "curiosity", "secrecy", "temperature", "leash", "chattiness",
+    "memory",
 )
-UNIT_DIALS: tuple = ("accuse_threshold", "bluff_rate", "curiosity", "secrecy", "leash", "chattiness")
+UNIT_DIALS: tuple = (
+    "accuse_threshold", "bluff_rate", "curiosity", "secrecy", "leash", "chattiness", "memory",
+)
 
 
 @dataclass(frozen=True)
 class Profile:
-    """One character's dial settings. All fields are floats; the six in
+    """One character's dial settings. All fields are floats; the seven in
     `UNIT_DIALS` must lie in [0, 1], `temperature` must be >= 0.
 
     Raises
@@ -55,6 +61,7 @@ class Profile:
     temperature: float = 0.1
     leash: float = 0.25
     chattiness: float = 0.5
+    memory: float = 0.0
 
     def __post_init__(self) -> None:
         for name in UNIT_DIALS:

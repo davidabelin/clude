@@ -21,9 +21,9 @@ clude/
     features.py        # shared room-choice features and softmax sampling
     character.py       # Character(agent, profile): the four engine decisions
     explain.py         # plain-text views of a seat's knowledge: CLI, LLM prompt, later UI
-  clude_llm/           # Phase 6 (in progress): menus, personas, LLM backends, LLMCharacter
-  clude_training/      # self-play snapshots, belief benchmark, replay, arena, sweeps
-  clude_storage/       # game records; local and Cloud Storage record stores
+  clude_llm/           # Phase 6: menus, personas, LLM backends, LLMCharacter; Phase 7: the debrief (logbook.py)
+  clude_training/      # self-play snapshots, belief benchmark, trace, arena, sweeps; Phase 7: replay.py, memory.py
+  clude_storage/       # game records and logbooks; local and Cloud Storage stores
   clude_web/           # Flask/Cloud Run app, chat, UI (phase 8+, not started)
   scripts/             # clude_cli.py
   tests/
@@ -39,7 +39,12 @@ else; `clude_constraints` imports `clude_core`; `clude_training.self_play`
 imports both but never `clude_agents`; `clude_agents` imports all three;
 `clude_training.benchmark/trace/arena/sweep` and `clude_storage` sit on
 top. `clude_training/__init__.py` stays empty of submodule imports so
-Mustard's tree can depend on `self_play` without a cycle.
+Mustard's tree can depend on `self_play` without a cycle. Phase 7
+added `clude_training.replay` (imports `clude_storage`,
+`clude_constraints`, `self_play`) and `clude_training.memory` (imports
+the agents, `clude_storage` and `replay`); `clude_llm.logbook` imports
+`clude_training.replay` for a seat's live view, and `clude_training.arena`
+imports `clude_llm` and `memory` above them all.
 
 ## Environment
 
@@ -472,6 +477,58 @@ prompt surfaces as a `ReplayMiss`. `open_backend` resolves the CLI's
 `RemarkEvent`, rather than through `ClueObservation`; if a belief method
 ever wants to read table talk, that is the point to revisit.
 
+## Memory: the logbooks (Phase 7)
+
+Planned in `docs/phase7-plan.md` (David's three decisions are recorded
+there); the working guide is `docs/logbooks.md`. One `Logbook` per
+identity (a `SeatRecord.label`: a character name whichever token it
+plays, later a human's display name), stored beside the records under
+`logbooks/<identity>/` in the same local or `gs://` store, holding
+three tiers of memory:
+
+- **Tier 0, the record.** `GameRecord`, omniscient. `clude_training.replay`
+  now does what `records.py` promised: `state_from_record` folds the
+  event log back into the engine's `GameState` (a suggestion drags the
+  named token into the room without a `MoveEvent`, so that step is
+  applied too), `seat_view` gives any seat's masked view at any point,
+  and `snapshots_from_record` the same `Snapshot`s self-play would have
+  yielded. `play --store` writes a single game's record.
+- **Tier 1, method memory** (`method.json`, `clude_training.memory`):
+  numeric, headless, no model. Mustard's tree trains on
+  `rows_from_view` rows from every seat's view of every stored game on
+  top of his self-play base; White's chain for a known opponent starts
+  from that opponent's transition frequencies at the Laplace prior's
+  own mass (`prior_cells`), so only the chain's starting shape is
+  informed; Green's Beta posteriors are saved after every game and
+  restored after `reset`. Documents are keyed by game id, so an
+  incremental `update` and a `rebuild` from a whole store agree.
+  Scarlett, Plum and Peacock are memoryless by construction.
+- **Tier 2, narrative memory** (`entries/NNNN.json`, `head.json`,
+  `clude_storage.logbooks`, `clude_llm.logbook`): a zenbot-shaped entry
+  per game, written by the character's own model at a debrief that
+  sees the whole deal face up, plus a rolling head (tally, standing
+  instructions, a dossier per opponent met, a flag index) that only the
+  opponents present at a game have touched by its entry.
+
+The `memory` dial on `Profile` (default 0) sets how much of its logbook
+an LLM-piloted character reads before a game: the head at 0, plus an
+index of entries (summary and flags) up to 0.5, plus whole entries
+above that, every entry at 1. The block goes as a **second cached
+system block** (`LLMRequest.memory`): stable for a game, so cached
+after one write, while the persona block stays the cross-game prefix.
+An empty logbook sends no block and leaves the request, its replay key
+and the API call exactly Phase 6's, which keeps every recorded fixture
+valid. The block only steers the model among the options its leash
+allows; it never widens a menu.
+
+Every character gets `new_game(table)` before a game (White's
+`set_table` is how his priors find their seats) and, with a logbook
+store, `clude_training.memory.load_into` after `reset`; after a game
+`memory.update` and, for LLM seats, `LLMCharacter.debrief`. A read-only
+mode reads and writes nothing, so a sweep (always read-only) compares
+dial values on one logbook state. Determinism is "per seed and logbook
+state": with no logbook nothing moves, and every golden holds.
+
 ## Self-play regimes: `RandomBot` and `FloorBot` (Phase 5b)
 
 `clude_constraints.FloorBot` is the standard self-play opponent: a
@@ -528,11 +585,14 @@ Every game can be written as a `clude_storage.GameRecord`: seats (label,
 suspect token, kind, profile dials), the deal, the full omniscient event
 log, and the outcome; the run summary goes beside them. `RECORD_VERSION`
 is 2 since Phase 6a, when `RemarkEvent`s joined the event log; version-1
-documents load unchanged. Phase 7's
-logbooks are meant to read these -- a seat's own view is rebuilt from
-`events` with `ClueObservation.for_player`'s redaction rule -- and
-`docs/architecture.md`'s Seat/identity model expects `SeatRecord.label`
-to grow a human identity rather than be replaced.
+documents load unchanged, and Phase 7 added no version: entries live in
+the logbooks and reference a record by game id. Phase 7's logbooks read
+these records -- a seat's own view is rebuilt from `events` by
+`clude_training.replay` with `ClueObservation.for_player`'s redaction
+rule -- and `SeatRecord.label` is the identity a logbook is keyed by,
+which a human's display name is expected to join rather than replace.
+`play --store` writes a single game as game 0 of a run with a one-game
+summary, so `store` lists it.
 
 ## Cloud Storage
 
@@ -685,6 +745,16 @@ phase needs a breaking change later.
   Mustard's tree and White's Markov model train on layer 1; the
   personality/chat layer (Phase 8) reads layer 2 to recognize a known
   human by their established read.
+
+  **As built (Phase 7):** the two layers are `entries/NNNN.json` and
+  `head.json` under `logbooks/<identity>/`, keyed by `SeatRecord.label`
+  as proposed, plus a third document, `method.json`, for the numeric
+  memory. One departure: Mustard and White train on the game
+  *records* (Tier 0), not on the entries, since the entry is narrative
+  and the record is the data. A human's dossier will follow their
+  label across seats with no further work; what Phase 8 must do is
+  write the display name into `label`. See "Memory: the logbooks"
+  above and `docs/logbooks.md`.
 
 ## Open questions
 

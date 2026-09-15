@@ -33,6 +33,13 @@ The tree is trained lazily on first use and cached at module level
 (keyed by its hyperparameters), so repeated `DecisionTreeAgent()`
 construction -- e.g. inside Green's ensemble, `clude_agents/bandit.py`
 -- doesn't retrain from scratch each time.
+
+Phase 7 memory: `extra_rows` (or `set_extra_rows`) appends rows built by
+`rows_from_view` from stored games to the self-play base before
+training. `clude_training.memory` keeps those rows in Mustard's logbook
+and loads them at table setup; a tree with memory is built per agent,
+not cached, and an agent with no extra rows uses the cached default, so
+nothing changes when memory is off.
 """
 from __future__ import annotations
 
@@ -95,16 +102,25 @@ def _features(obs: ClueObservation, mask, card: str, category: list) -> tuple:
     )
 
 
+def rows_from_view(obs: ClueObservation, envelope: tuple) -> list:
+    """Mustard's training rows for one masked view paired with its game's
+    truth: one ``(features, label)`` per card the floor has not located,
+    labelled 1 if the card is the envelope's. The unit of both self-play
+    training and Phase 7's method memory (`clude_training.memory`)."""
+    mask = obs.mask
+    rows: list = []
+    for category in CATEGORIES:
+        for card in category:
+            if mask.holder_of(card) is not None:
+                continue
+            rows.append((_features(obs, mask, card, category), 1 if card in envelope else 0))
+    return rows
+
+
 def _generate_training_rows(n_games: int, seed: int, checkpoints: tuple, bot: str) -> list:
     rows: list = []
     for snap in generate_snapshots(n_games, seed, checkpoints=checkpoints, bot=bot):
-        mask = snap.obs.mask
-        for category in CATEGORIES:
-            for card in category:
-                if mask.holder_of(card) is not None:
-                    continue
-                label = 1 if card in snap.envelope else 0
-                rows.append((_features(snap.obs, mask, card, category), label))
+        rows.extend(rows_from_view(snap.obs, snap.envelope))
     return rows
 
 
@@ -332,6 +348,9 @@ class DecisionTreeAgent(SeededAgentMixin):
     smoothing_m : float
         m-estimate weight for leaf values; 0 restores plain means (and
         hard zeros).
+    extra_rows : iterable of (features, label) or None
+        Memory rows (Phase 7) appended to the self-play base before
+        training; see `rows_from_view` and `set_extra_rows`.
     """
 
     name = "Mustard"
@@ -345,6 +364,7 @@ class DecisionTreeAgent(SeededAgentMixin):
         min_samples_leaf: int = DEFAULT_MIN_SAMPLES_LEAF,
         training_bot: str = DEFAULT_TRAINING_BOT,
         smoothing_m: float = DEFAULT_SMOOTHING_M,
+        extra_rows=None,
     ) -> None:
         super().__init__()
         self.n_training_games = n_training_games
@@ -354,19 +374,41 @@ class DecisionTreeAgent(SeededAgentMixin):
         self.min_samples_leaf = min_samples_leaf
         self.training_bot = training_bot
         self.smoothing_m = smoothing_m
+        self._extra_rows: list = [(tuple(x), int(y)) for x, y in (extra_rows or [])]
         self._tree: "Optional[_TreeNode]" = None
+
+    def set_extra_rows(self, rows) -> None:
+        """Replace the memory rows and forget the trained tree, so the
+        next belief retrains on the self-play base plus `rows` (an empty
+        `rows` returns to the cached default tree)."""
+        self._extra_rows = [(tuple(x), int(y)) for x, y in (rows or [])]
+        self._tree = None
+
+    @property
+    def n_extra_rows(self) -> int:
+        """How many memory rows the tree is (or will be) trained with."""
+        return len(self._extra_rows)
 
     def _ensure_trained(self) -> _TreeNode:
         if self._tree is None:
-            self._tree = _cached_tree(
-                self.n_training_games,
-                self.training_seed,
-                self.checkpoints,
-                self.max_depth,
-                self.min_samples_leaf,
-                self.training_bot,
-                self.smoothing_m,
-            )
+            if self._extra_rows:
+                base = training_rows(
+                    self.n_training_games, self.training_seed, self.checkpoints, self.training_bot
+                )
+                self._tree = _build_tree(
+                    base + self._extra_rows, depth=0, max_depth=self.max_depth,
+                    min_samples_leaf=self.min_samples_leaf, smoothing_m=self.smoothing_m,
+                )
+            else:
+                self._tree = _cached_tree(
+                    self.n_training_games,
+                    self.training_seed,
+                    self.checkpoints,
+                    self.max_depth,
+                    self.min_samples_leaf,
+                    self.training_bot,
+                    self.smoothing_m,
+                )
         return self._tree
 
     @property
@@ -392,6 +434,8 @@ class DecisionTreeAgent(SeededAgentMixin):
         return ClueBelief(probabilities=mask_and_normalize(raw, mask))
 
     def observe(self, transition: Any) -> None:
-        """No-op -- trained once from self-play at construction time;
-        there is no online retraining from live outcomes."""
+        """No-op -- trained once from self-play (plus any memory rows)
+        when first asked; there is no online retraining from live
+        outcomes. Between games, `clude_training.memory` feeds stored
+        records back through `set_extra_rows`."""
         return None

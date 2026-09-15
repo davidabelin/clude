@@ -25,8 +25,9 @@ disk unless you pass `--json` or `--store`.
 | `train-mustard` | What tree do these hyperparameters give, and does it help? | 3-4 |
 | `snapshots` | What does the self-play training/benchmark data look like? | 4-5 |
 | `arena` | Who wins, who accuses wrongly, who leaks, over N full games -- and, with `--llm`, what the model's rope cost each character? | 5, 6 |
-| `sweep` | Does one dial move a metric monotonically? (`--llm` for the two Phase 6 dials.) | 5, 6 |
+| `sweep` | Does one dial move a metric monotonically? (`--llm` for the Phase 6 dials; `--logbook` for `memory`.) | 5, 6, 7 |
 | `store` | What runs are in a record store, local or in the bucket? | 5 |
+| `logbook` | What has a character remembered: its entries, its head, its method memory, and the block it would read at a given `memory` depth? | 7 |
 
 The three one-game commands (`play`, `trace`, `floor`) share
 `--players` (3-6, default 4), `--seed` (default 1), `--max-turns`
@@ -104,6 +105,22 @@ to a subset of the roster. With `--verbose`, remarks print inline as
 seat's decisions, calls, fallbacks, deviations (a played option that
 scored below the character's best), remarks, tokens and seconds.
 
+```
+python scripts/clude_cli.py play --roster Plum,Mustard,Green --players 3 --store data/llm
+python scripts/clude_cli.py play --roster Plum,Mustard,Green --players 3 --store data/llm --logbook
+python scripts/clude_cli.py play --roster Plum,Mustard,Green --players 3 --llm --llm-characters Plum --store data/llm --logbook
+```
+
+`--store URI` (Phase 7) writes the game's record as game 0 of a run
+named by `--run-id` (default `play-<seed>-<timestamp>`), with a
+one-game run summary so `store` lists it. `--logbook [URI]` gives every
+character its logbook from that store (with no URI, the `--store`
+location): method memory is loaded before the game and updated after
+it, and an LLM-piloted seat reads its logbook back at its `memory`
+dial's depth and writes an entry at the end (`docs/logbooks.md`). The
+trailer says whose memory was updated and which entries were written.
+`--logbook-readonly` reads and writes nothing.
+
 ## `prompt`
 
 ```
@@ -127,6 +144,12 @@ another character in that seat. Positions are the finished game's, so
 This is the review tool for two things: reading what a character is
 told before editing its persona file, and checking that nothing in the
 user prompt is information the seat could not have.
+
+`--logbook URI` (Phase 7) also prints the memory block the character
+would read from its logbook in that store, as the third part (it
+travels as a second cached system block); `--memory DEPTH` overrides
+the character's `memory` dial for it. With nothing to read back the
+command says so.
 
 ## `trace`
 
@@ -331,6 +354,12 @@ default `DecisionTreeAgent` (used by the registry and by Green's arm)
 is trained with the defaults printed by `--help`; this command never
 changes that, it only trains a separate instance.
 
+`--logbook URI` (Phase 7) also trains on Mustard's method memory in
+that store (`logbook rebuild --identity Mustard` builds it from every
+stored game), and the training-set line says how many memory rows from
+how many games joined the base. Run it with and without the flag to
+see what memory changes.
+
 ## `snapshots`
 
 ```
@@ -448,6 +477,14 @@ without `--llm` plays the same deals and dice, so the difference in
 `--llm-backend null` reproduces the plain run exactly and is the
 control. See `docs/llm-wrapper.md`.
 
+`--logbook [URI]` and `--logbook-readonly` (Phase 7) work as for
+`play`: every character's memory is loaded before each game and, unless
+read-only, updated after it, with LLM seats debriefing; the LLM table
+gains an `entries` column and the footer names the logbook store. With
+memory on, a run is a learning curve rather than independent games, so
+compare runs on one seed with the logbooks in the same state,
+read-only. `--json` keeps the per-game lines for that.
+
 ## `sweep`
 
 ```
@@ -480,6 +517,10 @@ every run).
 `--llm` (with the same flags as `arena`) sweeps with the characters
 LLM-piloted; `sweep --dial leash --llm` is the keep-a-dial test for the
 leash, and the table gains `deviate%` and `talk/g` columns.
+`--logbook [URI]` (Phase 7) reads every character's logbook from that
+store at every value and writes nothing, so the sweep stays paired;
+`sweep --dial memory --llm --logbook data/llm` is how the `memory` dial
+is swept on one logbook state.
 
 ## `store`
 
@@ -491,11 +532,37 @@ python scripts/clude_cli.py store --uri gs://clude-game-data/arena
 
 Lists the runs in a record store and how many game records each has, or
 prints one run's stored per-player summary. Local stores are directories
-(`runs/<run_id>.json`, `games/<run_id>/<index>.json`); `gs://` stores
-use the same keys as objects in the bucket, authenticated with the
-service-account key described in `docs/architecture.md` ("Cloud
-Storage"). Records are omniscient (every hand, every card shown) and
-are the input Phase 7's logbooks will read.
+(`runs/<run_id>.json`, `games/<run_id>/<index>.json`, and since Phase 7
+`logbooks/<identity>/...`); `gs://` stores use the same keys as objects
+in the bucket, authenticated with the service-account key described in
+`docs/architecture.md` ("Cloud Storage"). Records are omniscient (every
+hand, every card shown) and are what the logbooks' method memory and
+debriefs read.
+
+## `logbook`
+
+```
+python scripts/clude_cli.py logbook list --uri data/llm
+python scripts/clude_cli.py logbook show --uri data/llm --identity Plum
+python scripts/clude_cli.py logbook show --uri data/llm --identity Plum --entry 3
+python scripts/clude_cli.py logbook show --uri data/llm --identity Plum --memory 0.75
+python scripts/clude_cli.py logbook rebuild --uri data/llm --identity Mustard
+python scripts/clude_cli.py logbook reset --uri data/llm --identity Plum --keep-entries
+```
+
+Phase 7's memory, per identity (`docs/logbooks.md`). `list` prints
+every logbook in a store with its tally, dossier and flag counts and a
+line on its method memory. `show` prints the head (tally, standing
+instructions, every dossier) and an index of the entries; `--entry N`
+one entry as text (`--raw` for its JSON); `--memory DEPTH` exactly the
+block a character with that `memory` dial would read before a game.
+`rebuild` recomputes the head from the entries and the method memory
+from every game record in the store (`--from URI` for another store):
+the bootstrap for Mustard and White from the games already in
+`data/llm`, and the recovery path; Green's posteriors are accumulated
+live and cannot be rebuilt. `reset` is the fairness control: it forgets
+the head and method memory, and the entries too unless
+`--keep-entries`.
 
 ## Adding a subcommand
 

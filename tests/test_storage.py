@@ -24,7 +24,7 @@ from clude_storage import (
     split_gcs_uri,
 )
 from clude_storage.records import RECORD_VERSION
-from clude_storage.stores import game_key, run_key, validate_run_id
+from clude_storage.stores import game_key, run_key, validate_key, validate_prefix, validate_run_id
 
 
 def _finished_game(seed=4, n_players=4):
@@ -101,6 +101,42 @@ def test_keys_and_run_ids():
             validate_run_id(bad)
     with pytest.raises(ValueError):
         game_key("ok", -1)
+    assert validate_key("logbooks/Plum/entries/0001.json") == "logbooks/Plum/entries/0001.json"
+    assert validate_prefix("logbooks/Plum/") == "logbooks/Plum"
+    assert validate_prefix("") == ""
+    for bad in ("logbooks/Plum", "logbooks/../x.json", "/abs.json", "a//b.json", "sp ace.json"):
+        with pytest.raises(ValueError):
+            validate_key(bad)
+
+
+def _exercise_documents(store):
+    """The generic document surface (Phase 7) on either backend."""
+    assert store.list_docs("logbooks") == [] and store.list_folders("logbooks") == []
+    assert store.delete_doc("logbooks/Plum/head.json") is False
+    store.put_doc("logbooks/Plum/head.json", {"serial": 2})
+    store.put_doc("logbooks/Plum/entries/0002.json", {"serial": 2})
+    store.put_doc("logbooks/Plum/entries/0001.json", {"serial": 1})
+    store.put_doc("logbooks/White/head.json", {"serial": 0})
+    assert store.get_doc("logbooks/Plum/head.json") == {"serial": 2}
+    assert store.list_folders("logbooks") == ["Plum", "White"]
+    assert store.list_docs("logbooks/Plum") == ["head"]
+    assert store.list_folders("logbooks/Plum") == ["entries"]
+    assert store.list_docs("logbooks/Plum/entries") == ["0001", "0002"]
+    assert store.list_docs("logbooks/Plum/entries/") == ["0001", "0002"]
+    assert store.delete_doc("logbooks/Plum/entries/0001.json") is True
+    assert store.list_docs("logbooks/Plum/entries") == ["0002"]
+    with pytest.raises(KeyError):
+        store.get_doc("logbooks/Plum/entries/0001.json")
+    with pytest.raises(ValueError):
+        store.put_doc("logbooks/Plum/entries/0003", {})
+    # The run/game documents are visible through the same surface.
+    store.put_run("r1", {"n_games": 0})
+    assert store.list_docs("runs") == ["r1"]
+    assert "logbooks" in store.list_folders("") and "runs" in store.list_folders("")
+
+
+def test_local_store_generic_documents(tmp_path):
+    _exercise_documents(LocalStore(tmp_path / "records"))
 
 
 def test_local_store_round_trip(tmp_path):
@@ -133,6 +169,9 @@ class _FakeBlob:
 
     def download_as_text(self):
         return self.bucket.objects[self.name][0]
+
+    def delete(self):
+        del self.bucket.objects[self.name]
 
 
 class _FakeBucket:
@@ -174,6 +213,11 @@ def test_gcs_store_uses_the_same_layout_under_a_prefix():
         store.get_run("missing")
     assert store.describe() == "gs://clude-game-data/arena"
     assert GcsStore("b", client=client).describe() == "gs://b"
+
+
+def test_gcs_store_generic_documents_with_and_without_a_prefix():
+    _exercise_documents(GcsStore("clude-game-data", "arena", client=_FakeClient()))
+    _exercise_documents(GcsStore("clude-game-data", client=_FakeClient()))
 
 
 def test_open_store_dispatches_on_the_uri():
