@@ -47,8 +47,11 @@ def test_events_round_trip_through_json():
         data = event_to_json(event)
         json.dumps(data)
         assert event_from_json(data) == event
-    cell = engine.board.HallwayCell("Kitchen", "Ballroom", 2)
-    assert node_from_json(node_to_json(cell)) == cell
+    square = engine.board.Square(7, 4)
+    assert node_to_json(square) == {"row": 7, "col": 4}
+    assert node_from_json(node_to_json(square)) == square
+    legacy = engine.board.HallwayCell("Kitchen", "Ballroom", 2)  # a ring-era record still loads
+    assert node_from_json(node_to_json(legacy)) == legacy
     assert node_from_json(node_to_json("Study")) == "Study"
     with pytest.raises(TypeError):
         event_to_json("not an event")
@@ -65,7 +68,7 @@ def test_remarks_round_trip_and_version_one_records_still_load():
     state, events = _finished_game()
     with_talk = [*events[:-1], remark, events[-1]]
     record = GameRecord.from_game("run-b", 0, 4, state, with_talk, _seats(state))
-    assert record.version == RECORD_VERSION == 2
+    assert record.version == RECORD_VERSION == 3
     back = GameRecord.from_dict(json.loads(json.dumps(record.to_dict())))
     assert back.events == with_talk
     assert back.winner == record.winner

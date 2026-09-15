@@ -25,7 +25,7 @@ from clude_agents.character import Character
 from clude_agents.naive_bayes import NaiveBayesAgent
 from clude_agents.personality import DIALS, PRESETS, Profile
 from clude_core import engine
-from clude_core.board import HallwayCell
+from clude_core.board import HallwayCell, Square
 from clude_core.domain import ALL_CARDS, ROOMS, SUSPECTS, WEAPONS, Suggestion
 from clude_core.engine import MoveChoice
 from clude_core.events import GameOverEvent, MoveEvent, RemarkEvent
@@ -198,7 +198,7 @@ def test_menus_draw_no_rng_and_the_leash_bounds_what_is_allowed():
     choices = [
         MoveChoice("move", "Ballroom"),
         MoveChoice("move", "Kitchen"),
-        MoveChoice("move", HallwayCell("Kitchen", "Ballroom", 2)),
+        MoveChoice("move", Square(7, 4)),
     ]
     before = tight.rng.getstate()
 
@@ -208,7 +208,7 @@ def test_menus_draw_no_rng_and_the_leash_bounds_what_is_allowed():
     assert menu.options[0].action == MoveChoice("move", "Kitchen") and menu.top is menu.options[0]
     assert menu.single() is menu.options[0]
     assert [o.score for o in menu.options] == sorted((o.score for o in menu.options), reverse=True)
-    assert menu.options[0].text == "enter the Kitchen" and "hallway between" in menu.options[-1].text
+    assert menu.options[0].text == "enter the Kitchen" and "corridor square" in menu.options[-1].text
     assert all(o.allowed for o in movement_menu(loose, obs, choices).options)
 
     suggestion = suggestion_menu(tight, obs)
@@ -321,7 +321,7 @@ def test_disallowed_letters_and_an_exhausted_budget_fall_back():
     choices = [
         MoveChoice("move", "Kitchen"),
         MoveChoice("move", "Ballroom"),
-        MoveChoice("move", HallwayCell("Kitchen", "Ballroom", 2)),
+        MoveChoice("move", Square(7, 4)),
     ]
     wrapped = _wrapped(Profile(leash=0.3, temperature=0.0), [], settings=LLMSettings(max_calls_per_game=1))
     menu = movement_menu(wrapped.character, obs, choices)
@@ -414,7 +414,7 @@ def test_random_letters_play_a_legal_game_and_the_table_hears_each_other():
     for suggestion in state.suggestion_log:
         if suggestion.refuter is not None:
             assert suggestion.card_shown in state.hands[suggestion.refuter]  # reveal integrity
-    assert all(isinstance(e.destination, (str, HallwayCell)) for e in events if isinstance(e, MoveEvent))
+    assert all(isinstance(e.destination, (str, Square)) for e in events if isinstance(e, MoveEvent))
     played = [d for w in wrappers.values() for d in w.decisions if d.called and d.fallback is None]
     assert played, "some random letters must land on allowed options"
     remarks = [e for e in events if isinstance(e, RemarkEvent)]

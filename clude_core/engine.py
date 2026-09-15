@@ -164,23 +164,34 @@ def setup(n_players: int, rng: random.Random, suspects=None) -> GameState:
         envelope=envelope,
         positions=positions,
         active=[True] * n_players,
+        summoned=[False] * n_players,
     )
 
 
 def legal_moves(state: GameState, player: int, roll: int) -> list[MoveChoice]:
-    """Every legal movement option for `player` given this turn's roll."""
+    """Every legal movement option for `player` given this turn's roll.
+
+    In a room: "stay" only if a suggestion moved the token there since
+    its last turn (`GameState.summoned`), the secret passage if the room
+    has one, and every destination `board.reachable` allows under the
+    Classic rules (the whole roll, no re-entering the room just left).
+    In the corridor: every such destination. A token with no legal step
+    (boxed in, or a room whose door squares are all occupied and no
+    passage) gets a single "stay" where it is.
+    """
     pos = state.positions[player]
     room = board.room_of(pos)
     choices: list[MoveChoice] = []
 
     if room is not None:
-        choices.append(MoveChoice("stay", room))
+        if state.summoned and state.summoned[player]:
+            choices.append(MoveChoice("stay", room))
         passage_target = board.SECRET_PASSAGES.get(room)
         if passage_target is not None:
             choices.append(MoveChoice("secret_passage", passage_target))
 
     occupied = frozenset(
-        p for p in state.positions.values() if isinstance(p, board.HallwayCell)
+        p for p in state.positions.values() if isinstance(p, board.Square)
     )
     # Sorted for a process-independent order before any caller indexes
     # into this list with a seeded RNG -- see `board.node_sort_key`.
@@ -222,7 +233,10 @@ def resolve_suggestion(
 
     for p, name in enumerate(state.suspects_in_play):
         if name == suspect:
-            state.positions[p] = room
+            if state.positions[p] != room:
+                state.positions[p] = room
+                if state.summoned:
+                    state.summoned[p] = True  # may stay and suggest here on its next turn
             break
 
     named = {suspect, weapon, room}
@@ -332,6 +346,8 @@ def run_game(
         turns_taken += 1
         roll = rng.randint(1, 6)
         choices = legal_moves(state, player, roll)
+        if state.summoned:
+            state.summoned[player] = False  # the right to stay lasts one turn, used or not
         obs = observer(state, player)
         choice = bots[player].choose_movement(obs, choices, rng)
         apply_move(state, player, choice)

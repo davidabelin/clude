@@ -33,6 +33,11 @@ class GameState:
     envelope: tuple[str, str, str]
     positions: dict[int, Node]
     active: list[bool]
+    # True for a seat whose token a suggestion moved into a room since its
+    # last turn: it may stay there and suggest (board.py, Rules). Empty
+    # for a state built without it (older tests, replay), which reads as
+    # all False.
+    summoned: list[bool] = field(default_factory=list)
     turn: int = 0
     suggestion_log: list[Suggestion] = field(default_factory=list)
     accusation_log: list[Accusation] = field(default_factory=list)

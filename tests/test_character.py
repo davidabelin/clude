@@ -145,9 +145,9 @@ def test_secretive_character_reshows_the_card_this_player_has_seen():
 def test_incurious_character_enters_a_room_when_it_can():
     obs = _fresh_obs()
     choices = [
-        engine.MoveChoice("move", engine.board.HallwayCell("Kitchen", "Ballroom", 2)),
+        engine.MoveChoice("move", engine.board.Square(8, 9)),
         engine.MoveChoice("move", "Ballroom"),
-        engine.MoveChoice("move", engine.board.HallwayCell("Kitchen", "Ballroom", 3)),
+        engine.MoveChoice("move", engine.board.Square(8, 10)),
     ]
     homebody = _character(Profile(curiosity=0.0, temperature=0.0))
     for _ in range(10):
@@ -236,24 +236,26 @@ def test_movement_scores_and_accusation_test_are_pure():
 # Event-log fingerprints of seeded character games, captured on the
 # Phase 5 code immediately before Phase 6a split scoring from sampling
 # and re-captured on 2026-09-14 when characters were locked to their
-# own tokens (`seat_lineup`): every seat moved, so every game did.
+# own tokens (`seat_lineup`): every seat moved, so every game did; and
+# again on 2026-09-15 when the ring board gave way to the Classic grid
+# and rules (`docs/board-plan.md`), which moved every game once more.
 # They pin the character layer the way `tests/test_engine.py`'s goldens
 # pin the rules engine: a change here means a character's behaviour
 # moved, which no Phase 6 work is supposed to do. Regenerate
 # deliberately if a method or a preset is meant to change.
 GOLDEN_CHARACTER_GAMES = {
     (23, 5, ("Scarlett", "Peacock", "Mustard", "White")): (
-        "88d81450fcf1bc8c626b9795e4c96bfb51c22c732cf1dfdb8165c93d63b51707", 72,
+        "3ef05cd41317619ed82411e70633aed0d2463c5add2e1d1d1edbf83ad373930b", 50,
     ),
     (9, 3, ("Scarlett", "White", "Mustard")): (
-        "a2eb02a68f4f5485fd01c9b465e0f9a24f204172d32dd801dd8acb679dccc4e9", 25,
+        "ba1b9c48e89beca34df2010db716881f75143afcfd056b466f741acd00117247", 173,
     ),
     (31, 4, ("Peacock", "Scarlett")): (
-        "ae7393291b281ec3f2d03f3ec0f2e786de7bbb03464d03ece3a6fc33ce9d88bb", 42,
+        "bd5c46703ea3ae0e07a6a298d7f4fce45770002868a8b8d12587791a223be056", 62,
     ),
 }
 GOLDEN_FOUR_CHARACTER_GAME = (
-    "a0b46c990a84d544832f9853f40b9e1e94b20dc1bfa866f820507a33d90fbc56", 69,
+    "bda8a34137a283e15e68b43c3f1c77eaff09fd60e02ee0907fa0e9fbd527d827", 183,
 )
 
 

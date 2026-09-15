@@ -126,7 +126,10 @@ def _player_label(state, player: int, labels=None) -> str:
 
 
 def _node_label(node) -> str:
-    """A room name, or ``Kitchen~Ballroom[2]`` for a hallway cell."""
+    """A room name, ``(7,4)`` for a corridor square, or
+    ``Kitchen~Ballroom[2]`` for a ring-era cell from an old record."""
+    if isinstance(node, board.Square):
+        return f"({node.row},{node.col})"
     if isinstance(node, board.HallwayCell):
         return f"{node.room_a}~{node.room_b}[{node.k}]"
     return str(node)

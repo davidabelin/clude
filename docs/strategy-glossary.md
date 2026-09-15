@@ -9,6 +9,15 @@ Belief encoding used throughout: each agent returns a distribution over the
 against the shared deduction floor (`clude_constraints`). Reading `belief[c]`
 is "probability card `c` is in the envelope" unless noted otherwise.
 
+**Every measurement below dated before 2026-09-15 was made on the ring
+board** (nine rooms in a cycle, four-cell corridors, "up to" the roll, a
+free "stay" every turn; `docs/board.md`, "History"). That day the engine
+moved to the Classic grid and rules, which changes game length, room
+visits and the parking mechanism, so those numbers describe the old
+game and the presets tuned on it are provisional. `docs/remeasure-plan.md`
+schedules the re-run; each step appends a dated section here beside the
+one it supersedes.
+
 ## Scarlett -- Naive Bayes
 
 - Module: `clude_agents/naive_bayes.py`

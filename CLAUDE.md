@@ -13,7 +13,20 @@ phase's plan doc ends with an "as implemented" section that records what
 was actually built and where it departed from the plan: trust that over
 the plan sections above it, and over this file if they disagree.
 
-## Status (2026-09-14)
+## Status (2026-09-15)
+
+**2026-09-15: the board was rebuilt.** The engine now plays the
+Classic 24 x 25 grid with the real doors, passages and start squares,
+under the Classic movement rules (whole roll unless a room is entered,
+no re-entry, "stay" only after a suggestion dragged you in), measured
+from `docs/ux/sample_board_A.png` into `docs/ux/board_map.txt` and
+`clude_core/board.py`. Plan and record: `docs/board-plan.md`; guide:
+`docs/board.md`. Every golden was re-captured on purpose; the two LLM
+fixtures still need a paid re-recording (about $0.35), until which the
+two replay tests fail (256 passed, 2 skipped otherwise, ~95 s). Every
+number in the glossary predates the grid; `docs/remeasure-plan.md`
+schedules the re-run, headless first (free), then paid steps each
+needing a yes. The UX pass (below) is where things stood before that.
 
 Phases 1-6 of `docs/phase-plan.md` are done and committed. Phase 7
 (logbooks) was planned, built (7a-7c, on fake backends) and
@@ -31,8 +44,8 @@ half over the run (37 to 3 in the last quarter on the same deals) at
 the price of two early accusations, so wins are a wash. Phase 7 is
 complete. Next David wants a UX design pass before Phase 8 (Flask/Cloud Run front end, then chat, then
 human seats). There is no UI and no chat yet: everything runs headless
-through `scripts/clude_cli.py`. The suite is 247 tests passing and 2
-skipped (the two live-credential tests), ~47 s.
+through `scripts/clude_cli.py`. The suite was then 247 tests passing and
+2 skipped (the two live-credential tests), ~47 s.
 
 Phase 7 in short (the plan doc has the detail):
 
@@ -205,6 +218,17 @@ it; `docs/phase-plan.md` has the disposition of every file.
   re-recorded that day. Every measurement before it (Phase 5 sweeps,
   the Phase 6 twin arena and ladders) rotated characters through
   seats.
+- **The Classic board and rules (2026-09-15).** The engine and the
+  players play Board A (`docs/ux/sample_board_A.png`): the 24 x 25
+  grid, 17 doors, two passages, six start squares, the cellar
+  impassable. One die; the whole roll unless a room is entered; no
+  re-entering the room just left; "stay" only when a suggestion moved
+  the token in since its last turn; the image stands for the unplayable
+  edge cells; ring-era records stay readable. The game will display
+  that board with its grid, decorated more ornately than the graph
+  diagram in `sample_board_B.png`, with a logo, not the big "?", in the
+  middle. Then everything in the glossary is re-measured
+  (`docs/remeasure-plan.md`).
 - **Commit messages are printed in the reply, never written into
   `commit_msg.md`** by me (David declined that, 2026-09-13).
 
@@ -241,7 +265,8 @@ Invariants to keep:
   every character's belief after the fact (`trace`).
 - Every game is deterministic per seed. `tests/test_character.py` holds
   golden fingerprints of seeded character games (re-captured on
-  2026-09-14 for fixed seating); a scoring change that moves a game
+  2026-09-14 for fixed seating and on 2026-09-15 for the Classic
+  board); a scoring change that moves a game
   must update them on purpose, never by accident.
 - The LLM wrapper chooses only within the leash of the character's own
   scores and falls back to the character on anything illegal, malformed
@@ -284,12 +309,13 @@ Suggestions to raise, not decisions to implement.
 
 ## Open questions (ask, don't assume)
 
-One, for the UX pass or Phase 8: whether to change `movement_scores`
-now. The logbook was the hypothesis David wanted tried first; measured
-at leash 0.5 it halves Plum's stalls but cannot act at the preset
-leash 0.25, where the escape is never on his menu, and it brought early
-accusations. The scoring change remains the only fix at the preset
-(it changes headless Plum and the goldens). Resolved 2026-09-13: leash presets stand; the parking
+One, now for after the re-measurement: whether `movement_scores` still
+needs changing. On the ring the logbook (David's first hypothesis)
+halved Plum's stalls at leash 0.5 but could not act at the preset
+0.25, and the scoring change was the only fix there. The Classic stay
+rule (2026-09-15) removed the free "stay" the parking lived on, so the
+question is open again until Plum is re-measured on the grid
+(`docs/remeasure-plan.md`, step 2b). Resolved 2026-09-13: leash presets stand; the parking
 fix waits behind logbooks; `docs/zenbot_memories.json` is the logbook
 model; no writing into `commit_msg.md`. Resolved 2026-09-14: the three
 Phase 7 decisions above; the UX design pass comes between Phase 7 and
@@ -381,7 +407,15 @@ Phase 8.
   measured costs.
 - `docs/logbooks.md` -- playerbot memory: the three tiers, the `memory`
   dial, the debrief, the CLI, cost.
-- `docs/cli.md` -- every subcommand. `docs/board.md` -- board topology.
+- `docs/cli.md` -- every subcommand.
+- `docs/board.md` -- the Classic board as measured, the doors, the
+  rules, what the module exposes, and the ring it replaced.
+- `docs/board-plan.md` -- the board rebuild: plan, David's decisions,
+  and "as implemented". `docs/remeasure-plan.md` -- the costed plan to
+  re-run every glossary measurement on the grid.
+- `docs/ux/` -- the UX pass: the two reference boards, `board_map.txt`
+  (the source of truth for `clude_core/board.py`), and `replay/`, the
+  four replay-screen direction sketches on the design canvas.
 - `docs/docstring-guidelines.md` -- docstring conventions.
 - `docs/pre_stage_5.md` -- the "Fab4" review that reworked Phase 5
   against the code as it was; historical.

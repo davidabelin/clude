@@ -224,7 +224,14 @@ terminal, so a token could only ever leave a room by secret passage
 (every earlier self-play game piled up in one room for that reason); and
 a hallway token boxed in by other tokens had no legal move at all, where
 Clue simply has it stay put (`legal_moves` now offers ``stay`` in that
-case). The golden fingerprints were regenerated once, after those fixes.
+case). The golden fingerprints were regenerated once, after those fixes,
+and again on 2026-09-15 when the ring board was replaced by the Classic
+24 x 25 grid and rules (`docs/board.md`, `docs/board-plan.md`): positions
+are `Square(row, col)` or a room, the whole roll must be used unless a
+room is entered, and "stay" is offered only to a token a suggestion
+dragged into its room (`GameState.summoned`). Records written before
+that day still load: their ring cells come back as the legacy
+`HallwayCell`.
 
 Phase 6a added one optional extension to the seam without touching
 `PlayerProtocol`: a seat that also implements `SpeakingPlayer`
@@ -364,7 +371,7 @@ split:
   go) and `proximity` (1 for a room this turn, else `1 / (1 + steps to
   the nearest room)`). Arithmetic over shared inputs, safe to share like
   `ConstraintResult` is. `board.room_distances` (breadth-first over
-  hallways, rooms and secret passages) is the distance measure.
+  corridor squares, rooms and secret passages) is the distance measure.
 - **Not shared -- the decision itself.** `choose_destination(obs,
   legal_moves, room_features, profile) -> MoveChoice` is per-agent. The
   default on `SeededAgentMixin` scores each choice as

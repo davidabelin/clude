@@ -18,7 +18,11 @@ to the next phase.
 
 Design work on aesthetics/UX was meant to run in parallel with the
 model phases (1-4). It did not, and is now its own pass between Phase 7
-and Phase 8 (David, 2026-09-14).
+and Phase 8 (David, 2026-09-14). On 2026-09-15, before that pass drew
+the board, the engine's ring simplification was replaced by the Classic
+grid and rules (`docs/board-plan.md`, `docs/board.md`); every
+measurement before it was on the ring, and `docs/remeasure-plan.md`
+schedules the re-run.
 
 ## Legacy code disposition
 

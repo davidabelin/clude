@@ -1,0 +1,77 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "A · Scrubber (leading)"
+    },
+    {
+      "file": "DirectionB.dc.html",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "B · Case file"
+    },
+    {
+      "file": "DirectionC.dc.html",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "C · Race"
+    },
+    {
+      "file": "DirectionD.dc.html",
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "D · Table"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "brief",
+      "x": 0,
+      "y": -360,
+      "w": 780,
+      "text": "Post-game replay on a phone: four directions, one real moment.\nSeed 7007, Mustard / Green / Plum, turn 10 of 11. Green solves it next turn: Peacock, Rope, Study.\nThe bar: one strip per category; every still-plausible card is a segment as wide as that seat's belief. Solid = proven by the floor. Red mark = the truth, which only the replay knows.\nThe bar, the board and the scrubber are the same parts in a different order in each direction, so mixing is fair game."
+    },
+    {
+      "id": "note-a",
+      "x": 0,
+      "y": -170,
+      "w": 390,
+      "text": "A · Scrubber. Time first: one moment, every seat side by side.\nFor: comparing the three methods at the same instant is the whole point.\nAgainst: three seats fit a phone; six will need scrolling or thinner bars."
+    },
+    {
+      "id": "note-b",
+      "x": 470,
+      "y": -170,
+      "w": 390,
+      "text": "B · Case file. One seat, deep: its method, its evidence, its bar, its would-be accusation.\nFor: reads like the logbook, and has room for each method's own numbers (deals left, arms, plausibility).\nAgainst: comparing seats means swiping between tabs."
+    },
+    {
+      "id": "note-c",
+      "x": 940,
+      "y": -170,
+      "w": 390,
+      "text": "C · Race. The whole game as one picture: who had placed what, when. The cursor drills into a turn.\nFor: the payoff in one glance, and it scales to six seats.\nAgainst: abstract; the board is gone. Open question: what the y-axis is. Cards placed (drawn here) or belief in the true answer."
+    },
+    {
+      "id": "note-d",
+      "x": 1410,
+      "y": -170,
+      "w": 390,
+      "text": "D · Table. Watch it again as a game: the board leads, the numbers follow, the suggestion is spoken.\nFor: closest to the feel of playing; table talk and the chat rail belong here.\nAgainst: the belief detail is small; a merged strip per seat is all that fits."
+    }
+  ],
+  "launch": {
+    "view": "focused",
+    "file": "DirectionB.dc.html"
+  }
+}

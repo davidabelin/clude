@@ -35,10 +35,15 @@ def test_setup_hand_sizes_are_balanced():
     assert sizes[-1] - sizes[0] <= 1  # round-robin deal, at most 1 apart
 
 
-def test_legal_moves_in_room_include_stay_carrying_the_room():
+def test_legal_moves_in_room_offer_stay_only_to_a_summoned_token():
+    """Classic rule: a token may stay and suggest only when another
+    player's suggestion moved it into the room since its last turn."""
     rng = random.Random(0)
     state = engine.setup(3, rng)
     state.positions[0] = "Kitchen"
+    assert engine.MoveChoice("stay", "Kitchen") not in engine.legal_moves(state, 0, roll=3)
+    assert all(c.kind != "stay" for c in engine.legal_moves(state, 0, roll=3))
+    state.summoned[0] = True
     choices = engine.legal_moves(state, 0, roll=3)
     assert engine.MoveChoice("stay", "Kitchen") in choices
     engine.apply_move(state, 0, engine.MoveChoice("stay", "Kitchen"))
@@ -61,6 +66,8 @@ def test_resolve_suggestion_moves_suspect_token_into_room():
     engine.resolve_suggestion(state, suggester=0, suspect="White", weapon="Rope", bots=bots, rng=rng)
     white_player = state.suspects_in_play.index("White")
     assert state.positions[white_player] == "Library"
+    assert state.summoned[white_player]  # may stay and suggest there on its next turn
+    assert not state.summoned[0]  # the suggester was already in the room
 
 
 def test_resolve_suggestion_finds_refuter_holding_a_named_card():
@@ -125,29 +132,43 @@ def test_run_game_ends_with_at_most_one_correct_accusation():
 # observation per decision consumes no RNG, so the Phase 5a seam was
 # verified byte-identical against fingerprints captured on the Phase 4
 # engine; these were then regenerated once, after the Phase 5b board fix
-# (tokens can leave a room through its doors, `board.reachable`). They
-# must not change again unless the rules or the event types themselves
-# do -- regenerate deliberately if so.
+# (tokens can leave a room through its doors, `board.reachable`), and
+# again on 2026-09-15 when the ring board was replaced by the Classic
+# grid and rules (`docs/board-plan.md`). They must not change again
+# unless the rules or the event types themselves do -- regenerate
+# deliberately if so.
 GOLDEN_GAMES = {
-    (1, 4): ("434625ef232005d025be29ab1dcf396fb84359245862dc015e8f8c9deaafd8a8", 242),
-    (2, 3): ("a3464fbfbc0235266913b9ded78d9ed0caafdb4ec1733f0311b7fb955a315d84", 128),
-    (3, 5): ("78094521508e4d4045b0313498530f060b5fdf32c280de70a32ae0ec54218961", 138),
-    (4, 6): ("7e614dcbe123df83d92d61bad5387e92b262bd6e121ec6cd4c6ee4cce99004c0", 241),
-    (42, 4): ("e8a5f7dbefbdda544070929905fcdd54248f6a5fdf89e895d31f8ae0ba70ce2a", 174),
+    (1, 4): ("72dfa754d120be46f99bd14aa24b39f132225eb0270083bbe1ddfe130971d5d5", 68),
+    (2, 3): ("8896c8999affb4a996baea17381c55f9f17354021557f052653fc43470d5d211", 53),
+    (3, 5): ("7f67caf5202062f3313987322e8ac5e69eba2246a3d065a7d85d224b28f1c855", 123),
+    (4, 6): ("64bde24a2b371381d4acde5a9b28212d2b10c1c9674ea68175b86c84007ebd91", 136),
+    (42, 4): ("b85b4685ee4e0e58058b6deff32b9fe4c93fa6096a9eec27da14731e0f4d68aa", 141),
 }
 
 
-def test_boxed_in_hallway_token_may_stay():
+def test_boxed_in_corridor_token_may_stay():
     rng = random.Random(0)
     state = engine.setup(3, rng)
-    cell = board.HallwayCell("Kitchen", "Ballroom", 2)
+    cell = board.Square(24, 16)  # the dead-end square between the Hall and the Study
     state.positions[0] = cell
-    state.positions[1] = board.HallwayCell("Kitchen", "Ballroom", 1)
-    state.positions[2] = board.HallwayCell("Kitchen", "Ballroom", 3)
+    state.positions[1] = board.Square(23, 16)  # its only neighbour
     choices = engine.legal_moves(state, 0, roll=6)
     assert choices == [engine.MoveChoice("stay", cell)]
     engine.apply_move(state, 0, choices[0])
     assert state.positions[0] == cell
+
+
+def test_a_corridor_token_must_use_its_whole_roll():
+    rng = random.Random(0)
+    state = engine.setup(3, rng)
+    state.positions[0] = board.Square(7, 4)  # outside the Kitchen door
+    state.positions[1] = board.Square(1, 7)  # the others well away
+    state.positions[2] = board.Square(1, 8)
+    choices = engine.legal_moves(state, 0, roll=2)
+    destinations = {c.destination for c in choices}
+    assert "Kitchen" in destinations  # entering a room ends the move early
+    assert board.Square(7, 3) not in destinations  # one step is not a two
+    assert all(c.kind == "move" for c in choices)
 
 
 @pytest.mark.parametrize("seed,n_players", sorted(GOLDEN_GAMES))
@@ -204,7 +225,7 @@ class _Probe(RandomBot):
 
 def test_engine_hands_each_seat_its_own_fresh_observation():
     probes = {p: _Probe(p) for p in range(4)}
-    engine.run_game(4, probes, seed=3, max_turns=60)
+    engine.run_game(4, probes, seed=7, max_turns=60)  # seed 7: twenty shows on the grid board
     assert sum(p.checked for p in probes.values()) > 10
 
 

@@ -31,7 +31,7 @@ from typing import Any, Optional
 from clude_agents.character import Character, cards_exposed, show_scores, suggestion_candidates
 from clude_agents.features import ChoiceFeatures
 from clude_constraints import ENVELOPE
-from clude_core.board import HallwayCell
+from clude_core.board import HallwayCell, Square
 from clude_core.domain import SUSPECTS, WEAPONS
 from clude_core.state import ClueObservation
 
@@ -152,7 +152,9 @@ def _leash_of(character: Character, leash: Optional[float]) -> float:
 
 
 def _node_text(node) -> str:
-    if isinstance(node, HallwayCell):
+    if isinstance(node, Square):
+        return f"the corridor square at row {node.row}, column {node.col}"
+    if isinstance(node, HallwayCell):  # legacy ring position, replayed records only
         return f"the hallway between the {node.room_a} and the {node.room_b}"
     return f"the {node}"
 

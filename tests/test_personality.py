@@ -72,11 +72,11 @@ def test_room_distances_use_hallways_and_secret_passages():
     from_kitchen = room_distances("Kitchen")
     assert from_kitchen["Kitchen"] == 0
     assert from_kitchen["Study"] == 1  # secret passage
-    assert from_kitchen["Ballroom"] == board.HALLWAY_LENGTH + 1
-    cell = board.HallwayCell("Kitchen", "Ballroom", 1)
+    assert from_kitchen["Ballroom"] == 7  # the door square, five along, the Ballroom's west door
+    cell = board.Square(7, 4)  # outside the Kitchen door
     from_cell = room_distances(cell)
     assert from_cell["Kitchen"] == 1
-    assert from_cell["Ballroom"] == board.HALLWAY_LENGTH
+    assert from_cell["Ballroom"] == 6
     assert set(from_cell) == set(ROOMS)
 
 
@@ -90,7 +90,7 @@ def test_room_features_land_now_or_head_for_the_best_discounted_room():
     belief = _belief({"Kitchen": 0.6, "Ballroom": 0.4})
     choices = [
         MoveChoice("move", "Ballroom"),
-        MoveChoice("move", board.HallwayCell("Kitchen", "Ballroom", 1)),
+        MoveChoice("move", board.Square(7, 4)),  # outside the Kitchen door
     ]
     landing, hallway = room_features(None, belief, choices)
     assert landing.room == "Ballroom" and landing.proximity == 1.0
@@ -105,7 +105,7 @@ def test_score_choices_blends_by_curiosity():
     belief = _belief({"Kitchen": 0.6, "Ballroom": 0.4})
     choices = [
         MoveChoice("move", "Ballroom"),
-        MoveChoice("move", board.HallwayCell("Kitchen", "Ballroom", 1)),
+        MoveChoice("move", board.Square(7, 4)),  # outside the Kitchen door
     ]
     features = room_features(None, belief, choices)
     greedy_for_rooms = score_choices(features, Profile(curiosity=0.0))
@@ -130,7 +130,7 @@ def test_sample_softmax_is_greedy_at_zero_temperature_and_random_when_hot():
 def test_pick_destination_prefers_a_room_when_incurious():
     belief = _belief({"Kitchen": 0.6, "Ballroom": 0.4})
     choices = [
-        MoveChoice("move", board.HallwayCell("Kitchen", "Ballroom", 1)),
+        MoveChoice("move", board.Square(7, 4)),  # outside the Kitchen door
         MoveChoice("move", "Ballroom"),
     ]
     features = room_features(None, belief, choices)

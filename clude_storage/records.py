@@ -22,7 +22,10 @@ identities are not here yet; `SeatRecord.label` is the roster label
 extend rather than replace.
 
 `RECORD_VERSION` history: 1 (Phase 5d) the shape above without remarks;
-2 (Phase 6a) adds the ``remark`` event type. A version-1 document loads
+2 (Phase 6a) adds the ``remark`` event type; 3 (the board rebuild,
+2026-09-15) writes a corridor position as ``{row, col}`` on the Classic
+grid, where 1 and 2 wrote a ring cell as ``{room_a, room_b, k}``. A
+version-1 document loads
 unchanged, since it simply contains no remarks.
 """
 from __future__ import annotations
@@ -31,7 +34,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
 
-from clude_core.board import HallwayCell
+from clude_core.board import HallwayCell, Square
 from clude_core.domain import Accusation, Suggestion
 from clude_core.events import (
     AccusationEvent,
@@ -43,20 +46,28 @@ from clude_core.events import (
 )
 from clude_core.state import GameState
 
-RECORD_VERSION = 2
+RECORD_VERSION = 3
 
 
 def node_to_json(node):
-    """A room name as-is; a `HallwayCell` as ``{room_a, room_b, k}``."""
+    """A room name as-is; a `Square` as ``{row, col}``; a legacy
+    `HallwayCell` (only ever read back from a version-1 or -2 record)
+    as ``{room_a, room_b, k}``."""
     if isinstance(node, str):
         return node
+    if isinstance(node, Square):
+        return {"row": node.row, "col": node.col}
     return {"room_a": node.room_a, "room_b": node.room_b, "k": node.k}
 
 
 def node_from_json(data):
-    """Inverse of `node_to_json`."""
+    """Inverse of `node_to_json`. A ring-era cell loads as the legacy
+    `HallwayCell`, so a stored ring game still replays with its
+    positions (`clude_training.replay`)."""
     if isinstance(data, str):
         return data
+    if "row" in data:
+        return Square(int(data["row"]), int(data["col"]))
     return HallwayCell(data["room_a"], data["room_b"], int(data["k"]))
 
 

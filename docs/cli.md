@@ -59,8 +59,9 @@ python scripts/clude_cli.py play --roster Plum,Scarlett,Peacock,floor --verbose
 ```
 
 Plays one game and prints the outcome. `--verbose` prints the event log
-one line per move/suggestion/accusation, with hallway cells as
-`RoomA~RoomB[k]`; `--hands` appends the dealt hands (omniscient -- no
+one line per move/suggestion/accusation, with corridor squares as
+`(row,col)` on the Classic grid (`docs/board.md`; records from before
+2026-09-15 print their ring cells as `RoomA~RoomB[k]`); `--hands` appends the dealt hands (omniscient -- no
 agent ever sees these).
 
 ```
