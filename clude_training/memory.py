@@ -30,11 +30,12 @@ golden games golden.
 """
 from __future__ import annotations
 
-from typing import Optional
+from typing import NamedTuple, Optional
 
 from clude_agents.decision_tree import DEFAULT_CHECKPOINTS as MUSTARD_CHECKPOINTS, rows_from_view
 from clude_agents.markov import TRANSITION_KEYS, suggestion_patterns, transition_counts
 from clude_storage import GameRecord, Logbook
+from clude_storage.records import GRID_RECORD_VERSION
 from clude_training.replay import snapshots_from_record, state_from_record
 
 MEMORY_VERSION = 1
@@ -237,10 +238,36 @@ def update(logbook: Logbook, record: GameRecord, character) -> bool:
     return True
 
 
-def rebuild(logbook: Logbook, store, kind: str) -> int:
-    """Recompute a ``rows`` or ``counts`` document from every game record
+class Rebuilt(NamedTuple):
+    """What `rebuild` did: games absorbed, and records skipped as older
+    than its `min_version`."""
+
+    absorbed: int
+    skipped: int
+
+
+def rebuild(logbook: Logbook, store, kind: str, min_version: int = GRID_RECORD_VERSION) -> Rebuilt:
+    """Recompute a ``rows`` or ``counts`` document from the game records
     in `store` (every run folder under ``games/``, summaries or not) and
-    store it. Returns how many games it absorbed.
+    store it.
+
+    Parameters
+    ----------
+    logbook : Logbook
+        Whose ``method.json`` to replace.
+    store : store
+        Where the game records are read from.
+    kind : str
+        ``"rows"`` (Mustard) or ``"counts"`` (White).
+    min_version : int
+        Records older than this `RECORD_VERSION` are skipped. The default,
+        `GRID_RECORD_VERSION`, keeps ring-era games (versions 1 and 2) out
+        of a memory meant for the Classic grid; pass 1 to absorb every era.
+
+    Returns
+    -------
+    Rebuilt
+        Games absorbed and records skipped as too old.
 
     Raises
     ------
@@ -250,10 +277,13 @@ def rebuild(logbook: Logbook, store, kind: str) -> int:
     if kind == "state":
         raise ValueError("Green's posteriors are accumulated live; records cannot rebuild them")
     memory = empty_memory(kind)
-    absorbed = 0
+    absorbed = skipped = 0
     for run_id in store.list_folders("games"):
         for index in store.list_games(run_id):
-            record = GameRecord.from_dict(store.get_game(run_id, index))
-            absorbed += int(absorb(memory, record))
+            data = store.get_game(run_id, index)
+            if int(data.get("version", 1)) < min_version:
+                skipped += 1
+                continue
+            absorbed += int(absorb(memory, GameRecord.from_dict(data)))
     logbook.save_method(memory)
-    return absorbed
+    return Rebuilt(absorbed, skipped)

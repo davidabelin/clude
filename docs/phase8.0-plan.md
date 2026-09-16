@@ -1,18 +1,42 @@
-# Re-measurement Plan: the glossary on the Classic board (proposed 2026-09-15)
+# Phase 8.0 Plan: re-measuring the glossary on the Classic board
 
-Status: **Stages 0 and 1 done on 2026-09-15**, presets retuned and the
-confirmation arena run (results under "Re-measurement on the Classic
-board" in `docs/strategy-glossary.md`; the Stage 1e decisions are
-David's and are recorded under "Tuned presets on the grid"). **Stage 2
-is half run:** the free headless halves of the 2a and 2b pairs are in
-the store as `grid-twin-base-24` (24 games, 4 seats, the default six
-roster, mean 41.9 turns) and `grid-plum-base-24` (24 games, the 3-seat
-`Plum,Mustard,Green` table, mean 31.9 turns). The two paid halves have
-not run and are waiting on David. Neither headless run is written up
-yet: each is the pair half of a measurement that is not complete. Each paid stage needs its own yes
-from David, with the cost quoted as a range at the time (estimates have
-come in under twice). Every run goes through `--store data/llm` and
-`--json <scratchpad path>`.
+Proposed 2026-09-15 as the "Re-measurement Plan" (`docs/remeasure-plan.md`);
+renamed Phase 8.0 on 2026-09-16 (David). Its stages are numbered
+8.0.N: Stage 0 is 8.0.0, Stage 1 is 8.0.1 (steps 8.0.1a-g), and so on.
+The glossary's section titles keep the "Stage 1a" labels they were
+written with; they mean the same steps.
+
+Status (2026-09-16):
+
+- **8.0.0 and 8.0.1 done** (2026-09-15, closed 2026-09-16). Presets
+  retuned and the confirmation arena run: results under "Re-measurement
+  on the Classic board" in `docs/strategy-glossary.md`, the 8.0.1e
+  decisions under "Tuned presets on the grid". The board report (1g)
+  was re-run over the tuned arena and the two Stage 2 baselines on
+  2026-09-16, and the stall report checked against grid-era menus.
+- **8.0.2a and 8.0.2b done, $14.24 together** (David's yes,
+  2026-09-16, quoted $21-35; 2a $9.36, 2b $4.88; no fallbacks in either).
+  2a reproduces both ring twin findings in direction: an LLM table beats
+  Plum (37.5% to 6.2%) and Mustard's wrong accusations fall (31.2% to
+  6.2%). 2b found the parking alive in a new form, a passage loop the
+  leash hides from the model, which the trigger below could not see; the
+  trigger is withdrawn. What follows (2c, 2d, a `movement_scores` change,
+  or nothing) is David's decision (glossary, "Twin comparison on the
+  grid" and "Plum on the model on the grid").
+  The free headless halves are in the store as
+  `grid-twin-base-24` (24 games, 4 seats, the default six roster, mean
+  41.9 turns) and `grid-plum-base-24` (24 games, the 3-seat
+  `Plum,Mustard,Green` table, mean 31.9 turns), both at the retuned
+  presets; the paid halves run as `grid-twin-llm-24` and
+  `grid-plum-llm-24`. 2c and 2d each need their own yes.
+- **8.0.3 done** (David's decision, 2026-09-16): all four logbooks
+  reset after a copy to `data/llm/logbooks-ring`, and Mustard's and
+  White's method memory rebuilt from grid-era records only (Stage 3,
+  below).
+
+Each paid stage needs its own yes from David, with the cost quoted as a
+range at the time (estimates have come in under twice). Every run goes
+through `--store data/llm` and `--json <scratchpad path>`.
 
 ## 1. Why
 
@@ -62,7 +86,10 @@ laptop. **Ran 2026-09-15**: the benchmark 799 s, the sweeps 676-936 s
 each in parallel, the four arenas about 250 s each; all of it in
 under an hour of wall time on Orbit, records under `data/llm` as
 `sweep-grid-*`, `arena-grid-*`. The board report is
-`data/llm/board_report.py`.
+`data/llm/board_report.py`; on 2026-09-16 it was re-run over
+`arena-grid-tuned-24`, `grid-twin-base-24` and `grid-plum-base-24` so
+the paid stages have a baseline at the presets they run at (glossary,
+"How the game plays on the board").
 
 ### Stage 2, LLM-piloted (paid; a yes per step)
 
@@ -75,6 +102,46 @@ under an hour of wall time on Orbit, records under `data/llm` as
 | 2e Pooled leash sweep | $14.99 | skip | never: it could not see individual characters and the ladders superseded it |
 
 Minimum path (0, 1, 2a, 2b): about $14-27. Full path: about $50-100.
+The 2b quote assumed grid games run twice the ring's turns; the
+headless half says 1.33x on Plum's table (31.9 against 24.0), so 2b
+should land nearer the low end of its range.
+
+**What counts as a stall on the grid, and the trigger for 2c and 2d**
+(written 2026-09-16, before 2a and 2b finished). `parking_report.py`
+counts move calls where the model chose a room whose envelope
+probability is zero while an allowed option led toward a live one. On
+the ring nearly all of those were "stay"; on the grid "stay" exists
+only after a summons, so the same count now catches *entering* a
+cleared room over heading for a live one. The recorded grid fixtures
+already show the menu that makes it likely: "enter the Lounge"
+(P 0.00) scored 0.30, above a step toward the Dining (P 0.20) at 0.25,
+because `movement_scores` still pays for any room a suggestion can be
+made in this turn. The trigger, fixed before the results:
+
+- **2c Plum and 2d** are proposed if 2b shows any of: such calls in 10%
+  or more of Plum's move calls; three or more games with five or more
+  such calls; Plum's win% on the model more than 12 points (about one
+  binomial sigma at 24 games) below `grid-plum-base-24`.
+- **2c Mustard** is proposed only if Mustard's line in 2a moves against
+  `grid-twin-base-24` by more than one sigma on win% or wrong%.
+- Either way the numbers are written up; below the trigger, the
+  parking question is closed for the grid and the open question on
+  `movement_scores` in `CLAUDE.md` is answered "not needed".
+
+**Withdrawn the same day, after 2b.** The count above reuses
+`parking_report.py`, which only sees moves the model was *asked* about
+with an *allowed* live option. On the grid at leash 0.25 the escape
+toward a live room usually falls outside the leash, so the wrapper
+plays the parked move without asking. The trigger read 1 parked move in
+145, while Plum made 148 trips into a cleared room that ended in a
+suggestion he had already made, 108 of them never put to the model,
+riding the Study-Kitchen and Conservatory-Lounge passages and repeating
+half his suggestions (glossary, "Plum on the model on the
+grid"). By its letter no condition was met; the conclusion it promised
+("closed for the grid") does not follow, and I have not drawn it.
+`data/llm/loop_report.py` counts parked and wasted moves, asked and not asked.
+Which of 2c, 2d, a `movement_scores` change or nothing comes next is
+David's decision.
 
 ### Stage 3, memory (free, one decision)
 
@@ -87,6 +154,42 @@ and rebuild from grid-era records once Stage 2 has produced some
 recommendation is to reset once 2a and 2b are in the store, so the
 memory measured in future is grid memory.
 
+**Decided 2026-09-16 (David): reset all four**, not only the two
+method memories: Plum's entries and head (written on the ring during
+7d, whose standing instructions are about leaving rooms a free "stay"
+kept him in) and Green's posteriors (which no record can rebuild; he
+starts again from the prior). Two things were found on the way:
+
+- `logbook rebuild` read every record in the store, and `data/llm`
+  holds the ring games beside the grid ones, so a reset followed by a
+  rebuild would have re-absorbed the ring. `clude_training.memory.rebuild`
+  now takes `min_version` (default 3, the first grid record version;
+  `logbook rebuild --min-version`) and reports what it skipped.
+- `logbook reset` deletes, so `data/llm/logbooks` is copied to
+  `data/llm/logbooks-ring` first.
+
+The order: 2a and 2b land, copy, `logbook reset` for each of the four,
+`logbook rebuild` for Mustard and White.
+
+**Done 2026-09-16**, after both paid runs were stored. The copy in
+`data/llm/logbooks-ring` is byte-identical to what was reset (30 files:
+Plum's 24 entries and head; Mustard's 10,929 rows from 199
+games; White's chains from 193; Green's posteriors after 6 games). Both
+rebuilds read 1,322 grid-era games and skipped 249 ring-era records.
+Mustard now holds 116,311 rows (17 MB against 1.6 MB), White's chains
+cover every seat label including `floor`, and Plum and Green start
+empty.
+
+One consequence to know before memory is next switched on: Mustard
+retrains his tree on those rows when his logbook loads, which takes a
+3-seat `play` from 1 s to 30 s. 70% of the rows (81,252) come from the dial
+sweeps (floor-heavy tables at extreme dial values), not from games as
+the presets play them. Nothing measured today runs with memory on, and
+no golden or fixture reads a logbook; if the load time or the mix
+matters later (a web game with memory on, 8.2 onward), the options are
+rebuilding from a store holding only the arenas (`logbook rebuild
+--from`), capping the rows, or caching the trained tree.
+
 ## 3. What gets written
 
 Each step appends a dated section to `docs/strategy-glossary.md` in
@@ -98,6 +201,6 @@ above it and marked. The presets, if re-tuned, change in
 ## 4. Out of scope
 
 Any change to a method's algorithm, to `movement_scores`, or to the
-menu shape; those wait for what Stage 2b shows. Phase 8 and the UX pass
-are not gated on any of this except the board drawing, which is
-generated from the map and needs no measurement.
+menu shape; those wait for what Stage 2b shows. Phases 8.1-8.3 are not
+gated on any of this; the board drawing is generated from the map and
+needs no measurement.

@@ -244,11 +244,11 @@ separate, costed decision.
   into the Lounge; Plum wins on turn 30.
 - **B3, the record.** `docs/board.md` rewritten; `docs/architecture.md`,
   `docs/cli.md`, `docs/strategy-glossary.md` (dated note), `docs/phase-plan.md`
-  and `CLAUDE.md` updated; `docs/remeasure-plan.md` written (David's
+  and `CLAUDE.md` updated; `docs/phase8.0-plan.md` written (David's
   decision 7). The board SVG for the canvas is not yet generated.
 - **Suite:** 256 passed and 2 skipped once the fixtures are re-recorded;
   until then `test_recorded_llm_games_replay_offline` fails twice. The
   suite runs about 95 s: character games are longer on the grid, and
   the 120-turn four-character golden game alone takes 17 s.
 - **Not done:** the fixture re-recording (about $0.35, needs a yes), the
-  board SVG, and every measurement (`docs/remeasure-plan.md`).
+  board SVG, and every measurement (`docs/phase8.0-plan.md`).

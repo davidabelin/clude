@@ -85,6 +85,7 @@ from clude_llm import (
 )
 from clude_llm.anthropic_backend import estimate_cost
 from clude_storage import GameRecord, Logbook, SeatRecord, list_logbooks, open_store, render_entry
+from clude_storage.records import GRID_RECORD_VERSION
 from clude_training import memory as method_memory
 from clude_training.arena import (
     DEFAULT_MAX_TURNS as ARENA_MAX_TURNS,
@@ -1164,9 +1165,10 @@ def cmd_logbook_rebuild(args) -> int:
     elif kind == "state":
         print("method memory: Green's posteriors are accumulated live; records cannot rebuild them")
     else:
-        absorbed = method_memory.rebuild(logbook, source, kind)
+        absorbed, skipped = method_memory.rebuild(logbook, source, kind, min_version=args.min_version)
+        older = f" ({skipped} older than version {args.min_version} skipped)" if skipped else ""
         print(
-            f"method memory: rebuilt from {absorbed} game records in {source.describe()}: "
+            f"method memory: rebuilt from {absorbed} game records in {source.describe()}{older}: "
             f"{method_memory.describe_memory(logbook.method())}"
         )
     return 0
@@ -1456,6 +1458,10 @@ def build_parser() -> argparse.ArgumentParser:
     lb_rebuild.add_argument(
         "--from", dest="from_uri", default="",
         help="Store whose game records to absorb (default: the logbook's own store).",
+    )
+    lb_rebuild.add_argument(
+        "--min-version", type=int, default=GRID_RECORD_VERSION,
+        help="Skip records older than this version. 1 and 2 are ring-era, 3 the first on the Classic grid.",
     )
     lb_rebuild.set_defaults(fn=cmd_logbook_rebuild)
 

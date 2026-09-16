@@ -158,8 +158,11 @@ python scripts/clude_cli.py train-mustard --logbook data/llm --eval-games 8
 - `logbook reset` is the fairness control: forget the head and method
   memory, and the entries too unless `--keep-entries`. `rebuild`
   recomputes the head from the entries and the method memory from
-  every game record in a store (the bootstrap from the games already in
-  `data/llm`).
+  every grid-era game record in a store (the bootstrap from the games
+  already in `data/llm`). Since 2026-09-16 it skips records older than
+  `--min-version` (default 3, the first on the Classic grid), so ring
+  games cannot leak back into a reset memory; `--min-version 1` reads
+  every era.
 - The arena's LLM table gains an `entries` column; the footer says
   which store the logbooks came from and whether they were written.
 

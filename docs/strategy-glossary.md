@@ -14,9 +14,10 @@ board** (nine rooms in a cycle, four-cell corridors, "up to" the roll, a
 free "stay" every turn; `docs/board.md`, "History"). That day the engine
 moved to the Classic grid and rules, which changes game length, room
 visits and the parking mechanism, so those numbers describe the old
-game and the presets tuned on it are provisional. `docs/remeasure-plan.md`
-schedules the re-run; each step appends a dated section here beside the
-one it supersedes.
+game. The re-run is Phase 8.0 (`docs/phase8.0-plan.md`; its "Stage 1a"
+is step 8.0.1a, and so on): each step appends a dated section here
+beside the one it supersedes, and the presets were retuned on the grid
+on 2026-09-15 ("Tuned presets on the grid", below).
 
 ## Scarlett -- Naive Bayes
 
@@ -860,7 +861,7 @@ on 25, 6, 6, 3. Mean turns by quarter: off 36.0, 14.5, 22.5, 29.5; on
 
 ## Re-measurement on the Classic board (2026-09-15)
 
-`docs/remeasure-plan.md`, Stage 1: every headless measurement above,
+`docs/phase8.0-plan.md`, Stage 1: every headless measurement above,
 re-run on the Classic grid and rules (`docs/board.md`) with the same
 commands, seeds and sizes, on the presets as they stood. Every run's
 records are in `data/llm` under the run id named. Nothing here is
@@ -996,6 +997,47 @@ grid arena against a ring-era 3-seat run of the same size:
   visited: one door each, far from every start. The Billiard Room and
   the Library, unreachable in practice on the ring (7 and 6 entries),
   are ordinary rooms now.
+
+**The same report at the retuned presets (2026-09-16).** Re-run over
+the confirmation arena and the two headless baselines of 8.0.2, so the
+paid runs are compared with tables at the presets they play:
+
+| | `arena-grid-tuned-24` (3-6 seats) | `grid-twin-base-24` (4 seats) | `grid-plum-base-24` (3 seats) |
+|---|---|---|---|
+| turns per game | 53.9 (10 to 144) | 41.9 (20 to 117) | 31.9 (9 to 84) |
+| suggestions per game | 29.0 | 21.6 | 15.9 |
+| moves ending in a room / in the corridor | 600 / 597 | 449 / 488 | 360 / 384 |
+| secret passages taken | 229 | 191 | 158 |
+| tokens summoned by a suggestion | 353 | 178 | 73 |
+| stays in a room, of which after a summons | 97, 95 | 69, 69 | 21, 21 |
+| blocked turns | 0 | 0 | 0 |
+
+| Room | entries / suggestions, tuned arena | twin base | Plum base |
+|---|---|---|---|
+| Kitchen | 15 / 17 | 45 / 51 | 61 / 64 |
+| Ballroom | 104 / 122 | 62 / 71 | 30 / 31 |
+| Conservatory | 155 / 177 | 95 / 115 | 42 / 47 |
+| Billiard | 36 / 45 | 19 / 23 | 13 / 14 |
+| Library | 17 / 25 | 10 / 11 | 14 / 14 |
+| Study | 30 / 32 | 60 / 67 | 91 / 96 |
+| Hall | 16 / 19 | 27 / 34 | 34 / 36 |
+| Lounge | 153 / 169 | 89 / 95 | 45 / 45 |
+| Dining | 74 / 91 | 42 / 51 | 30 / 34 |
+
+- **Half the moves still end in the corridor** at the new presets, and
+  the tuned arena's thirteen extra turns a game go mostly to rooms (600
+  against 358 entries, and 597 against 528 corridor moves). Both
+  retunes lengthen games (Scarlett accuses later, Plum chases rooms
+  less), so the report cannot say which one bought the extra room
+  entries.
+- **Which passage loop dominates depends on the table.** With six
+  seats in play the Conservatory-Lounge loop takes 308 of 600 entries;
+  on Plum's 3-seat table (Mustard, Green, Plum) it is the Study-Kitchen
+  loop, 152 of 360.
+- **Still no free stay:** every stay in all three runs follows a
+  summons. What 8.0.2b has to look for instead is a model choosing to
+  *enter* a cleared room over heading for a live one
+  (`docs/phase8.0-plan.md`, Stage 2).
 
 ### Dial sweeps on the grid (Stage 1c)
 
@@ -1220,3 +1262,156 @@ mean 53.9 turns against 40.4 before.
   accusations: Scarlett waits for a higher bar and Plum chases rooms
   less. The first accusation now comes at turn 36-64 rather than 28-59.
   Nobody accuses wrongly except Scarlett, Mustard and Green, once each.
+
+### Twin comparison on the grid (Stage 2a, 2026-09-16)
+
+The grid-era twin of the Phase 6 twin comparison: `arena --seed 7007
+--games 24 --players 4`, the default six, headless (`grid-twin-base-24`)
+and with every character on the model (`grid-twin-llm-24`), same deals
+and dice. Each character plays 16 of the 24 games, now always in its
+own seat. Every game in both runs ended in a correct accusation.
+
+```
+arena --seed 7007 --games 24 --players 4 --llm --store data/llm --run-id grid-twin-llm-24
+```
+
+2913 s, **$9.36** (quoted $12-20). **No fallbacks** in 1018 calls
+across 2794 decisions.
+
+| | win% base | win% LLM | lost / gained | wrong% base | wrong% LLM | 1st_acc base | 1st_acc LLM | never% base | never% LLM |
+|---|---|---|---|---|---|---|---|---|---|
+| Scarlett | 6.2 | 6.2 | 1 / 1 | 25.0 | 31.2 | 41.0 | 38.2 | 68.8 | 62.5 |
+| Mustard | 12.5 | **31.2** | 1 / 4 | 31.2 | **6.2** | 39.1 | 34.2 | 56.2 | 62.5 |
+| White | 50.0 | 50.0 | 5 / 5 | 0.0 | 0.0 | 53.4 | 35.8 | 50.0 | 50.0 |
+| Green | 31.2 | 25.0 | 4 / 3 | 0.0 | 6.2 | 39.8 | 34.4 | 68.8 | 68.8 |
+| Peacock | 12.5 | 31.2 | 2 / 5 | 0.0 | 0.0 | 56.5 | 33.2 | 87.5 | 68.8 |
+| Plum | **37.5** | **6.2** | 6 / 1 | 0.0 | 0.0 | 29.0 | 40.0 | 62.5 | 93.8 |
+
+Mean game length 41.9 turns headless, 37.1 on the model. The binomial
+std is 6-12 points on 16 games: Plum's -31 is about 2.3 sigma, Mustard's
+wrong% -25 about 1.9, his win% +19 and Peacock's +19 about 1.3 each.
+
+| | decis | asked | fallb% | deviate% | talk/g | tok/g |
+|---|---|---|---|---|---|---|
+| Scarlett | 404 | 141 | 0.0 | 1.4 | 3.75 | 12507 |
+| Mustard | 506 | 200 | 0.0 | 4.5 | 4.44 | 18355 |
+| White | 424 | 161 | 0.0 | 5.6 | 4.06 | 14155 |
+| Green | 458 | 139 | 0.0 | 2.9 | 3.62 | 13142 |
+| Peacock | 532 | 178 | 0.0 | 3.4 | 4.38 | 17262 |
+| Plum | 470 | 199 | 0.0 | 4.5 | 4.62 | 19080 |
+
+**Both ring findings reproduce in direction, at a smaller size.**
+
+- **Plum loses to an LLM table again**: 37.5% to 6.2% here, 75% to 31%
+  on the ring. On the ring the whole story was the table: opponents
+  accused sooner and Plum's own first accusation barely moved. Here the
+  opponents again accuse sooner (White 53.4 to 35.8, Peacock 56.5 to
+  33.2), but Plum also accuses *later* (29.0 to 40.0) and not at all in
+  15 of 16 games, and on the model he repeats 30% of his suggestions
+  against 14% headless, with 34 wasted trips (27 never put to the
+  model; `loop_report.py`). So on the grid a faster table and his own
+  passage loop (Stage 2b, below) both work against him, and 16 games
+  cannot say in what proportion. Alone on the model (2b) he did not
+  lose ground, which fits the ring's reading that it takes an LLM table
+  to punish him.
+- **Mustard's wrong accusations fall again**: 31.2% to 6.2% (ring:
+  37.5% to 6.2%), with his win% up 19 points. On the ring the
+  per-character ladder showed this was the table, not the model
+  improving his choices: alone on the model he was *worse*. Nothing
+  here measures Mustard alone, so that reading is inherited, not
+  re-tested. He also loops on the model: 34% of his suggestions repeat
+  (10% headless), 31 wasted trips, 17 of them asked.
+- **Everyone else's first accusation comes earlier** (by 3 to 23
+  turns) and games are five turns shorter, as on the ring.
+- **Bluffing falls again, but not for everyone.** Suggestions naming
+  one of the seat's own cards: White 4.06 to 0.44, Scarlett 1.94 to
+  0.56, Peacock 1.56 to 0.62, Green 1.38 to 0.62, while Mustard (1.62
+  to 1.75) and Plum (1.12 to 1.19) hold steady. The two who do not
+  drop are the two who loop, and a loop through a room whose card you
+  hold names your own card on every pass, which likely accounts for
+  theirs. Cards actually leaked barely move (1.9-3.1 per game in both
+  runs).
+- **Against the pre-written condition for 2c Mustard** (his line moving
+  more than one sigma on win% or wrong%): it is met on wrong% (1.9
+  sigma) and on win% (1.3). Since the ring ladder already answered the
+  same question for the same pattern, whether to pay $10-20 to re-ask
+  it on the grid is David's call.
+
+### Plum on the model on the grid (Stage 2b, 2026-09-16)
+
+The grid-era twin of the Plum ladder's preset leg: fixed seating
+(Mustard, Green, Plum), seed 7007, 24 paired games, Plum alone on the
+model at the preset `leash` 0.25 and `memory` 0, the other two headless
+at preset. The headless half is `grid-plum-base-24`.
+
+```
+arena --games 24 --players 3 --roster Plum,Mustard,Green --seed 7007 --llm --llm-characters Plum --store data/llm --run-id grid-plum-llm-24
+```
+
+1395 s, **$4.88** (quoted $9-15). 1127 decisions, 467 of them asked,
+no fallbacks, 13 deviations from his top option (2.8% of the asked),
+5.4 remarks a game, 2.5 s a call.
+
+| run | win% | +- | wrong% | 1st accusation | never% | mean turns |
+|---|---|---|---|---|---|---|
+| `grid-plum-base-24` (headless) | 37.5 | 9.9 | 0 | 31.0 | 62.5 | 31.9 |
+| `grid-plum-llm-24` (on the model) | 54.2 | 10.2 | 0 | 34.8 | 45.8 | 42.6 |
+
+Paired by game, Plum lost 5 and gained 9 (net +4). Mustard's win%
+went 33.3 to 12.5 and Green's 29.2 to 33.3. On the ring the same leg
+cost Plum a little (62.5 headless, 58.3 on the model; characters
+still rotated through seats then).
+
+**The parking is not gone; it changed form, and the count the plan
+fixed in advance missed it.** `parking_report.py` counts moves the
+model was *asked* about in which it chose a room with zero envelope
+probability while an *allowed* option led toward a live one. It found
+1 in 145. `loop_report.py` (new) counts every such move, asked or not,
+with the live option anywhere on the menu. That plain count is an upper
+bound on stalling, since walking into a room whose card you hold is a
+fair way to test a suspect and a weapon; the *wasted* count keeps only
+the parked moves after which he repeated a suggestion he had already
+made, a trip that could learn nothing:
+
+| | parked, asked / not asked | wasted, asked / not asked | exact repeat suggestions | secret passages | games with 10+ repeats |
+|---|---|---|---|---|---|
+| ring, `ladder-plum-leash-0.25` | 73 / 20 | 56 / 5 | 62 of 210 (30%) | 28 | 2 |
+| grid headless, `grid-plum-base-24` | -- | -- | 47 of 187 (25%) | 97 | 2 |
+| grid on the model, `grid-plum-llm-24` | 54 / 149 | 40 / 108 | 148 of 291 (51%) | 195 | 5 |
+
+- **The mechanism is the ring's, with a passage instead of "stay".**
+  Game 8, turn 81: Plum is in the Kitchen, and only the room is left
+  open, the Conservatory or the Dining at 0.50 each. His menu scores
+  "take the secret passage to the Study" (P 0.00) at 0.50, because
+  `movement_scores` pays for any room he can suggest in this turn, and
+  the walk toward the Conservatory at 0.29. That is outside the 0.25
+  leash, so the model is never asked: the wrapper plays the one allowed
+  option. In the Study, whose card he holds, he suggests Mustard with
+  the Wrench and nobody can refute it; back through the passage in the
+  Kitchen he suggests it again and is shown the Kitchen again. From turn
+  72 to 121 he did nothing else, twenty suggestions, while the answer
+  was the Conservatory he would not walk to. Green won on turn 122
+  (headless, turn 45).
+- **Nearly three wasted trips in four were never put to the model**
+  (108 of 148). So the leash, not the model's judgement, keeps him
+  parked, and a logbook cannot help: it steers only among the options
+  the leash allows (`docs/logbooks.md`). On the ring it was the other
+  way round, 56 of 61 asked, and there were fewer than half as many.
+- **The headless character has the same habit, milder.** Headless Plum
+  repeats a quarter of his suggestions and rides passages 97 times: the
+  habit is in his scores, not in the model. Why the model doubles it
+  is not something 24 games can separate. His sampler (temperature
+  0.05) takes a 0.21-worse escape only about one time in 70, so sampling
+  alone is not the difference; the 13 deviations reshape the games
+  around him too.
+- **It costs the table more than it costs him.** The five loop games
+  run 55-179 turns; Plum lost three and won two. His net +4 is within
+  the noise (a 5-9 split of the changed games is a coin), while
+  Mustard, headless and suggesting beside a parked Plum, fell from 8
+  wins to 3 and repeated 24% of his own suggestions against 7%.
+- **The plan's trigger is withdrawn, not met.** It was written on this
+  metric before the results. By its letter none of the three conditions
+  holds (0.7% of move calls, no game with five, win% up), but the
+  metric could not see the thing it was meant to catch, so "the parking
+  question is closed for the grid" does not follow. What to do about it
+  is David's call (`docs/phase8.0-plan.md`, Stage 2).

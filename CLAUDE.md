@@ -13,129 +13,83 @@ phase's plan doc ends with an "as implemented" section that records what
 was actually built and where it departed from the plan: trust that over
 the plan sections above it, and over this file if they disagree.
 
-## Status (2026-09-15)
+## Status (2026-09-16)
 
-**2026-09-15: the board was rebuilt.** The engine now plays the
-Classic 24 x 25 grid with the real doors, passages and start squares,
-under the Classic movement rules (whole roll unless a room is entered,
-no re-entry, "stay" only after a suggestion dragged you in), measured
-from `docs/ux/sample_board_A.png` into `docs/ux/board_map.txt` and
-`clude_core/board.py`. Plan and record: `docs/board-plan.md`; guide:
-`docs/board.md`. Every golden was re-captured on purpose; the two LLM
-fixtures were re-recorded the same day. The re-measurement
-(`docs/remeasure-plan.md`) then ran its free stages: every headless
-number in the glossary has a grid-era twin under "Re-measurement on the
-Classic board", and every dial keeps the direction the ring found.
-David settled the four preset questions the same day ("Tuned presets on
-the grid" in the glossary, and Settled decisions below): Scarlett's
-threshold 0.15 to 0.3, Plum's curiosity 0.8 to 0.5, Plum's sample
-budget 2,000 to 10,000, with Green's threshold and Scarlett's and
-Peacock's curiosity left alone. Every character golden was re-captured
-and both fixtures re-recorded again ($0.13 each time; suite 256 passed,
-2 skipped, ~220 s, up from ~95 s, almost all of it Plum's larger sample
-budget in the seeded character games). Stage 2, the paid LLM runs, is
-under way at 2a and 2b. The UX pass (below) is where things stood
-before the board rebuild.
+Phases 1-7 are done and committed. Each phase's record is the "as
+implemented" section of its plan doc (`docs/phase5-plan.md` to
+`docs/phase7-plan.md`; Phases 1-4 in `docs/phase-plan.md`), and every
+measurement is in `docs/strategy-glossary.md`. There is no UI yet:
+everything runs headless through `scripts/clude_cli.py`. Suite: 257
+passed, 2 skipped (the live-credential tests), ~220 s serial, about two
+minutes with `-n auto`.
 
-Phases 1-6 of `docs/phase-plan.md` are done and committed. Phase 7
-(logbooks) was planned, built (7a-7c, on fake backends) and
-live-checked (7d) on 2026-09-14; its record is `docs/phase7-plan.md`
-section 8 and the working guide `docs/logbooks.md`. 7d found the
-debrief timing out at the wrapper's 30 s (fixed: its own 180 s), tuned
-the debrief prompt on six real entries, added `--logbook-characters`,
-and, on David's instruction mid-run, locked every character to its
-own token ("Seat-locked characters" under Settled decisions). The
-paired leash-0.5 measurement then ran (Plum on the model, his logbook
-on against off, 24 games each, `seated-plum-leash-0.5` and
-`seated-plum-leash-0.5-logbook` in `data/llm`; glossary, "Plum's
-logbook at leash 0.5"): his own notes cut his stalls by more than
-half over the run (37 to 3 in the last quarter on the same deals) at
-the price of two early accusations, so wins are a wash. Phase 7 is
-complete. Next David wants a UX design pass before Phase 8 (Flask/Cloud Run front end, then chat, then
-human seats). There is no UI and no chat yet: everything runs headless
-through `scripts/clude_cli.py`. The suite was then 247 tests passing and
-2 skipped (the two live-credential tests), ~47 s.
+**The road from here** (David renumbered it on 2026-09-16;
+`docs/phase-plan.md` has the table):
 
-Phase 7 in short (the plan doc has the detail):
+| Phase | What | State |
+|---|---|---|
+| 8.0 | Re-measure the glossary on the Classic board (was the "re-measurement plan"; stages 8.0.0-8.0.3) | 8.0.0-8.0.3 done; what to do about Plum's grid parking (2c, 2d or a scoring change) is David's call -- `docs/phase8.0-plan.md` |
+| 8.1 | 8.1a a basic UX scaffold as a local Flask app; 8.1b the same app on Cloud Run behind an app login | planned, waiting on David's confirmation of five points -- `docs/phase8.1-plan.md` |
+| 8.2 | Human players | not started |
+| 8.3 | The rest of chat | not started |
+| 9 | In-depth UX | not started |
+| 10 | Clean-up and close; then version 1.0.0, released to family and friends, and planning in versions, not phases | not started |
 
-- **Three tiers of memory per identity** (a `SeatRecord.label`), in the
-  record store under `logbooks/<identity>/`: the record (Tier 0, with
-  `clude_training.replay` rebuilding any seat's view from it); method
-  memory (Tier 1, `method.json`, `clude_training.memory`): Mustard's
-  tree trains on rows from every stored game, White's chain starts
-  from a known opponent's transition frequencies, Green's posteriors
-  persist; and narrative memory (Tier 2): a zenbot-shaped entry per
-  game the character's own model writes at a debrief that sees the
-  deal face up, plus a rolling head (tally, standing instructions, a
-  dossier per opponent, a flag index).
-- **The `memory` dial** (eighth on `Profile`, default 0) sets what an
-  LLM seat reads back: the head at 0, entries' summaries and flags up
-  to 0.5, whole entries above, everything at 1. The block is a second
-  cached system block; an empty logbook sends none, so every fixture
-  and golden held.
-- **Off by default.** `--logbook [URI]` on `play`/`arena` turns memory
-  on; `--logbook-readonly` and `sweep --logbook` read only; `logbook
-  list|show|reset|rebuild` inspects and resets it; `play --store`
-  persists single games. Mustard's and White's memory was rebuilt from
-  the 193 stored ladder games in 3 s; retraining Mustard on it takes
-  2 s.
-- **A limit worth remembering:** the logbook steers the model only
-  among options the leash allows. Plum's escape from a cleared room is
-  on his menu only at leash >= 0.34, so at the preset his notes cannot
-  unpark him. At leash 0.5 they can and do (above), but the same rope
-  lets the notes' push for tempo turn into accusations below his
-  threshold (P 0.50 and 0.80, both wrong). The debrief is $0.09 and
-  42 s per seat-game; it needs its own timeout (180 s), since a
-  move's 30 s kills it.
+Where things stand:
 
-Phase 6, the LLM wrapper (`clude_llm`), closed on 2026-09-13. The record
-is `docs/phase6-plan.md` section 8; the numbers are in
-`docs/strategy-glossary.md` under "Phase 6". In short:
-
-- The live smoke test passes on Opus 5. Personas were tuned from two
-  real games: `rules.md` gained a no-repetition rule, and `Plum.md` a
-  line that stops him reading decimals aloud.
-- Twin arena (24 games, 4 seats, all six characters): an LLM-piloted
-  table costs Plum 44 points of win rate (75% to 31%), not because the
-  model overrides him but because the table ends games before his exact
-  count converges. Mustard's wrong accusations fall from 37.5% to 6.2%.
-  No fallbacks in 807 calls.
-- The pooled leash sweep could not see individual characters (every
-  seat was swept, so pooled win% is 33.3 by construction). Presets are
-  unchanged: `leash` 0.25, `chattiness` 0.5.
-- Per-character leash ladders (done 2026-09-13; glossary,
-  "Per-character leash ladders"): one character on the model at a time
-  on the 3-seat table `Plum,Mustard,Green`, seed 7007, 24 paired games
-  per value. Neither Mustard (0 / 0.25 / 0.5 / 1) nor Plum (0.25 / 0.5
-  / 1) gains from more rope; presets stand. Records and JSONs in
-  `data/llm` (`ladder-headless`, `ladder-mustard-leash-*`,
-  `ladder-plum-leash-*`, the set-aside `ladder-plum-leash-0-aborted`).
-- **The parking mechanism (glossary, "Per-character leash ladders").**
-  The model plays the character's top-scored option as an instruction;
-  the headless character *samples* the same scores (`sample_softmax`,
-  Plum's temperature 0.05). Plum's `movement_scores` gives 0.20 to any
-  room he can suggest in this turn regardless of its probability and
-  ~0.13 to a hallway toward the room his count favours, so once he
-  stands in a cleared room, "stay" is top and the model never leaves:
-  at leash 0.5 he declined an allowed escape toward a live room on 103
-  of 109 such calls, one game running 126 turns on one repeated
-  suggestion. More rope only offers more escapes to decline. Ties are
-  the special case (stable sort, "stay" listed first, always chosen).
-  Fix candidates, neither done, both needing a re-measure and
-  re-recorded fixtures: make `movement_scores` prefer a step toward a
-  live room over a cleared one (changes headless Plum and the goldens
-  too), and/or have the prompt present scores as preference, not order.
-  Deferred behind Phase 7 by David: logbooks first.
-- **Retracted:** the twin arena's "the leash rescues Mustard" reading.
-  Alone on the model his win rate does not move at any leash and his
-  wrong% at the preset is worse than headless; the twin improvement was
-  the LLM table around him.
-- Live spend to date is about $63 at list prices ($23 through the twin
-  run and pooled sweep, $27 for the ladders, $12.60 for Phase 7d). An LLM seat-game costs
-  $0.07-0.11 for most characters but about $0.25 for Plum, whose games
-  run long and ask the model often; low-leash games run longer still.
-  Estimates have come in under twice: quote a range, not a point, and
-  get a yes before any live run.
+- **The board (2026-09-15).** The engine plays the Classic 24 x 25 grid
+  under the Classic movement rules, measured from
+  `docs/ux/sample_board_A.png` into `docs/ux/board_map.txt` and
+  `clude_core/board.py` (`docs/board-plan.md`, `docs/board.md`). Every
+  golden was re-captured and both LLM fixtures re-recorded on purpose.
+- **8.0 so far.** Every headless glossary number has a grid-era twin
+  under "Re-measurement on the Classic board", every dial keeps the
+  direction the ring found, and the presets were retuned (Settled
+  decisions). On 2026-09-16 the two paid runs started: 8.0.2a
+  (`grid-twin-llm-24`, all six on the model, 4 seats) and 8.0.2b
+  (`grid-plum-llm-24`, Plum alone on the model at `Plum,Mustard,Green`),
+  quoted $21-35 together and paired with the headless
+  `grid-twin-base-24` and `grid-plum-base-24`; both finished ($14.24,
+  no fallbacks). 2a reproduces the ring twin's findings in direction: an
+  LLM table beats Plum (37.5% to 6.2%) and Mustard's wrong accusations
+  fall (31.2% to 6.2%). 2b found the parking alive as a passage loop the
+  leash hides from the model, which the trigger written beforehand
+  could not see, so that trigger is withdrawn (below). 8.0.3 is done:
+  all four logbooks reset (the ring-era copy is `data/llm/logbooks-ring`)
+  and Mustard's and White's memory rebuilt from grid records only
+  (`logbook rebuild --min-version`, default 3). Mustard's is now 116k
+  rows, and loading it takes a 3-seat game from 1 s to 30 s.
+- **Worth knowing from the earlier phases** (the detail is in the docs
+  named):
+  - An LLM seat chooses only within the leash of its character's own
+    scores and falls back to the character on anything illegal,
+    malformed or failed; `NullBackend` reproduces the headless game
+    byte for byte (`docs/llm-wrapper.md`, `docs/phase6-plan.md` 8).
+  - **Plum's parking** (glossary, "Per-character leash ladders"): the
+    model plays the top-scored option, and `movement_scores` pays 0.20
+    for any room he can suggest in this turn whatever its probability,
+    so on the ring "stay" in a cleared room topped his menu. His own
+    logbook halved the stalls at leash 0.5 but cannot act at the preset
+    0.25 ("Plum's logbook at leash 0.5"). The grid removed the free
+    stay, and 8.0.2b found the grid's form ("Plum on the model on the
+    grid"): a secret passage into a cleared room scores 0.50 against
+    0.29 for walking toward a live one, the walk falls outside the 0.25
+    leash, so the wrapper plays the loop without asking the model (108
+    of 148 wasted trips) and he repeats half his suggestions. A logbook
+    cannot reach options the leash hides.
+  - **Retracted:** the twin arena's "the leash rescues Mustard". Alone
+    on the model his win rate does not move at any leash.
+  - Logbooks: three tiers of memory per identity, a `memory` dial, off
+    by default. The debrief is $0.09 and 42 s per seat-game and needs
+    its own 180 s timeout (`docs/logbooks.md`, `docs/phase7-plan.md` 8).
+- **Live spend** was about $63 at list prices before 8.0 ($23 for the
+  twin run and pooled sweep, $27 for the ladders, $12.60 for 7d), then
+  $0.26 re-recording fixtures on 2026-09-15, and $14.24 for 8.0.2a
+  and 8.0.2b on 2026-09-16 ($9.36 and $4.88, against a $21-35 quote):
+  about $78 in all. An LLM seat-game
+  costs $0.07-0.11 for most characters and about $0.25 for Plum. Estimates have come in
+  under twice: quote a range, not a point, and get a yes before any
+  live run.
 
 `legacy/` holds code from an earlier chat: material to port from, never
 a foundation and never imported. Read `legacy/README.md` before touching
@@ -163,7 +117,7 @@ it; `docs/phase-plan.md` has the disposition of every file.
   five Phase 5 dials plus Phase 6's `leash` and `chattiness`.
 - **In-game chat.** Characters initiate and respond even off-turn, gated
   by numeric settings such as a chattiness dial. (Table talk exists
-  headless as `RemarkEvent`s; off-turn chat is Phase 8.)
+  headless as `RemarkEvent`s; off-turn chat is Phase 8.3.)
 - **Persistent logbooks.** Each character writes to its logbook after
   every game. (Phase 7.)
 - **Sequencing.** First the models work and players receive numbers
@@ -237,7 +191,7 @@ it; `docs/phase-plan.md` has the disposition of every file.
   that board with its grid, decorated more ornately than the graph
   diagram in `sample_board_B.png`, with a logo, not the big "?", in the
   middle. Then everything in the glossary is re-measured
-  (`docs/remeasure-plan.md`).
+  (Phase 8.0, `docs/phase8.0-plan.md`).
 - **Presets retuned on the grid (2026-09-15).** Scarlett's
   `accuse_threshold` 0.15 to 0.3 (she wins three times as often at a
   lower wrong rate on the longer grid games, and still accuses early
@@ -250,6 +204,21 @@ it; `docs/phase-plan.md` has the disposition of every file.
   runtime). Green's threshold stands at 0.75: his pace limits him, not
   his dial. Scarlett's and Peacock's curiosity stand. Everything else
   in the ring-era tuned table is unchanged.
+- **The road to 1.0.0 (2026-09-16).** The re-measurement is Phase 8.0
+  (its stages 8.0.0-8.0.3); 8.1a is a basic UX scaffold as a local
+  Flask app and 8.1b the same app on Cloud Run; 8.2 human players; 8.3
+  the rest of chat; Phase 9 in-depth UX; Phase 10 clean-up and close.
+  Then clude is released as version 1.0.0 -- to family and friends,
+  which is not the public release the IP decision above guards -- and
+  planned in versions, not phases.
+- **8.0 and 8.1 decisions (2026-09-16).** 8.0.2a and 8.0.2b approved at
+  $21-35. 8.0.3: reset all four logbooks (Plum's entries and Green's
+  posteriors too), keeping a copy of the ring-era ones. 8.1: an app
+  login rather than a Google-account allowlist, using the credentials
+  in `clude-game-sa.json` (how, as I read it, is `docs/phase8.1-plan.md`
+  3.4, awaiting confirmation); the replay direction was left to me:
+  Direction A ("Scrubber") for replay, Direction D's order for watching
+  a game.
 - **Commit messages are printed in the reply, never written into
   `commit_msg.md`** by me (David declined that, 2026-09-13).
 
@@ -318,7 +287,8 @@ Suggestions to raise, not decisions to implement.
   logically forced, pale for still plausible. Each character's method
   shown under its name as a toggle.
 - **Post-game replay** of all six belief traces as the payoff feature
-  and debugging tool. (Headless `trace` exists; the UI is Phase 8.)
+  and debugging tool. (Headless `trace` exists; the first replay
+  screen is Phase 8.1a.)
 - **Chat pacing.** Stagger arrivals, cap concurrent speakers at two; the
   chattiness dial gates participation, not just verbosity.
 - **Logbook reset** control, for fairness.
@@ -330,17 +300,31 @@ Suggestions to raise, not decisions to implement.
 
 ## Open questions (ask, don't assume)
 
-One, now for after the re-measurement: whether `movement_scores` still
-needs changing. On the ring the logbook (David's first hypothesis)
-halved Plum's stalls at leash 0.5 but could not act at the preset
-0.25, and the scoring change was the only fix there. The Classic stay
-rule (2026-09-15) removed the free "stay" the parking lived on, so the
-question is open again until Plum is re-measured on the grid
-(`docs/remeasure-plan.md`, step 2b). Resolved 2026-09-13: leash presets stand; the parking
-fix waits behind logbooks; `docs/zenbot_memories.json` is the logbook
-model; no writing into `commit_msg.md`. Resolved 2026-09-14: the three
-Phase 7 decisions above; the UX design pass comes between Phase 7 and
-Phase 8.
+- **What to do about Plum's parking on the grid.** On the ring the
+  logbook (David's first hypothesis) halved Plum's stalls at leash 0.5
+  but could not act at the preset 0.25. 8.0.2b shows it alive on the
+  grid as a passage loop, three quarters of it on moves the model is
+  never asked about, and present more mildly in the headless character
+  too. The trigger written before the results used a count that could
+  not see this and is withdrawn (`docs/phase8.0-plan.md`, Stage 2).
+  Options: the `movement_scores` change (prefer a step toward a live
+  room over a cleared one; free to measure headless, moves the goldens
+  and fixtures), 2c's leash ladder, 2d's logbook pair, or nothing. 2a
+  shows Mustard looping on the model too (34% repeated suggestions
+  against 10% headless), so the scoring change would reach more than
+  Plum. Separately, 2a meets the pre-written condition for 2c Mustard
+  ($10-20), a question the ring ladder already answered for the same
+  pattern.
+- **The five points of `docs/phase8.1-plan.md` section 6**, before any
+  8.1 code: the login as read, the engine seam as a generator, no LLM
+  seats on the web in 8.1, the one-time Google Cloud changes, and
+  uploading every grid-era run.
+
+Resolved 2026-09-13: leash presets stand; the parking fix waits behind
+logbooks; `docs/zenbot_memories.json` is the logbook model; no writing
+into `commit_msg.md`. Resolved 2026-09-14: the three Phase 7 decisions
+above; a UX pass between Phase 7 and Phase 8. Resolved 2026-09-16: the
+renumbering to 1.0.0 and the 8.0/8.1 decisions above.
 
 ## Working with David
 
@@ -385,7 +369,9 @@ Phase 8.
   PowerShell: `& .venv\Scripts\python.exe ...`; Bash:
   `.venv/Scripts/python.exe ...`. PowerShell calls share no state, so set
   environment variables in the same call as the command that needs them.
-- Tests: `& .venv\Scripts\python.exe -m pytest -q`. `CLUDE_LLM_LIVE=1`
+- Tests: `& .venv\Scripts\python.exe -m pytest -q -n auto` (pytest-xdist;
+  about two minutes against ~220 s serial; drop `-n auto` to debug a
+  single test). `CLUDE_LLM_LIVE=1`
   enables the live API smoke test (`-k live`), `CLUDE_GCS_LIVE=1` the
   bucket test.
 - CLI: `& .venv\Scripts\python.exe scripts\clude_cli.py <cmd> --help`,
@@ -432,8 +418,10 @@ Phase 8.
 - `docs/board.md` -- the Classic board as measured, the doors, the
   rules, what the module exposes, and the ring it replaced.
 - `docs/board-plan.md` -- the board rebuild: plan, David's decisions,
-  and "as implemented". `docs/remeasure-plan.md` -- the costed plan to
-  re-run every glossary measurement on the grid.
+  and "as implemented". `docs/phase8.0-plan.md` -- Phase 8.0, the costed plan to
+  re-run every glossary measurement on the grid, with the trigger for
+  its conditional paid steps. `docs/phase8.1-plan.md` -- Phase 8.1, the
+  web scaffold and Cloud Run (proposed).
 - `docs/ux/` -- the UX pass: the two reference boards, `board_map.txt`
   (the source of truth for `clude_core/board.py`), and `replay/`, the
   four replay-screen direction sketches on the design canvas.

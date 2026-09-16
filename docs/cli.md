@@ -567,7 +567,9 @@ one entry as text, with the standing instructions and dossiers it
 wrote (`--raw` for its JSON); `--memory DEPTH` exactly the
 block a character with that `memory` dial would read before a game.
 `rebuild` recomputes the head from the entries and the method memory
-from every game record in the store (`--from URI` for another store):
+from every game record in the store (`--from URI` for another store)
+at or above `--min-version` (default 3: the Classic grid; ring-era
+records, versions 1 and 2, are skipped and counted in the output):
 the bootstrap for Mustard and White from the games already in
 `data/llm`, and the recovery path; Green's posteriors are accumulated
 live and cannot be rebuilt. `reset` is the fairness control: it forgets

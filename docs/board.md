@@ -150,5 +150,5 @@ beside a room. Movement was "up to" the roll and a token could stay in
 its room every turn. Phase 5b fixed two rules bugs on it (a token could
 not leave its starting room by a door; a boxed-in token had no move).
 Every measurement in `docs/strategy-glossary.md` dated before
-2026-09-15 was made on that ring; `docs/remeasure-plan.md` schedules
+2026-09-15 was made on that ring; `docs/phase8.0-plan.md` schedules
 the re-run on the Classic board.

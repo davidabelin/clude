@@ -47,6 +47,8 @@ from clude_core.events import (
 from clude_core.state import GameState
 
 RECORD_VERSION = 3
+#: The first version written on the Classic grid; older records are ring-era.
+GRID_RECORD_VERSION = 3
 
 
 def node_to_json(node):

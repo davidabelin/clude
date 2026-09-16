@@ -177,7 +177,7 @@ def test_update_is_idempotent_and_rebuild_agrees(tmp_path):
     assert memory.update(logbook, second, mustard) is True
     incremental = logbook.method()
     assert memory.n_games(incremental) == 2
-    assert memory.rebuild(logbook, store, "rows") == 2
+    assert memory.rebuild(logbook, store, "rows") == (2, 0)
     assert logbook.method() == incremental
     rows = memory.extra_rows(incremental)
     assert rows == memory.extra_rows(logbook.method())
@@ -192,7 +192,7 @@ def test_update_is_idempotent_and_rebuild_agrees(tmp_path):
     assert summed and all(sum(c.values()) > 0 for c in summed.values())
     assert memory.load_into(white, white_book) is True
     assert white.agent.priors == summed
-    assert memory.rebuild(white_book, store, "counts") == 2
+    assert memory.rebuild(white_book, store, "counts") == (2, 0)
     assert memory.priors(white_book.method()) == summed
     assert "White's chains: 2 stored games" in memory.describe_memory(white_book.method())
 
@@ -202,6 +202,17 @@ def test_update_is_idempotent_and_rebuild_agrees(tmp_path):
     # A document of the wrong kind is ignored, not misread.
     Logbook(store, "Mustard").save_method(white_book.method())
     assert memory.load_into(mustard, Logbook(store, "Mustard")) is False
+
+
+def test_rebuild_skips_ring_era_records_by_default(tmp_path):
+    store = LocalStore(tmp_path)
+    grid, ring = _record(seed=7, run_id="grid"), _record(seed=8, run_id="ring")
+    store.put_game("grid", grid.game_index, grid.to_dict())
+    store.put_game("ring", ring.game_index, {**ring.to_dict(), "version": 2})
+    logbook = Logbook(store, "Mustard")
+    assert memory.rebuild(logbook, store, "rows") == (1, 1)
+    assert list(logbook.method()["games"]) == ["grid/00000"]
+    assert memory.rebuild(logbook, store, "rows", min_version=1) == (2, 0)
 
 
 def test_green_memory_is_saved_live_and_restored_after_reset(tmp_path):

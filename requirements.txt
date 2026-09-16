@@ -1,4 +1,7 @@
 pytest>=8.0
+# Runs the suite in parallel: `python -m pytest -q -n auto` (about half the
+# serial ~220 s on Orbit). Optional; plain `pytest` still works.
+pytest-xdist>=3.8
 # Only needed for gs:// record stores (clude_storage.GcsStore); everything
 # else is the standard library, and the package is imported lazily.
 google-cloud-storage>=3.0
