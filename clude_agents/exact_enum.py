@@ -22,7 +22,16 @@ from clude_core.domain import ALL_CARDS
 from clude_core.state import ClueObservation
 
 DEFAULT_NODE_BUDGET = 200_000
-DEFAULT_SAMPLE_BUDGET = 2_000
+# 10,000 samples since 2026-09-15. On the Classic grid he exhausts the
+# node budget in 490 of 1080 benchmark calls (the early game is too open
+# for any budget worth affording: ten times the nodes only takes that to
+# 384 and costs four times the time), so the fallback's noise, not the
+# search, is what his mid-game numbers are made of. Five times the
+# samples take his 50%-checkpoint log-loss from 1.75 to 1.44 at about
+# twice the time per call; it does not make him better than uniform
+# there (1.35). See docs/strategy-glossary.md, "Tuned presets on the
+# grid".
+DEFAULT_SAMPLE_BUDGET = 10_000
 
 
 def _holder_order(holder: Holder) -> tuple:

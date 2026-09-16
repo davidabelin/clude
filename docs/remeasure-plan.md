@@ -1,6 +1,15 @@
 # Re-measurement Plan: the glossary on the Classic board (proposed 2026-09-15)
 
-Status: **proposed. Nothing has run.** Each paid stage needs its own yes
+Status: **Stages 0 and 1 done on 2026-09-15**, presets retuned and the
+confirmation arena run (results under "Re-measurement on the Classic
+board" in `docs/strategy-glossary.md`; the Stage 1e decisions are
+David's and are recorded under "Tuned presets on the grid"). **Stage 2
+is half run:** the free headless halves of the 2a and 2b pairs are in
+the store as `grid-twin-base-24` (24 games, 4 seats, the default six
+roster, mean 41.9 turns) and `grid-plum-base-24` (24 games, the 3-seat
+`Plum,Mustard,Green` table, mean 31.9 turns). The two paid halves have
+not run and are waiting on David. Neither headless run is written up
+yet: each is the pair half of a measurement that is not complete. Each paid stage needs its own yes
 from David, with the cost quoted as a range at the time (estimates have
 come in under twice). Every run goes through `--store data/llm` and
 `--json <scratchpad path>`.
@@ -31,8 +40,8 @@ presets, and the presets depend on the free sweeps.
 ### Stage 0, bookkeeping (about $0.35)
 
 - Re-record the two LLM fixtures with the command in
-  `tests/test_llm.py` and update `RECORDED_GAMES`. Until then the two
-  replay tests fail; nothing else does.
+  `tests/test_llm.py` and update `RECORDED_GAMES`. **Done 2026-09-15,
+  $0.13**; the suite is green.
 - Date every existing glossary section as ring-era. Sections are kept,
   not deleted: they are the record of how the presets were reached.
 
@@ -44,19 +53,23 @@ presets, and the presets depend on the free sweeps.
 | 1b | Mustard's default tree | none | Trained at build time from the 25 FloorBot self-play games (seed 2026), so it is already a grid tree. Check its held-out numbers in 1a. |
 | 1c | `sweep --dial <dial> --values ... --games 48 --seed 7100 --roster Scarlett,floor,Mustard,floor,White,floor,Green,floor,Peacock,floor,Plum,floor`, five dials | ~1-2 h | Whether each dial still moves its metric and in which direction. `curiosity` and `accuse_threshold` are the ones most likely to move: distances changed, and games end at a different pace. |
 | 1d | Scarlett's three 24-game arenas with only her threshold moved (seed 7007) | ~5 min | Her threshold was set by her own runs, not the pooled sweep. |
-| 1e | Decision point: re-tune presets if 1c or 1d says so. David decides; the tuned table in the glossary is replaced, the old one kept. | | |
-| 1f | `arena --games 24 --seed 7007 --store data/llm --run-id arena-grid-24` at the (re)tuned presets | ~2 min | The headless table: win%, wrong%, first accusation, never%, leaks, re-shows, mean turns. Pairs with nothing earlier. |
+| 1e | Decision point: re-tune presets if 1c or 1d says so. David decides; the tuned table in the glossary is replaced, the old one kept. **Done 2026-09-15**: Scarlett's threshold 0.15 to 0.3, Plum's curiosity 0.8 to 0.5, Plum's sample budget 2,000 to 10,000; Green's threshold and Scarlett's and Peacock's curiosity stand. Every character golden re-captured and both fixtures re-recorded ($0.13). | ~1 h | |
+| 1f | `arena --games 24 --seed 7007 --store data/llm --run-id arena-grid-24` at the (re)tuned presets | ~2 min | The headless table: win%, wrong%, first accusation, never%, leaks, re-shows, mean turns. Pairs with nothing earlier. **Run twice**: at the ring presets (`arena-grid-24`) and again at the retuned ones (`arena-grid-tuned-24`). |
 | 1g | A board report over 1f's records (a script beside `parking_report.py`): turns per game, suggestions per game, visits per room, stays used after a summons, passages taken, blocked turns | ~5 min | The board-specific facts the ring could not show, and the baseline the paid stages compare against. |
 
 Stage 1 can run while the UX pass continues; it costs nothing but the
-laptop.
+laptop. **Ran 2026-09-15**: the benchmark 799 s, the sweeps 676-936 s
+each in parallel, the four arenas about 250 s each; all of it in
+under an hour of wall time on Orbit, records under `data/llm` as
+`sweep-grid-*`, `arena-grid-*`. The board report is
+`data/llm/board_report.py`.
 
 ### Stage 2, LLM-piloted (paid; a yes per step)
 
 | Step | Was | Quote now | Run only if |
 |---|---|---|---|
-| 2a Twin arena: all six on the model, 24 games, 4 seats, against the headless twin | $6.98 | $7-14 | always: it is the check that the new menu text (corridor squares) draws no fallbacks and that an LLM table still changes outcomes the way it did |
-| 2b Plum alone on the model at the preset leash, 24 games on `Plum,Mustard,Green` seed 7007, with the parking report | $6-8 (one ladder leg) | $6-12 | always: it is the question the board change bears on most. If the Classic stay rule has ended the parking, the leash ladders and the logbook pair below are not needed |
+| 2a Twin arena: all six on the model, 24 games, 4 seats, against the headless twin | $6.98 | $12-20 (grid games run about twice the ring's turns, so the model is asked about twice as often per game) | always: it is the check that the new menu text (corridor squares) draws no fallbacks and that an LLM table still changes outcomes the way it did. Headless half done: `grid-twin-base-24` |
+| 2b Plum alone on the model at the preset leash, 24 games on `Plum,Mustard,Green` seed 7007, with the parking report | $6-8 (one ladder leg) | $9-15 (same reason) | always: it is the question the board change bears on most. If the Classic stay rule has ended the parking, the leash ladders and the logbook pair below are not needed. Headless half done: `grid-plum-base-24`, where Plum wins 37.5% against the ring's 62.5% on the same table |
 | 2c Per-character leash ladders, Mustard (4 values) and Plum (3 values) | $8.94 and $18.13 | $10-20 and $18-36 | 2b still shows stalls, or 2a shows the leash mattering |
 | 2d Plum's logbook on against off at leash 0.5, 24 paired games | $10.19 | $10-20 | 2b still shows stalls; it re-asks whether his own notes fix them on the grid |
 | 2e Pooled leash sweep | $14.99 | skip | never: it could not see individual characters and the ladders superseded it |

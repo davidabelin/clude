@@ -49,7 +49,10 @@ one it supersedes.
   against an independent brute-force enumerator in `tests/test_agents.py`.
   Measured: the best or joint-best belief at every checkpoint, and by far
   the most expensive -- about 450 ms per call on early FloorBot snapshots,
-  where he falls back to sampling in nearly half of his calls.
+  where he falls back to sampling in nearly half of his calls. On the
+  Classic board he falls back that often too, and the noise costs him
+  enough that his sample budget was raised to 10,000 on 2026-09-15
+  ("Tuned presets on the grid").
 
 ## Peacock -- Dempster-Shafer belief/plausibility
 
@@ -349,6 +352,10 @@ included. Kept. The presets all sit at or below 0.2, on the flat part;
 otherwise.
 
 ### Tuned presets
+
+Ring-era, and superseded in part: Scarlett's threshold and Plum's
+curiosity were retuned on the Classic board on 2026-09-15 ("Tuned
+presets on the grid"). The rest of this table still stands.
 
 All five dials survived, four on their intended metric and `secrecy` on
 its footprint. Two characters moved:
@@ -850,3 +857,366 @@ on 25, 6, 6, 3. Mean turns by quarter: off 36.0, 14.5, 22.5, 29.5; on
   Plum`), the preset leash 0.25 (where the escape is not on the menu
   and the notes cannot act), and whether the head trained here helps
   on a different table.
+
+## Re-measurement on the Classic board (2026-09-15)
+
+`docs/remeasure-plan.md`, Stage 1: every headless measurement above,
+re-run on the Classic grid and rules (`docs/board.md`) with the same
+commands, seeds and sizes, on the presets as they stood. Every run's
+records are in `data/llm` under the run id named. Nothing here is
+paired with a ring-era table: the deals are the same for the same seed,
+but the games are not.
+
+### Belief benchmark on the grid (Stage 1a)
+
+`benchmark --games 60 --seed 4004 --show-green`: 1080 snapshots, 799 s.
+Log-loss per category, as above:
+
+| Agent | 25% | 50% | 75% | 100% | top-1 at 100% | ms/call at 50% |
+|---|---|---|---|---|---|---|
+| White | 1.54 | 1.28 | 0.91 | 0.23 | 0.91 | 0.1 |
+| Mustard | 1.57 | 1.34 | 0.99 | 0.19 | 0.93 | 0.2 |
+| Green | 1.55 | 1.38 | 0.97 | 0.20 | 0.93 | 524 |
+| Plum | 1.64 | 1.75 | 1.15 | 0.22 | 0.91 | 530 |
+| uniform (baseline) | 1.57 | 1.35 | 1.01 | 0.29 | 0.83 | - |
+| Scarlett | 1.62 | 1.48 | 1.18 | 0.30 | 0.87 | 0.1 |
+| Peacock | 1.63 | 1.46 | 1.13 | 0.31 | 0.83 | 0.2 |
+
+- **Plum is worse than ignorance mid-game (1.75 against 1.35 at the
+  50% checkpoint), which he never was on the ring.** The run reports
+  that his exact enumeration hit its node budget and fell back to
+  sampling in 490 of 1080 calls; on the ring's FloorBot snapshots the
+  budget held. Grid games have more unresolved cards at the same
+  fraction of the game (more corridor turns, fewer suggestions per
+  turn), so the space of consistent deals is larger when he is asked.
+  A sampled posterior at 1485 samples is noisy, and its noise costs
+  log-loss. Worth a look before anything is tuned on him: the budget
+  and the sample count are his to set, not a dial.
+- **Mustard now matches the baseline mid-game** (1.34 against 1.35)
+  instead of being confidently wrong there, and is the best method at
+  the end (0.19). His tree is trained on grid self-play, so this is the
+  same method on data that suits it better.
+- **White beats uniform at every checkpoint**, as before, and is now
+  the best method until the end.
+- **Scarlett and Peacock trail uniform everywhere**, as before, by a
+  little; Peacock's plausibility mass and Scarlett's compounding are
+  unchanged by the board.
+- Green's arms after the run lean on Mustard (0.72) and Plum (0.57)
+  and away from Peacock (0.31) and Scarlett (0.37).
+
+### Arena on the grid, presets as tuned on the ring (Stage 1f)
+
+`arena --games 24 --seed 7007 --store data/llm --run-id arena-grid-24`:
+247 s, every game decided by a correct accusation, mean 40.4 turns
+(27.5 on the ring's tuned arena).
+
+| Player | games | win% | wrong% | 1st accusation turn | never% | leaked | named | re-show% |
+|---|---|---|---|---|---|---|---|---|
+| Scarlett (threshold 0.15) | 20 | 10 | 40 | 40.3 | 50 | 2.55 | 1.40 | 66.7 |
+| Mustard (0.8) | 16 | 25 | 6 | 58.6 | 69 | 2.19 | 1.44 | 38.5 |
+| White (0.8) | 20 | 25 | 0 | 35.0 | 75 | 2.40 | 3.15 | 28.6 |
+| Green (0.75) | 16 | 0 | 6 | 28.0 | 94 | 2.00 | 0.69 | 30.0 |
+| Peacock (0.7 on Belief) | 20 | 30 | 0 | 32.3 | 70 | 1.80 | 0.90 | 50.0 |
+| Plum (0.9) | 16 | 44 | 0 | 42.6 | 56 | 2.12 | 0.56 | 71.4 |
+
+- **The order held at the top and the bottom:** Plum wins most with no
+  wrong accusation, Scarlett wins least with the most, White and
+  Peacock never accuse wrongly. Mustard's wrong% fell from 25 to 6.
+- **Green collapsed: no wins in 16 games and no accusation at all in
+  15 of them.** On the ring he won 19%. His threshold is 0.75 on an
+  ensemble confidence that, on the grid, apparently never gets there
+  before someone else ends the game; he accused once, wrongly. The
+  sweeps below say whether it is his threshold or his pace, and he is
+  the first candidate for a preset change.
+- **Games are longer and end later:** the first accusation comes at
+  turn 28-59 instead of 20-36. The grid's corridors cost turns, and a
+  token may no longer stay in a room to suggest again, so information
+  arrives more slowly per turn.
+
+### Scarlett's threshold on the grid (Stage 1d)
+
+Three 24-game arenas, seed 7007, everyone else at preset, only her dial
+moved (`arena-grid-scarlett-0.3`, `-0.2`, `-0.15`):
+
+| Scarlett threshold | win% | wrong% | accused in | 1st accusation turn |
+|---|---|---|---|---|
+| 0.3 | 30 | 30 | 60% | 52.8 |
+| 0.2 | 15 | 50 | 65% | 42.2 |
+| 0.15 | 10 | 40 | 50% | 40.3 |
+
+On the ring 0.3 gave her no wins and 0.15 was chosen for the flavour
+(accuses early, often wrongly). On the grid 0.3 wins three times as
+often at the same wrong rate, because the longer games give her naive
+count time to be right before the bar. The std on 20 games is about 10
+points, so 0.3 against 0.15 is two sigma on wins and nothing on wrong%.
+A candidate for a preset change; the flavour argument for 0.15 stands
+unchanged. David decides (Stage 1e).
+
+### How the game plays on the board (Stage 1g)
+
+`python data/llm/board_report.py arena-grid-24 ladder-headless`, the
+grid arena against a ring-era 3-seat run of the same size:
+
+| | grid, `arena-grid-24` (3-6 seats) | ring, `ladder-headless` (3 seats) |
+|---|---|---|
+| turns per game | 40.4 (11 to 78) | 24.0 (5 to 47) |
+| suggestions per game | 18.4 | 17.2 |
+| moves ending in a room / in the corridor | 358 / 528 | 261 / 161 |
+| secret passages taken | 119 | 70 |
+| tokens summoned by a suggestion | 246 | 135 |
+| stays in a room, of which after a summons | 83, 82 | 152, 26 |
+| blocked turns | 0 | 1 |
+
+| Room | entries, grid | suggestions, grid | entries, ring | suggestions, ring |
+|---|---|---|---|---|
+| Kitchen | 13 | 18 | 39 | 55 |
+| Ballroom | 62 | 76 | 26 | 54 |
+| Conservatory | 82 | 95 | 36 | 57 |
+| Billiard | 35 | 45 | 7 | 12 |
+| Library | 28 | 30 | 6 | 6 |
+| Study | 18 | 21 | 35 | 55 |
+| Hall | 18 | 22 | 36 | 58 |
+| Lounge | 68 | 83 | 54 | 75 |
+| Dining | 34 | 51 | 22 | 41 |
+
+- **Three moves in five end in the corridor** on the grid, against one
+  in three on the ring: the board is why games are longer, not the
+  characters.
+- **The free stay is gone.** 152 stays in 24 ring games, 26 of them
+  after a summons; on the grid 82 of 83 stays follow a summons (the one
+  other is a room whose door squares were all occupied). Plum's parking
+  as measured on the ring cannot happen on the grid; whether he stalls
+  some other way is Stage 2b's question.
+- **The rooms are visited in different proportions.** The Conservatory,
+  the Lounge and the Ballroom take half of all entries and suggestions:
+  the Conservatory-Lounge passage is a two-turn loop with a suggestion
+  at each end (Green in seed 7007 rode it three times running), and the
+  Ballroom has four doors on the busiest corridor. The Kitchen, the
+  Study and the Hall, the ring's favourites, are now the least
+  visited: one door each, far from every start. The Billiard Room and
+  the Library, unreachable in practice on the ring (7 and 6 entries),
+  are ordinary rooms now.
+
+### Dial sweeps on the grid (Stage 1c)
+
+The same five sweeps as above: `sweep --dial <dial> --values ... --games
+48 --seed 7100 --roster Scarlett,floor,Mustard,floor,White,floor,Green,floor,Peacock,floor,Plum,floor`,
+the dial set on every character, pooled over the six, 120
+character-games per value (binomial std about 4 points). Run ids
+`sweep-grid-<dial>`. Every direction the ring sweeps found holds on the
+grid; two dials bite harder.
+
+**accuse_threshold** (0.2 / 0.4 / 0.6 / 0.8 / 1.0), 936 s:
+
+| threshold | win% | wrong% | 1st accusation | never% | mean turns |
+|---|---|---|---|---|---|
+| 0.2 | 22.5 | 45.0 | 31.3 | 33 | 37.2 |
+| 0.4 | 23.3 | 11.7 | 38.9 | 65 | 39.5 |
+| 0.6 | 20.8 | 6.7 | 37.4 | 73 | 38.1 |
+| 0.8 | 23.3 | 2.5 | 37.1 | 74 | 39.5 |
+| 1.0 | 20.8 | 0.8 | 32.2 | 78 | 39.7 |
+
+Wins are flat across the range, as on the ring; the wrong rate at 0.2
+is 45% against the ring's 33%. A low bar is punished harder on the
+grid, where the first accusation comes a dozen turns later and a
+character that reaches a low bar early is guessing on less.
+
+**bluff_rate** (0 / 0.25 / 0.5 / 1.0), 855 s:
+
+| bluff_rate | win% | wrong% | never% | own cards named | mean turns |
+|---|---|---|---|---|---|
+| 0.0 | 25.0 | 12.5 | 63 | 0.69 | 37.5 |
+| 0.25 | 22.5 | 11.7 | 66 | 1.84 | 40.8 |
+| 0.5 | 20.0 | 10.0 | 70 | 3.04 | 43.5 |
+| 1.0 | 5.0 | 17.5 | 78 | 4.97 | 51.9 |
+
+Bluffing costs wins on the grid as on the ring, and the always-bluffer
+wins one game in twenty; games with bluffing run longer (37 to 52
+turns), since a suggestion naming your own card teaches the table
+nothing.
+
+**curiosity** (0 / 0.5 / 1.0), 715 s:
+
+| curiosity | win% | wrong% | 1st accusation | never% | own cards named | mean turns |
+|---|---|---|---|---|---|---|
+| 0.0 | 20.0 | 10.8 | 34.7 | 69 | 2.25 | 39.8 |
+| 0.5 | 19.2 | 8.3 | 41.3 | 73 | 1.43 | 41.2 |
+| 1.0 | 13.3 | 5.8 | 50.1 | 81 | 0.48 | 46.2 |
+
+**This dial changed sign at the low end.** On the ring 0.5 was best
+and 0 close behind; on the grid 0 wins most and 1.0 costs seven points
+and fifteen turns to the first accusation. Chasing the most probable
+room is a long walk on the real board, and every corridor turn is a
+turn without a suggestion; getting into any room is worth more. The
+presets sit high (Plum 0.8, Scarlett 0.7, Peacock 0.6), so this is the
+one sweep that argues for moving several presets, downward (Stage 1e).
+
+**secrecy** (0 / 0.5 / 1.0), 676 s:
+
+| secrecy | win% | wrong% | never% | leaked | re-show% | mean turns |
+|---|---|---|---|---|---|---|
+| 0.0 | 20.8 | 8.3 | 71 | 2.75 | 29.0 | 37.6 |
+| 0.5 | 17.5 | 10.8 | 72 | 2.84 | 42.9 | 40.3 |
+| 1.0 | 20.8 | 9.2 | 70 | 2.71 | 48.0 | 40.5 |
+
+As on the ring: no effect on wins, and the re-show rate climbs with
+the dial (29 to 48%), which is its footprint. The presets stand.
+
+**temperature** (0 / 0.1 / 0.5 / 2.0), 874 s:
+
+| temperature | win% | wrong% | 1st accusation | never% | leaked | named | re-show% | mean turns |
+|---|---|---|---|---|---|---|---|---|
+| 0.0 | 25.0 | 11.7 | 30.7 | 63 | 2.80 | 1.88 | 51.1 | 35.0 |
+| 0.1 | 20.8 | 10.8 | 36.1 | 68 | 2.75 | 1.71 | 43.5 | 39.3 |
+| 0.5 | 7.5 | 8.3 | 48.4 | 84 | 2.92 | 0.79 | 31.2 | 49.8 |
+| 2.0 | 1.7 | 4.2 | 63.4 | 94 | 3.24 | 0.72 | 25.2 | 58.5 |
+
+Same shape as the ring, steeper: a hot character on the grid wanders
+the corridors and barely ever accuses (94% never at 2.0). Every preset
+is at 0.2 or below; they stand.
+
+### Stage 1 in short, and the decisions it leaves (Stage 1e)
+
+- Every dial still moves its metric in the direction the ring found;
+  the ring-era tuning method survives the board.
+- Three preset questions for David, each a free 24-game arena to
+  settle: (1) **Scarlett's threshold**, 0.3 wins three times as often
+  as 0.15 at the same wrong rate; (2) **Green's threshold or pace**, he
+  did not win a game or accuse in 15 of 16 at 0.75, while his belief
+  is as good as anyone's on the benchmark, so a run with only his
+  threshold moved (0.5, 0.6) would say which; (3) **curiosity**, the
+  grid rewards getting into any room, and Plum, Scarlett and Peacock
+  sit at 0.6-0.8. All four were settled the same day: see "Tuned
+  presets on the grid" below.
+- One method question, not a dial: **Plum's enumeration budget**, which
+  he exhausted in 490 of 1080 benchmark calls and which made him worse
+  than ignorance mid-game. His budget and sample count live in
+  `clude_agents/exact_enum.py`; raising them costs time per call.
+- Plum's parking, as measured, is a ring phenomenon: 82 of 83 stays in
+  the grid arena follow a summons. Stage 2b asks whether he stalls
+  another way.
+
+### Tuned presets on the grid (Stage 1e, 2026-09-15)
+
+David's four decisions, each settled by free 24-game arenas: seed 7007,
+everyone else at preset, only the named dial moved (`arena --games 24
+--seed 7007 --set <Label>.<dial>=<value>`), run ids
+`arena-grid-<Label>-<dial>-<value>` in `data/llm`. Read them knowing
+the size: a character plays 16-20 of the 24 games, so the binomial std
+on a win% is 8-12 points, and a character's win% swings that far
+between arenas in which nothing of their own moved. Green, whose dials
+were touched in only two of the nine arenas that day, won 0, 6, 6, 12,
+25, 0, 12, 31 and 6 percent of his games across them. Nothing smaller
+than that swing is evidence on its own; the pooled sweeps above are the
+tie-breaker.
+
+**1. Scarlett's threshold: 0.15 to 0.3.** Stage 1d: 0.3 wins three
+times as often (30% against 10%) at a lower wrong rate (30% against
+40%), two sigma on wins. The flavour survives the move. She still
+accuses in nearly half her games and is still wrong about half the
+times she does, just later, in games that are themselves fifteen turns
+longer than the ring's.
+
+**2. Green: preset stands at 0.75.** Only his threshold moved:
+
+| Green threshold | win% | wrong% | never% | 1st accusation turn |
+|---|---|---|---|---|
+| 0.75 (preset, `arena-grid-24`) | 0 | 6 | 94 | 28.0 |
+| 0.6 | 6 | 0 | 94 | 35.0 |
+| 0.5 | 6 | 12 | 81 | 50.0 |
+
+Lowering the bar buys one win in sixteen and, at 0.5, two wrong
+accusations. His bandit's mixture confidence rarely reaches even 0.5
+before someone else ends the game, so what limits him is his pace, not
+his dial. His zero in the baseline arena was the low draw of a noisy
+number, not a collapse: he won 18.8% of the same 24 deals in the
+confirmation arena below without a single dial of his moving.
+
+**3. Curiosity: Plum 0.8 to 0.5; Scarlett and Peacock stand.** Each of
+the three high-curiosity presets with only that dial moved, as win% /
+wrong% / never%:
+
+| curiosity | Plum (preset 0.8) | Scarlett (preset 0.7) | Peacock (preset 0.6) |
+|---|---|---|---|
+| preset | 44 / 0 / 56 | 10 / 40 / 50 | 30 / 0 / 70 |
+| 0.5 | 50 / 0 / 50 | 5 / 55 / 40 | 30 / 0 / 70 |
+| 0.3 | 38 / 0 / 62 | 15 / 65 / 20 | 30 / 0 / 70 |
+
+Nothing here clears the noise by itself. Plum moves to 0.5 because his
+own arena and the pooled sweep agree that 0.8 is not his best place and
+0.5 is where they overlap, and because 0.3 undershoots in his arena.
+Peacock's three numbers are identical, which is its own answer; his
+curiosity does not reach his outcomes at this size. Scarlett's spread
+is noise around a losing position. Both presets stand.
+
+**4. Plum's enumeration budget: 2,000 samples to 10,000; node budget
+unchanged at 200,000.** The Stage 1a benchmark re-run with
+`ExactEnumAgent` at four budgets, same 60 games and 1080 snapshots,
+log-loss per checkpoint and milliseconds per call at the 50%
+checkpoint:
+
+| nodes / samples | 25% | 50% | 75% | 100% | calls that fell back | ms/call at 50% |
+|---|---|---|---|---|---|---|
+| 200k / 2k (until today) | 1.64 | 1.75 | 1.15 | 0.22 | 490 | 289 |
+| 200k / 10k (adopted) | 1.52 | 1.44 | 1.00 | 0.22 | 490 | 669 |
+| 1M / 2k | 1.56 | 1.66 | 1.03 | 0.22 | 384 | 740 |
+| 1M / 10k | 1.51 | 1.41 | 0.93 | 0.22 | 384 | 1113 |
+| uniform (baseline) | 1.57 | 1.35 | 1.01 | 0.29 | -- | -- |
+
+The sample count is what matters and the node budget is nearly
+irrelevant. Five times the samples take his mid-game log-loss from 1.75
+to 1.44 at about twice the time per call. Five times the nodes take the
+fallback from 490 calls to 384, buy 0.09, and cost two and a half times
+the time; ten times the nodes and five times the samples together are
+no better than the samples alone by more than 0.03. The early game on
+this board is simply too open for any node budget worth affording, so
+what his mid-game numbers are made of is the fallback's noise, and the
+fallback is what is worth paying to improve.
+
+**It is a partial fix, and the honest statement is that Plum is still
+worse than ignorance mid-game.** Uniform scores 1.35 at that
+checkpoint and he now scores 1.44, against 1.75 before. He is the best
+or joint-best method at 75% and 100%, as he was on the ring; the
+sampled middle is where his method stops being his method. Making him
+genuinely exact there is an algorithm change, not a budget, and is out
+of scope for the re-measurement.
+
+The price is paid in laptop time, not API spend: the test suite went
+from about 95 s to about 220 s, almost all of it in the seeded
+character games that seat Plum or Green (whose bandit holds a Plum arm
+and so inherits the budget).
+
+### Arena on the grid, tuned presets (Stage 1f, re-run)
+
+`arena --games 24 --seed 7007 --store data/llm --run-id
+arena-grid-tuned-24`: the same 24 deals as `arena-grid-24` above, at
+the retuned presets, 271 s, every game decided by a correct accusation,
+mean 53.9 turns against 40.4 before.
+
+| Player | games | win% | wrong% | 1st accusation turn | never% | leaked | named | re-show% |
+|---|---|---|---|---|---|---|---|---|
+| Scarlett (threshold 0.3) | 20 | 25 | 20 | 60.4 | 55 | 2.50 | 1.95 | 31.2 |
+| Mustard (0.8) | 16 | 19 | 6 | 43.2 | 75 | 2.56 | 1.56 | 46.2 |
+| White (0.8) | 20 | 10 | 0 | 37.5 | 90 | 2.60 | 4.15 | 56.0 |
+| Green (0.75) | 16 | 19 | 6 | 35.8 | 75 | 2.12 | 2.00 | 72.7 |
+| Peacock (0.7 on Belief) | 20 | 30 | 0 | 63.8 | 70 | 2.10 | 1.45 | 50.0 |
+| Plum (0.9, curiosity 0.5) | 16 | 31 | 0 | 58.0 | 69 | 2.19 | 2.25 | 53.8 |
+
+- **Scarlett's change is the one that reproduced.** Her win% went 10 to
+  25 and her wrong% 40 to 20, the direction and roughly the size her
+  own arena predicted, and she is no longer both the least successful
+  and the most reckless seat at the table.
+- **Plum's did not.** He won 44% of these deals at curiosity 0.8 and
+  31% at 0.5, where his own arena had him gaining six points. The drop
+  is about one sigma and his budget also changed between the two runs,
+  so this is not evidence the dial is wrong, but it is not the
+  confirmation either. The case for 0.5 rests on the pooled sweep;
+  reverting is a one-line change if a later measurement disagrees.
+- **Two seats moved a long way with nothing of their own touched:**
+  Green 0 to 19 and White 25 to 10. That is the measurement's noise
+  floor made visible, and it is the reason nothing above was decided on
+  a single arena.
+- **Games are thirteen turns longer.** Both adopted changes delay
+  accusations: Scarlett waits for a higher bar and Plum chases rooms
+  less. The first accusation now comes at turn 36-64 rather than 28-59.
+  Nobody accuses wrongly except Scarlett, Mustard and Green, once each.

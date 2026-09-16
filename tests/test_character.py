@@ -245,17 +245,17 @@ def test_movement_scores_and_accusation_test_are_pure():
 # deliberately if a method or a preset is meant to change.
 GOLDEN_CHARACTER_GAMES = {
     (23, 5, ("Scarlett", "Peacock", "Mustard", "White")): (
-        "3ef05cd41317619ed82411e70633aed0d2463c5add2e1d1d1edbf83ad373930b", 50,
+        "713ebff2d8fb53cce75fb35e7ffb09fa5b460d170a463d28abd2eac2cb85c752", 111,
     ),
     (9, 3, ("Scarlett", "White", "Mustard")): (
-        "ba1b9c48e89beca34df2010db716881f75143afcfd056b466f741acd00117247", 173,
+        "231ce5824663dc1eae93d9898436238bd26d8134a6c2cfd78cebc7a8b6e64ad1", 105,
     ),
     (31, 4, ("Peacock", "Scarlett")): (
-        "bd5c46703ea3ae0e07a6a298d7f4fce45770002868a8b8d12587791a223be056", 62,
+        "9c3c3c1e36b47833cd7a35a11033ea512a520278117faa64035efe45e8076633", 62,
     ),
 }
 GOLDEN_FOUR_CHARACTER_GAME = (
-    "bda8a34137a283e15e68b43c3f1c77eaff09fd60e02ee0907fa0e9fbd527d827", 183,
+    "e1dc257ff9e04d452fccf34937202219ed2f31b7b71bb7070d151a391b7c34f6", 152,
 )
 
 

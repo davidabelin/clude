@@ -657,17 +657,22 @@ FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures"
 
 # (fixture, seed, players, roster, envelope, winner, tally) per recorded game.
 # Both re-recorded on 2026-09-14 when characters were locked to their own
-# tokens: the seat labels in every prompt moved, so every key did.
+# tokens (the seat labels in every prompt moved, so every key did), on
+# 2026-09-15 for the Classic board (every menu moved), and again that day
+# when the re-measurement retuned the presets: the per-turn prompt states
+# the character's own accuse_threshold, so Scarlett's move from 0.15 to
+# 0.3 rekeyed seed 1 and Plum's retuned curiosity and sample budget
+# rekeyed seed 2.
 RECORDED_GAMES = [
     (
         "llm_seed1.json", "1", "3", "Scarlett,Peacock",
         "Mustard/Rope/Ballroom", "P1 Mustard (floor)",
-        "Turns played: 21; suggestions: 17; accusations: 2",
+        "Turns played: 41; suggestions: 18; accusations: 1",
     ),
     (
         "llm_seed2.json", "2", "4", "Plum,Mustard,Green,White",
         "Scarlett/Candlestick/Ballroom", "P1 White",
-        "Turns played: 14; suggestions: 11; accusations: 1",
+        "Turns played: 10; suggestions: 2; accusations: 1",
     ),
 ]
 

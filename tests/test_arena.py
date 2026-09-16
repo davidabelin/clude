@@ -162,7 +162,7 @@ def test_run_arena_small_table_reports_every_label():
     assert [tuple(g.labels) for g in result.games] == [("Scarlett", "floor", "White")] * 3
     data = result.to_dict()
     json.dumps(data)
-    assert data["profiles"]["Scarlett"]["accuse_threshold"] == pytest.approx(0.15)
+    assert data["profiles"]["Scarlett"]["accuse_threshold"] == pytest.approx(0.3)
     table = result.summary_table()
     assert "Scarlett" in table and "floor" in table and "win%" in table
 

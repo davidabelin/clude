@@ -108,19 +108,24 @@ NEUTRAL = Profile()
 
 PRESETS: dict = {
     # Overconfident, accuses early: a low bar for P(correct), a little
-    # bluffing, and a taste for the room she already suspects. 0.15 is
-    # the tuned value: at 0.5 she never reached it before somebody else
-    # proved the envelope, at 0.3 only in games that had already run
-    # long; 0.15 has her accusing by turn 24 in over half her games,
-    # wrong more often than right (docs/strategy-glossary.md).
+    # bluffing, and a taste for the room she already suspects. 0.15 was
+    # the ring-era value (at 0.3 she reached the bar only in games that
+    # had already run long, and never won); on the Classic grid games
+    # run forty turns and 0.3 wins three times as often as 0.15 at the
+    # same wrong rate, so 0.3 is the preset since 2026-09-15. She still
+    # accuses by turn 50 in three games of five, wrong half the time
+    # (docs/strategy-glossary.md, "Tuned presets on the grid").
     "Scarlett": Profile(
-        accuse_threshold=0.15, bluff_rate=0.2, curiosity=0.7, secrecy=0.4, temperature=0.15
+        accuse_threshold=0.3, bluff_rate=0.2, curiosity=0.7, secrecy=0.4, temperature=0.15
     ),
     # Correct but slow: near-certainty before accusing, no bluffing to
-    # speak of, single-minded about the most informative room. Tuned
-    # off the losing extremes (0.95 and 0.9) the sweeps found.
+    # speak of. Threshold tuned off the losing extreme (0.95) the ring
+    # sweeps found. Curiosity was 0.8 on the ring; on the grid chasing
+    # the most probable room is a long walk and every corridor turn is
+    # a turn without a suggestion, so 0.5 (2026-09-15) wins more than
+    # 0.8 or 0.3 did with only his dial moved.
     "Plum": Profile(
-        accuse_threshold=0.9, bluff_rate=0.05, curiosity=0.8, secrecy=0.7, temperature=0.05
+        accuse_threshold=0.9, bluff_rate=0.05, curiosity=0.5, secrecy=0.7, temperature=0.05
     ),
     # Cautious: her threshold applies to the Dempster-Shafer *belief*
     # (a lower bound), not the pignistic probability -- see

@@ -22,11 +22,20 @@ no re-entry, "stay" only after a suggestion dragged you in), measured
 from `docs/ux/sample_board_A.png` into `docs/ux/board_map.txt` and
 `clude_core/board.py`. Plan and record: `docs/board-plan.md`; guide:
 `docs/board.md`. Every golden was re-captured on purpose; the two LLM
-fixtures still need a paid re-recording (about $0.35), until which the
-two replay tests fail (256 passed, 2 skipped otherwise, ~95 s). Every
-number in the glossary predates the grid; `docs/remeasure-plan.md`
-schedules the re-run, headless first (free), then paid steps each
-needing a yes. The UX pass (below) is where things stood before that.
+fixtures were re-recorded the same day. The re-measurement
+(`docs/remeasure-plan.md`) then ran its free stages: every headless
+number in the glossary has a grid-era twin under "Re-measurement on the
+Classic board", and every dial keeps the direction the ring found.
+David settled the four preset questions the same day ("Tuned presets on
+the grid" in the glossary, and Settled decisions below): Scarlett's
+threshold 0.15 to 0.3, Plum's curiosity 0.8 to 0.5, Plum's sample
+budget 2,000 to 10,000, with Green's threshold and Scarlett's and
+Peacock's curiosity left alone. Every character golden was re-captured
+and both fixtures re-recorded again ($0.13 each time; suite 256 passed,
+2 skipped, ~220 s, up from ~95 s, almost all of it Plum's larger sample
+budget in the seeded character games). Stage 2, the paid LLM runs, is
+under way at 2a and 2b. The UX pass (below) is where things stood
+before the board rebuild.
 
 Phases 1-6 of `docs/phase-plan.md` are done and committed. Phase 7
 (logbooks) was planned, built (7a-7c, on fake backends) and
@@ -229,6 +238,18 @@ it; `docs/phase-plan.md` has the disposition of every file.
   diagram in `sample_board_B.png`, with a logo, not the big "?", in the
   middle. Then everything in the glossary is re-measured
   (`docs/remeasure-plan.md`).
+- **Presets retuned on the grid (2026-09-15).** Scarlett's
+  `accuse_threshold` 0.15 to 0.3 (she wins three times as often at a
+  lower wrong rate on the longer grid games, and still accuses early
+  and wrongly often enough for the flavour); Plum's `curiosity` 0.8 to
+  0.5 (the grid rewards entering any room over walking to the best
+  one); Plum's sample budget 2,000 to 10,000 with the node budget
+  unchanged (the fallback's noise, not the search, is what his mid-game
+  numbers are made of -- it takes his 50%-checkpoint log-loss from 1.75
+  to 1.44, still short of uniform's 1.35, and doubles the suite's
+  runtime). Green's threshold stands at 0.75: his pace limits him, not
+  his dial. Scarlett's and Peacock's curiosity stand. Everything else
+  in the ring-era tuned table is unchanged.
 - **Commit messages are printed in the reply, never written into
   `commit_msg.md`** by me (David declined that, 2026-09-13).
 
