@@ -11,6 +11,16 @@ deduction floor -- callers who want a masked view pass
 A seat that also implements `SpeakingPlayer` (Phase 6) has its buffered
 table talk appended to the event log as `RemarkEvent`s right after each
 decision; every other seat's game is untouched by that hook.
+
+The turn loop is written once, as the generator `game_steps` (Phase
+8.1). A seat listed in its `external` set has no player object to call:
+the generator yields a `DecisionRequest` and waits for the driver to
+send the answer back in, which is what lets a web request hold a seat
+open across requests without threads. `run_game` is `game_steps` driven
+with no external seats, so it never pauses and plays exactly the game it
+always did; `resolve_suggestion` stands in the same relation to
+`resolve_suggestion_steps`, so the refuter's off-turn choice can be
+external too.
 """
 from __future__ import annotations
 
@@ -52,6 +62,74 @@ class MoveChoice:
 
     kind: str
     destination: Optional[Node] = None
+
+
+@dataclass(frozen=True)
+class DecisionRequest:
+    """One decision the engine needs from a seat it cannot call itself.
+
+    `game_steps` yields this whenever the seat to ask is in its
+    `external` set, and waits for the driver to send the answer back in
+    with `steps.send(answer)`. `kind` names which of `PlayerProtocol`'s
+    four decisions is wanted, which fields carry its context, and what
+    the answer must be:
+
+    ===============  ======================  ===========================
+    kind             carried in              answer to send back
+    ===============  ======================  ===========================
+    "movement"       `choices`               a `MoveChoice` from `choices`
+    "suggestion"     `room`                  `(suspect, weapon)`, or None
+    "accusation"     --                      `(suspect, weapon, room)`,
+                                             or None
+    "card_to_show"   `candidates`,           one card from `candidates`
+                     `shown_to`
+    ===============  ======================  ===========================
+
+    `obs` is that seat's own `ClueObservation`, built by the same
+    `observer` a player object would have been handed, so an external
+    seat sees exactly what a seated character would and no more.
+    """
+
+    seat: int
+    kind: str
+    obs: ClueObservation
+    choices: Optional[list[MoveChoice]] = None
+    room: Optional[str] = None
+    candidates: Optional[list[str]] = None
+    shown_to: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class LiveGame:
+    """The game a `game_steps` generator is playing, yielded once before
+    its first turn.
+
+    `state` and `events` are the generator's own objects, not copies, so
+    a driver that keeps this handle can read the game as it stands at
+    every later pause -- the board, the tokens, the log so far. A
+    `DecisionRequest` deliberately carries only one seat's masked view
+    instead, so that what the referee can see and what a player is told
+    stay separate things (docs/architecture.md, "Reveal integrity").
+    """
+
+    state: GameState
+    events: list[GameEvent]
+
+
+@dataclass(frozen=True)
+class TurnComplete:
+    """Yielded at the end of every turn, after that seat's accusation and
+    its last remarks -- including the turn that ends the game, whose
+    marker comes after the `GameOverEvent`.
+
+    `events` is the length of the event log at that moment, so a driver
+    holding the previous marker can slice out exactly the turn just
+    played. This is what "play one more turn" resumes to.
+    """
+
+    turn: int
+    seat: int
+    events: int
 
 
 class PlayerProtocol(Protocol):
@@ -210,6 +288,94 @@ def apply_move(state: GameState, player: int, choice: MoveChoice) -> None:
     state.positions[player] = choice.destination
 
 
+def _checked(request: DecisionRequest, answer):
+    """Check an external seat's answer before it is allowed to touch the
+    game, and return it.
+
+    A movement must be one of the choices actually offered, and a
+    refutation one of the cards that seat actually holds: the
+    reveal-integrity rule in docs/architecture.md, which the engine keeps
+    impossible to break by accident, and which a seat answering over a
+    network would otherwise be the first thing able to break. A
+    suggestion or an accusation only has to name real cards -- naming the
+    wrong ones is the game.
+    """
+    if request.kind == "movement":
+        if answer not in request.choices:
+            raise ValueError(
+                f"seat {request.seat} chose an illegal move: {answer!r}"
+            )
+    elif request.kind == "card_to_show":
+        if answer not in request.candidates:
+            raise ValueError(
+                f"seat {request.seat} must show one of {request.candidates}, "
+                f"not {answer!r}"
+            )
+    elif request.kind == "suggestion" and answer is not None:
+        suspect, weapon = answer
+        if suspect not in SUSPECTS or weapon not in WEAPONS:
+            raise ValueError(
+                f"seat {request.seat} suggested unknown cards: {answer!r}"
+            )
+    elif request.kind == "accusation" and answer is not None:
+        suspect, weapon, room = answer
+        if suspect not in SUSPECTS or weapon not in WEAPONS or room not in ROOMS:
+            raise ValueError(
+                f"seat {request.seat} accused unknown cards: {answer!r}"
+            )
+    return answer
+
+
+def _ask(
+    bots: dict[int, PlayerProtocol],
+    external: frozenset,
+    request: DecisionRequest,
+    rng: random.Random,
+):
+    """Get one decision from a seat: call its player object, as the engine
+    always has, or, for a seat in `external`, yield `request` out to the
+    driver and take the checked answer it sends back.
+
+    This is a generator, so its callers reach it with `yield from`. For a
+    seat with a player object it yields nothing at all, which is what
+    lets `run_game` drive a table of headless seats to the end without
+    ever pausing.
+    """
+    if request.seat in external:
+        return _checked(request, (yield request))
+    player = bots[request.seat]
+    if request.kind == "movement":
+        return player.choose_movement(request.obs, request.choices, rng)
+    if request.kind == "suggestion":
+        return player.choose_suggestion(request.obs, request.room, rng)
+    if request.kind == "accusation":
+        return player.choose_accusation(request.obs, rng)
+    if request.kind == "card_to_show":
+        return player.choose_card_to_show(
+            request.obs, request.candidates, request.shown_to, rng
+        )
+    raise ValueError(f"unknown decision kind {request.kind!r}")
+
+
+def _drive(steps):
+    """Run a step generator that has no external seats to the end and
+    return what it returns.
+
+    `TurnComplete` markers are passed over; a `DecisionRequest` is a bug,
+    since with `external` empty there is no seat to pause for.
+    """
+    try:
+        while True:
+            paused = next(steps)
+            if isinstance(paused, DecisionRequest):
+                raise RuntimeError(
+                    f"seat {paused.seat} asked for {paused.kind!r} in a call "
+                    "that has no external seats"
+                )
+    except StopIteration as stop:
+        return stop.value
+
+
 def resolve_suggestion(
     state: GameState,
     suggester: int,
@@ -227,6 +393,36 @@ def resolve_suggestion(
     never a player's own claim (the reveal-integrity rule in
     docs/architecture.md). The refuter only chooses *which* matching
     card to show, given their own observation from `observer`.
+
+    This is `resolve_suggestion_steps` driven with no external seats, so
+    it never pauses; its signature and its result are what they have
+    always been.
+    """
+    return _drive(
+        resolve_suggestion_steps(
+            state, suggester, suspect, weapon, bots, rng, observer
+        )
+    )
+
+
+def resolve_suggestion_steps(
+    state: GameState,
+    suggester: int,
+    suspect: str,
+    weapon: str,
+    bots: dict[int, PlayerProtocol],
+    rng: random.Random,
+    observer: Observer = ClueObservation.for_player,
+    external: frozenset = frozenset(),
+):
+    """`resolve_suggestion` as a generator, pausing on a
+    `DecisionRequest` when the seat that must refute is in `external`.
+
+    Returns the `Suggestion`, so a caller inside another generator writes
+    ``suggestion = yield from resolve_suggestion_steps(...)``. This is
+    the only decision the engine asks of a seat on someone else's turn,
+    and it is why a human seat cannot be served by pausing the turn loop
+    alone.
     """
     room = board.room_of(state.positions[suggester])
     assert room is not None, "suggestion made outside a room"
@@ -247,7 +443,18 @@ def resolve_suggestion(
         matching = sorted(named & state.hands[p])
         if matching:
             refuter = p
-            shown = bots[p].choose_card_to_show(observer(state, p), matching, suggester, rng)
+            shown = yield from _ask(
+                bots,
+                external,
+                DecisionRequest(
+                    seat=p,
+                    kind="card_to_show",
+                    obs=observer(state, p),
+                    candidates=matching,
+                    shown_to=suggester,
+                ),
+                rng,
+            )
             break
 
     suggestion = Suggestion(
@@ -280,8 +487,12 @@ def _append_remarks(
     events: list[GameEvent], bots: dict[int, PlayerProtocol], seat: int, turn: int, about: str
 ) -> None:
     """Drain `seat`'s buffered table talk into `events`, if it speaks, and
-    let every other speaking seat hear each line."""
-    player = bots[seat]
+    let every other speaking seat hear each line.
+
+    An external seat has no player object at all, so it is simply never
+    asked; its own talk reaches the log another way (Phase 8.3).
+    """
+    player = bots.get(seat)
     if not isinstance(player, SpeakingPlayer):
         return
     for text in player.take_remarks():
@@ -327,10 +538,63 @@ def run_game(
         first `n_players` suspects. A character plays its own suspect's
         token (`clude_training.arena.seat_lineup` seats a table that
         way), so seat `i` is `suspects[i]`'s.
+
+    Notes
+    -----
+    This is `game_steps` driven with no external seats, so it never
+    pauses. Its signature and its result are what they have always been,
+    and the goldens in `tests/test_character.py` are what prove it.
+    """
+    return _drive(game_steps(n_players, bots, seed, max_turns, observer, suspects))
+
+
+def game_steps(
+    n_players: int,
+    bots: dict[int, PlayerProtocol],
+    seed: Optional[int] = None,
+    max_turns: int = 300,
+    observer: Observer = ClueObservation.for_player,
+    suspects=None,
+    external: frozenset = frozenset(),
+):
+    """The turn loop as a resumable generator; `run_game` drives it.
+
+    Takes `run_game`'s parameters and one more:
+
+    Parameters
+    ----------
+    external : frozenset[int]
+        Seats with no player object in `bots`. Each of their four
+        decisions pauses the generator on a `DecisionRequest`, which the
+        driver answers with ``steps.send(answer)``; the answer is checked
+        before it touches the game (`_checked`). Default empty, which is
+        `run_game`.
+
+    Yields
+    ------
+    LiveGame
+        Once, before the first turn: the handle onto the state and event
+        log this generator is building, for a driver that has to render
+        the game while it is paused.
+    DecisionRequest
+        An external seat's decision is needed. Send the answer back in.
+    TurnComplete
+        One turn has finished, including the turn that ends the game.
+
+    Returns
+    -------
+    tuple[GameState, list[GameEvent]]
+        The same pair `run_game` returns, delivered on `StopIteration`.
+
+    Because a game is deterministic per seed, a paused game is fully
+    described by its setup plus the answers sent in so far: feeding a
+    fresh generator that list rebuilds it exactly, which is how a web
+    session survives a cold instance (docs/phase8.1-plan.md 3.3).
     """
     rng = random.Random(seed)
     state = setup(n_players, rng, suspects)
     events: list[GameEvent] = []
+    yield LiveGame(state, events)
     turns_taken = 0
     idx = 0
 
@@ -349,7 +613,12 @@ def run_game(
         if state.summoned:
             state.summoned[player] = False  # the right to stay lasts one turn, used or not
         obs = observer(state, player)
-        choice = bots[player].choose_movement(obs, choices, rng)
+        choice = yield from _ask(
+            bots,
+            external,
+            DecisionRequest(seat=player, kind="movement", obs=obs, choices=choices),
+            rng,
+        )
         apply_move(state, player, choice)
         events.append(
             MoveEvent(state.turn, player, state.positions[player], choice.kind == "secret_passage")
@@ -358,11 +627,16 @@ def run_game(
 
         room = board.room_of(state.positions[player])
         if room is not None:
-            suggested = bots[player].choose_suggestion(obs, room, rng)
+            suggested = yield from _ask(
+                bots,
+                external,
+                DecisionRequest(seat=player, kind="suggestion", obs=obs, room=room),
+                rng,
+            )
             if suggested is not None:
                 suspect, weapon = suggested
-                suggestion = resolve_suggestion(
-                    state, player, suspect, weapon, bots, rng, observer
+                suggestion = yield from resolve_suggestion_steps(
+                    state, player, suspect, weapon, bots, rng, observer, external
                 )
                 events.append(SuggestionEvent(state.turn, suggestion))
                 _append_remarks(events, bots, player, state.turn, "suggest")
@@ -370,15 +644,25 @@ def run_game(
                     _append_remarks(events, bots, suggestion.refuter, state.turn, "show")
                 obs = observer(state, player)
 
-        accused = bots[player].choose_accusation(obs, rng)
+        accused = yield from _ask(
+            bots,
+            external,
+            DecisionRequest(seat=player, kind="accusation", obs=obs),
+            rng,
+        )
         accusation: Optional[Accusation] = None
         if accused is not None:
             suspect, weapon, room2 = accused
             accusation = resolve_accusation(state, player, suspect, weapon, room2)
             events.append(AccusationEvent(state.turn, accusation))
         _append_remarks(events, bots, player, state.turn, "accuse")
-        if accusation is not None and accusation.correct:
+        won = accusation is not None and accusation.correct
+        if won:
             events.append(GameOverEvent(state.turn, player, state.envelope))
+        # After the GameOverEvent, so the last marker covers the whole
+        # turn and a driver slicing by marker never drops the ending.
+        yield TurnComplete(state.turn, player, len(events))
+        if won:
             return state, events
 
     events.append(GameOverEvent(state.turn, None, state.envelope))

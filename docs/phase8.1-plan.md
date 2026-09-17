@@ -1,7 +1,8 @@
 # Phase 8.1 Plan: a web scaffold, locally and on Cloud Run
 
-Status: **proposed 2026-09-16, waiting on David's confirmation** of the
-five points in section 6. Nothing in it is built.
+Status: **confirmed 2026-09-17**; section 6 records what David decided.
+8.1a is being built; 8.1b waits on a separate yes for the one-time
+Google Cloud changes (3.6).
 
 ## 1. Context
 
@@ -56,13 +57,27 @@ motion and the six-seat layout polish are Phase 9.
 - **The store already holds documents** (`LocalStore`, `GcsStore`, the
   logbooks use them), so users, sessions and trace caches need no new
   storage.
-- **Google Cloud as found on 2026-09-16:** Orbit's active gcloud
-  configuration is zenbot's, but David's account reaches `clude-game`.
-  The service account is `clude-sa@clude-game.iam.gserviceaccount.com`;
-  the bucket `gs://clude-game-data` is in US-CENTRAL1 and holds `arena/`
-  and `test/`, not the `data/llm` runs. Cloud Run, Cloud Build, Artifact
-  Registry and Secret Manager are not enabled. Docker is not installed
-  on Orbit; gcloud 563 is.
+- **Google Cloud as found on 2026-09-17**, after David's changes (the
+  2026-09-16 reading is below it, since four of its six points moved):
+  Orbit's active gcloud configuration is now `clude-game`, with
+  `clude-sa@clude-game.iam.gserviceaccount.com` as the active account,
+  so commands no longer need to name `--account` and `--project`.
+  `clude-sa` now holds **`roles/owner`** on the project, as does
+  David's account, so no bucket or secret grant is outstanding. Cloud
+  Run, Artifact Registry, Secret Manager and Container Registry are
+  **enabled**; **Cloud Build is not**, and neither is the IAM API --
+  the first blocks `gcloud run deploy --source .`, the second already
+  fails `gcloud iam service-accounts list`. No Cloud Run service, no
+  secret and no Artifact Registry repository exists yet. The bucket
+  `gs://clude-game-data` is US-CENTRAL1 STANDARD with uniform
+  bucket-level access on and public access prevention enforced; it
+  holds 292 KB under `arena/` (the ring-era `arena-tuned-24`) and
+  `test/`, not the `data/llm` runs. Docker is still not installed on
+  Orbit; gcloud is 563.0.0.
+
+  On 2026-09-16 the active configuration was zenbot's, `clude-sa` had
+  no project role recorded here, and none of Cloud Run, Cloud Build,
+  Artifact Registry or Secret Manager was enabled.
 
 ## 3. Design
 
@@ -138,11 +153,11 @@ David chose an app login and said to use the credentials in
   CLI, never a sign-up page: `clude_cli.py users add NAME` prompts for
   the password (it is never on the command line), plus `users list` and
   `users remove`.
-- **The service account is how the app reaches the store.** Locally
-  from the key file, exactly as `clude_storage` finds it today. On
-  Cloud Run the service runs *as* `clude-sa`, so it has the same
-  identity and permissions while the key file never leaves Orbit and is
-  never copied into an image.
+- **A service account is how the app reaches the store.** Locally from
+  the `clude-sa` key file, exactly as `clude_storage` finds it today.
+  On Cloud Run the service runs as its own identity, so no key file
+  ever leaves Orbit or is copied into an image. That identity is
+  **`clude-run@clude-game`**, not `clude-sa` (David, 2026-09-17, 3.6).
 - **Sessions:** a signed Flask cookie (`Secure`, `HttpOnly`,
   `SameSite=Lax`) whose secret comes from Secret Manager in the cloud
   and from an environment variable locally; a CSRF token on every form;
@@ -155,10 +170,19 @@ David chose an app login and said to use the credentials in
 ### 3.5 Records in the cloud
 
 The deployed app reads `gs://clude-game-data`. 8.1b uploads the
-grid-era runs from `data/llm` (a few megabytes) with a new `store copy`
-subcommand, so the cloud's replay list matches Orbit's. A trace is
-computed the first time its game is opened and saved as
-`traces/<run_id>/<index>` beside the record.
+grid-era runs from `data/llm` with a new `store copy` subcommand, so
+the cloud's replay list matches Orbit's, and the rebuilt logbooks with
+them (David, 2026-09-17), so the cloud store is a full mirror rather
+than records alone. A trace is computed the first time its game is
+opened and saved as `traces/<run_id>/<index>` beside the record.
+
+**Measured on 2026-09-17**, correcting this section's earlier "a few
+megabytes": `data/llm` is 67 MB in all -- `games/` 47 MB, of which the
+grid-era runs are **30 MB** across 51 runs, plus `logbooks/` at 18 MB
+(Mustard's rebuilt tree is most of it) and `runs/` under 1 MB. So the
+upload is about **48 MB**, negligible to store but several thousand
+small JSON objects, which `store copy` must move in batches rather
+than one blocking request each.
 
 ### 3.6 Cloud Run (8.1b)
 
@@ -167,12 +191,22 @@ computed the first time its game is opened and saved as
   and `.dockerignore` exclude `.venv`, `data/`, `legacy/`, `tests/`,
   `docs/`, `.env` and `clude-game-sa.json`. With no Docker on Orbit,
   `gcloud run deploy --source .` builds it on Cloud Build.
-- **Service:** `clude` in us-central1 (the bucket's region), running as
-  `clude-sa`, `--min-instances 0` so idle time is free,
-  `--max-instances 1` so the in-memory session cache and the login rate
-  limit are simply correct, request-based CPU billing. Every gcloud
-  command names `--account davidabelin96@gmail.com --project clude-game`,
-  since the active configuration on Orbit belongs to zenbot.
+- **Service:** `clude` in us-central1 (the bucket's region),
+  `--min-instances 0` so idle time is free, `--max-instances 1` so the
+  in-memory session cache and the login rate limit are simply correct,
+  request-based CPU billing. Orbit's active configuration is now
+  `clude-game`'s, so gcloud commands no longer need `--account` and
+  `--project` spelled out (3.2 of section 2).
+- **A narrow identity for the service** (David, 2026-09-17). `clude-sa`
+  now holds `roles/owner` on `clude-game`, and the service is
+  deliberately reachable without Cloud Run authentication, so running
+  the web app as `clude-sa` would put project-owner credentials behind
+  an internet-facing login page, with BigQuery and Pub/Sub in reach of
+  the same project. Instead 8.1b creates `clude-run@clude-game` holding
+  only `roles/storage.objectAdmin` on `gs://clude-game-data` and
+  `roles/secretmanager.secretAccessor` on the session secret, and the
+  service runs as that. `clude-sa` stays the local and administrative
+  identity.
 - **Reachability:** the service is `--allow-unauthenticated` at the
   Cloud Run layer, because the app login is the gate. That is what
   choosing an app login means: anyone can load the login page, and
@@ -181,13 +215,14 @@ computed the first time its game is opened and saved as
   nothing reachable from the URL can spend API money. LLM seats on the
   web come with 8.2 or 8.3, with a per-game spend cap.
 - **One-time project changes**, each listed and run only after David's
-  yes: enable the Cloud Run, Cloud Build, Artifact Registry and Secret
-  Manager APIs; create the session secret; grant `clude-sa` access to
-  that secret and to the bucket's objects (if it lacks it); allow
-  David's account to deploy as `clude-sa`. At family traffic the
-  running service should stay inside Cloud Run's free tier
-  (`docs/architecture.md`, "Deployment cost"); builds and stored images
-  may cost cents.
+  yes, and narrowed on 2026-09-17 to what his own changes left
+  outstanding: enable the **Cloud Build** and **IAM** APIs (Cloud Run,
+  Artifact Registry and Secret Manager are already on); create
+  `clude-run@clude-game` and grant it the two roles in the bullet
+  above; create the session secret; allow David's account to deploy as
+  `clude-run`. At family traffic the running service should stay inside
+  Cloud Run's free tier (`docs/architecture.md`, "Deployment cost");
+  builds and stored images may cost cents.
 
 ### 3.7 Tests
 
@@ -245,19 +280,27 @@ Taken by David on 2026-09-16:
 - The replay direction is mine to choose: A for replay, D's order for
   watching (3.2).
 
-To confirm before code:
+Taken by David on 2026-09-17, closing the five points this section
+asked:
 
-1. **The login as read in 3.4:** the app's own accounts made from the
-   CLI, with the service account as the app's identity for the store
-   and Cloud Run running as `clude-sa` rather than shipping the key.
-2. **The engine seam as a generator (3.3)**, which changes
-   `clude_core/engine.py` under the goldens' guard, and whether it is
-   built in 8.1a or moved to 8.2.
-3. **No LLM seats on the web in 8.1 (3.6).**
-4. **The one-time Google Cloud changes (3.6)**, and the service being
-   reachable with the app login as its only gate.
-5. **Upload every grid-era run** for replay in the cloud (3.5), rather
-   than a chosen few.
+1. **The login as read in 3.4:** the app's own accounts, made from the
+   CLI only, passwords hashed with Werkzeug, stored as `users/<name>`
+   documents. The login name is the player identity 8.2 writes into
+   `SeatRecord.label`.
+2. **The engine seam is built now**, as step 1 of 8.1a, not moved to
+   8.2. It is the only change that touches a working system under the
+   goldens' guard, human seats in 8.2 cannot be built without it, and
+   the fallback in 3.3 would have had Watch rewritten in 8.2 anyway.
+3. **No LLM seats on the web in 8.1 (3.6):** the service gets no
+   Anthropic key, so nothing reachable from the URL can spend API
+   money.
+4. **The one-time Google Cloud changes (3.6)**, with the service
+   reachable and the app login as its only gate -- but the service runs
+   as a new, narrow `clude-run@clude-game` rather than as the
+   now-`roles/owner` `clude-sa`. Each change is still run only after a
+   separate yes when 8.1b starts.
+5. **Upload the grid-era runs and the logbooks** (3.5), about 48 MB, so
+   the cloud store mirrors Orbit's rather than holding records alone.
 
 ## 7. Out of scope
 
@@ -265,3 +308,60 @@ Human seats (8.2), though the seam is built for them; off-turn chat
 (8.3); LLM seats on the web; the decorated board, logo, typography and
 motion (Phase 9); fixing trace fidelity for the learning methods; any
 change to a method, a dial or `movement_scores`.
+
+## 8. As implemented
+
+Written as the work lands. Where this section and the plan above
+disagree, this section is what was built.
+
+### Step 1, the engine seam (2026-09-17)
+
+Built as designed in 3.3, with one addition the design missed.
+
+`clude_core.engine.game_steps` is the turn loop as a generator, and
+`run_game` is now a three-line driver over it (`_drive`) with no
+external seats. `resolve_suggestion_steps` stands in the same relation
+to `resolve_suggestion`. Both public functions keep their exact
+signatures, so not one caller changed -- `arena`, `self_play`,
+`clude_cli`, and the tests all call what they always did. The proof the
+refactor changed nothing is the existing suite: every golden fingerprint
+in `tests/test_character.py` and every determinism test passes
+untouched, and the suite went from 257 passed / 2 skipped to **269
+passed / 2 skipped** purely by adding `tests/test_engine_steps.py`.
+
+One helper, `_ask`, is the single place a seat is asked anything. It is
+a generator reached with `yield from`, so for a seat with a player
+object it yields nothing at all -- which is exactly why `run_game` never
+pauses.
+
+**The addition: `LiveGame`.** The plan had the generator yield only
+`DecisionRequest` and `TurnComplete`, and that is not enough: a driver
+holding a paused generator had no way to see the board or the event log,
+which even 8.1's Watch screen needs before any human seat exists.
+`game_steps` now yields `LiveGame(state, events)` once before the first
+turn, carrying the generator's own objects. Keeping it separate from
+`DecisionRequest`, which carries only one seat's masked view, keeps the
+referee's view and the player's view distinct -- worth the extra yield
+type on a codebase whose reveal-integrity rule is a stated invariant.
+
+**External answers are checked** before they touch the game
+(`_checked`), which the plan did not specify: a movement must be one of
+the choices offered and a refutation one of the cards that seat actually
+holds, since a seat answering over a network is the first thing in the
+project able to break reveal integrity by accident. Suggestions and
+accusations need only name real cards.
+
+**`TurnComplete` lands after the `GameOverEvent`** on the turn that ends
+a game, so a driver slicing turns by marker never drops the ending.
+
+**A note for whoever writes the Watch driver:** `RandomBot` draws its
+choices from the engine RNG, so a table of external seats -- which never
+calls a player object -- rolls different dice and diverges. This is not
+a flaw in the seam; it is the `PlayerProtocol` rule that a player with
+its own RNG must leave the engine's alone, which `Character` obeys and
+`RandomBot` does not. `tests/test_engine_steps.py` therefore records its
+sample games with a deterministic `Fixed` seat, and says so.
+
+Files: `clude_core/engine.py` changed; `tests/test_engine_steps.py`
+added (12 tests); `docs/architecture.md` gained "Resumable:
+`game_steps`" under the engine seam.

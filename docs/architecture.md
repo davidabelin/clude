@@ -233,6 +233,48 @@ dragged into its room (`GameState.summoned`). Records written before
 that day still load: their ring cells come back as the legacy
 `HallwayCell`.
 
+### Resumable: `game_steps` (Phase 8.1)
+
+A web request cannot hold a whole game, and a human seat cannot be a
+player object the engine calls: it has to stop the game at any of the
+four questions and wait, including `choose_card_to_show`, which falls on
+someone else's turn. So the turn loop is written once, as the generator
+`engine.game_steps`, and `run_game` is that generator driven with no
+external seats -- the same game it always played, which every golden in
+`tests/test_character.py` is what proves. `resolve_suggestion` stands in
+the same relation to `resolve_suggestion_steps`, and both keep their
+signatures, so no caller changed.
+
+A seat in `game_steps`'s `external` set has no entry in `bots`. Wherever
+the loop would call that seat, it goes through one helper (`_ask`) that
+yields a `DecisionRequest` -- the seat, which of the four decisions,
+that seat's own observation, and the choices -- and takes the answer the
+driver sends back in. Three things are yielded:
+
+- `LiveGame(state, events)`, once before the first turn. These are the
+  generator's own objects, so a driver that keeps the handle can render
+  a game that is paused mid-turn. A `DecisionRequest` deliberately
+  carries only one seat's masked view instead, so what the referee sees
+  and what a player is told stay separate.
+- `DecisionRequest`, answered with `steps.send(answer)`.
+- `TurnComplete(turn, seat, events)`, at the end of every turn including
+  the one that ends the game, whose marker comes *after* the
+  `GameOverEvent` so a driver slicing turns by marker never drops the
+  ending. `events` is the log's length at that moment.
+
+An external answer is checked before it can touch the game: a movement
+must be one of the choices actually offered, and a refutation one of the
+cards that seat actually holds -- reveal integrity, below, which a seat
+answering over a network would otherwise be the first thing able to
+break. Suggestions and accusations only have to name real cards; naming
+the wrong ones is the game.
+
+Because a game is deterministic per seed, a paused game is fully
+described by its setup plus the answers sent in so far. Feeding a fresh
+generator that list rebuilds it exactly, which is how a web session
+survives a cold Cloud Run instance: the live generator is only a cache
+(`docs/phase8.1-plan.md` 3.3, `tests/test_engine_steps.py`).
+
 Phase 6a added one optional extension to the seam without touching
 `PlayerProtocol`: a seat that also implements `SpeakingPlayer`
 (`take_remarks() -> list[str]`, a `runtime_checkable` Protocol) has

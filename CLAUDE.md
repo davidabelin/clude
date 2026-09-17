@@ -13,15 +13,15 @@ phase's plan doc ends with an "as implemented" section that records what
 was actually built and where it departed from the plan: trust that over
 the plan sections above it, and over this file if they disagree.
 
-## Status (2026-09-16)
+## Status (2026-09-17)
 
 Phases 1-7 are done and committed. Each phase's record is the "as
 implemented" section of its plan doc (`docs/phase5-plan.md` to
 `docs/phase7-plan.md`; Phases 1-4 in `docs/phase-plan.md`), and every
 measurement is in `docs/strategy-glossary.md`. There is no UI yet:
-everything runs headless through `scripts/clude_cli.py`. Suite: 257
-passed, 2 skipped (the live-credential tests), ~220 s serial, about two
-minutes with `-n auto`.
+everything runs headless through `scripts/clude_cli.py`. Suite: 269
+passed, 2 skipped (the live-credential tests), about two minutes with
+`-n auto`.
 
 **The road from here** (David renumbered it on 2026-09-16;
 `docs/phase-plan.md` has the table):
@@ -29,7 +29,7 @@ minutes with `-n auto`.
 | Phase | What | State |
 |---|---|---|
 | 8.0 | Re-measure the glossary on the Classic board (was the "re-measurement plan"; stages 8.0.0-8.0.3) | 8.0.0-8.0.3 done; what to do about Plum's grid parking (2c, 2d or a scoring change) is David's call -- `docs/phase8.0-plan.md` |
-| 8.1 | 8.1a a basic UX scaffold as a local Flask app; 8.1b the same app on Cloud Run behind an app login | planned, waiting on David's confirmation of five points -- `docs/phase8.1-plan.md` |
+| 8.1 | 8.1a a basic UX scaffold as a local Flask app; 8.1b the same app on Cloud Run behind an app login | confirmed 2026-09-17 and under way: step 1 of 9, the engine seam, is built; 8.1b still needs a separate yes for the Google Cloud changes -- `docs/phase8.1-plan.md` |
 | 8.2 | Human players | not started |
 | 8.3 | The rest of chat | not started |
 | 9 | In-depth UX | not started |
@@ -315,16 +315,22 @@ Suggestions to raise, not decisions to implement.
   Plum. Separately, 2a meets the pre-written condition for 2c Mustard
   ($10-20), a question the ring ladder already answered for the same
   pattern.
-- **The five points of `docs/phase8.1-plan.md` section 6**, before any
-  8.1 code: the login as read, the engine seam as a generator, no LLM
-  seats on the web in 8.1, the one-time Google Cloud changes, and
-  uploading every grid-era run.
+- **The one-time Google Cloud changes**, when 8.1b starts: enable the
+  Cloud Build and IAM APIs, create `clude-run@clude-game` and its two
+  grants, create the session secret, allow David's account to deploy as
+  it (`docs/phase8.1-plan.md` 3.6). Nothing in the project is touched
+  without a yes at the time.
 
 Resolved 2026-09-13: leash presets stand; the parking fix waits behind
 logbooks; `docs/zenbot_memories.json` is the logbook model; no writing
 into `commit_msg.md`. Resolved 2026-09-14: the three Phase 7 decisions
 above; a UX pass between Phase 7 and Phase 8. Resolved 2026-09-16: the
-renumbering to 1.0.0 and the 8.0/8.1 decisions above.
+renumbering to 1.0.0 and the 8.0/8.1 decisions above. Resolved
+2026-09-17: all five points of `docs/phase8.1-plan.md` section 6 -- the
+login as read, the engine seam built now rather than in 8.2, no LLM
+seats on the web in 8.1, the Cloud Run changes with the service running
+as a new narrow `clude-run` rather than the now-owner `clude-sa`, and
+uploading the grid-era runs *and* the logbooks.
 
 ## Working with David
 
