@@ -576,6 +576,30 @@ live and cannot be rebuilt. `reset` is the fairness control: it forgets
 the head and method memory, and the entries too unless
 `--keep-entries`.
 
+## `users`
+
+The web app's accounts (Phase 8.1; `docs/web.md`, `docs/phase8.1-plan.md`
+3.4). There is no sign-up page, so this is the only way an account comes
+into being.
+
+```
+users add NAME       create an account; prompts for the password twice
+users list           every account and when it was made
+users passwd NAME    change a password
+users remove NAME    delete an account
+```
+
+Each takes `--uri STORE`, defaulting to `data/llm` -- the store the web
+app reads, not the CLI's usual `data`, so an account lands where the app
+will look for it. The password is never an argument: it is prompted for
+and not echoed, so it stays out of shell history. Only a Werkzeug hash is
+stored, and `list` never prints it. A name is matched case-insensitively
+but kept as typed, because it is the player's identity and Phase 8.2
+writes it into `SeatRecord.label`.
+
+Removing an account deletes only the account: its records and its logbook
+stay where they are.
+
 ## Adding a subcommand
 
 Each subcommand is one `cmd_<name>(args) -> int` function plus a

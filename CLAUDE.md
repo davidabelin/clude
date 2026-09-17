@@ -19,9 +19,10 @@ Phases 1-7 are done and committed. Each phase's record is the "as
 implemented" section of its plan doc (`docs/phase5-plan.md` to
 `docs/phase7-plan.md`; Phases 1-4 in `docs/phase-plan.md`), and every
 measurement is in `docs/strategy-glossary.md`. There is no UI yet:
-everything runs headless through `scripts/clude_cli.py`. Suite: 269
-passed, 2 skipped (the live-credential tests), about two minutes with
-`-n auto`.
+the game itself still runs headless through `scripts/clude_cli.py`; the
+web app in front of it is being built (Phase 8.1, `docs/web.md`). Suite:
+294 passed, 2 skipped (the live-credential tests), about two minutes
+with `-n auto`.
 
 **The road from here** (David renumbered it on 2026-09-16;
 `docs/phase-plan.md` has the table):
@@ -29,7 +30,7 @@ passed, 2 skipped (the live-credential tests), about two minutes with
 | Phase | What | State |
 |---|---|---|
 | 8.0 | Re-measure the glossary on the Classic board (was the "re-measurement plan"; stages 8.0.0-8.0.3) | 8.0.0-8.0.3 done; what to do about Plum's grid parking (2c, 2d or a scoring change) is David's call -- `docs/phase8.0-plan.md` |
-| 8.1 | 8.1a a basic UX scaffold as a local Flask app; 8.1b the same app on Cloud Run behind an app login | confirmed 2026-09-17 and under way: step 1 of 9, the engine seam, is built; 8.1b still needs a separate yes for the Google Cloud changes -- `docs/phase8.1-plan.md` |
+| 8.1 | 8.1a a basic UX scaffold as a local Flask app; 8.1b the same app on Cloud Run behind an app login | confirmed 2026-09-17 and under way: steps 1-2 of 9 built (the engine seam; the `clude_web` skeleton with its login gate and accounts); 8.1b still needs a separate yes for the Google Cloud changes -- `docs/phase8.1-plan.md`, `docs/web.md` |
 | 8.2 | Human players | not started |
 | 8.3 | The rest of chat | not started |
 | 9 | In-depth UX | not started |
@@ -245,6 +246,10 @@ Built; the detail is in `docs/architecture.md`.
   (`NullBackend`, `ScriptedBackend`, `RecordingBackend`/`ReplayBackend`,
   `AnthropicBackend`), `LLMCharacter` (with `attach_logbook`,
   `read_back`, `debrief`), `logbook` (the debrief prompt).
+- `clude_web` -- the Flask app: `create_app`, `config` (secret, store,
+  cookie policy), `auth` (the login gate, CSRF, rate limit), `users`
+  (accounts as store documents), `views`, templates and one stylesheet.
+  Imports every other package; nothing imports it (`docs/web.md`).
 - `scripts/clude_cli.py` -- the maintainer CLI; `tests/` -- pytest.
 
 Invariants to keep:
@@ -420,6 +425,8 @@ uploading the grid-era runs *and* the logbooks.
   measured costs.
 - `docs/logbooks.md` -- playerbot memory: the three tiers, the `memory`
   dial, the debrief, the CLI, cost.
+- `docs/web.md` -- the Flask app: running it locally, the session
+  secret, accounts and the `users` CLI, the login gate, the layout.
 - `docs/cli.md` -- every subcommand.
 - `docs/board.md` -- the Classic board as measured, the doors, the
   rules, what the module exposes, and the ring it replaced.

@@ -80,6 +80,7 @@ clude_agents/        AgentProtocol, the AgentSpec registry, one module per metho
 clude_llm/           the LLM wrapper: menus, personas, prompts, backends, LLMCharacter, the debrief
 clude_training/      self-play snapshots, the belief benchmark, trace, record replay, method memory, arena, sweeps
 clude_storage/       game records and logbooks; local-directory and Cloud Storage stores
+clude_web/           the Flask app: the login gate, accounts, and the screens
 scripts/             clude_cli.py, the maintainer CLI
 tests/               pytest suite
 docs/                architecture, phase plan, strategy glossary, CLI guide
@@ -87,8 +88,9 @@ legacy/              code from an earlier chat; ported from, never imported
 ```
 
 The structure mirrors the `rps` repo (a shared protocol, a name-keyed
-registry, sibling packages by concern). Planned but not yet present:
-`clude_web/` (Flask/Cloud Run app, chat).
+registry, sibling packages by concern). `clude_web/` is the newest and
+the only one still being built out: its login gate and accounts work
+(`docs/web.md`), and its screens land over the rest of Phase 8.1.
 
 ## The six
 

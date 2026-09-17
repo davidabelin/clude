@@ -253,7 +253,9 @@ than one blocking request each.
 
 8.1b, cloud:
 
-6. `Dockerfile`, ignore files, gunicorn settings, `store copy`.
+6. `Dockerfile`, ignore files, gunicorn settings, `store copy`. The
+   service must set `CLUDE_WEB_HTTPS=1`, or the session cookie is not
+   marked `Secure` (step 2 of the "as implemented" section below).
 7. The one-time Google Cloud changes, after a yes.
 8. Upload the grid-era records; deploy; check on the URL that the login
    gates everything, a replay plays and a watched game finishes.
@@ -365,3 +367,65 @@ sample games with a deterministic `Fixed` seat, and says so.
 Files: `clude_core/engine.py` changed; `tests/test_engine_steps.py`
 added (12 tests); `docs/architecture.md` gained "Resumable:
 `game_steps`" under the engine seam.
+
+### Step 2, the `clude_web` skeleton (2026-09-17)
+
+The app factory, the login gate, accounts and their CLI, the base
+template and the stylesheet. Built as 3.1 and 3.4 describe, with the
+decisions below where the plan left a choice open.
+
+**The gate is enforced once, not per route.** `auth.require_session` is
+registered as an app-wide `before_request` in `create_app`, and a view is
+reachable without a session only if it is marked `@auth.public` -- which
+only the login page is. A route added in step 3 is therefore private the
+day it appears rather than the day someone remembers a decorator, and
+`tests/test_web.py` walks the app's whole url map asserting that every
+route but the login redirects, so the test covers routes that do not
+exist yet. This matters more here than in most apps: 3.6 makes the Cloud
+Run service reachable by anyone on purpose, so this gate is the entire
+security boundary.
+
+**Accounts** are `users/<name>.json` documents holding a Werkzeug hash
+(scrypt), made only by `clude_cli.py users add|list|passwd|remove`. The
+password is prompted for twice and never taken as an argument, so it
+stays out of shell history. `passwd` is not in the plan; without it a
+forgotten password meant deleting and recreating an account, and
+`set_password` was a few lines. A name is matched case-insensitively and
+kept as typed, since it is the player identity 8.2 writes into
+`SeatRecord.label`, and `authenticate` hashes against a dummy when there
+is no such account so that a wrong name and a wrong password take the
+same time -- the login page is not a way to find out who has an account.
+
+**`users` defaults to `data/llm`, not the CLI's `data`.** They are
+different stores, and an account written to the wrong one is invisible to
+the app with no error to explain it. The constant is duplicated in
+`clude_cli.py` rather than imported, so the CLI still runs without Flask
+installed, and a test pins the two equal.
+
+**The session secret** comes from `FLASK_SECRET_KEY` in the environment,
+falling back to reading the gitignored `.env` for that one variable
+(David, 2026-09-17: the key is already there). `clude_web.config` is the
+only thing in clude that reads `.env`, and the rest of the project's "you
+must export it first" rule is unchanged. With no secret anywhere the app
+refuses to start rather than generating one, which would sign everyone
+out on every restart and hide the mistake.
+
+**One thing 8.1b must not forget:** the session cookie is `Secure` only
+when `CLUDE_WEB_HTTPS=1`. It is off locally, because a `Secure` cookie
+never comes back over plain http and the login would appear to silently
+fail. The Cloud Run deploy has to set it, and step 6's checklist now
+says so.
+
+Verified beyond the suite by running the app and driving it over HTTP:
+an unauthenticated `/` redirects to the login; a wrong password answers
+401 with the same message a wrong name gets; a POST with no CSRF token
+answers 400; the right password lands on the index reading the real
+store; the cookie comes back `HttpOnly`; and sign-out returns to the
+login page.
+
+Files: `clude_web/` added (`__init__.py`, `config.py`, `auth.py`,
+`users.py`, `views.py`, `templates/`, `static/style.css`);
+`tests/test_web.py` added (25 tests); `scripts/clude_cli.py` gained
+`users`; `requirements.txt` gained `flask`; `docs/web.md` added;
+`docs/cli.md`, `docs/architecture.md` and `README.md` updated. Suite 269
+-> 294 passed, 2 skipped.

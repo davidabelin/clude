@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}clude{% endblock %}
+{% block content %}
+<div class="panel">
+  <h1>Signed in as {{ user }}</h1>
+  <p>Reading <code>{{ store }}</code> &mdash; {{ runs }} stored run{{ '' if runs == 1 else 's' }}.</p>
+  <p class="note">
+    The lobby, the replay scrubber and the watch screen land in steps 3 to 5
+    of Phase 8.1a. This page is the scaffold's floor: the login gate works and
+    the app reads the real store.
+  </p>
+</div>
+{% endblock %}

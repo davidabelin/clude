@@ -9,3 +9,8 @@ google-cloud-storage>=3.0
 # AnthropicBackend); imported lazily, so the suite and every other backend
 # run without it. Credentials: ANTHROPIC_API_KEY (docs/architecture.md).
 anthropic>=1.5
+# The web app (clude_web, Phase 8.1). Werkzeug comes with Flask and is
+# what hashes account passwords; Jinja is its templating. Nothing outside
+# clude_web and `clude_cli.py users` imports any of them, so the engine
+# and the agents still run on the standard library alone.
+flask>=3.0

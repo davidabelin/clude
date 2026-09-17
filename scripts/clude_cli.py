@@ -28,6 +28,7 @@ Usage
 from __future__ import annotations
 
 import argparse
+import getpass
 import json
 import random
 import sys
@@ -113,6 +114,12 @@ from clude_training.sweep import sweep_dial
 from clude_training.trace import belief_trace, floor_convergence, resolved_count
 
 DEFAULT_STORE = "data"
+
+WEB_STORE = "data/llm"
+"""Where the `users` subcommand puts accounts: the store the web app
+reads, which is not the CLI's `DEFAULT_STORE`. Kept as a literal rather
+than imported so that the CLI still runs without Flask installed;
+`tests/test_web.py` pins it equal to `clude_web.config.DEFAULT_STORE`."""
 
 
 # ---------------------------------------------------------------------
@@ -1206,6 +1213,63 @@ def _add_arena_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--json", default="", help="Also write the result to this JSON path.")
 
 
+def _prompt_password(name: str) -> str:
+    """Ask twice for a new password, never echoing and never taking it
+    from the command line, where it would land in shell history."""
+    first = getpass.getpass(f"password for {name}: ")
+    if first != getpass.getpass("repeat: "):
+        raise ValueError("the two passwords differ")
+    return first
+
+
+def cmd_users_add(args) -> int:
+    """Create an app account (Phase 8.1; docs/phase8.1-plan.md 3.4)."""
+    from clude_web import users as web_users
+
+    store = open_store(args.uri)
+    document = web_users.add_user(store, args.name, _prompt_password(args.name))
+    print(f"store: {store.describe()}")
+    print(f"added {document['name']} (key {document['key']})")
+    return 0
+
+
+def cmd_users_list(args) -> int:
+    """Every account in a store, with no hash printed."""
+    from clude_web import users as web_users
+
+    store = open_store(args.uri)
+    print(f"store: {store.describe()}")
+    accounts = web_users.list_users(store)
+    if not accounts:
+        print("no users")
+        return 0
+    for document in accounts:
+        print(f"  {document['name']:<20} created {document.get('created', '?')}")
+    return 0
+
+
+def cmd_users_passwd(args) -> int:
+    """Replace an account's password."""
+    from clude_web import users as web_users
+
+    store = open_store(args.uri)
+    web_users.set_password(store, args.name, _prompt_password(args.name))
+    print(f"password changed for {args.name}")
+    return 0
+
+
+def cmd_users_remove(args) -> int:
+    """Delete an account. Its records and logbook are left alone."""
+    from clude_web import users as web_users
+
+    store = open_store(args.uri)
+    if not web_users.remove_user(store, args.name):
+        print(f"no such user: {args.name}")
+        return 1
+    print(f"removed {args.name}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the top-level parser and its subcommand tree."""
     parser = argparse.ArgumentParser(
@@ -1464,6 +1528,30 @@ def build_parser() -> argparse.ArgumentParser:
         help="Skip records older than this version. 1 and 2 are ring-era, 3 the first on the Classic grid.",
     )
     lb_rebuild.set_defaults(fn=cmd_logbook_rebuild)
+
+    users_p = sub.add_parser(
+        "users",
+        help="Manage the web app's accounts (Phase 8.1). There is no sign-up page: "
+        "an account can only be made here.",
+    )
+    users_sub = users_p.add_subparsers(dest="action", required=True)
+    for action, fn, blurb in (
+        ("add", cmd_users_add, "Create an account; prompts for the password."),
+        ("list", cmd_users_list, "Every account in the store."),
+        ("passwd", cmd_users_passwd, "Change an account's password."),
+        ("remove", cmd_users_remove, "Delete an account."),
+    ):
+        p = users_sub.add_parser(
+            action, help=blurb, formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        )
+        p.add_argument(
+            "--uri", default=WEB_STORE,
+            help="Store location. Defaults to the store the web app reads, not the CLI's, "
+            "so an account lands where the app will look for it.",
+        )
+        if action != "list":
+            p.add_argument("name", help="The login name, which is also the player identity.")
+        p.set_defaults(fn=fn)
 
     return parser
 

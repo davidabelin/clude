@@ -24,7 +24,7 @@ clude/
   clude_llm/           # Phase 6: menus, personas, LLM backends, LLMCharacter; Phase 7: the debrief (logbook.py)
   clude_training/      # self-play snapshots, belief benchmark, trace, arena, sweeps; Phase 7: replay.py, memory.py
   clude_storage/       # game records and logbooks; local and Cloud Storage stores
-  clude_web/           # Flask/Cloud Run app, chat, UI (phase 8+, not started)
+  clude_web/           # Flask app: the login gate and the screens (phase 8.1; docs/web.md)
   scripts/             # clude_cli.py
   tests/
   docs/
