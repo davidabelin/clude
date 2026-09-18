@@ -21,6 +21,7 @@ Usage
     python scripts/clude_cli.py arena --games 24 --store data
     python scripts/clude_cli.py sweep --dial accuse_threshold --values 0.3 0.6 0.9
     python scripts/clude_cli.py store --uri data --list
+    python scripts/clude_cli.py store copy --uri data/llm --to gs://clude-game-data/llm --dry-run
     python scripts/clude_cli.py play --roster Plum,Mustard,Green --store data/llm
     python scripts/clude_cli.py logbook list --uri data/llm
     python scripts/clude_cli.py logbook show --uri data/llm --identity Plum --memory 0.5
@@ -86,6 +87,7 @@ from clude_llm import (
 from clude_llm.anthropic_backend import estimate_cost
 from clude_storage import GameRecord, Logbook, SeatRecord, list_logbooks, open_store, render_entry
 from clude_storage.records import GRID_RECORD_VERSION
+from clude_storage.mirror import LOGBOOK_PREFIX, TRACE_PREFIX, copy_docs, plan_mirror
 from clude_training import memory as method_memory
 from clude_training.arena import (
     DEFAULT_MAX_TURNS as ARENA_MAX_TURNS,
@@ -1048,8 +1050,45 @@ def cmd_sweep(args) -> int:
     return 0
 
 
+def cmd_store_copy(args) -> int:
+    """Mirror a store's grid-era runs, their traces and the logbooks into
+    another (`clude_storage.mirror`); how the cloud store is filled."""
+    if not args.to:
+        print("store copy needs --to URI", file=sys.stderr)
+        return 2
+    source, dest = open_store(args.uri), open_store(args.to)
+    if source.describe() == dest.describe():
+        print("store copy: --uri and --to are the same store", file=sys.stderr)
+        return 2
+    plan = plan_mirror(source, min_version=args.min_version)
+    n_games = sum(1 for key in plan.keys if key.startswith("games/"))
+    n_traces = sum(1 for key in plan.keys if key.startswith(f"{TRACE_PREFIX}/"))
+    n_logbook = sum(1 for key in plan.keys if key.startswith(f"{LOGBOOK_PREFIX}/"))
+    print(f"from: {source.describe()}")
+    print(f"to:   {dest.describe()}")
+    print(
+        f"{len(plan.runs)} runs ({n_games} game records, {n_traces} traces), "
+        f"{n_logbook} logbook documents: {len(plan.keys)} documents"
+    )
+    if plan.skipped_runs:
+        print(
+            f"left behind, a record older than version {args.min_version}: "
+            f"{len(plan.skipped_runs)} runs ({', '.join(plan.skipped_runs)})"
+        )
+    if args.dry_run:
+        print("dry run: nothing copied")
+        return 0
+    start = time.perf_counter()
+    copied = copy_docs(source, dest, plan.keys, workers=args.workers)
+    print(f"copied {copied} documents in {time.perf_counter() - start:.1f}s")
+    return 0
+
+
 def cmd_store(args) -> int:
-    """List the runs in a record store, or print one run's summary."""
+    """List the runs in a record store, print one run's summary, or copy
+    it into another (`cmd_store_copy`)."""
+    if getattr(args, "action", "list") == "copy":
+        return cmd_store_copy(args)
     store = open_store(args.uri)
     print(f"store: {store.describe()}")
     if args.run:
@@ -1474,12 +1513,28 @@ def build_parser() -> argparse.ArgumentParser:
     sweep_p.set_defaults(fn=cmd_sweep)
 
     store_p = sub.add_parser(
-        "store", help="List the runs in a record store (a directory or gs://bucket/prefix).",
+        "store",
+        help="List the runs in a record store (a directory or gs://bucket/prefix), or copy "
+        "its grid-era runs, traces and logbooks into another (`store copy --to URI`).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    store_p.add_argument("--uri", default=DEFAULT_STORE, help="Store location.")
+    store_p.add_argument(
+        "action", nargs="?", choices=("list", "copy"), default="list",
+        help="`list` the runs, or `copy` them into --to (docs/web.md, \"Deploying\").",
+    )
+    store_p.add_argument("--uri", default=DEFAULT_STORE, help="Store location (the source, for copy).")
     store_p.add_argument("--run", default="", help="Print this run's stored summary.")
     store_p.add_argument("--list", action="store_true", help="List runs (the default action).")
+    store_p.add_argument("--to", default="", help="copy: the destination store.")
+    store_p.add_argument(
+        "--min-version", type=int, default=GRID_RECORD_VERSION,
+        help="copy: take only runs whose every record is at least this version (3 = grid-era).",
+    )
+    store_p.add_argument(
+        "--workers", type=int, default=10,
+        help="copy: parallel writes (10 is the storage client's connection pool).",
+    )
+    store_p.add_argument("--dry-run", action="store_true", help="copy: say what would go, copy nothing.")
     store_p.set_defaults(fn=cmd_store)
 
     logbook_p = sub.add_parser(

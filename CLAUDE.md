@@ -13,7 +13,7 @@ phase's plan doc ends with an "as implemented" section that records what
 was actually built and where it departed from the plan: trust that over
 the plan sections above it, and over this file if they disagree.
 
-## Status (2026-09-17)
+## Status (2026-09-18)
 
 Phases 1-7 are done and committed. Each phase's record is the "as
 implemented" section of its plan doc (`docs/phase5-plan.md` to
@@ -21,9 +21,12 @@ implemented" section of its plan doc (`docs/phase5-plan.md` to
 measurement is in `docs/strategy-glossary.md`. The game runs headless
 through `scripts/clude_cli.py`, and since 8.1a also in a local Flask app
 (`docs/web.md`): a login, a lobby, a replay scrubber for any stored game,
-and a Watch screen that plays a headless game a turn at a time. Suite:
-357 passed, 13 skipped (the live-credential and browser tests), about
-two and a half minutes with `-n auto`; the 11 browser tests pass under
+and a Watch screen that plays a headless game a turn at a time. Since
+8.1b the same app runs on Cloud Run at
+<https://clude-648214345192.us-central1.run.app>, reading a mirror of
+`data/llm` in the bucket (`docs/web.md`, "Deploying"). Suite: 370
+passed, 13 skipped (the live-credential and browser tests), about two
+and a half minutes with `-n auto`; the 11 browser tests pass under
 `CLUDE_WEB_BROWSER=1`.
 
 **The road from here** (David renumbered it on 2026-09-16;
@@ -32,7 +35,7 @@ two and a half minutes with `-n auto`; the 11 browser tests pass under
 | Phase | What | State |
 |---|---|---|
 | 8.0 | Re-measure the glossary on the Classic board (was the "re-measurement plan"; stages 8.0.0-8.0.3) | 8.0.0-8.0.3 done; what to do about Plum's grid parking (2c, 2d or a scoring change) is David's call -- `docs/phase8.0-plan.md` |
-| 8.1 | 8.1a a basic UX scaffold as a local Flask app; 8.1b the same app on Cloud Run behind an app login | 8.1a built 2026-09-17 (steps 1-5: the engine seam, the login and accounts, the board and replay data, the replay scrubber, the lobby and Watch). 8.1b (steps 6-9, the Cloud Run deploy) needs a separate yes for the Google Cloud changes first -- `docs/phase8.1-plan.md`, `docs/web.md` |
+| 8.1 | 8.1a a basic UX scaffold as a local Flask app; 8.1b the same app on Cloud Run behind an app login | done: 8.1a built 2026-09-17 (steps 1-5: the engine seam, the login and accounts, the board and replay data, the replay scrubber, the lobby and Watch); 8.1b deployed 2026-09-18 (steps 6-9: the container, `store copy`, the service running as `clude-run`) -- `docs/phase8.1-plan.md`, `docs/web.md` |
 | 8.2 | Human players | not started |
 | 8.3 | The rest of chat | not started |
 | 9 | In-depth UX | not started |
@@ -257,7 +260,8 @@ Built; the detail is in `docs/architecture.md`.
   arena and dial sweeps.
 - `clude_storage` -- `GameRecord`/`SeatRecord`, `LocalStore`, `GcsStore`
   (with generic document methods), `logbooks` (`LogbookEntry`,
-  `LogbookHead`, `Logbook`, the memory-depth renderer).
+  `LogbookHead`, `Logbook`, the memory-depth renderer), `mirror` (one
+  store into another; `store copy`).
 - `clude_llm` -- menus, schemas (three, `LOGBOOK_SCHEMA` the third),
   prompts, personas (`personas/*.md` and `rules.md`), backends
   (`NullBackend`, `ScriptedBackend`, `RecordingBackend`/`ReplayBackend`,
@@ -274,6 +278,9 @@ Built; the detail is in `docs/architecture.md`.
   `clude_training.arena.headless_table` is the table `play` seats, shared
   with Watch and pinned to the CLI by a test.
 - `scripts/clude_cli.py` -- the maintainer CLI; `tests/` -- pytest.
+- `Dockerfile`, `requirements-web.txt`, `.gcloudignore`,
+  `.dockerignore` -- the Cloud Run image; the ignore files keep the key
+  file, `.env` and `data/` out (`tests/test_deploy.py`).
 
 Invariants to keep:
 
@@ -343,11 +350,6 @@ Suggestions to raise, not decisions to implement.
   Plum. Separately, 2a meets the pre-written condition for 2c Mustard
   ($10-20), a question the ring ladder already answered for the same
   pattern.
-- **The one-time Google Cloud changes**, when 8.1b starts: enable the
-  Cloud Build and IAM APIs, create `clude-run@clude-game` and its two
-  grants, create the session secret, allow David's account to deploy as
-  it (`docs/phase8.1-plan.md` 3.6). Nothing in the project is touched
-  without a yes at the time.
 
 Resolved 2026-09-13: leash presets stand; the parking fix waits behind
 logbooks; `docs/zenbot_memories.json` is the logbook model; no writing
@@ -358,7 +360,8 @@ renumbering to 1.0.0 and the 8.0/8.1 decisions above. Resolved
 login as read, the engine seam built now rather than in 8.2, no LLM
 seats on the web in 8.1, the Cloud Run changes with the service running
 as a new narrow `clude-run` rather than the now-owner `clude-sa`, and
-uploading the grid-era runs *and* the logbooks.
+uploading the grid-era runs *and* the logbooks. Resolved 2026-09-18:
+the one-time Google Cloud changes for 8.1b, made by David in the Console.
 
 ## Working with David
 
@@ -440,6 +443,17 @@ uploading the grid-era runs *and* the logbooks.
   `clude-game-sa.json` at the repo root: gitignored, never commit it,
   never print or copy its contents. `clude_storage` finds it by that
   path or via `CLUDE_GCS_CREDENTIALS`.
+- **gcloud: name the project on every command.** Orbit keeps a gcloud
+  configuration per project and the active one is often zenbot's, so
+  pass `--account=clude-sa@clude-game.iam.gserviceaccount.com
+  --project=clude-game` every time rather than trusting it. The web
+  app is the Cloud Run service `clude` (us-central1), running as
+  `clude-run`, which holds only Storage Object Admin on the bucket and
+  Secret Accessor on `clude-flask-secret`; its store is
+  `gs://clude-game-data/llm`, filled by `store copy`, and its accounts
+  are made with `users add NAME --uri gs://clude-game-data/llm`.
+  Deploying, and every number measured, is in `docs/web.md`
+  ("Deploying"). Nothing new in the project without a yes.
 - `data/` is gitignored. `data/llm` holds every stored live run (see
   Status); `store --uri data/llm` lists them.
 
@@ -461,7 +475,8 @@ uploading the grid-era runs *and* the logbooks.
   dial, the debrief, the CLI, cost.
 - `docs/web.md` -- the Flask app: running it locally, the session
   secret, accounts and the `users` CLI, the login gate, the lobby, Watch
-  (and why it shows so little), the replay, screenshots, the layout.
+  (and why it shows so little), the replay, screenshots, the layout,
+  and deploying to Cloud Run.
 - `docs/cli.md` -- every subcommand.
 - `docs/board.md` -- the Classic board as measured, the doors, the
   rules, what the module exposes, and the ring it replaced.
@@ -469,7 +484,7 @@ uploading the grid-era runs *and* the logbooks.
   and "as implemented". `docs/phase8.0-plan.md` -- Phase 8.0, the costed plan to
   re-run every glossary measurement on the grid, with the trigger for
   its conditional paid steps. `docs/phase8.1-plan.md` -- Phase 8.1, the
-  web scaffold (8.1a, built) and Cloud Run (8.1b, not started).
+  web scaffold (8.1a) and Cloud Run (8.1b), both built.
 - `docs/ux/` -- the UX pass: the two reference boards, `board_map.txt`
   (the source of truth for `clude_core/board.py`), and `replay/`, the
   four replay-screen direction sketches on the design canvas.

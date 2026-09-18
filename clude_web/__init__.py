@@ -11,10 +11,14 @@ Run it locally with Flask's own loader, which finds `create_app`::
 It needs a session secret in `FLASK_SECRET_KEY` (the environment, or the
 gitignored `.env`; see `config.secret_key`) and at least one account,
 made with ``clude_cli.py users add NAME``.
+
+On Cloud Run the `Dockerfile` serves it with gunicorn's factory form,
+``gunicorn "clude_web:create_app()"`` (`docs/web.md`, "Deploying").
 """
 from __future__ import annotations
 
 from flask import Flask
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from clude_storage import open_store
 
@@ -58,6 +62,13 @@ def create_app(settings=None) -> Flask:
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["SESSION_COOKIE_SECURE"] = config.https_only()
     app.config.update(settings)
+    if config.https_only():
+        # Behind Cloud Run's front end the app sees plain http from the
+        # proxy; trust its one hop of X-Forwarded-Proto/-Host so the
+        # scheme and host are the ones the browser used. Only here: a
+        # local server has no proxy, and trusting the headers there would
+        # let any client choose them.
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
     app.extensions["store"] = open_store(store_uri)
     app.extensions["rate_limit"] = auth.RateLimit()

@@ -548,6 +548,26 @@ in the bucket, authenticated with the service-account key described in
 hand, every card shown) and are what the logbooks' method memory and
 debriefs read.
 
+### `store copy`
+
+```
+python scripts/clude_cli.py store copy --uri data/llm --to gs://clude-game-data/llm --dry-run
+python scripts/clude_cli.py store copy --uri data/llm --to gs://clude-game-data/llm
+```
+
+Mirrors one store into another (`clude_storage.mirror`); it is how the
+Cloud Run app's store is filled (`docs/web.md`, "Deploying"). It takes
+every run whose records are all at least `--min-version` (default 3, the
+grid era) with its summary, records and cached belief traces, plus
+everything under `logbooks/`. It leaves out ring-era runs, `users/`
+(accounts are made in each store with `users add --uri`), `watch/`,
+`logbooks-ring` and loose files at the root. It prints what it chose and
+which runs it left behind. `--dry-run` copies nothing, and `--workers`
+(default 10, the storage client's connection pool) sets how many
+writes run at once. It overwrites, so running
+it again is safe. On `data/llm` it picks 38 runs, 1,322 records, 7
+traces and 4 logbook documents, and leaves the 13 ring-era runs behind.
+
 ## `logbook`
 
 ```

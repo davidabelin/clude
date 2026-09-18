@@ -1,0 +1,24 @@
+# What the image build does NOT copy (the Dockerfile's COPY . .). Kept
+# identical to .gcloudignore; tests/test_deploy.py checks both keep the
+# secrets out.
+.dockerignore
+.gcloudignore
+Dockerfile
+.git/
+.gitignore
+.venv/
+.env
+clude-game-sa.json
+data/
+legacy/
+tests/
+docs/
+scripts/
+.claude/
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+desktop.ini
+commit_msg.md
+requirements.txt
+pytest.ini

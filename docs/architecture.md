@@ -739,7 +739,12 @@ consulted before the engine's ground truth is.
 
 ## Deployment cost
 
-Cloud Run is confirmed as the target (see `CLAUDE.md`), but budget is
+Cloud Run is the target and, since Phase 8.1b (2026-09-18), where the
+web app runs: the service `clude` in `clude-game`, us-central1, as the
+narrow identity `clude-run`, scaled 0 to 1 instances (`docs/web.md`,
+"Deploying"). As measured on the day: a build and deploy is about a
+minute, the image 73 MB (the registry keeps the 3 newest), a cold start
+8-10 s, the lobby 0.6 s and a replay 0.4 s warm. Budget is
 effectively zero, so cost needs to stay near zero too. Cloud Run scales to
 zero between requests and the free tier (2M requests/month, generous
 CPU-seconds) should cover a private game with a handful of family/friend
@@ -755,7 +760,8 @@ websockets natively) or self-hosting on Orbit behind a tunnel (Tailscale
 Funnel or Cloudflare Tunnel) -- free, but only reachable while the laptop
 is on. Not needed yet; revisit if a Cloud Run bill ever shows up. The
 Cloud Storage bucket above is in the same boat: a few hundred kilobytes
-per arena run, inside the always-free 5 GB-months for US regions.
+per arena run, inside the always-free 5 GB-months for US regions. The
+web app's mirror of `data/llm` under `llm/` is about 30 MB.
 
 ## Seats and player identity (the cludebot half built; the human half proposed)
 

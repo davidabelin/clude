@@ -34,7 +34,10 @@ Opus 5: at leash 0.5 Plum's own notes cut his stalls by more than half
 over 24 games, at the price of two early accusations
 ([docs/strategy-glossary.md](docs/strategy-glossary.md)). Since
 2026-09-14 every character is locked to its own token: Plum is always
-Plum. There is no UI and no chat yet.
+Plum. Phase 8.1 put the first screens in front of it: a Flask app with a
+login, a lobby, a replay scrubber and a Watch screen, run locally or on
+Cloud Run for family and friends ([docs/web.md](docs/web.md)). There
+are no human seats and no chat yet.
 
 ## Quick start
 
@@ -81,6 +84,7 @@ clude_llm/           the LLM wrapper: menus, personas, prompts, backends, LLMCha
 clude_training/      self-play snapshots, the belief benchmark, trace, record replay, method memory, arena, sweeps
 clude_storage/       game records and logbooks; local-directory and Cloud Storage stores
 clude_web/           the Flask app: the login gate, accounts, and the screens
+Dockerfile           the Cloud Run image (with requirements-web.txt, .gcloudignore, .dockerignore)
 scripts/             clude_cli.py, the maintainer CLI
 tests/               pytest suite
 docs/                architecture, phase plan, strategy glossary, CLI guide
@@ -88,9 +92,9 @@ legacy/              code from an earlier chat; ported from, never imported
 ```
 
 The structure mirrors the `rps` repo (a shared protocol, a name-keyed
-registry, sibling packages by concern). `clude_web/` is the newest and
-the only one still being built out: its login gate and accounts work
-(`docs/web.md`), and its screens land over the rest of Phase 8.1.
+registry, sibling packages by concern). `clude_web/` is the newest: the
+login gate, the lobby, the replay and Watch screens, served locally with
+`flask run` or from Cloud Run (`docs/web.md`, "Deploying").
 
 ## The six
 

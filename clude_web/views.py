@@ -6,6 +6,7 @@ how to use them.
 from __future__ import annotations
 
 import json
+from concurrent.futures import ThreadPoolExecutor
 
 from flask import (
     Blueprint,
@@ -29,6 +30,12 @@ bp = Blueprint("main", __name__)
 
 DEFAULT_TABLE = 4
 """The new-game form's starting table size: the arena's usual table."""
+
+LOBBY_FETCHES = 10
+"""How many run summaries the lobby reads at once (`run_listing`): the
+storage client's connection pool, which holds 10 per host. Measured from
+Orbit, 10 threads read 39 summaries in 0.7 s where 16 took 1.2 s, the
+extra threads opening and throwing away connections."""
 
 
 def embed_json(payload: dict) -> Markup:
@@ -55,12 +62,23 @@ def run_listing(store) -> list:
 
     Read from each run's summary, which already carries every game's
     seats, winner and length, so the lobby opens no game record at all.
+    The summaries are fetched in parallel: on Cloud Run each is a round
+    trip to the bucket, and one after another the lobby took 3.5 s for 38
+    runs (`docs/phase8.1-plan.md`, section 8, step 8).
     """
-    runs = []
-    for run_id in store.list_runs():
+
+    def fetch(run_id):
         try:
-            summary = store.get_run(run_id)
+            return run_id, store.get_run(run_id)
         except KeyError:
+            return run_id, None
+
+    with ThreadPoolExecutor(max_workers=LOBBY_FETCHES) as pool:
+        fetched = list(pool.map(fetch, store.list_runs()))
+
+    runs = []
+    for run_id, summary in fetched:
+        if summary is None:
             continue
         runs.append(
             {

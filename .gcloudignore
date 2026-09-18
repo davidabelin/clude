@@ -1,0 +1,23 @@
+# What `gcloud run deploy --source .` does NOT upload. Kept identical to
+# .dockerignore; tests/test_deploy.py checks both keep the secrets out.
+# Without this file gcloud would fall back to .gitignore, which is close
+# but not the list the image wants.
+.gcloudignore
+.git/
+.gitignore
+.venv/
+.env
+clude-game-sa.json
+data/
+legacy/
+tests/
+docs/
+scripts/
+.claude/
+__pycache__/
+*.pyc
+.pytest_cache/
+desktop.ini
+commit_msg.md
+requirements.txt
+pytest.ini

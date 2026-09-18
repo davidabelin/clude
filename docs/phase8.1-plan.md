@@ -1,8 +1,9 @@
 # Phase 8.1 Plan: a web scaffold, locally and on Cloud Run
 
 Status: **confirmed 2026-09-17**; section 6 records what David decided.
-**8.1a is built** (steps 1-5; section 8 records how). 8.1b, steps 6-9,
-waits on a separate yes for the one-time Google Cloud changes (3.6).
+**Built**: 8.1a on 2026-09-17 (steps 1-5) and 8.1b on 2026-09-18 (steps
+6-9), live at <https://clude-648214345192.us-central1.run.app>. Section 8
+records how, and where it departed from the plan.
 
 ## 1. Context
 
@@ -86,6 +87,11 @@ motion and the six-seat layout polish are Phase 9.
   On 2026-09-16 the active configuration was zenbot's, `clude-sa` had
   no project role recorded here, and none of Cloud Run, Cloud Build,
   Artifact Registry or Secret Manager was enabled.
+
+  **On 2026-09-18** the active configuration was zenbot's again, left so
+  after a zenbot session, so "commands no longer need `--account` and
+  `--project`" held only while nobody switched. Every command in 8.1b
+  named both, and `docs/web.md` ("Deploying") says to keep doing so.
 
 ## 3. Design
 
@@ -186,7 +192,8 @@ opened and saved as `traces/<run_id>/<index>` beside the record.
 
 **Measured on 2026-09-17**, correcting this section's earlier "a few
 megabytes": `data/llm` is 67 MB in all -- `games/` 47 MB, of which the
-grid-era runs are **30 MB** across 51 runs, plus `logbooks/` at 18 MB
+grid-era runs are **30 MB** across 38 runs (51 counted both eras; 13
+are ring-era, corrected 2026-09-18), plus `logbooks/` at 18 MB
 (Mustard's rebuilt tree is most of it) and `runs/` under 1 MB. So the
 upload is about **48 MB**, negligible to store but several thousand
 small JSON objects, which `store copy` must move in batches rather
@@ -228,7 +235,9 @@ than one blocking request each.
   Artifact Registry and Secret Manager are already on); create
   `clude-run@clude-game` and grant it the two roles in the bullet
   above; create the session secret; allow David's account to deploy as
-  `clude-run`. At family traffic the running service should stay inside
+  `clude-run`. (That last one proved unnecessary on 2026-09-18: the
+  deploy runs as `clude-sa`, whose `roles/owner` already includes
+  `iam.serviceAccounts.actAs`.) At family traffic the running service should stay inside
   Cloud Run's free tier (`docs/architecture.md`, "Deployment cost");
   builds and stored images may cost cents.
 
@@ -764,3 +773,100 @@ Files: `clude_training/arena.py` (`Table`, `headless_table`,
 `scripts/clude_shots.py` shoots the lobby, a run and Watch too;
 `tests/test_web_watch.py` added (23), `tests/test_browser.py` grew to 11,
 `tests/test_web.py` adjusted.
+
+### Steps 6-9, Cloud Run (2026-09-18)
+
+This closes 8.1. The app is live at
+<https://clude-648214345192.us-central1.run.app>, as 3.6 designed it,
+with the departures below. `docs/web.md` ("Deploying") is the operating
+manual; this is the record.
+
+**Step 6, the container and the upload.** A `Dockerfile` on
+`python:3.14-slim` serving `clude_web:create_app()` through gunicorn
+(one worker, 8 threads, 300 s), as a non-root user, installing only a
+new `requirements-web.txt` (Flask, gunicorn, the storage client: the
+service has no key, so the image carries no `anthropic`). `.gcloudignore`
+and `.dockerignore` list the same things, and `gcloud meta
+list-files-for-upload` showed the upload was 74 files, the seven
+packages and the build files, with no key file, `.env` or `data/`.
+Two additions the plan did not have:
+
+- **`ProxyFix`, only behind HTTPS.** Cloud Run's front end speaks plain
+  http to the container, so the app now trusts one hop of
+  `X-Forwarded-Proto`/`-Host` when `CLUDE_WEB_HTTPS=1`, and nothing
+  locally, where trusting them would let any client choose them.
+- **`store copy` is a module, not just a subcommand.**
+  `clude_storage.mirror` (`plan_mirror`, `copy_docs`) works through the
+  generic document methods, so any store copies into any other, and the
+  CLI wraps it. It takes grid-era runs with their cached traces, and the
+  logbooks. It leaves ring-era runs, `users/`, `watch/`,
+  `logbooks-ring` and loose root files behind.
+
+`tests/test_deploy.py` (13) pins what can be pinned without the cloud:
+the ignore files keep the secrets out and agree, the Dockerfile serves
+the factory, the cookie is `Secure` and the proxy trusted only under
+HTTPS, the app builds against `gs://` without a network call, the
+mirror picks and copies exactly the right documents into a local store
+and a fake bucket, and the lobby's parallel read (below) keeps its order.
+
+**Step 7, the one-time changes.** Approved with the plan that morning.
+My first `gcloud services enable` was stopped by Claude Code's
+permission check, so David made the changes in the Console instead:
+Cloud Build and IAM on; `clude-run` created; Storage Object Admin on the
+bucket and Secret Accessor on `clude-flask-secret`, a fresh value and
+not the local `.env` one. I then checked each change read-only. The
+default build identity turned out to be the Compute Engine account,
+which already holds Editor, so the contingency of a separate build
+identity was not needed. After the first deploy created
+`cloud-run-source-deploy`, a cleanup policy keeps its 3 newest images.
+"Allow David's account to deploy as `clude-run`" was dropped (3.6).
+
+**Step 8, upload, deploy, verify.** `store copy` moved 1,371 documents
+(38 runs, 1,322 records, 7 traces, 4 logbook documents) in 24 s.
+`users add David --uri gs://clude-game-data/llm` made the one account.
+The first build and deploy took about a minute. A scripted check against
+the URL, run under a throwaway account so David's one-time password
+offer stayed unspent, passed on both revisions:
+
+- every route redirects to the login without a session; a POST with no
+  CSRF token gets 400, and a wrong password 401;
+- the session cookie comes back `Secure`, `HttpOnly` and `SameSite=Lax`;
+- the one-time password offer appears at the first sign-in;
+- replays open, cached and uncached;
+- a watched three-seat game plays to the end and lands on its replay.
+
+A browser against the live URL showed the board painted, the tokens in
+their rooms and the phone layout stacked. The throwaway account was
+removed afterwards. Its two watched games remain as `runs/web` games 0
+and 1.
+
+| Measured on the service | |
+|---|---|
+| Cold start (first request after scaling to zero) | 8-10 s |
+| Lobby, 39 runs | 3.5 s, then **0.6 s** after the fix below |
+| Replay, trace cached | 0.4 s |
+| Replay, trace computed on first open (3 seats) | 16 s, against about 10 s on Orbit |
+| Watch: a turn / a 3-seat game to the end | 0.6 s / 1.3 s |
+| Image | 73 MB |
+
+**The one fix the deploy called for.** Step 8.5 of the plan set a bar of
+about 2 s for the lobby, and the first revision missed it at 3.5 s. Each
+run summary is a round trip to the bucket (two, since `GcsStore._read`
+checks `exists` first), and the lobby read 38 of them one after another.
+`views.run_listing` now reads them on a thread pool of 10. From Orbit
+that took the read from 6.7 s to 0.7 s, and on the service the lobby
+went from 3.5 s to 0.6 s. Ten, not the 16 first tried, because the
+storage client's connection pool holds 10 per host: 16 threads measured
+1.2 s, the extra ones opening and discarding connections. `store copy`'s
+default dropped to 10 for the same reason.
+
+**Step 9** is these entries, the "Deploying" section of `docs/web.md`,
+`store copy` in `docs/cli.md`, the deployment numbers in
+`docs/architecture.md`, and the README and `CLAUDE.md` status.
+
+Files: `Dockerfile`, `.gcloudignore`, `.dockerignore`,
+`requirements-web.txt`, `clude_storage/mirror.py` and
+`tests/test_deploy.py` added; `clude_web/__init__.py` (`ProxyFix`),
+`clude_web/views.py` (the parallel lobby), `scripts/clude_cli.py`
+(`store copy`), `requirements.txt` (gunicorn, not on Windows), and the
+docs named above changed.

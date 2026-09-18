@@ -15,6 +15,10 @@ anthropic>=1.5
 # and the agents still run on the standard library alone.
 flask>=3.0
 python-dotenv>=1.0
+# Serves the app on Cloud Run (the Dockerfile, which installs only
+# requirements-web.txt). Listed here for completeness; it does not run on
+# Windows, so locally the app is served by `flask run` instead.
+gunicorn>=23.0; sys_platform != "win32"
 # Optional, and only for looking at the web app: `scripts/clude_shots.py`
 # screenshots every screen and `tests/test_browser.py` drives the real
 # thing, both skipped without it. An SVG rasteriser is no substitute --

@@ -1,0 +1,9 @@
+# What the Cloud Run image installs (the Dockerfile), and nothing more.
+# The web app needs Flask (with Werkzeug and Jinja), gunicorn to serve it,
+# and google-cloud-storage for its gs:// store. requirements.txt is the
+# developer's list and adds the test runner, Playwright and anthropic,
+# none of which the service uses: the service has no API key, so no seat
+# on the web can call a model (docs/phase8.1-plan.md 3.6).
+flask>=3.1
+gunicorn>=23.0
+google-cloud-storage>=3.0

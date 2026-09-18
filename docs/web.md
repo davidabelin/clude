@@ -6,7 +6,9 @@ it, so the engine, the agents and the store stay exactly as testable
 headless as they were.
 
 Built: 8.1a, the local app -- the login gate and accounts, the lobby, the
-replay scrubber and the Watch screen. The Cloud Run deploy is 8.1b.
+replay scrubber and the Watch screen -- and 8.1b, the same app on Cloud
+Run at <https://clude-648214345192.us-central1.run.app> ("Deploying",
+below).
 
 ## Running it locally
 
@@ -82,7 +84,7 @@ Run service is reachable by anyone, and `password` is guessable.
 
 ## The gate
 
-The Cloud Run service will be reachable by anyone, deliberately: choosing
+The Cloud Run service is reachable by anyone, deliberately: choosing
 an app login means the login page is public and nothing else is
 (`docs/phase8.1-plan.md` 3.6). So the gate is the whole security boundary,
 and it is enforced in one place -- `auth.require_session`, registered as an
@@ -280,6 +282,89 @@ Both need Playwright, which is optional:
 An SVG rasteriser will not do instead. `board_svg` sets no colour at all,
 so rendering the SVG alone gives an unstyled blank; only a browser applies
 the stylesheet and runs `replay.js`.
+
+## Deploying
+
+The app runs on Cloud Run as the service `clude` in `clude-game`,
+us-central1, at <https://clude-648214345192.us-central1.run.app>
+(Phase 8.1b, `docs/phase8.1-plan.md` 3.6 and section 8).
+
+As measured on 2026-09-18: a build and deploy takes about a minute; the
+first request after the service has scaled to zero takes 8-10 s (a cold
+start, the price of free idle time); after that the lobby is 0.6 s, a
+replay 0.4 s once its trace is cached, and a watched three-seat game
+plays to the end in about a second. A replay opened for the first time
+computes its trace, which took 16 s for a three-seat game there against
+about 10 s on Orbit.
+
+**Name the project on every command.** Orbit keeps a gcloud
+configuration per project, and a command that relies on the active one
+acts on whichever project was used last: forgetting to switch back from
+zenbot would deploy clude into zenbot's project. Every command below
+names its account and project, and anything added here should too:
+
+```powershell
+$A = '--account=clude-sa@clude-game.iam.gserviceaccount.com'
+$P = '--project=clude-game'
+```
+
+### What is out there
+
+| Piece | What it is |
+|---|---|
+| Service `clude` | The `Dockerfile`'s image: gunicorn, one worker, 8 threads, 300 s timeout; 1 vCPU, 1 GiB; 0 to 1 instances, so idle time is free and the in-memory Watch games and login rate limit are simply correct. |
+| `clude-run@clude-game` | The identity the service runs as. It holds **Storage Object Admin on `gs://clude-game-data`** and **Secret Accessor on `clude-flask-secret`**, and nothing else, so the most the internet-facing login page can ever expose is the game store. `clude-sa`, which is project owner, stays on Orbit. |
+| `clude-flask-secret` | The session secret, in Secret Manager, generated for the service and never the same as the local `.env` one. Handed to the app as `FLASK_SECRET_KEY`. |
+| `gs://clude-game-data/llm` | The service's store: a mirror of `data/llm`'s grid-era runs, cached traces and logbooks, plus the service's own accounts (`users/`), watched games (`watch/`), games played there (`runs/web`) and the traces it computes. |
+| `cloud-run-source-deploy` | The Artifact Registry repository the builds go to, with a cleanup policy that keeps the 3 newest images. |
+
+The service has no Anthropic key, so nothing reachable from its URL can
+spend API money. It is reachable without Cloud Run authentication on
+purpose: the app login is the gate, and anyone can load the login page
+and nothing else.
+
+### Deploying a new version
+
+```powershell
+gcloud run deploy clude --source . --region us-central1 `
+    --service-account clude-run@clude-game.iam.gserviceaccount.com `
+    --allow-unauthenticated --min-instances 0 --max-instances 1 --concurrency 8 `
+    --cpu 1 --memory 1Gi --timeout 300 `
+    --set-env-vars "CLUDE_WEB_HTTPS=1,CLUDE_WEB_STORE=gs://clude-game-data/llm" `
+    --set-secrets "FLASK_SECRET_KEY=clude-flask-secret:latest" `
+    --quiet $A $P
+```
+
+`--source .` uploads the repo minus `.gcloudignore` and Cloud Build
+builds the `Dockerfile` (Orbit has no Docker). The two ignore files keep
+the key file, `.env` and `data/` out of both the upload and the image,
+which `tests/test_deploy.py` checks; `gcloud meta list-files-for-upload`
+shows exactly what would go. The image installs `requirements-web.txt`
+only. `CLUDE_WEB_HTTPS=1` matters twice: it marks the session cookie
+`Secure` and makes the app trust Cloud Run's forwarded scheme and host
+(`ProxyFix`); without it the login would work but the cookie would not be
+marked `Secure`.
+
+### Accounts and records in the cloud
+
+Accounts are per store, so a cloud account is made against the bucket:
+
+```powershell
+& .venv\Scripts\python.exe scripts\clude_cli.py users add NAME --uri gs://clude-game-data/llm
+```
+
+New runs from Orbit reach the cloud with `store copy`, which overwrites
+and so can be run again at any time (`docs/cli.md`):
+
+```powershell
+& .venv\Scripts\python.exe scripts\clude_cli.py store copy --uri data/llm --to gs://clude-game-data/llm
+```
+
+### Taking it down
+
+`gcloud run services delete clude --region us-central1 $A $P` removes the
+URL. The bucket's `llm/` prefix, the identity and the secret stay until
+removed by hand.
 
 ## Tests
 
