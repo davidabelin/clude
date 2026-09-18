@@ -469,3 +469,69 @@ Files: `clude_web/users.py` (`DEFAULT_PASSWORD`, `needs_password_offer`,
 `clude_web/templates/password.html`, `scripts/clude_cli.py` (no prompt,
 optional password argument), `tests/test_web.py` (34 tests now),
 `docs/web.md`, `docs/cli.md`, `CLAUDE.md`.
+
+### Step 3, the board and the replay data (2026-09-17)
+
+Two pure modules, neither importing Flask, so both are testable and
+renderable on their own.
+
+**`clude_web/board_svg.py`** draws the Classic grid from
+`clude_core.board` and nothing else: the rooms, corridor, cellar, doors
+and start squares all come from `BOARD_MAP` and `DOORS`. That is the
+drift worth designing out -- a replay showing a token where the rules
+forbid is worse than no picture -- and the tests check the drawing
+against the board rather than against a stored copy of itself.
+
+- Room outlines are drawn as one line per cell edge that borders
+  something else, minus the edges a door opens through. Cheaper than
+  unioning cells into a polygon and it gives the same picture: a crisp
+  wall with a gap at every doorway, and a test that asserts no door is
+  also walled off.
+- No colour is set anywhere in the module. Every shape carries a class
+  and `static/style.css` colours it in both themes, which is what lets
+  Phase 9 restyle the board without touching the generator. A test walks
+  the generated markup and fails on any class with no rule.
+- Tokens sharing a room are fanned out rather than stacked; a room's
+  centre is the mean of its cells, and a test checks that point lands
+  inside every one of the nine rooms.
+
+**`clude_web/replay_data.py`** is split by cost, which is the only thing
+that matters here:
+
+- `event_frames` folds the event log once, giving the board after every
+  event and the line describing it. Cheap, so it runs per request. It
+  folds exactly as `state_from_record` does -- including dragging a
+  named suspect's token into the room, which the engine does without a
+  move event of its own -- and a test pins its last frame to
+  `state_from_record`'s result so the scrubber's end and the stored game
+  cannot disagree.
+- `trace_document` asks each seat's own method what it believed after
+  every suggestion, and is far too slow for a request, so `cached_trace`
+  computes it once and writes it to `traces/<run_id>/<index>.json`
+  beside the record. A document from an older `TRACE_VERSION`, or built
+  with a different `every`, is rebuilt rather than trusted.
+- Each frame carries what that seat's floor has **proven**, not what its
+  method guesses: the solid part of the two-tone bar.
+
+**Two things the code taught us, both now covered by tests.**
+
+1. `mask.holder_of` returns a seat index *or* the string `"envelope"`.
+   A card proven to be the envelope's is the strongest thing a seat can
+   know and a different statement from "nobody has shown it", so the
+   screen has to be able to draw it. My first test wrongly assumed every
+   holder was a seat.
+2. A suggestion can name a suspect with no token at the table -- at
+   three seats, most of them. `event_frames` moves only suspects in
+   play, and a test asserts the frames never invent a position for an
+   absent one.
+
+A limitation to show on the screen rather than hide, carried in the
+document as `limitation`: a trace calls `select_action` on a fresh agent
+and never `observe`, so White's and Green's bars are a stateless reading
+of the evidence rather than what they believed live. Out of scope to fix
+in 8.1 (section 7).
+
+Files: `clude_web/board_svg.py` and `clude_web/replay_data.py` added,
+`clude_web/static/style.css` gained the board block,
+`tests/test_replay_screen.py` added (23 tests). Suite 303 -> 326 passed,
+2 skipped.

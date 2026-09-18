@@ -135,6 +135,107 @@ code {
   font-size: 0.85rem;
 }
 
+/* --- the board ----------------------------------------------------
+ *
+ * board_svg.py sets no colour at all: every shape carries a class and
+ * this block decides how it looks, in both themes. Phase 9's decorated
+ * board replaces what is here without touching the generator.
+ */
+
+:root {
+  --board-room: #e7e0d2;
+  --board-corridor: #f4f1ea;
+  --board-wall: #4a4038;
+  --board-door: #b8813a;
+  --board-cellar: #2b2b31;
+  --board-label: #6b5f52;
+
+  --suspect-scarlett: #b3243b;
+  --suspect-mustard: #d09a1e;
+  --suspect-plum: #7b4397;
+  --suspect-peacock: #1d7f96;
+  --suspect-green: #2f7d43;
+  --suspect-white: #e8e6e1;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --board-room: #34303a;
+    --board-corridor: #26242c;
+    --board-wall: #9a9186;
+    --board-door: #d6a75a;
+    --board-cellar: #121216;
+    --board-label: #a29585;
+
+    --suspect-scarlett: #e0566c;
+    --suspect-mustard: #e8bb4e;
+    --suspect-plum: #ab72c6;
+    --suspect-peacock: #4fb2c9;
+    --suspect-green: #5cb473;
+    --suspect-white: #f2f0eb;
+  }
+}
+
+.board {
+  width: 100%;
+  height: auto;
+  display: block;
+  shape-rendering: crispEdges;
+}
+
+.board-corridor rect { fill: var(--board-corridor); }
+.board-room rect { fill: var(--board-room); }
+.board-cellar rect { fill: var(--board-cellar); }
+
+.board-wall {
+  stroke: var(--board-wall);
+  stroke-width: 2;
+  stroke-linecap: square;
+}
+
+.board-door {
+  stroke: var(--board-door);
+  stroke-width: 4;
+  stroke-linecap: butt;
+}
+
+.board-label {
+  fill: var(--board-label);
+  font-size: 9px;
+  font-family: inherit;
+  letter-spacing: 0.04em;
+  shape-rendering: auto;
+  pointer-events: none;
+}
+
+.board-start {
+  fill: none;
+  stroke-width: 2;
+  opacity: 0.75;
+}
+
+.board-token {
+  stroke: var(--board-wall);
+  stroke-width: 1.5;
+  shape-rendering: auto;
+}
+
+.suspect-scarlett { fill: var(--suspect-scarlett); stroke: var(--suspect-scarlett); }
+.suspect-mustard  { fill: var(--suspect-mustard);  stroke: var(--suspect-mustard); }
+.suspect-plum     { fill: var(--suspect-plum);     stroke: var(--suspect-plum); }
+.suspect-peacock  { fill: var(--suspect-peacock);  stroke: var(--suspect-peacock); }
+.suspect-green    { fill: var(--suspect-green);    stroke: var(--suspect-green); }
+.suspect-white    { fill: var(--suspect-white);    stroke: var(--suspect-white); }
+
+.board-start.suspect-scarlett,
+.board-start.suspect-mustard,
+.board-start.suspect-plum,
+.board-start.suspect-peacock,
+.board-start.suspect-green,
+.board-start.suspect-white { fill: none; }
+
+.board-token { stroke: var(--board-wall); }
+
 @media (max-width: 30rem) {
   main { padding: 0.75rem; }
   .panel { padding: 1rem; }

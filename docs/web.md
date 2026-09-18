@@ -121,6 +121,8 @@ Alongside it:
 | `clude_web/config.py` | Secret, store URI and cookie policy. Imports no Flask. |
 | `clude_web/auth.py` | The login blueprint, `require_session`, CSRF, `RateLimit`. |
 | `clude_web/users.py` | Accounts as `users/<name>.json` documents. |
+| `clude_web/board_svg.py` | The Classic grid as SVG, generated from `clude_core.board`. |
+| `clude_web/replay_data.py` | Per-event board frames, and the cached per-game belief trace. |
 | `clude_web/views.py` | The app's own pages. A placeholder until step 5. |
 | `clude_web/templates/` | Jinja templates; `base.html` is the shell. |
 | `clude_web/static/style.css` | One stylesheet, every colour a variable. |
@@ -130,6 +132,36 @@ board and its logo, and motion are Phase 9; what is there now is the colour
 system those screens will inherit, declared once for light and once for
 dark, so Phase 9 restyles the app by editing that block rather than hunting
 through templates.
+
+## The board and the replay data
+
+`board_svg.board_svg(tokens)` returns the whole board as one `<svg>`
+string, generated from `clude_core.board` and nothing else -- the rooms,
+corridor, cellar, 17 doors and six start squares all come from the same
+map the engine plays, so the drawing cannot drift from the rules. It sets
+no colour at all: every shape carries a class and the stylesheet decides
+how it looks, which is what lets Phase 9 replace the look without touching
+the generator. A test fails on any class with no rule.
+
+`replay_data` is split by cost:
+
+- **`event_frames(record)`** folds the event log once and gives the board
+  after every event with the line that describes it. Cheap, so it runs per
+  request.
+- **`cached_trace(store, record)`** gives every seat's belief after every
+  suggestion, plus what each seat's floor has *proven*. This is slow --
+  Plum alone is about 0.7 s a call, so a six-seat table is about a minute
+  -- so it is computed once and written to `traces/<run_id>/<index>.json`
+  beside the record. A document from an older version is rebuilt rather
+  than trusted.
+
+Two details worth knowing when drawing a seat's bars. A proven holder is a
+seat index **or** the string `"envelope"`: a card proven to be the
+envelope's is the strongest thing a seat can know, and a different claim
+from "nobody has shown it". And a trace never calls `observe`, so White's
+and Green's bars are a stateless reading of the evidence rather than what
+they believed live -- the document carries that caveat as `limitation`, to
+be shown on the screen rather than hidden.
 
 ## Tests
 
