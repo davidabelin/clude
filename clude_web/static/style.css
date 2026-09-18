@@ -130,6 +130,29 @@ code {
 
 .error { color: var(--warn); }
 
+.runs { list-style: none; padding: 0; }
+
+.runs li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--edge);
+}
+
+.runs .run-id {
+  min-width: 16rem;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 0.82rem;
+}
+
+.runs a {
+  padding: 0 0.35rem;
+  color: var(--accent);
+  font-size: 0.82rem;
+}
+
 .note {
   color: var(--ink-soft);
   font-size: 0.85rem;
@@ -236,7 +259,160 @@ code {
 
 .board-token { stroke: var(--board-wall); }
 
+/* --- the replay screen (Direction A, "Scrubber") -------------------
+ *
+ * Board left, seats in two columns on a wide screen; everything stacked
+ * on a phone, as the sketch in docs/ux/replay/ has it.
+ */
+
+.replay { max-width: 78rem; margin: 0 auto; }
+
+.replay-head h1 { margin-bottom: 0.25rem; }
+
+.replay-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: var(--gap);
+  align-items: start;
+}
+
+.replay-board {
+  position: sticky;
+  top: var(--gap);
+  padding: 0.5rem;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+}
+
+.replay-seats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0.75rem;
+}
+
+.seat {
+  padding: 0.75rem;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+}
+
+.seat h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.pip {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.seat .method,
+.seat .hand {
+  margin: 0.15rem 0;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.strip {
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--edge);
+  padding-top: 0.35rem;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr 0.6rem;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+.row .card { color: var(--ink-soft); }
+
+.track {
+  position: relative;
+  height: 0.62rem;
+  background: var(--page);
+  border: 1px solid var(--edge);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  opacity: 0.35;            /* pale: still only a belief */
+  transition: width 0.12s linear;
+}
+
+.row.proven-envelope .fill { opacity: 1; }      /* solid: proven */
+.row.proven-envelope .card { color: var(--ink); font-weight: 600; }
+
+.row.proven-held { opacity: 0.45; }
+.row.proven-held .card { text-decoration: line-through; }
+
+.mark { width: 0.6rem; height: 0.6rem; border-radius: 50%; }
+.mark.truth { background: var(--warn); }
+
+.replay-foot { margin-top: var(--gap); }
+
+.step-line {
+  margin: 0 0 0.5rem;
+  padding: 0.6rem 0.75rem;
+  min-height: 2.6rem;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-left: 3px solid var(--edge);
+  border-radius: var(--radius);
+}
+
+.step-line.kind-suggestion { border-left-color: var(--accent); }
+.step-line.kind-accusation { border-left-color: var(--warn); }
+.step-line.kind-over { border-left-color: var(--board-door); }
+.step-line.kind-remark { font-style: italic; color: var(--ink-soft); }
+
+.scrubber {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.scrubber button {
+  margin-top: 0;
+  padding: 0.25rem 0.6rem;
+  background: var(--panel);
+  color: var(--ink);
+  border-color: var(--edge);
+}
+
+.scrubber input[type="range"] { flex: 1; width: auto; padding: 0; }
+
+.counter {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  min-width: 5.5rem;
+  text-align: right;
+}
+
+.key { margin-top: 0.6rem; }
+
+@media (max-width: 62rem) {
+  .replay-body { grid-template-columns: minmax(0, 1fr); }
+  .replay-board { position: static; }
+}
+
 @media (max-width: 30rem) {
   main { padding: 0.75rem; }
   .panel { padding: 1rem; }
+  .row { grid-template-columns: 5rem 1fr 0.6rem; font-size: 0.7rem; }
 }

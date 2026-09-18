@@ -215,6 +215,25 @@ def test_suggesting_an_absent_suspect_moves_nothing():
         assert set(frame.positions) == in_play
 
 
+def test_a_suggestion_line_names_the_refutation():
+    """A post-game replay is omniscient, so it says which card was shown
+    -- live, only the two seats involved saw it."""
+    record = play()
+    lines = [
+        f.text for f in replay_data.event_frames(record) if f.kind == "suggestion"
+    ]
+    suggestions = [e.suggestion for e in record.events if hasattr(e, "suggestion")]
+
+    assert lines
+    for line, suggestion in zip(lines, suggestions):
+        assert suggestion.suspect in line and suggestion.weapon in line
+        assert suggestion.room in line
+        if suggestion.refuter is None:
+            assert "Nobody could disprove" in line
+        else:
+            assert suggestion.card_shown in line
+
+
 def test_the_suggestion_count_climbs_once_per_suggestion():
     record = play()
     frames = replay_data.event_frames(record)

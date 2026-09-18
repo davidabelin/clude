@@ -49,11 +49,19 @@ motion and the six-seat layout polish are Phase 9.
   replayed bar is a stateless reading of the evidence rather than
   exactly what they believed live. That is a limitation to label on the
   screen, not one to fix in 8.1.
-- **Traces are too slow to compute per request.** Plum's belief takes
-  about 0.7 s a call mid-game (glossary, "Tuned presets on the grid");
-  one seat of a 30-suggestion game is about 20 s, a whole six-seat table
-  about a minute. Each game's trace is computed once and stored as a
-  document beside its record.
+- **Traces are too slow to compute per request.** Each game's trace is
+  computed once and stored as a document beside its record.
+
+  **Measured on 2026-09-17**, correcting this section's estimate, which
+  was about five times pessimistic: a 4-seat, 28-suggestion grid game
+  takes **8.7 s**, a 3-seat game with Plum in it **11.9 s**, and a
+  3-seat game without him 0.8 s. Served end to end, the first open of a
+  replay is 10.4 s and every open after it is 0.04 s. So the estimate
+  of "about a minute for six seats" was wrong, but the conclusion was
+  not: ten seconds a request is still far too slow, and the cache is
+  what makes the screen usable. The old estimate read: Plum's belief is
+  about 0.7 s a call mid-game, so one seat of a 30-suggestion game is
+  about 20 s and a six-seat table about a minute.
 - **The store already holds documents** (`LocalStore`, `GcsStore`, the
   logbooks use them), so users, sessions and trace caches need no new
   storage.
@@ -535,3 +543,68 @@ Files: `clude_web/board_svg.py` and `clude_web/replay_data.py` added,
 `clude_web/static/style.css` gained the board block,
 `tests/test_replay_screen.py` added (23 tests). Suite 303 -> 326 passed,
 2 skipped.
+
+### Step 4, the replay screen (2026-09-17)
+
+Direction A ("Scrubber") as 3.2 describes it: the grid board with the
+tokens where they stood, a block per seat with its method and cards, the
+line for the current step, and a scrubber with buttons and the arrow
+keys.
+
+**The whole game goes to the page once.** The scrubber moves per event,
+and a request per step would be both slow and pointless, so
+`replay_data.screen_payload` builds one JSON object and
+`static/replay.js` redraws from it. A real 4-seat game is 148 KB served,
+which is nothing, and stepping is instant.
+
+- Token positions are sent as SVG coordinates worked out server-side,
+  not as rooms and squares. Mapping them in JavaScript would put the
+  board's geometry in a second place, and keeping the drawing and the
+  rules together is the whole reason the board is generated from
+  `clude_core.board`. It is why `replay_data` imports `board_svg`.
+- The board is rendered once with every token at its start square, so
+  the circles exist in the document; a step moves them rather than
+  redrawing 828 elements.
+
+**Reading a bar.** Each seat gets three strips, and each row is in one
+of three states, which is a little richer than the plan's two: a card
+proven to be the **envelope's** is solid and full, the strongest thing a
+seat can know; a card proven to sit in someone's **hand** is greyed and
+struck through, settled and out; anything still **open** is a pale bar as
+wide as that seat's own belief. A red mark shows the truth. The
+three-way split follows from `holder_of` returning a seat *or*
+`"envelope"` (step 3), and collapsing it to two would have thrown away
+the distinction between "I have proved this is the answer" and "I think
+this is likely".
+
+**One hole found and closed.** The payload sits in a `<script>` block
+and a replay carries table talk written by a model, which is text from
+outside the app. A `</script>` in a remark would have closed the tag and
+run whatever followed. `views.embed_json` escapes `<` as `<`, which
+JSON parses identically, and a test feeds a hostile remark through the
+whole screen to prove the block stays one document.
+
+**Wording.** Suggestion lines are written here rather than reused from
+`clude_agents.explain.describe_suggestion`: that renders
+``White/Rope/Lounge -- Scarlett showed White``, which is right for a
+terminal column and wrong under a board, where the rest of the lines are
+prose. Same facts, different audience.
+
+`index` grew a stopgap list of stored games so a replay is reachable
+before the lobby exists; step 5 replaces it.
+
+Verified by serving it: sign in, open a replay, 9 rooms, 17 doors, 4
+tokens, 4 seat blocks, 84 bar rows, an 81-step scrubber, both static
+files served. The payload has all four tokens ending somewhere new
+across 56 distinct board positions, and at the last step Scarlett has
+proven all 21 cards -- the three envelope cards among them, with belief
+1.0 on the Study, which is the truth. **Not** verified: how it actually
+looks. Orbit has no browser automation and no SVG rasteriser, so nobody
+has seen it rendered yet.
+
+Files: `clude_web/views.py` (the replay route, `embed_json`, the stopgap
+index), `clude_web/templates/replay.html`, `clude_web/static/replay.js`,
+`clude_web/replay_data.py` (`screen_payload`, `suggestion_line`),
+`clude_web/templates/index.html` and `static/style.css`;
+`tests/test_web.py` and `tests/test_replay_screen.py` grew to 40 and 24.
+Suite 326 -> 333 passed, 2 skipped.

@@ -21,7 +21,7 @@ implemented" section of its plan doc (`docs/phase5-plan.md` to
 measurement is in `docs/strategy-glossary.md`. There is no UI yet:
 the game itself still runs headless through `scripts/clude_cli.py`; the
 web app in front of it is being built (Phase 8.1, `docs/web.md`). Suite:
-326 passed, 2 skipped (the live-credential tests), about two minutes
+333 passed, 2 skipped (the live-credential tests), about two minutes
 with `-n auto`.
 
 **The road from here** (David renumbered it on 2026-09-16;
@@ -30,7 +30,7 @@ with `-n auto`.
 | Phase | What | State |
 |---|---|---|
 | 8.0 | Re-measure the glossary on the Classic board (was the "re-measurement plan"; stages 8.0.0-8.0.3) | 8.0.0-8.0.3 done; what to do about Plum's grid parking (2c, 2d or a scoring change) is David's call -- `docs/phase8.0-plan.md` |
-| 8.1 | 8.1a a basic UX scaffold as a local Flask app; 8.1b the same app on Cloud Run behind an app login | confirmed 2026-09-17 and under way: steps 1-3 of 9 built (the engine seam; the `clude_web` skeleton with its login gate and accounts; the board as SVG and the replay data with its cached trace); 8.1b still needs a separate yes for the Google Cloud changes -- `docs/phase8.1-plan.md`, `docs/web.md` |
+| 8.1 | 8.1a a basic UX scaffold as a local Flask app; 8.1b the same app on Cloud Run behind an app login | confirmed 2026-09-17 and under way: steps 1-4 of 9 built (the engine seam; the `clude_web` skeleton with its login gate and accounts; the board as SVG and the replay data with its cached trace; the replay scrubber). Next is step 5, the lobby and watch screens; 8.1b still needs a separate yes for the Google Cloud changes -- `docs/phase8.1-plan.md`, `docs/web.md` |
 | 8.2 | Human players | not started |
 | 8.3 | The rest of chat | not started |
 | 9 | In-depth UX | not started |

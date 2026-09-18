@@ -8,10 +8,12 @@ matters here (`docs/phase8.1-plan.md` 2):
   the scrubber's spine, and a fold over a few hundred events costs
   nothing.
 - **Slow, cached once.** `trace_document` asks every seat's own method
-  what it believed after every suggestion. Plum alone takes about 0.7 s a
-  call mid-game, so a six-seat table is about a minute -- far too slow
-  for a request. It is computed once and stored beside the record as
-  ``traces/<run_id>/<index>.json``.
+  what it believed after every suggestion. Measured on the grid records:
+  a 4-seat, 28-suggestion game takes 8.7 s and a 3-seat game with Plum
+  in it 11.9 s -- far too slow for a request, though not the minute the
+  plan first estimated. It is computed once and stored beside the record
+  as ``traces/<run_id>/<index>.json``; served, that is 10.4 s on the
+  first open of a replay and 0.04 s on every one after.
 
 One honest limitation, to be shown on the screen rather than hidden: a
 trace calls `select_action` on a fresh agent and never `observe`, so for
@@ -26,7 +28,6 @@ from datetime import datetime, timezone
 
 import clude_constraints
 from clude_agents import AGENT_SPECS, build_agent
-from clude_agents.explain import describe_suggestion
 from clude_core import board
 from clude_core.domain import ALL_CARDS, ROOMS, SUSPECTS, WEAPONS
 from clude_core.events import (
@@ -87,6 +88,29 @@ class EventFrame:
     k: int
 
 
+def suggestion_line(suggestion, suspects) -> str:
+    """One suggestion as a sentence, refutation included.
+
+    `clude_agents.explain.describe_suggestion` says the same thing as
+    ``White/Rope/Lounge -- Scarlett showed White``, which is right for a
+    terminal column and wrong for a line of prose under a board. The
+    audience differs, so the wording does; the facts are identical.
+
+    A record is omniscient, so the card shown is named. That is the point
+    of a post-game replay -- live, only the two seats involved saw it.
+    """
+    line = (
+        f"{suspects[suggestion.suggester]} suggests {suggestion.suspect} "
+        f"with the {suggestion.weapon} in the {suggestion.room}."
+    )
+    if suggestion.refuter is None:
+        return f"{line} Nobody could disprove it."
+    refuter = suspects[suggestion.refuter]
+    if suggestion.card_shown:
+        return f"{line} {refuter} showed {suggestion.card_shown}."
+    return f"{line} {refuter} disproved it."
+
+
 def seat_names(record) -> list:
     """Suspect per seat, in seat order."""
     seats = sorted(record.seats, key=lambda s: s.seat)
@@ -123,7 +147,7 @@ def event_frames(record) -> list:
             if suggestion.suspect in positions:
                 positions[suggestion.suspect] = suggestion.room
             kind = "suggestion"
-            text = describe_suggestion(suggestion, suspects)
+            text = suggestion_line(suggestion, suspects)
         elif isinstance(event, AccusationEvent):
             accusation = event.accusation
             kind = "accusation"
@@ -276,6 +300,70 @@ def cached_trace(store, record, every: int = 1) -> dict:
     document = trace_document(record, every=every)
     store.put_doc(key, document)
     return document
+
+
+def screen_payload(record, trace: dict) -> dict:
+    """Everything the replay screen needs, in one JSON-ready object.
+
+    The scrubber moves per event and a round trip per step would be both
+    slow and pointless, so the whole game goes to the page once and the
+    JavaScript redraws from it.
+
+    Token positions are sent as SVG coordinates rather than as rooms and
+    squares, which is why this module imports `board_svg`. The
+    alternative -- sending nodes and mapping them in JavaScript -- would
+    put the board's geometry in a second place, and keeping the drawing
+    and the rules in one place is the whole point of generating the board
+    from `clude_core.board`.
+
+    Probabilities are rounded and proven entries with no holder are
+    dropped, which roughly halves the payload and costs nothing: a bar is
+    a few pixels wide.
+    """
+    from . import board_svg
+
+    frames = event_frames(record)
+    return {
+        "frames": [
+            {
+                "i": frame.index,
+                "turn": frame.turn,
+                "kind": frame.kind,
+                "text": frame.text,
+                "k": frame.k,
+                "tokens": {
+                    suspect: [round(v, 2) for v in board_svg.node_centre(node)]
+                    for suspect, node in frame.positions.items()
+                },
+            }
+            for frame in frames
+        ],
+        "beliefs": [
+            {
+                "k": belief["k"],
+                "seats": [
+                    {
+                        "seat": seat["seat"],
+                        "p": {
+                            card: round(value, 4)
+                            for card, value in seat["probabilities"].items()
+                        },
+                        "proven": {
+                            card: holder
+                            for card, holder in seat["proven"].items()
+                            if holder is not None
+                        },
+                    }
+                    for seat in belief["seats"]
+                ],
+            }
+            for belief in trace["frames"]
+        ],
+        "seats": trace["seats"],
+        "envelope": trace["envelope"],
+        "categories": trace["categories"],
+        "limitation": trace["limitation"],
+    }
 
 
 def belief_at(document: dict, k: int) -> dict:

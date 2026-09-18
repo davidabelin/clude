@@ -163,6 +163,34 @@ and Green's bars are a stateless reading of the evidence rather than what
 they believed live -- the document carries that caveat as `limitation`, to
 be shown on the screen rather than hidden.
 
+## The replay screen
+
+`/replay/<run_id>/<index>` is Direction A, the scrubber: the board with
+the tokens where they stood, a block per seat, the line for the current
+step, and a slider with step buttons and the arrow keys (also Home and
+End).
+
+The whole game goes to the page once, as JSON in a `<script>` block, and
+`static/replay.js` redraws from it -- so stepping never touches the
+server. A real 4-seat game is about 148 KB. Token positions are sent as
+SVG coordinates worked out server-side, so the board's geometry stays in
+one place.
+
+Each seat's three strips read in three states:
+
+| Row | Means |
+|---|---|
+| Solid, full width | That seat has **proven** the card is in the envelope. |
+| Greyed, struck through | It has proven someone **holds** it: settled and out. |
+| Pale bar | Still open; the width is that seat's own belief it is the answer. |
+
+A red mark is the truth. A replay is a post-game, omniscient view, so it
+names the card shown at every refutation -- live, only the two seats
+involved saw it.
+
+The first open of a game computes its trace and takes about ten seconds;
+every open after that reads the cache and is immediate.
+
 ## Tests
 
 `tests/test_web.py` runs Flask's test client against a `LocalStore` in a

@@ -13,6 +13,8 @@ do not exist yet.
 """
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from clude_storage import open_store
@@ -339,6 +341,107 @@ def test_a_settled_account_goes_straight_in(client):
 
 def test_the_offer_still_needs_a_session(fresh_app):
     assert fresh_app.test_client().get("/password").status_code == 302
+
+
+# --- the replay screen ------------------------------------------------
+
+
+def stored_game(store, run_id="web-test", index=0):
+    """Play a short real game into `store`, as the arena would."""
+    import clude_constraints
+    from clude_constraints import FloorBot
+    from clude_core import engine
+    from clude_storage import GameRecord, SeatRecord
+
+    n = 3
+    state, events = engine.run_game(
+        n, {p: FloorBot() for p in range(n)}, seed=5, max_turns=40,
+        observer=clude_constraints.observe,
+    )
+    record = GameRecord.from_game(
+        run_id=run_id, game_index=index, seed=5, state=state, events=events,
+        seats=[
+            SeatRecord(seat=p, suspect=state.suspects_in_play[p], label="floor", kind="floor")
+            for p in range(n)
+        ],
+    )
+    store.put_game(run_id, index, record.to_dict())
+    store.put_run(run_id, {"n_games": 1, "seed": 5, "roster": ["floor"], "per_player": {}})
+    return record
+
+
+def test_a_replay_renders_its_board_seats_and_scrubber(app, store, client):
+    stored_game(store)
+    sign_in(client)
+
+    page = client.get("/replay/web-test/0")
+    text = page.get_data(as_text=True)
+
+    assert page.status_code == 200
+    assert text.count('class="board-room"') == 9
+    assert text.count('class="seat"') == 3
+    assert 'id="scrub"' in text
+    assert "replay.js" in text
+
+
+def test_a_replay_needs_a_session(app, store):
+    stored_game(store)
+
+    response = app.test_client().get("/replay/web-test/0")
+
+    assert response.status_code == 302
+    assert "/login" in response.headers["Location"]
+
+
+def test_a_missing_game_is_a_404_not_a_crash(client):
+    sign_in(client)
+
+    assert client.get("/replay/nope/0").status_code == 404
+    assert client.get("/replay/web-test/99").status_code == 404
+
+
+def test_the_replay_payload_is_valid_json_with_a_frame_per_event(app, store, client):
+    record = stored_game(store)
+    sign_in(client)
+    text = client.get("/replay/web-test/0").get_data(as_text=True)
+
+    raw = text.split('id="replay-data" type="application/json">')[1].split("</script>")[0]
+    payload = json.loads(raw)
+
+    assert len(payload["frames"]) == len(record.events)
+    assert payload["envelope"] == list(record.envelope)
+    assert all("tokens" in frame for frame in payload["frames"])
+
+
+def test_the_payload_cannot_close_the_script_tag(app, store, client):
+    """Table talk is written by a model, so it is text from outside the
+    app. A `</script>` in a remark must not break out of the block."""
+    from clude_core.events import RemarkEvent
+    from clude_storage import GameRecord
+
+    record = stored_game(store)
+    hostile = "</script><script>window.pwned=1</script>"
+    record.events.insert(1, RemarkEvent(turn=1, seat=0, text=hostile, about="move"))
+    store.put_game("web-test", 0, record.to_dict())
+    store.delete_doc("traces/web-test/00000.json")
+    sign_in(client)
+
+    text = client.get("/replay/web-test/0").get_data(as_text=True)
+
+    assert "window.pwned" not in text or "\\u003c" in text
+    raw = text.split('id="replay-data" type="application/json">')[1].split("</script>")[0]
+    payload = json.loads(raw)  # the block is still one whole JSON document
+    assert any(hostile in frame["text"] for frame in payload["frames"])
+    del GameRecord
+
+
+def test_the_index_links_to_a_stored_replay(app, store, client):
+    stored_game(store)
+    sign_in(client)
+
+    text = client.get("/").get_data(as_text=True)
+
+    assert "/replay/web-test/0" in text
 
 
 # --- the factory ------------------------------------------------------
