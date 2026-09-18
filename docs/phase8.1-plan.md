@@ -1,8 +1,8 @@
 # Phase 8.1 Plan: a web scaffold, locally and on Cloud Run
 
 Status: **confirmed 2026-09-17**; section 6 records what David decided.
-8.1a is being built; 8.1b waits on a separate yes for the one-time
-Google Cloud changes (3.6).
+**8.1a is built** (steps 1-5; section 8 records how). 8.1b, steps 6-9,
+waits on a separate yes for the one-time Google Cloud changes (3.6).
 
 ## 1. Context
 
@@ -673,3 +673,94 @@ Files: `scripts/clude_shots.py` and `tests/test_browser.py` added;
 the cellar wordmark, square start markers), `static/style.css` (the board
 palette reworked), `templates/replay.html`, `clude_web/replay_data.py`,
 `requirements.txt`, `CLAUDE.md` and `docs/web.md` updated.
+
+### Step 5, the lobby and the Watch screen (2026-09-17)
+
+This closes 8.1a. Built as 3.2 and 3.3 describe, with one design
+question the plan did not see and several smaller departures.
+
+**The plan asked for two things that contradict each other.** 3.2 says
+Watch shows "the seats' bars" *and* that "hands and envelope stay hidden
+until the game is over". The replay's per-card bars cannot do both:
+every seat's own hand is proven to that seat from the first turn, and
+all the hands together are exactly the eighteen cards that are not the
+answer. Show each seat card by card and the envelope is on screen before
+anyone moves. Direction D, which 3.2 names for Watch, had already drawn
+the way out: compact bars -- "9/21" cards placed, three segments, "tap a
+seat to open it". So a seat's block on Watch is cards placed (as a count
+and as filled cells per category, which name no card) and how sure its
+own method is of its best guess in each category. The hidden-hands rule
+is the stronger requirement, so it won; "tap a seat to open it" is
+deferred to Phase 9, where it would need its own answer to the same leak.
+
+A refutation on Watch reads "Scarlett disproved it", never the card
+shown -- all anyone but the two seats involved learns at a real table.
+To make that impossible to get wrong in two places, the per-event
+wording moved out of `event_frames` into `replay_data.describe_event`
+with a `reveal` switch, and the replay and Watch both read from it.
+
+**A watched game is `play`'s game.** Table-building lived in the CLI's
+private `_play_game`, where the web app could not reach it, so it moved
+to `clude_training.arena.headless_table` -- the CLI itself was left
+untouched, and instead a test drives the CLI's own `_play_game` and pins
+`headless_table`'s game to it for four rosters, one of them all six
+characters at a six-seat table. A second test pins a game advanced one
+turn at a time to the same event log. Both hold exactly.
+
+**Surviving a cold start** is as 3.3 planned: `watch/<id>.json` holds
+the setup and the turn count, and a game missing from memory is rebuilt
+by replaying that many turns; a test rebuilds one in a fresh registry and
+compares events, positions and readings. Belief readings come from fresh
+agents reset with the game seed, never the agents playing, because a
+reading consumes RNG in some methods and would otherwise change the rest
+of the game; that also makes a reading a pure function of the seat, the
+seed and its view, so the rebuilt game reads exactly as the live one.
+
+**The turn that ends a game says so.** The generator only raises
+`StopIteration` on the call *after* the last turn's marker, which would
+have left one click that plays nothing. `WatchGame.advance` notices the
+three endings (a correct accusation, the turn cap, everyone out) as the
+marker arrives, and drains the generator, which in each case returns
+without drawing a die or asking anyone anything.
+
+**Smaller departures.**
+
+- `sessions.py` in section 5 is `watch.py`: "session" already means the
+  login cookie here.
+- The lobby reads run summaries, not records: every summary already
+  carries each game's seats, winner, turns and suggestions, so the lobby
+  opens no record at all (51 runs in 0.3 s on Orbit). No cache was
+  needed, though GCS in 8.1b will be slower and may want one.
+- A game played here is saved to one run, `web`, whose summary is kept
+  in the arena's shape so the lobby, `/runs/web` and `clude_cli.py store
+  --run web` all read it with no special case. Saving is idempotent and
+  the next index is chosen under a lock.
+- "Play to the end" is one request of about 20 s with Plum or Green at
+  the table, under a second without. Fine locally and well inside Cloud
+  Run's 300 s timeout.
+
+**What the screenshots caught this time.** Every suspect pip in the app
+-- the coloured dot by each name, on the replay since step 4 and now the
+lobby and Watch -- had been invisible all along: the `.suspect-*` rules
+colour the board with `fill`, an SVG property an HTML span ignores. The
+existing "every class is styled" test could not see it, because the
+class *had* a rule, just the wrong property for a span. A browser test
+now checks each pip's computed background. Also fixed from the shots:
+the two Watch buttons sitting at different heights, and the lobby's
+labels floating away from their controls.
+
+**Test cost.** The first draft of `tests/test_web_watch.py` took 138 s
+in parallel, because it played whole games with Plum and Green (7 s and
+12 s a game against 0.8 s for Scarlett, Mustard and White). The tests
+now use the fast three, with one capped all-six case that still makes
+every character take a turn: 25 s for the file, and the suite is 357
+passed, 13 skipped in about 2 min 20 s.
+
+Files: `clude_training/arena.py` (`Table`, `headless_table`,
+`seat_kind`); `clude_web/watch.py`; `clude_web/views.py` rewritten
+(lobby, `/runs/<run_id>`, the four Watch routes); `clude_web/replay_data.py`
+(`describe_event`, `reveal`); templates `lobby.html`, `run.html`,
+`watch.html`, with the stopgap `index.html` removed; `static/style.css`;
+`scripts/clude_shots.py` shoots the lobby, a run and Watch too;
+`tests/test_web_watch.py` added (23), `tests/test_browser.py` grew to 11,
+`tests/test_web.py` adjusted.

@@ -24,7 +24,7 @@ clude/
   clude_llm/           # Phase 6: menus, personas, LLM backends, LLMCharacter; Phase 7: the debrief (logbook.py)
   clude_training/      # self-play snapshots, belief benchmark, trace, arena, sweeps; Phase 7: replay.py, memory.py
   clude_storage/       # game records and logbooks; local and Cloud Storage stores
-  clude_web/           # Flask app: the login gate and the screens (phase 8.1; docs/web.md)
+  clude_web/           # Flask app: login, lobby, replay, Watch (phase 8.1; docs/web.md)
   scripts/             # clude_cli.py
   tests/
   docs/
@@ -617,7 +617,13 @@ games), the table size cycling 3..6, missing seats filled with
 label it reports win rate and wrong-accusation rate with binomial std,
 mean turn of first accusation and the never-accused rate, distinct own
 cards leaked, suggestions naming an own card, and ms per belief call.
-Characters are built once per run and reset once, so Green's posteriors
+A single game seats differently: `clude_training.arena.headless_table`
+is the table `clude_cli.py play` builds (each character reset with the
+game's own seed, fills seeded by `fill_seed`, no LLM or logbook layer),
+lifted out of the CLI in Phase 8.1 so the web app's Watch screen plays
+exactly that game; `tests/test_web_watch.py` pins it to the CLI's own
+code. In the arena, by contrast,
+characters are built once per run and reset once, so Green's posteriors
 persist and his `observe` at each game's end is what "learns across
 games" means. Every game's deal and dice depend only on `seed + g`, so a
 `sweep_dial` (the arena once per value of one dial, same seed) is a

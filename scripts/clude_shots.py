@@ -8,7 +8,9 @@ width. Hence Playwright.
 
 This is a maintainer tool, not part of the app and not imported by it.
 It boots the app on a spare port against a throwaway store seeded from
-real records, signs in, and writes a PNG per screen.
+real records, signs in, and writes a PNG per screen: the login, the
+lobby, a run's games, a watched game as dealt and a few turns in, and a
+replay at its start, middle and end.
 
 Usage
 -----
@@ -138,7 +140,25 @@ def shoot(base: str, run: str, index: int, out: Path, dark: bool, phone: bool) -
                 page.fill("#password", SHOT_PASSWORD)
                 page.click("button[type=submit]")
                 page.wait_for_url(f"{base}/")
-                save("index")
+                save("lobby")
+
+                page.goto(f"{base}/runs/{run}")
+                save("run")
+
+                # A watched game a few turns in: Scarlett, Plum and Green
+                # at four seats, so one seat is a floor bot.
+                page.goto(f"{base}/")
+                for name in ("Scarlett", "Plum", "Green"):
+                    page.check(f"input[name=characters][value={name}]")
+                page.select_option("#n_players", "4")
+                page.fill("#seed", "7")
+                page.click("form[action$='/watch'] button[type=submit]")
+                page.wait_for_selector("#next-turn")
+                save("watch-dealt")
+                for _ in range(9):
+                    page.click("#next-turn")
+                    page.wait_for_selector("#next-turn")
+                save("watch-turn")
 
                 page.goto(f"{base}/replay/{run}/{index}")
                 page.wait_for_selector(".board-token")

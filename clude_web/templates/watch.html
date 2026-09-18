@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Watching &middot; turn {{ game.turns }}{% endblock %}
+{% block content %}
+<div class="watch">
+
+  <header class="replay-head">
+    <p class="crumbs"><a href="{{ url_for('main.index') }}">Lobby</a> &rsaquo; watching</p>
+    <h1>Turn {{ game.turns }}</h1>
+    <p class="note">
+      {{ setup.n_players }} seats, seed {{ setup.seed }}{% if document.started_by %}, dealt by {{ document.started_by }}{% endif %}.
+      Hands and the envelope stay hidden until the game ends; then it opens as a replay.
+    </p>
+  </header>
+
+  <div class="replay-body">
+    <section class="replay-board">
+      {{ board|safe }}
+      <p class="spoken" id="spoken">
+        {% if spoken %}{{ spoken }}{% else %}<span class="note">No suggestion yet.</span>{% endif %}
+      </p>
+    </section>
+
+    <section class="watch-side">
+      <div class="panel controls">
+        {% if game.turns == 0 %}
+          <p class="note">The cards are dealt. Nobody has moved.</p>
+        {% else %}
+          <h2>This turn</h2>
+          <ul class="turn-lines">
+            {% for kind, text in lines %}
+              <li class="kind-{{ kind }}">{{ text }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+        <div class="buttons">
+          <form method="post" action="{{ url_for('main.watch_next', watch_id=watch_id) }}">
+            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+            <button type="submit" id="next-turn" autofocus>Next turn</button>
+          </form>
+          <form method="post" action="{{ url_for('main.watch_end', watch_id=watch_id) }}">
+            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+            <button type="submit" class="quiet" id="play-to-end">Play to the end</button>
+          </form>
+        </div>
+        <p class="note">Playing to the end takes up to half a minute with Plum at the table.</p>
+      </div>
+
+      <div class="seats-compact">
+        {% for r in readings %}
+          <article class="seat compact{% if not r.active %} out{% endif %}" data-seat="{{ r.seat }}">
+            <h2>
+              <span class="pip suspect-{{ r.suspect|lower }}"></span>
+              {{ r.suspect }}
+              {% if r.label != r.suspect %}<span class="who">({{ r.label }})</span>{% endif %}
+              <span class="placed">{{ r.placed }}/{{ r.total }}</span>
+            </h2>
+            <p class="method">
+              {{ r.method or r.label }}{% if not r.active %} &middot; <strong>out</strong>, accused wrongly{% endif %}
+            </p>
+            {% for g in r.groups %}
+              <div class="gauge{% if g.solved %} solved{% endif %}">
+                <span class="gname">{{ g.name }}</span>
+                <span class="cells" title="{{ g.placed }} of {{ g.size }} placed">
+                  {% for i in range(g.size) %}<span class="cell{% if i < g.placed %} on{% endif %}"></span>{% endfor %}
+                </span>
+                {% if g.confidence is not none %}
+                  <span class="sure" title="its best guess, {{ (g.confidence * 100)|round|int }}% sure">
+                    <span class="sure-fill" style="width: {{ (g.confidence * 100)|round(1) }}%"></span>
+                  </span>
+                  <span class="pct">{{ (g.confidence * 100)|round|int }}%</span>
+                {% else %}
+                  <span class="sure none"></span><span class="pct note">&ndash;</span>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <p class="note key">
+    Each seat shows how many of the 21 cards it has <em>placed</em> -- its own
+    hand and whatever the deduction floor has proven -- as filled cells, and
+    how sure its own method is of its best guess in each category. No card is
+    named: every seat's hand, laid side by side, would give the answer away.
+    {{ limitation }}
+  </p>
+</div>
+{% endblock %}

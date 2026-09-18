@@ -18,11 +18,12 @@ the plan sections above it, and over this file if they disagree.
 Phases 1-7 are done and committed. Each phase's record is the "as
 implemented" section of its plan doc (`docs/phase5-plan.md` to
 `docs/phase7-plan.md`; Phases 1-4 in `docs/phase-plan.md`), and every
-measurement is in `docs/strategy-glossary.md`. There is no UI yet:
-the game itself still runs headless through `scripts/clude_cli.py`; the
-web app in front of it is being built (Phase 8.1, `docs/web.md`). Suite:
-334 passed, 11 skipped (the live-credential and browser tests), about
-two minutes with `-n auto`; the 9 browser tests pass under
+measurement is in `docs/strategy-glossary.md`. The game runs headless
+through `scripts/clude_cli.py`, and since 8.1a also in a local Flask app
+(`docs/web.md`): a login, a lobby, a replay scrubber for any stored game,
+and a Watch screen that plays a headless game a turn at a time. Suite:
+357 passed, 13 skipped (the live-credential and browser tests), about
+two and a half minutes with `-n auto`; the 11 browser tests pass under
 `CLUDE_WEB_BROWSER=1`.
 
 **The road from here** (David renumbered it on 2026-09-16;
@@ -31,7 +32,7 @@ two minutes with `-n auto`; the 9 browser tests pass under
 | Phase | What | State |
 |---|---|---|
 | 8.0 | Re-measure the glossary on the Classic board (was the "re-measurement plan"; stages 8.0.0-8.0.3) | 8.0.0-8.0.3 done; what to do about Plum's grid parking (2c, 2d or a scoring change) is David's call -- `docs/phase8.0-plan.md` |
-| 8.1 | 8.1a a basic UX scaffold as a local Flask app; 8.1b the same app on Cloud Run behind an app login | confirmed 2026-09-17 and under way: steps 1-4 of 9 built (the engine seam; the `clude_web` skeleton with its login gate and accounts; the board as SVG and the replay data with its cached trace; the replay scrubber). Next is step 5, the lobby and watch screens; 8.1b still needs a separate yes for the Google Cloud changes -- `docs/phase8.1-plan.md`, `docs/web.md` |
+| 8.1 | 8.1a a basic UX scaffold as a local Flask app; 8.1b the same app on Cloud Run behind an app login | 8.1a built 2026-09-17 (steps 1-5: the engine seam, the login and accounts, the board and replay data, the replay scrubber, the lobby and Watch). 8.1b (steps 6-9, the Cloud Run deploy) needs a separate yes for the Google Cloud changes first -- `docs/phase8.1-plan.md`, `docs/web.md` |
 | 8.2 | Human players | not started |
 | 8.3 | The rest of chat | not started |
 | 9 | In-depth UX | not started |
@@ -264,8 +265,14 @@ Built; the detail is in `docs/architecture.md`.
   `read_back`, `debrief`), `logbook` (the debrief prompt).
 - `clude_web` -- the Flask app: `create_app`, `config` (secret, store,
   cookie policy), `auth` (the login gate, CSRF, rate limit), `users`
-  (accounts as store documents), `views`, templates and one stylesheet.
+  (accounts as store documents), `board_svg` (the grid drawn from
+  `clude_core.board`, colourless so the stylesheet decides), `replay_data`
+  (event lines, board frames, the cached belief trace), `watch` (a game
+  played a turn at a time through `engine.game_steps`, stored as setup
+  plus turn count), `views`, templates, one stylesheet, `replay.js`.
   Imports every other package; nothing imports it (`docs/web.md`).
+  `clude_training.arena.headless_table` is the table `play` seats, shared
+  with Watch and pinned to the CLI by a test.
 - `scripts/clude_cli.py` -- the maintainer CLI; `tests/` -- pytest.
 
 Invariants to keep:
@@ -453,7 +460,8 @@ uploading the grid-era runs *and* the logbooks.
 - `docs/logbooks.md` -- playerbot memory: the three tiers, the `memory`
   dial, the debrief, the CLI, cost.
 - `docs/web.md` -- the Flask app: running it locally, the session
-  secret, accounts and the `users` CLI, the login gate, the layout.
+  secret, accounts and the `users` CLI, the login gate, the lobby, Watch
+  (and why it shows so little), the replay, screenshots, the layout.
 - `docs/cli.md` -- every subcommand.
 - `docs/board.md` -- the Classic board as measured, the doors, the
   rules, what the module exposes, and the ring it replaced.
@@ -461,7 +469,7 @@ uploading the grid-era runs *and* the logbooks.
   and "as implemented". `docs/phase8.0-plan.md` -- Phase 8.0, the costed plan to
   re-run every glossary measurement on the grid, with the trigger for
   its conditional paid steps. `docs/phase8.1-plan.md` -- Phase 8.1, the
-  web scaffold and Cloud Run (proposed).
+  web scaffold (8.1a, built) and Cloud Run (8.1b, not started).
 - `docs/ux/` -- the UX pass: the two reference boards, `board_map.txt`
   (the source of truth for `clude_core/board.py`), and `replay/`, the
   four replay-screen direction sketches on the design canvas.

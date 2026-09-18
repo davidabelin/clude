@@ -236,6 +236,46 @@ def test_a_proven_envelope_card_is_drawn_solid(page):
         assert row["width"] == "100%"
 
 
+def test_every_suspect_pip_is_coloured(page):
+    """The `.suspect-*` rules colour the board with `fill`, an SVG
+    property an HTML span ignores, so every pip rendered transparent --
+    and a markup test could not tell, because the class *had* a rule."""
+    colours = page.evaluate(
+        """() => Array.from(document.querySelectorAll('.pip')).map(
+            p => getComputedStyle(p).backgroundColor)"""
+    )
+    assert colours, "no pips on the page"
+    for colour in colours:
+        assert colour not in ("rgba(0, 0, 0, 0)", "transparent"), "a pip is invisible"
+    assert len(set(colours)) == len(colours), "two seats share a colour"
+
+
+def test_a_watched_game_deals_steps_and_ends_in_a_replay(page):
+    """The whole Watch loop in a browser: deal from the lobby, step, and
+    play to the end, which must land on the finished game's replay."""
+    base = page.base
+    page.goto(f"{base}/")
+    for name in ("Scarlett", "Mustard", "White"):
+        page.check(f"input[name=characters][value={name}]")
+    page.select_option("#n_players", "4")
+    page.fill("#seed", "7")
+    page.click("form[action$='/watch'] button[type=submit]")
+    page.wait_for_selector("#next-turn")
+    assert page.inner_text("h1") == "Turn 0"
+
+    for expected in (1, 2, 3):
+        page.click("#next-turn")
+        page.wait_for_selector("#next-turn")
+        assert page.inner_text("h1") == f"Turn {expected}"
+        assert " showed " not in page.content(), "a shown card leaked onto the watch screen"
+
+    page.click("#play-to-end")
+    page.wait_for_selector("#scrub")
+    assert "/replay/web/" in page.url
+    data = payload(page)
+    assert data["frames"][-1]["kind"] == "over"
+
+
 def test_the_board_is_actually_painted(page):
     """`board_svg` sets no colour, so if the stylesheet ever stopped
     reaching it every shape would render transparent and this whole

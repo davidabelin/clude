@@ -18,7 +18,7 @@ from flask import Flask
 
 from clude_storage import open_store
 
-from . import auth, config, views
+from . import auth, config, views, watch
 
 __all__ = ["create_app"]
 
@@ -61,6 +61,7 @@ def create_app(settings=None) -> Flask:
 
     app.extensions["store"] = open_store(store_uri)
     app.extensions["rate_limit"] = auth.RateLimit()
+    app.extensions["watch"] = watch.WatchRegistry(app.extensions["store"])
 
     app.jinja_env.globals["csrf_token"] = auth.csrf_token
     app.before_request(auth.require_session)

@@ -539,6 +539,70 @@ def fill_seed(game_seed: int, seat: int) -> int:
     return game_seed * 1009 + seat + 1
 
 
+@dataclass
+class Table:
+    """One game's seated players, ready for `engine.run_game` or
+    `engine.game_steps`.
+
+    Parameters
+    ----------
+    players : dict[int, PlayerProtocol]
+        Seat -> the player object in it.
+    labels : list[str]
+        Seat -> its occupant's roster label (a character, or a bot kind).
+    suspects : list[str]
+        Seat -> the token it plays, from `seat_lineup`.
+    observer : Callable
+        What builds each seat's view: `clude_constraints.observe`, which
+        every character needs.
+    """
+
+    players: dict
+    labels: list
+    suspects: list
+    observer: object
+
+
+def headless_table(roster, n_players: int, seed: int) -> Table:
+    """The table ``clude_cli.py play`` seats for `roster` and `seed`,
+    without its LLM and logbook layers.
+
+    Each character is built with its preset dials and reset with the game
+    seed, each fill `FloorBot` gets a private RNG seeded apart from the
+    engine (`fill_seed`), and every character is told who it is sitting
+    with. The web app's Watch screen plays from this (Phase 8.1), and a
+    test pins a game played here to the one `play` produces for the same
+    roster and seed, so the two cannot drift apart unnoticed.
+
+    Raises
+    ------
+    ValueError
+        From `parse_roster`, on an empty roster, an unknown label or a
+        character listed twice.
+    """
+    lineup, suspects = seat_lineup(lineup_for_game(parse_roster(roster), 0, n_players))
+    players = {}
+    for seat, label in enumerate(lineup):
+        if label in AGENT_SPECS:
+            character = build_character(label)
+            character.reset(seed)
+            players[seat] = character
+        elif label == "floor":
+            players[seat] = clude_constraints.FloorBot(rng=Random(fill_seed(seed, seat)))
+        else:
+            players[seat] = RandomBot()
+    for seat, label in enumerate(lineup):
+        if label in AGENT_SPECS:
+            players[seat].new_game(lineup)
+    return Table(players=players, labels=lineup, suspects=suspects, observer=clude_constraints.observe)
+
+
+def seat_kind(label: str) -> str:
+    """``"character"`` for a character, else the bot kind it names; what
+    `SeatRecord.kind` holds for a headless seat."""
+    return _kind_of(label)
+
+
 LLM_SUMMARY_KEYS: tuple = (
     "decisions", "singles", "llm_calls", "played", "fallbacks", "deviations", "remarks",
     "entries", "input_tokens", "output_tokens", "cached_tokens", "llm_seconds",

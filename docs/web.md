@@ -5,10 +5,8 @@
 it, so the engine, the agents and the store stay exactly as testable
 headless as they were.
 
-Built so far: the app factory, the login gate, accounts and their CLI, the
-base template and the stylesheet (step 2 of 9). The lobby, the replay
-scrubber and the watch screen are steps 3 to 5; the Cloud Run deploy is
-8.1b.
+Built: 8.1a, the local app -- the login gate and accounts, the lobby, the
+replay scrubber and the Watch screen. The Cloud Run deploy is 8.1b.
 
 ## Running it locally
 
@@ -122,8 +120,9 @@ Alongside it:
 | `clude_web/auth.py` | The login blueprint, `require_session`, CSRF, `RateLimit`. |
 | `clude_web/users.py` | Accounts as `users/<name>.json` documents. |
 | `clude_web/board_svg.py` | The Classic grid as SVG, generated from `clude_core.board`. |
-| `clude_web/replay_data.py` | Per-event board frames, and the cached per-game belief trace. |
-| `clude_web/views.py` | The app's own pages. A placeholder until step 5. |
+| `clude_web/replay_data.py` | Per-event lines and board frames, and the cached per-game belief trace. |
+| `clude_web/watch.py` | A game watched a turn at a time, its compact readings, and the registry that stores and rebuilds it. |
+| `clude_web/views.py` | The lobby, a run's games, the replay, and Watch. |
 | `clude_web/templates/` | Jinja templates; `base.html` is the shell. |
 | `clude_web/static/style.css` | One stylesheet, every colour a variable. |
 
@@ -162,6 +161,65 @@ from "nobody has shown it". And a trace never calls `observe`, so White's
 and Green's bars are a stateless reading of the evidence rather than what
 they believed live -- the document carries that caveat as `limitation`, to
 be shown on the screen rather than hidden.
+
+## The lobby
+
+`/` is the lobby, in three parts:
+
+- **Watch a game.** Tick the characters to seat, pick a table size (3-6)
+  and optionally a seed; empty seats go to `floor` bots, and each
+  character plays its own token, as it always does. "Deal" starts the game
+  and opens it on the Watch screen. Nothing here can call a model, so
+  nothing here costs money.
+- **In progress.** Every watched game not yet finished, newest first,
+  whoever dealt it -- so a game survives closing the tab.
+- **Stored games.** Every run in the store, the web app's own run (`web`)
+  first. It is read from each run's summary, which already carries every
+  game's seats, winner and length, so the lobby opens no game record at
+  all: 51 runs list in about 0.3 s on Orbit. `/runs/<run_id>` lists that
+  run's games, each a link to its replay.
+
+## The Watch screen
+
+`/watch/<id>` plays a headless game a turn at a time, in Direction D's
+order: the board first, the latest suggestion spoken under it, then a
+compact bar per seat. **Next turn** plays one turn; **Play to the end**
+plays the rest, which takes about 20 s with Plum or Green at the table
+(well under a second without them). When the game ends it is saved as an
+ordinary record in the `web` run and the screen becomes its replay.
+
+It plays exactly the game `clude_cli.py play` would for the same roster,
+table size and seed: the table comes from
+`clude_training.arena.headless_table`, lifted out of the CLI for the
+purpose, and the tests pin both the table and the turn-by-turn game to
+the CLI's own code.
+
+**What a spectator sees, and why so little.** The hands and the envelope
+stay hidden until the end. That rules out the replay's per-card bars, and
+not only for the obvious reason: every seat's own hand is proven to that
+seat from the first turn, and all the hands together are exactly the
+eighteen cards that are *not* the answer -- so showing each seat's cards
+would put the envelope on screen before anyone moved. Instead each seat
+shows:
+
+| Part | Means |
+|---|---|
+| `9/21` | Cards it has placed: its own hand, plus whatever its floor has proven. |
+| Filled cells, per category | How many of that category's cards it has placed. Red once it has proven the answer there. |
+| Pale bar and % | How sure its own method is of its best guess in that category. |
+
+No card is named. A refutation reads "Scarlett disproved it", never what
+she showed -- which is all anyone but the two seats involved learns at a
+real table. A wrong accusation is announced, as it is in the game.
+
+**Surviving a restart.** Only the setup and the number of turns played are
+stored (`watch/<id>.json`); the game itself lives in memory. A game
+missing from memory -- a restarted process, a fresh Cloud Run instance --
+is rebuilt by dealing the same setup and replaying that many turns, which
+the engine's determinism makes exact. Belief readings come from fresh
+agents reset with the game seed, never from the agents actually playing,
+so a reading cannot disturb the game and a rebuilt game reads exactly as
+the live one did.
 
 ## The replay screen
 

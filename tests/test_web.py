@@ -435,13 +435,27 @@ def test_the_payload_cannot_close_the_script_tag(app, store, client):
     del GameRecord
 
 
-def test_the_index_links_to_a_stored_replay(app, store, client):
-    stored_game(store)
+def test_the_lobby_leads_to_a_stored_replay(app, store, client):
+    """Lobby -> the run -> the game: the lobby lists runs, and a run's
+    page lists its games as replay links."""
+    record = stored_game(store)
+    summary = store.get_run("web-test")
+    summary["games"] = [
+        {
+            "game_index": 0, "seed": 5, "n_players": record.n_players,
+            "labels": ["floor"] * record.n_players, "winner_label": None,
+            "turns": record.turns, "n_suggestions": record.n_suggestions,
+            "n_accusations": record.n_accusations, "hit_cap": False,
+        }
+    ]
+    store.put_run("web-test", summary)
     sign_in(client)
 
-    text = client.get("/").get_data(as_text=True)
+    lobby = client.get("/").get_data(as_text=True)
+    run_page = client.get("/runs/web-test").get_data(as_text=True)
 
-    assert "/replay/web-test/0" in text
+    assert "/runs/web-test" in lobby
+    assert "/replay/web-test/0" in run_page
 
 
 # --- the factory ------------------------------------------------------

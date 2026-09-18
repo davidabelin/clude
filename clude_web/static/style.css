@@ -130,27 +130,217 @@ code {
 
 .error { color: var(--warn); }
 
-.runs { list-style: none; padding: 0; }
+a { color: var(--accent); }
 
-.runs li {
+h2 { font-size: 1.05rem; margin: 0 0 0.6rem; }
+
+.crumbs { margin: 0 0 0.4rem; font-size: 0.82rem; color: var(--ink-soft); }
+
+.panel.wide { max-width: 64rem; }
+
+/* --- the lobby ------------------------------------------------------ */
+
+.lobby {
+  display: grid;
+  gap: var(--gap);
+  max-width: 64rem;
+  margin: 0 auto;
+}
+
+.lobby .panel { max-width: none; margin: 0; }
+
+.cast {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 0.35rem 1rem;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  border: 0;
+}
+
+.cast legend {
+  margin-bottom: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.pick {
+  display: grid;
+  grid-template-columns: auto auto auto 1fr;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  color: var(--ink);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.pick input { width: auto; margin: 0; }
+.pick .name { font-weight: 600; }
+.pick .method { font-size: 0.75rem; color: var(--ink-soft); }
+
+.knobs {
+  display: grid;
+  grid-template-columns: max-content 10rem;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.knobs label { margin: 0; }
+
+select {
+  padding: 0.45rem;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  background: var(--page);
+  color: var(--ink);
+  font: inherit;
+}
+
+.listing { list-style: none; margin: 0; padding: 0; }
+
+.listing li {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.4rem;
-  padding: 0.35rem 0;
+  gap: 0.25rem 0.75rem;
+  padding: 0.4rem 0;
   border-bottom: 1px solid var(--edge);
 }
 
-.runs .run-id {
-  min-width: 16rem;
+.listing li:last-child { border-bottom: 0; }
+
+.run-id {
+  min-width: 15rem;
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
 }
 
-.runs a {
-  padding: 0 0.35rem;
-  color: var(--accent);
-  font-size: 0.82rem;
+/* --- a run's games -------------------------------------------------- */
+
+.games {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.games th,
+.games td {
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--edge);
+  text-align: left;
+}
+
+.games th { color: var(--ink-soft); font-weight: 600; font-size: 0.8rem; }
+.games td:nth-child(4),
+.games td:nth-child(5),
+.games th:nth-child(4),
+.games th:nth-child(5) { text-align: right; }
+
+/* --- watching a game (Direction D) ---------------------------------- */
+
+.watch { max-width: 78rem; margin: 0 auto; }
+
+.watch-side { display: grid; gap: 0.75rem; align-content: start; }
+
+.controls { max-width: none; margin: 0; }
+
+.controls .buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.controls .buttons form { margin: 0; }
+.controls .buttons button { margin-top: 0; padding: 0.5rem 1rem; font-size: 1rem; }
+
+.turn-lines {
+  margin: 0 0 0.25rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+}
+
+.turn-lines li {
+  padding: 0.3rem 0.5rem;
+  border-left: 3px solid var(--edge);
+  margin-bottom: 0.25rem;
+}
+
+.turn-lines li.kind-suggestion { border-left-color: var(--accent); }
+.turn-lines li.kind-accusation { border-left-color: var(--warn); }
+.turn-lines li.kind-remark { font-style: italic; color: var(--ink-soft); }
+
+.spoken {
+  margin: 0.5rem 0.25rem 0.1rem;
+  font-size: 0.95rem;
+  font-style: italic;
+}
+
+.seats-compact {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 0.6rem;
+}
+
+.seat.compact h2 { font-size: 0.95rem; }
+.seat.compact .placed {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.seat.out { opacity: 0.55; }
+
+.gauge {
+  display: grid;
+  grid-template-columns: 4.6rem auto 1fr 2.4rem;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+  font-size: 0.72rem;
+}
+
+.gname { color: var(--ink-soft); }
+
+.cells { display: inline-flex; gap: 2px; }
+
+.cell {
+  width: 0.55rem;
+  height: 0.62rem;
+  border: 1px solid var(--edge);
+  border-radius: 1px;
+  background: var(--page);
+}
+
+.cell.on { background: var(--ink-soft); border-color: var(--ink-soft); }
+.gauge.solved .cell.on { background: var(--accent); border-color: var(--accent); }
+.gauge.solved .gname { color: var(--accent); font-weight: 700; }
+
+.sure {
+  height: 0.62rem;
+  background: var(--page);
+  border: 1px solid var(--edge);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.sure-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  opacity: 0.35;            /* pale: a belief, never a proof */
+}
+
+.pct {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
 }
 
 .note {
@@ -343,7 +533,19 @@ code {
   height: 0.7rem;
   border-radius: 50%;
   display: inline-block;
+  flex: none;
+  border: 1px solid var(--board-wall);  /* so White's pip shows on white */
 }
+
+/* The .suspect-* rules colour the board with `fill`, which is an SVG
+   property: an HTML span ignores it. Every pip was invisible until a
+   screenshot showed the gap where each should have been. */
+.pip.suspect-scarlett { background: var(--suspect-scarlett); }
+.pip.suspect-mustard  { background: var(--suspect-mustard); }
+.pip.suspect-plum     { background: var(--suspect-plum); }
+.pip.suspect-peacock  { background: var(--suspect-peacock); }
+.pip.suspect-green    { background: var(--suspect-green); }
+.pip.suspect-white    { background: var(--suspect-white); }
 
 .seat .method,
 .seat .hand {

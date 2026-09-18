@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{{ run_id }}{% endblock %}
+{% block content %}
+<div class="panel wide">
+  <p class="crumbs"><a href="{{ url_for('main.index') }}">Lobby</a> &rsaquo; {{ run_id }}</p>
+  <h1>{{ run_id }}</h1>
+  <p class="note">
+    {{ games|length }} game{{ '' if games|length == 1 else 's' }}.
+    {% if summary.roster %}Roster: {{ summary.roster|join(', ') }}.{% endif %}
+    A game opens as a replay; the first open of each takes a few seconds.
+  </p>
+  {% if games %}
+    <table class="games">
+      <thead>
+        <tr><th>Game</th><th>Seats, in turn order</th><th>Winner</th><th>Turns</th><th>Suggestions</th></tr>
+      </thead>
+      <tbody>
+        {% for g in games %}
+          <tr>
+            <td><a href="{{ url_for('main.replay', run_id=run_id, index_=g.game_index) }}">{{ g.game_index }}</a></td>
+            <td>{{ g.labels|join(', ') }}</td>
+            <td>
+              {% if g.winner_label %}{{ g.winner_label }}
+              {% elif g.hit_cap %}<span class="note">turn cap</span>
+              {% else %}<span class="note">nobody</span>{% endif %}
+            </td>
+            <td>{{ g.turns }}</td>
+            <td>{{ g.n_suggestions }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="note">This run has no games recorded.</p>
+  {% endif %}
+</div>
+{% endblock %}

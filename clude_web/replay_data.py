@@ -88,7 +88,7 @@ class EventFrame:
     k: int
 
 
-def suggestion_line(suggestion, suspects) -> str:
+def suggestion_line(suggestion, suspects, reveal: bool = True) -> str:
     """One suggestion as a sentence, refutation included.
 
     `clude_agents.explain.describe_suggestion` says the same thing as
@@ -96,8 +96,10 @@ def suggestion_line(suggestion, suspects) -> str:
     terminal column and wrong for a line of prose under a board. The
     audience differs, so the wording does; the facts are identical.
 
-    A record is omniscient, so the card shown is named. That is the point
-    of a post-game replay -- live, only the two seats involved saw it.
+    With `reveal`, the card shown is named: a record is omniscient, and
+    that is the point of a post-game replay. Without it -- a game still
+    being watched -- the line says only *who* disproved it, which is all
+    anyone but the two seats involved learns at a real table.
     """
     line = (
         f"{suspects[suggestion.suggester]} suggests {suggestion.suspect} "
@@ -106,9 +108,41 @@ def suggestion_line(suggestion, suspects) -> str:
     if suggestion.refuter is None:
         return f"{line} Nobody could disprove it."
     refuter = suspects[suggestion.refuter]
-    if suggestion.card_shown:
+    if reveal and suggestion.card_shown:
         return f"{line} {refuter} showed {suggestion.card_shown}."
     return f"{line} {refuter} disproved it."
+
+
+def describe_event(event, suspects, reveal: bool = True) -> tuple:
+    """``(kind, text)`` for one event: the line the screen shows for it.
+
+    `reveal` is `suggestion_line`'s: False keeps the card shown private,
+    for a game still in progress. The replay and the Watch screen both
+    read their lines from here, so they cannot describe a turn two ways.
+    """
+    if isinstance(event, MoveEvent):
+        where = event.destination
+        where = where if isinstance(where, str) else "the corridor"
+        by = " by the secret passage" if event.used_secret_passage else ""
+        return "move", f"{suspects[event.player]} moves to {where}{by}."
+    if isinstance(event, SuggestionEvent):
+        return "suggestion", suggestion_line(event.suggestion, suspects, reveal)
+    if isinstance(event, AccusationEvent):
+        accusation = event.accusation
+        verdict = "and is right" if accusation.correct else "and is wrong"
+        return "accusation", (
+            f"{suspects[accusation.accuser]} accuses {accusation.suspect} "
+            f"with the {accusation.weapon} in the {accusation.room}, {verdict}."
+        )
+    if isinstance(event, RemarkEvent):
+        return "remark", f"{suspects[event.seat]}: “{event.text}”"
+    if isinstance(event, GameOverEvent):
+        suspect, weapon, room = event.solution
+        who = suspects[event.winner] if event.winner is not None else None
+        return "over", (
+            f"{who} wins. " if who else "Nobody wins. "
+        ) + f"It was {suspect} with the {weapon} in the {room}."
+    return "other", type(event).__name__  # a new event type shows up, not vanishes
 
 
 def seat_names(record) -> list:
@@ -133,42 +167,13 @@ def event_frames(record) -> list:
     k = 0
 
     for index, event in enumerate(record.events):
-        kind, text = "", ""
         if isinstance(event, MoveEvent):
             positions[suspects[event.player]] = event.destination
-            kind = "move"
-            where = event.destination
-            where = where if isinstance(where, str) else "the corridor"
-            by = " by the secret passage" if event.used_secret_passage else ""
-            text = f"{suspects[event.player]} moves to {where}{by}."
         elif isinstance(event, SuggestionEvent):
-            suggestion = event.suggestion
             k += 1
-            if suggestion.suspect in positions:
-                positions[suggestion.suspect] = suggestion.room
-            kind = "suggestion"
-            text = suggestion_line(suggestion, suspects)
-        elif isinstance(event, AccusationEvent):
-            accusation = event.accusation
-            kind = "accusation"
-            verdict = "and is right" if accusation.correct else "and is wrong"
-            text = (
-                f"{suspects[accusation.accuser]} accuses {accusation.suspect} "
-                f"with the {accusation.weapon} in the {accusation.room}, {verdict}."
-            )
-        elif isinstance(event, RemarkEvent):
-            kind = "remark"
-            text = f"{suspects[event.seat]}: “{event.text}”"
-        elif isinstance(event, GameOverEvent):
-            kind = "over"
-            suspect, weapon, room = event.solution
-            who = suspects[event.winner] if event.winner is not None else None
-            text = (
-                f"{who} wins. " if who else "Nobody wins. "
-            ) + f"It was {suspect} with the {weapon} in the {room}."
-        else:  # a new event type should show up, not vanish
-            kind = "other"
-            text = type(event).__name__
+            if event.suggestion.suspect in positions:
+                positions[event.suggestion.suspect] = event.suggestion.room
+        kind, text = describe_event(event, suspects)
 
         frames.append(
             EventFrame(
