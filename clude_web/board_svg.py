@@ -57,7 +57,7 @@ def _centre(square: Square) -> tuple[float, float]:
 
 
 def room_centre(room: str) -> tuple[float, float]:
-    """The middle of a room's cells, where its label and its tokens go.
+    """The middle of a room's cells, where its tokens go.
 
     The mean of the cells rather than the middle of a bounding box: every
     room on this board is close enough to rectangular that the mean lands
@@ -67,6 +67,19 @@ def room_centre(room: str) -> tuple[float, float]:
     rows = sum(c.row for c in cells) / len(cells)
     cols = sum(c.col for c in cells) / len(cells)
     return (cols + 0.5) * CELL, (rows + 0.5) * CELL
+
+
+def label_anchor(room: str) -> tuple[float, float]:
+    """Where a room's name goes: above its centre, so the tokens that
+    gather in the middle do not sit on top of it.
+
+    Falls back to the centre when the shifted point would leave the room,
+    which a notched room could do.
+    """
+    cx, cy = room_centre(room)
+    lifted = cy - CELL * 1.2
+    cell = Square(int(lifted // CELL), int(cx // CELL))
+    return (cx, lifted) if cell in board.ROOM_CELLS[room] else (cx, cy)
 
 
 def node_centre(node) -> tuple[float, float]:
@@ -136,6 +149,28 @@ def _fan(nodes_at: list, centre: tuple[float, float]) -> list[tuple[float, float
     return [(cx + (i - spread) * step, cy) for i in range(len(nodes_at))]
 
 
+def token_points(tokens: dict) -> dict:
+    """Suspect -> the point its token is drawn at, fanning out any that
+    share a node so they do not stack.
+
+    The one place that decides where a token goes. It has to be, because
+    two things ask: this module when it draws the board, and
+    `replay_data.screen_payload` when it sends positions to the scrubber.
+    They disagreed once -- the drawing fanned and the payload did not, so
+    two characters in one room sat exactly on top of each other the
+    moment the page became live.
+    """
+    by_node: dict = {}
+    for suspect, node in tokens.items():
+        by_node.setdefault(node, []).append(suspect)
+    points = {}
+    for node, suspects in by_node.items():
+        ordered = sorted(suspects)
+        for suspect, point in zip(ordered, _fan(ordered, node_centre(node))):
+            points[suspect] = point
+    return points
+
+
 def board_svg(tokens=None, *, title="The board") -> str:
     """The board as one SVG string.
 
@@ -160,6 +195,9 @@ def board_svg(tokens=None, *, title="The board") -> str:
         f'role="img" aria-label="{_escape(title)}" '
         'xmlns="http://www.w3.org/2000/svg">',
         f"<title>{_escape(title)}</title>",
+        # Behind everything, so the cells no one can stand on read as
+        # off-board rather than as the page showing through.
+        f'<rect class="board-void" x="0" y="0" width="{width}" height="{height}"/>',
     ]
 
     out.append('<g class="board-corridor">')
@@ -172,6 +210,17 @@ def board_svg(tokens=None, *, title="The board") -> str:
     for square in sorted(board.CELLAR):
         x, y = _xy(square)
         out.append(f'<rect x="{x}" y="{y}" width="{CELL}" height="{CELL}"/>')
+    if board.CELLAR:
+        rows = [c.row for c in board.CELLAR]
+        cols = [c.col for c in board.CELLAR]
+        cx = (sum(cols) / len(cols) + 0.5) * CELL
+        cy = (sum(rows) / len(rows) + 0.5) * CELL
+        # The middle of the board carries a logo in Phase 9; until then
+        # the wordmark keeps the cellar from reading as a hole.
+        out.append(
+            f'<text class="board-mark" x="{cx}" y="{cy}" '
+            'text-anchor="middle" dominant-baseline="middle">clude</text>'
+        )
     out.append("</g>")
 
     for room in sorted(board.ROOM_CELLS):
@@ -180,7 +229,7 @@ def board_svg(tokens=None, *, title="The board") -> str:
             x, y = _xy(cell)
             out.append(f'<rect x="{x}" y="{y}" width="{CELL}" height="{CELL}"/>')
         out.extend(_room_outline(room))
-        cx, cy = room_centre(room)
+        cx, cy = label_anchor(room)
         out.append(
             f'<text class="board-label" x="{cx}" y="{cy}" '
             f'text-anchor="middle" dominant-baseline="middle">{_escape(room)}</text>'
@@ -191,29 +240,26 @@ def board_svg(tokens=None, *, title="The board") -> str:
         out.append(_door_marker(room, cell, square))
 
     for suspect, square in sorted(board.START_SQUARES.items()):
-        cx, cy = _centre(square)
+        x, y = _xy(square)
+        inset = CELL * 0.26
         slug = SUSPECT_SLUG.get(suspect, "unknown")
+        # A square, not a disc: a start square is a place, and tokens are
+        # the round things. Drawn alike they read as extra pieces.
         out.append(
-            f'<circle class="board-start suspect-{slug}" '
+            f'<rect class="board-start suspect-{slug}" '
             f'data-suspect="{_escape(suspect)}" '
-            f'cx="{cx}" cy="{cy}" r="{CELL * 0.22}"/>'
+            f'x="{x + inset}" y="{y + inset}" '
+            f'width="{CELL - 2 * inset}" height="{CELL - 2 * inset}"/>'
         )
 
-    if tokens:
-        by_node: dict = {}
-        for suspect, node in tokens.items():
-            by_node.setdefault(node, []).append(suspect)
-        for node, suspects in by_node.items():
-            for suspect, (cx, cy) in zip(
-                sorted(suspects), _fan(sorted(suspects), node_centre(node))
-            ):
-                slug = SUSPECT_SLUG.get(suspect, "unknown")
-                out.append(
-                    f'<circle class="board-token suspect-{slug}" '
-                    f'data-suspect="{_escape(suspect)}" '
-                    f'cx="{cx}" cy="{cy}" r="{CELL * 0.36}"><title>'
-                    f"{_escape(suspect)}</title></circle>"
-                )
+    for suspect, (cx, cy) in sorted(token_points(tokens or {}).items()):
+        slug = SUSPECT_SLUG.get(suspect, "unknown")
+        out.append(
+            f'<circle class="board-token suspect-{slug}" '
+            f'data-suspect="{_escape(suspect)}" '
+            f'cx="{cx}" cy="{cy}" r="{CELL * 0.36}"><title>'
+            f"{_escape(suspect)}</title></circle>"
+        )
 
     out.append("</svg>")
     return "\n".join(out)

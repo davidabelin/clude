@@ -166,11 +166,14 @@ code {
  */
 
 :root {
-  --board-room: #e7e0d2;
-  --board-corridor: #f4f1ea;
+  --board-void: #cdc4b2;      /* cells nobody can stand on */
+  --board-room: #efe9dc;
+  --board-corridor: #ded5c3;  /* darker than the rooms, so the walkable
+                                 grid reads as space between them */
+  --board-grid: #c6bca8;
   --board-wall: #4a4038;
   --board-door: #b8813a;
-  --board-cellar: #2b2b31;
+  --board-cellar: #b4a794;
   --board-label: #6b5f52;
 
   --suspect-scarlett: #b3243b;
@@ -183,11 +186,13 @@ code {
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --board-room: #34303a;
-    --board-corridor: #26242c;
+    --board-void: #17161b;
+    --board-room: #3b3641;
+    --board-corridor: #2a2730;
+    --board-grid: #3a3640;
     --board-wall: #9a9186;
     --board-door: #d6a75a;
-    --board-cellar: #121216;
+    --board-cellar: #4a4450;
     --board-label: #a29585;
 
     --suspect-scarlett: #e0566c;
@@ -206,9 +211,26 @@ code {
   shape-rendering: crispEdges;
 }
 
-.board-corridor rect { fill: var(--board-corridor); }
+.board-void { fill: var(--board-void); }
+
+.board-corridor rect {
+  fill: var(--board-corridor);
+  stroke: var(--board-grid);
+  stroke-width: 0.5;          /* the squares are countable, as on the board */
+}
+
 .board-room rect { fill: var(--board-room); }
 .board-cellar rect { fill: var(--board-cellar); }
+
+.board-mark {
+  fill: var(--board-label);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  opacity: 0.55;
+  shape-rendering: auto;
+  pointer-events: none;
+}
 
 .board-wall {
   stroke: var(--board-wall);
@@ -229,18 +251,28 @@ code {
   letter-spacing: 0.04em;
   shape-rendering: auto;
   pointer-events: none;
+  /* A halo, so a token that does end up under the name does not swallow
+     it. The label sits above the crowd already (board_svg.label_anchor);
+     this is the belt to that's braces. */
+  stroke: var(--board-room);
+  stroke-width: 2.5;
+  paint-order: stroke;
 }
 
 .board-start {
   fill: none;
   stroke-width: 2;
-  opacity: 0.75;
+  opacity: 0.85;
 }
 
 .board-token {
   stroke: var(--board-wall);
   stroke-width: 1.5;
   shape-rendering: auto;
+  paint-order: stroke;
+  /* No transition on cx/cy: motion is Phase 9 (docs/phase8.1-plan.md 1).
+     A sliding token also lies to a screenshot, which paints mid-flight
+     while the attribute already holds the new position. */
 }
 
 .suspect-scarlett { fill: var(--suspect-scarlett); stroke: var(--suspect-scarlett); }

@@ -12,7 +12,7 @@
       {% else %}
         Nobody won.
       {% endif %}
-      It was <strong>{{ trace.envelope|join(', ') }}</strong>.
+      It was <strong>{{ trace.envelope|join(', ')|replace('_', ' ') }}</strong>.
     </p>
   </header>
 
@@ -30,12 +30,12 @@
             {% if seat.label != seat.suspect %}<span class="who">({{ seat.label }})</span>{% endif %}
           </h2>
           <p class="method">{{ seat.method or seat.kind }}</p>
-          <p class="hand">Holds: {{ seat.hand|join(', ') or 'nothing' }}</p>
+          <p class="hand">Holds: {{ seat.hand|join(', ')|replace('_', ' ') or 'nothing' }}</p>
           {% for group in ['suspects', 'weapons', 'rooms'] %}
             <div class="strip" data-group="{{ group }}">
               {% for card in trace.categories[group] %}
                 <div class="row" data-card="{{ card }}">
-                  <span class="card">{{ card }}</span>
+                  <span class="card">{{ card.replace('_', ' ') }}</span>
                   <span class="track"><span class="fill"></span></span>
                   <span class="mark"></span>
                 </div>

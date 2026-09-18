@@ -66,16 +66,22 @@ def test_the_board_draws_every_room_door_and_start_square():
 
 
 def test_the_board_covers_the_whole_grid():
+    """Every walkable cell is drawn, and a void rect sits behind the lot
+    so the cells nobody can stand on read as off-board rather than as the
+    page showing through."""
     svg = board_svg.board_svg()
     width = board.N_COLS * board_svg.CELL
     height = board.N_ROWS * board_svg.CELL
-
-    assert f'viewBox="0 0 {width} {height}"' in svg
-    assert svg.count("<rect") == (
+    cells = (
         len(board.CORRIDOR)
         + len(board.CELLAR)
-        + sum(len(cells) for cells in board.ROOM_CELLS.values())
+        + sum(len(room) for room in board.ROOM_CELLS.values())
     )
+
+    assert f'viewBox="0 0 {width} {height}"' in svg
+    assert f'class="board-void" x="0" y="0" width="{width}" height="{height}"' in svg
+    # every cell, the void behind them, and a start marker per suspect
+    assert svg.count("<rect") == cells + 1 + len(board.START_SQUARES)
 
 
 def test_a_room_centre_lands_inside_that_room():
@@ -154,6 +160,22 @@ def test_every_class_the_board_uses_is_styled():
     assert css.isascii(), "a non-ASCII character got into the stylesheet"
     unstyled = sorted(name for name in used if f".{name}" not in css)
     assert not unstyled, f"classes with no rule: {unstyled}"
+
+
+def test_the_stylesheet_has_no_broken_colours():
+    """CSS fails silently: a malformed value is dropped and the shape
+    renders with whatever it inherited, which is exactly how `#b4a
+    territory` and a Devanagari digit both got as far as a screenshot."""
+    css = (Path(__file__).resolve().parents[1] / "clude_web" / "static" / "style.css").read_text(
+        encoding="utf-8"
+    )
+
+    malformed = re.findall(r"--[a-z-]+:\s*#[0-9a-fA-F]*[^0-9a-fA-F;\s][^;]*;", css)
+    assert not malformed, f"malformed colour values: {malformed}"
+
+    defined = set(re.findall(r"(--[a-z-]+)\s*:", css))
+    used = set(re.findall(r"var\((--[a-z-]+)\)", css))
+    assert not used - defined, f"variables used but never defined: {sorted(used - defined)}"
 
 
 # --- the event frames -------------------------------------------------

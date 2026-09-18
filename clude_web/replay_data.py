@@ -332,8 +332,8 @@ def screen_payload(record, trace: dict) -> dict:
                 "text": frame.text,
                 "k": frame.k,
                 "tokens": {
-                    suspect: [round(v, 2) for v in board_svg.node_centre(node)]
-                    for suspect, node in frame.positions.items()
+                    suspect: [round(v, 2) for v in point]
+                    for suspect, point in board_svg.token_points(frame.positions).items()
                 },
             }
             for frame in frames

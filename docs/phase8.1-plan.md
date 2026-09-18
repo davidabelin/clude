@@ -608,3 +608,68 @@ index), `clude_web/templates/replay.html`, `clude_web/static/replay.js`,
 `clude_web/templates/index.html` and `static/style.css`;
 `tests/test_web.py` and `tests/test_replay_screen.py` grew to 40 and 24.
 Suite 326 -> 333 passed, 2 skipped.
+
+### Step 4 amended, 2026-09-17: the screen gets looked at
+
+Step 4 shipped with "not verified: how it looks", because Orbit had no
+way to render a page. David's answer was to fix that rather than accept
+it, and it was the right call: **three real bugs were invisible to 333
+passing tests and obvious in the first screenshot.**
+
+**Playwright**, not an SVG rasteriser. `board_svg` deliberately sets no
+colour, leaving all of it to `style.css`, so rasterising the SVG alone
+gives an unstyled blank. Only a browser applies the stylesheet, runs
+`replay.js`, and honours dark mode and a phone width. It is optional --
+`scripts/clude_shots.py` and `tests/test_browser.py` are the only things
+that need it, and the second is gated on `CLUDE_WEB_BROWSER=1` like the
+tests that need credentials.
+
+**What the screenshots showed.**
+
+1. **The corridor was invisible.** `--board-corridor` sat within a
+   hair's breadth of the panel white behind it, so the board read as
+   nine islands floating in nothing, with no visible space to walk. The
+   fix is a `board-void` rect behind everything, a corridor darker than
+   the rooms rather than lighter, and a faint grid stroke so the squares
+   are countable, as they are on the real board.
+2. **The cellar was a near-black slab** dominating the middle of the
+   board. It is now a muted block carrying the wordmark, which is where
+   Phase 9's logo goes.
+3. **Room labels sat under the tokens** that gather in the middle of a
+   room -- "Dining" and "Lounge" were both unreadable. Labels now anchor
+   above the centre (`label_anchor`), with a halo behind them as well.
+4. **Start squares were drawn as discs**, so they read as extra tokens:
+   a four-handed game looked like it had seven pieces. They are squares
+   now -- a start square is a place, and tokens are the round things.
+5. `Lead_Pipe` was showing its underscore.
+
+**And one real bug, found by asking the browser where the tokens
+actually were.** `_fan` spread tokens sharing a room so they do not
+stack, but it lived inside the drawing, and `screen_payload` computed
+its own positions without it. So the server-rendered board fanned and
+the live page did not: the moment the scrubber moved, two characters in
+one room sat exactly on top of each other. Both now go through one
+`board_svg.token_points`, which is the only thing that decides where a
+token goes, and `test_tokens_in_one_room_never_stack` fails if they ever
+diverge again.
+
+**A false alarm worth recording.** A screenshot appeared to show a token
+somewhere the step line contradicted, while the browser test read the
+right coordinates. Both were true: a CSS `transition` on `cx`/`cy`,
+added in passing, animates the *paint* while the attribute already
+holds the new value, so the screenshot caught tokens mid-flight. The
+transition is gone -- motion is Phase 9 (section 1) and it was never in
+scope -- and `clude_shots.py` waits before each shot regardless.
+
+`tests/test_browser.py` adds 9 tests that markup cannot reach: every
+token where the payload says, no stacking, the arrow keys, Home and End,
+the step line following the scrubber, a proven envelope row solid and
+full, and the board being painted at all -- that last one because with
+no colour in the SVG, a stylesheet that stopped reaching it would render
+a blank screen while every other test still passed.
+
+Files: `scripts/clude_shots.py` and `tests/test_browser.py` added;
+`clude_web/board_svg.py` (`token_points`, `label_anchor`, the void rect,
+the cellar wordmark, square start markers), `static/style.css` (the board
+palette reworked), `templates/replay.html`, `clude_web/replay_data.py`,
+`requirements.txt`, `CLAUDE.md` and `docs/web.md` updated.

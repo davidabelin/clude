@@ -21,8 +21,9 @@ implemented" section of its plan doc (`docs/phase5-plan.md` to
 measurement is in `docs/strategy-glossary.md`. There is no UI yet:
 the game itself still runs headless through `scripts/clude_cli.py`; the
 web app in front of it is being built (Phase 8.1, `docs/web.md`). Suite:
-333 passed, 2 skipped (the live-credential tests), about two minutes
-with `-n auto`.
+334 passed, 11 skipped (the live-credential and browser tests), about
+two minutes with `-n auto`; the 9 browser tests pass under
+`CLUDE_WEB_BROWSER=1`.
 
 **The road from here** (David renumbered it on 2026-09-16;
 `docs/phase-plan.md` has the table):
@@ -399,12 +400,23 @@ uploading the grid-era runs *and* the logbooks.
   about two minutes against ~220 s serial; drop `-n auto` to debug a
   single test). `CLUDE_LLM_LIVE=1`
   enables the live API smoke test (`-k live`), `CLUDE_GCS_LIVE=1` the
-  bucket test.
+  bucket test, `CLUDE_WEB_BROWSER=1` the Playwright tests
+  (`tests/test_browser.py`).
+- **Seeing the web app.** `& .venv\Scripts\python.exe
+  scripts\clude_shots.py --dark --phone` writes a PNG of every screen,
+  in both themes and at both widths, from a throwaway store seeded with
+  real records. Run it after any UI change and *look* at the result:
+  three real bugs on the replay screen were invisible to the whole test
+  suite and obvious in the first screenshot. Needs Playwright
+  (`pip install playwright` then `python -m playwright install
+  chromium`), which is optional. An SVG rasteriser is no substitute:
+  `clude_web/board_svg.py` sets no colour, so only a browser renders
+  the board at all (`docs/web.md`).
 - CLI: `& .venv\Scripts\python.exe scripts\clude_cli.py <cmd> --help`,
   where `<cmd>` is `agents`, `play`, `prompt`, `trace`, `floor`,
-  `benchmark`, `train-mustard`, `snapshots`, `arena`, `sweep`, `store`
-  or `logbook`. Every command is deterministic per `--seed` (and, with
-  `--logbook`, per logbook state). `docs/cli.md` explains each and how
+  `benchmark`, `train-mustard`, `snapshots`, `arena`, `sweep`, `store`,
+  `logbook` or `users`. Every command is deterministic per `--seed` (and,
+  with `--logbook`, per logbook state). `docs/cli.md` explains each and how
   to read its output.
 - Claude API: `ANTHROPIC_API_KEY` in the environment (or an `ant auth
   login` profile), resolved by the SDK; never in the repo. Without it

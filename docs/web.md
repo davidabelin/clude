@@ -191,6 +191,38 @@ involved saw it.
 The first open of a game computes its trace and takes about ten seconds;
 every open after that reads the cache and is immediate.
 
+## Looking at it
+
+The screens can be seen without opening a browser by hand:
+
+```powershell
+& .venv\Scripts\python.exe scripts\clude_shots.py --dark --phone
+```
+
+It boots the app on a spare port against a throwaway store seeded from
+real records, signs in, and writes a PNG per screen -- login, the index,
+and the replay at its start, middle and end -- in light and dark and at
+wide and phone widths. `--out DIR` chooses where they land; `--run` and
+`--game` choose which game.
+
+`tests/test_browser.py` drives the same browser and checks what markup
+tests cannot: that every token lands where the payload says, that tokens
+sharing a room never stack, that the arrow keys step the game, that a
+proven envelope row is drawn solid and full, and that the board is
+painted at all. It is skipped unless `CLUDE_WEB_BROWSER=1`, like the
+tests that need credentials, so the default suite stays fast.
+
+Both need Playwright, which is optional:
+
+```powershell
+& .venv\Scripts\python.exe -m pip install playwright
+& .venv\Scripts\python.exe -m playwright install chromium
+```
+
+An SVG rasteriser will not do instead. `board_svg` sets no colour at all,
+so rendering the SVG alone gives an unstyled blank; only a browser applies
+the stylesheet and runs `replay.js`.
+
 ## Tests
 
 `tests/test_web.py` runs Flask's test client against a `LocalStore` in a

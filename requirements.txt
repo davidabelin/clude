@@ -15,3 +15,10 @@ anthropic>=1.5
 # and the agents still run on the standard library alone.
 flask>=3.0
 python-dotenv>=1.0
+# Optional, and only for looking at the web app: `scripts/clude_shots.py`
+# screenshots every screen and `tests/test_browser.py` drives the real
+# thing, both skipped without it. An SVG rasteriser is no substitute --
+# clude_web/board_svg.py sets no colour, leaving it all to style.css, so
+# only a browser renders the board at all. After installing:
+#     python -m playwright install chromium
+playwright>=1.50
