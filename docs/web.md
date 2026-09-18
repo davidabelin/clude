@@ -35,8 +35,8 @@ the CLI only:
 & .venv\Scripts\python.exe scripts\clude_cli.py users add David
 ```
 
-It prompts for the password twice and never takes it as an argument, where
-it would land in shell history.
+That is the whole of it: no prompt, and the password is set to `password`.
+Pass a different one as a second argument if you like.
 
 By default the app reads `data/llm`, the store holding every grid-era run,
 and `users` writes there too. `CLUDE_WEB_STORE` points both somewhere else.
@@ -45,20 +45,42 @@ and `users` writes there too. `CLUDE_WEB_STORE` points both somewhere else.
 
 | Command | What it does |
 |---|---|
-| `users add NAME` | Create an account; prompts for the password. |
+| `users add NAME [PASSWORD]` | Create an account. Without a password it gets `password`. |
 | `users list` | Every account and when it was made. No hash is printed. |
-| `users passwd NAME` | Change a password. |
+| `users passwd NAME [PASSWORD]` | Change a password; asks for one if left off. |
 | `users remove NAME` | Delete an account. Records and logbooks are left alone. |
 
 Each is `users <action> [--uri STORE]`.
 
-A password is only ever stored as a Werkzeug hash (scrypt by default in
-Werkzeug 3); the plaintext never reaches the store, a record or the event
-log. The login name is matched case-insensitively but displayed as typed,
+The login name is matched case-insensitively but displayed as typed,
 because it is the player's identity and not just a credential: Phase 8.2
 writes it into `SeatRecord.label`, so a human's logbook follows the name
 across whichever suspect they play (`docs/architecture.md`, "Seats and
 player identity").
+
+### Convenience over secrecy
+
+This is a family game, and David judged that friction costs more than
+secrecy buys (2026-09-17; CLAUDE.md, "Settled decisions"). So a new
+account's password is `password`, any non-empty password is accepted --
+a single character included -- and the CLI prints passwords rather than
+hiding them.
+
+A player is offered a change **once**, right after their first login:
+the app holds them on `/password` until they either type a new one or
+click "Keep the one I have". Either answer settles it for good, and the
+page afterwards only says who to ask. From then on the password changes
+only through `users passwd`, which is David asking on their behalf. An
+account made before this existed has no record of being asked, so it
+reads as never offered and gets the question on its next login.
+
+What is not traded away: a password is still only ever stored as a
+Werkzeug hash (scrypt by default in Werkzeug 3), and the plaintext never
+reaches the store, a record or the event log. The login still gates every
+route, CSRF and the rate limit still stand, and 8.1b still runs the
+service as a narrow identity, so the damage ceiling is the game store.
+The open question this leaves, raised and knowingly accepted: the Cloud
+Run service is reachable by anyone, and `password` is guessable.
 
 ## The gate
 

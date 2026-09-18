@@ -21,7 +21,7 @@ implemented" section of its plan doc (`docs/phase5-plan.md` to
 measurement is in `docs/strategy-glossary.md`. There is no UI yet:
 the game itself still runs headless through `scripts/clude_cli.py`; the
 web app in front of it is being built (Phase 8.1, `docs/web.md`). Suite:
-294 passed, 2 skipped (the live-credential tests), about two minutes
+303 passed, 2 skipped (the live-credential tests), about two minutes
 with `-n auto`.
 
 **The road from here** (David renumbered it on 2026-09-16;
@@ -220,6 +220,21 @@ it; `docs/phase-plan.md` has the disposition of every file.
   3.4, awaiting confirmation); the replay direction was left to me:
   Direction A ("Scrubber") for replay, Direction D's order for watching
   a game.
+- **Convenience beats security here (2026-09-17).** clude is a game for
+  family and friends, and David judged that friction will cost more than
+  secrecy buys. So: a new account's password is `password`, set without
+  a prompt; any non-empty password is accepted, one character included;
+  passwords are printed by the CLI and shown as they are typed in the
+  app; and a player is offered a change exactly once, after their first
+  login, after which only `clude_cli.py users passwd` changes it.
+  Usernames are case-insensitive for the same reason. What is *not*
+  traded away: passwords are still only stored as Werkzeug hashes, the
+  login still gates every route, CSRF and the per-name rate limit stand,
+  and 8.1b still runs the service as a narrow `clude-run` identity
+  rather than the owner `clude-sa` -- so the damage ceiling stays the
+  game store. I raised that the service is internet-reachable and
+  `password` is guessable; David's call, made knowingly
+  (`docs/web.md`).
 - **Commit messages are printed in the reply, never written into
   `commit_msg.md`** by me (David declined that, 2026-09-13).
 

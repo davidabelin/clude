@@ -30,6 +30,17 @@ def store(tmp_path):
 
 @pytest.fixture
 def app(tmp_path, store):
+    """An app whose one account has settled its password already, so the
+    one-time offer is out of the way. The offer has its own tests."""
+    users.add_user(store, NAME, PASSWORD)
+    users.mark_password_prompted(store, NAME)
+    return create_app({"TESTING": True, "STORE_URI": str(tmp_path)})
+
+
+@pytest.fixture
+def fresh_app(tmp_path, store):
+    """An app whose one account has never been offered the change: what
+    a player meets on their very first login."""
     users.add_user(store, NAME, PASSWORD)
     return create_app({"TESTING": True, "STORE_URI": str(tmp_path)})
 
@@ -52,10 +63,11 @@ def csrf_from(client) -> str:
 
     The login page carries one before signing in; afterwards that page
     redirects away, so the sign-out form in the header carries it
-    instead.
+    instead. While the one-time password offer is pending, everything
+    else redirects to it, so it is where the token is.
     """
     marker = 'name="csrf" value="'
-    for path in ("/login", "/"):
+    for path in ("/login", "/password", "/"):
         response = client.get(path)
         if response.status_code != 200:
             continue
@@ -100,9 +112,25 @@ def test_a_name_cannot_escape_its_folder(store):
             users.add_user(store, bad, PASSWORD)
 
 
-def test_a_short_password_is_refused_and_a_name_is_not_taken_twice(store):
-    with pytest.raises(ValueError, match="at least"):
-        users.add_user(store, "Ada", "short")
+def test_any_non_empty_password_is_accepted(store):
+    """Convenience over secrecy, on purpose (CLAUDE.md). One character
+    is fine; empty is not, since it would make the form's own `required`
+    the only thing in the way."""
+    users.add_user(store, "Ada", "x")
+    assert users.authenticate(store, "Ada", "x") is not None
+
+    with pytest.raises(ValueError, match="cannot be empty"):
+        users.add_user(store, "Grace", "")
+
+
+def test_a_new_account_gets_the_default_password(store):
+    users.add_user(store, "Ada")
+
+    assert users.authenticate(store, "Ada", users.DEFAULT_PASSWORD) is not None
+    assert users.DEFAULT_PASSWORD == "password"
+
+
+def test_a_name_is_not_taken_twice(store):
     users.add_user(store, "Ada", PASSWORD)
     with pytest.raises(ValueError, match="already exists"):
         users.add_user(store, "ADA", PASSWORD)
@@ -237,6 +265,80 @@ def test_a_good_password_still_works_after_a_few_wrong_ones(client):
         assert sign_in(client, password="nope").status_code == 401
 
     assert sign_in(client).status_code == 302
+
+
+# --- the one-time password offer --------------------------------------
+
+
+def test_a_first_login_is_met_by_the_offer(fresh_app):
+    client = fresh_app.test_client()
+    sign_in(client)
+
+    landing = client.get("/", follow_redirects=True)
+    assert "Want a different password?" in landing.get_data(as_text=True)
+
+
+def test_keeping_the_password_answers_the_offer_for_good(fresh_app, store):
+    client = fresh_app.test_client()
+    sign_in(client)
+    token = csrf_from(client)
+
+    client.post("/password", data={"action": "keep", "csrf": token})
+
+    assert client.get("/").status_code == 200, "the app should be open now"
+    assert users.authenticate(store, NAME, PASSWORD) is not None
+    assert users.needs_password_offer(users.get_user(store, NAME)) is False
+
+
+def test_changing_the_password_answers_the_offer_and_takes_effect(fresh_app, store):
+    client = fresh_app.test_client()
+    sign_in(client)
+    token = csrf_from(client)
+
+    client.post(
+        "/password", data={"action": "change", "password": "x", "csrf": token}
+    )
+
+    assert client.get("/").status_code == 200
+    assert users.authenticate(store, NAME, "x") is not None
+    assert users.authenticate(store, NAME, PASSWORD) is None
+    assert users.needs_password_offer(users.get_user(store, NAME)) is False
+
+
+def test_the_offer_is_never_made_a_second_time(fresh_app):
+    client = fresh_app.test_client()
+    sign_in(client)
+    client.post("/password", data={"action": "keep", "csrf": csrf_from(client)})
+
+    page = client.get("/password").get_data(as_text=True)
+    assert "Want a different password?" not in page
+    assert "Ask David" in page
+
+    signed_in_again = fresh_app.test_client()
+    sign_in(signed_in_again)
+    assert signed_in_again.get("/").status_code == 200, "asked again on a later login"
+
+
+def test_choosing_to_change_but_typing_nothing_is_refused(fresh_app):
+    client = fresh_app.test_client()
+    sign_in(client)
+
+    response = client.post(
+        "/password", data={"action": "change", "password": "", "csrf": csrf_from(client)}
+    )
+
+    assert response.status_code == 400
+    assert "Type a password" in response.get_data(as_text=True)
+
+
+def test_a_settled_account_goes_straight_in(client):
+    sign_in(client)
+
+    assert client.get("/").status_code == 200
+
+
+def test_the_offer_still_needs_a_session(fresh_app):
+    assert fresh_app.test_client().get("/password").status_code == 302
 
 
 # --- the factory ------------------------------------------------------

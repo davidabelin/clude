@@ -6,6 +6,12 @@ create one. A password is only ever stored as a Werkzeug hash -- scrypt
 by default in Werkzeug 3 -- and the plaintext never reaches the store,
 the event log or a record.
 
+Everything else here leans towards convenience, on purpose (David,
+2026-09-17; CLAUDE.md, "Settled decisions"): a new account gets
+`DEFAULT_PASSWORD`, any non-empty password is accepted, and a player is
+asked once whether they want to change it. After that only David can,
+from the CLI.
+
 The login name is the player's identity, not just a credential: Phase
 8.2 writes it into `SeatRecord.label`, so a human's logbook follows the
 name across whichever suspect they sit as (`docs/architecture.md`,
@@ -24,8 +30,16 @@ from clude_storage.stores import validate_run_id
 USERS_PREFIX = "users"
 """Folder holding the account documents, beside `runs/` and `games/`."""
 
-MIN_PASSWORD = 8
-"""Shortest password `add_user` will accept."""
+DEFAULT_PASSWORD = "password"
+"""What a new account gets. Accounts are handed out by David himself to
+family and friends, so convenience beats secrecy here (David,
+2026-09-17; CLAUDE.md, "Settled decisions"). A player is offered a
+change once, after their first login (`clude_web.auth.password`); after
+that only `clude_cli.py users passwd` can change it."""
+
+DOCUMENT_VERSION = 2
+"""1 was the first shape; 2 added `password_prompted`. A version 1
+account simply reads as never having been offered the change."""
 
 
 def normalise(name: str) -> str:
@@ -77,26 +91,32 @@ def list_users(store) -> list:
     return users
 
 
-def add_user(store, name: str, password: str) -> dict:
+def add_user(store, name: str, password: str = DEFAULT_PASSWORD) -> dict:
     """Create an account and return its document.
+
+    Any non-empty password is accepted, a single character included: this
+    app is for family and friends and convenience wins here. Empty is
+    still refused, because an empty password makes the form's own
+    `required` the only thing standing in the way, which is a surprise
+    rather than a choice.
 
     Raises
     ------
     ValueError
-        On a bad name, a password under `MIN_PASSWORD` characters, or a
-        name already taken.
+        On a bad name, an empty password, or a name already taken.
     """
     key = normalise(name)
-    if len(password or "") < MIN_PASSWORD:
-        raise ValueError(f"password must be at least {MIN_PASSWORD} characters")
+    if not password:
+        raise ValueError("a password cannot be empty")
     if get_user(store, key) is not None:
         raise ValueError(f"user {key!r} already exists")
     document = {
-        "version": 1,
+        "version": DOCUMENT_VERSION,
         "name": name.strip(),
         "key": key,
         "password_hash": generate_password_hash(password),
         "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "password_prompted": False,
     }
     store.put_doc(user_key(key), document)
     return document
@@ -107,9 +127,29 @@ def set_password(store, name: str, password: str) -> dict:
     document = get_user(store, name)
     if document is None:
         raise ValueError(f"no such user: {name!r}")
-    if len(password or "") < MIN_PASSWORD:
-        raise ValueError(f"password must be at least {MIN_PASSWORD} characters")
+    if not password:
+        raise ValueError("a password cannot be empty")
     document["password_hash"] = generate_password_hash(password)
+    store.put_doc(user_key(name), document)
+    return document
+
+
+def needs_password_offer(document) -> bool:
+    """Whether this account has yet to be offered the one-time change.
+
+    An account made before `DOCUMENT_VERSION` 2 has no flag and so reads
+    as never offered, which is the right answer for it.
+    """
+    return not document.get("password_prompted", False)
+
+
+def mark_password_prompted(store, name: str) -> dict:
+    """Record that the one-time offer has been made, whether or not the
+    player took it. Nothing offers it again after this."""
+    document = get_user(store, name)
+    if document is None:
+        raise ValueError(f"no such user: {name!r}")
+    document["password_prompted"] = True
     store.put_doc(user_key(name), document)
     return document
 

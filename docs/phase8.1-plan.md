@@ -428,4 +428,44 @@ Files: `clude_web/` added (`__init__.py`, `config.py`, `auth.py`,
 `tests/test_web.py` added (25 tests); `scripts/clude_cli.py` gained
 `users`; `requirements.txt` gained `flask`; `docs/web.md` added;
 `docs/cli.md`, `docs/architecture.md` and `README.md` updated. Suite 269
--> 294 passed, 2 skipped.
+-> 294 passed, 2 skipped, and 303 after the amendment below.
+
+#### Step 2 amended, 2026-09-17: convenience over secrecy
+
+David's call, after the gate was working, and a departure from 3.4 as
+written: clude is a game for family and friends, and friction costs more
+than secrecy buys (CLAUDE.md, "Settled decisions"; `docs/web.md`).
+
+- A new account's password is `password`. `users add NAME` no longer
+  prompts at all, though a password can still be given as a second
+  argument.
+- Any non-empty password is accepted, one character included. Empty is
+  still refused: it would leave the login form's own `required` as the
+  only thing in the way, which is a surprise rather than a choice.
+- The CLI prints passwords instead of hiding them, and the app's change
+  form shows the password as it is typed.
+- A player is offered a change **once**, after their first login. The
+  gate holds them on `/password` until they either type a new one or
+  keep the one they have; either answer sets `password_prompted` on the
+  account and is never asked again. After that only `users passwd`
+  changes a password, which means asking David. Accounts made before
+  this (document version 1) have no flag and so read as never offered,
+  which is the right answer for them.
+- Usernames were already case-insensitive -- `normalise` has lowercased
+  the key since the first commit of step 2 -- so David's request there
+  needed no change, only confirming.
+
+Not traded away, and worth keeping in view: passwords are still stored
+only as Werkzeug hashes, the login still gates every route, CSRF and the
+per-name rate limit still stand, and 8.1b still runs the service as the
+narrow `clude-run` identity rather than the owner `clude-sa`, so the
+damage ceiling is the game store. The risk I raised and David knowingly
+accepted is that the Cloud Run service is reachable by anyone and
+`password` is guessable.
+
+Files: `clude_web/users.py` (`DEFAULT_PASSWORD`, `needs_password_offer`,
+`mark_password_prompted`, document version 2), `clude_web/auth.py` (the
+`/password` route and the gate's redirect to it),
+`clude_web/templates/password.html`, `scripts/clude_cli.py` (no prompt,
+optional password argument), `tests/test_web.py` (34 tests now),
+`docs/web.md`, `docs/cli.md`, `CLAUDE.md`.

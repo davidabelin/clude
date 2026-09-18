@@ -35,6 +35,11 @@ SESSION_USER = "user"
 SESSION_CSRF = "csrf"
 """Session key holding this session's CSRF token."""
 
+SESSION_OFFER = "password_offer"
+"""Session key set when this player still owes an answer to the one-time
+password offer. Held in the session rather than read from the store on
+every request, and set from the account at login."""
+
 
 def public(view):
     """Mark a view reachable without a session.
@@ -119,6 +124,13 @@ def require_session():
         return None
     if current_user() is None:
         return redirect(url_for("auth.login"))
+    if session.get(SESSION_OFFER) and request.endpoint not in {
+        "auth.password",
+        "auth.logout",
+    }:
+        # The one-time offer, asked before the app opens so that it is
+        # asked at all. Declining it is a click, and it never returns.
+        return redirect(url_for("auth.password"))
     return None
 
 
@@ -150,7 +162,42 @@ def login():
     limiter.clear(account["key"])
     session.clear()  # a new session id and a new CSRF token on every login
     session[SESSION_USER] = account["name"]
+    session[SESSION_OFFER] = users.needs_password_offer(account)
     csrf_token()
+    return redirect(url_for("main.index"))
+
+
+@bp.route("/password", methods=["GET", "POST"])
+def password():
+    """The one-time offer to change a password, after a first login.
+
+    A player sees this once and answers it once, either way; after that
+    the page only says who to ask. Passwords are shown as they are typed
+    here, which is the same call as the default password itself: this is
+    a family game, and being able to read what you typed is worth more
+    than hiding it from someone already looking at your screen.
+    """
+    store = current_app.extensions["store"]
+    name = current_user()
+    if not session.get(SESSION_OFFER):
+        return render_template("password.html", offered=False)
+    if request.method == "GET":
+        return render_template("password.html", offered=True)
+
+    if request.form.get("action") == "change":
+        chosen = request.form.get("password", "")
+        if not chosen:
+            return (
+                render_template(
+                    "password.html",
+                    offered=True,
+                    error="Type a password, or keep the one you have.",
+                ),
+                400,
+            )
+        users.set_password(store, name, chosen)
+    users.mark_password_prompted(store, name)
+    session[SESSION_OFFER] = False
     return redirect(url_for("main.index"))
 
 

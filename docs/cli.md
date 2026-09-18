@@ -583,19 +583,25 @@ The web app's accounts (Phase 8.1; `docs/web.md`, `docs/phase8.1-plan.md`
 into being.
 
 ```
-users add NAME       create an account; prompts for the password twice
-users list           every account and when it was made
-users passwd NAME    change a password
-users remove NAME    delete an account
+users add NAME [PASSWORD]      create an account; without a password it gets "password"
+users list                     every account and when it was made
+users passwd NAME [PASSWORD]   change a password; asks for one if left off
+users remove NAME              delete an account
 ```
 
 Each takes `--uri STORE`, defaulting to `data/llm` -- the store the web
 app reads, not the CLI's usual `data`, so an account lands where the app
-will look for it. The password is never an argument: it is prompted for
-and not echoed, so it stays out of shell history. Only a Werkzeug hash is
-stored, and `list` never prints it. A name is matched case-insensitively
-but kept as typed, because it is the player's identity and Phase 8.2
-writes it into `SeatRecord.label`.
+will look for it.
+
+Passwords are printed, not hidden, and any non-empty one is accepted: a
+family game where friction costs more than secrecy buys (CLAUDE.md,
+"Settled decisions"). Only a Werkzeug hash reaches the store, and `list`
+never prints it. A player is offered a change once in the app, after
+their first login; after that `users passwd` is the only way, which is
+the point -- they ask David.
+
+A name is matched case-insensitively but kept as typed, because it is
+the player's identity and Phase 8.2 writes it into `SeatRecord.label`.
 
 Removing an account deletes only the account: its records and its logbook
 stay where they are.

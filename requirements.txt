@@ -14,3 +14,4 @@ anthropic>=1.5
 # clude_web and `clude_cli.py users` imports any of them, so the engine
 # and the agents still run on the standard library alone.
 flask>=3.0
+python-dotenv>=1.0

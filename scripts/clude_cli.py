@@ -28,7 +28,6 @@ Usage
 from __future__ import annotations
 
 import argparse
-import getpass
 import json
 import random
 import sys
@@ -1213,23 +1212,22 @@ def _add_arena_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--json", default="", help="Also write the result to this JSON path.")
 
 
-def _prompt_password(name: str) -> str:
-    """Ask twice for a new password, never echoing and never taking it
-    from the command line, where it would land in shell history."""
-    first = getpass.getpass(f"password for {name}: ")
-    if first != getpass.getpass("repeat: "):
-        raise ValueError("the two passwords differ")
-    return first
-
-
 def cmd_users_add(args) -> int:
-    """Create an app account (Phase 8.1; docs/phase8.1-plan.md 3.4)."""
+    """Create an app account (Phase 8.1; docs/phase8.1-plan.md 3.4).
+
+    No prompt: the password defaults to `users.DEFAULT_PASSWORD` unless
+    one is given, and it is printed so it can be passed on (David,
+    2026-09-17 -- convenience over secrecy for this project).
+    """
     from clude_web import users as web_users
 
     store = open_store(args.uri)
-    document = web_users.add_user(store, args.name, _prompt_password(args.name))
+    password = args.password or web_users.DEFAULT_PASSWORD
+    document = web_users.add_user(store, args.name, password)
     print(f"store: {store.describe()}")
     print(f"added {document['name']} (key {document['key']})")
+    print(f"password: {password}")
+    print("They are offered a change once, after their first login.")
     return 0
 
 
@@ -1249,12 +1247,17 @@ def cmd_users_list(args) -> int:
 
 
 def cmd_users_passwd(args) -> int:
-    """Replace an account's password."""
+    """Replace an account's password.
+
+    Once a player has answered the one-time offer in the app, this is the
+    only way their password changes -- by asking David.
+    """
     from clude_web import users as web_users
 
     store = open_store(args.uri)
-    web_users.set_password(store, args.name, _prompt_password(args.name))
-    print(f"password changed for {args.name}")
+    password = args.password or input(f"new password for {args.name}: ")
+    web_users.set_password(store, args.name, password)
+    print(f"password for {args.name} is now: {password}")
     return 0
 
 
@@ -1551,6 +1554,12 @@ def build_parser() -> argparse.ArgumentParser:
         )
         if action != "list":
             p.add_argument("name", help="The login name, which is also the player identity.")
+        if action in {"add", "passwd"}:
+            p.add_argument(
+                "password", nargs="?", default="",
+                help="The password, in plain sight. `add` defaults to 'password'; "
+                "`passwd` asks for one if it is left off.",
+            )
         p.set_defaults(fn=fn)
 
     return parser

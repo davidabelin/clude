@@ -39,6 +39,12 @@ def read_env_file(name: str, path=None):
     only by `secret_key`, so that running the app on Orbit does not need
     an export every time. A deployed service has the variable in its own
     environment and never reaches this.
+
+    With `python-dotenv` installed, ``flask run`` loads `.env` into the
+    environment before the app is even built, so this fallback does
+    nothing on that path -- the environment is checked first and wins.
+    It still covers the ways the app is made without Flask's CLI:
+    gunicorn in 8.1b, the tests, and `create_app` called directly.
     """
     path = Path(path) if path else ROOT / ".env"
     if not path.is_file():
