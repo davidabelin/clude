@@ -1,11 +1,11 @@
 # Phase 8 to completion: 8.0.4, 8.2 human players, 8.3 the rest of chat
 
-Status: **approved 2026-09-18** (David's four decisions are in section
-9). Built on the 18th: 8.0.4, 8.2a, 8.2b and 8.2c; on the 19th: 8.2d,
-8.3a, 8.3b and 8.3c (section 12), with the live checks and 8.3d's
-close following. Section 12, "As implemented", is written as each step
-lands; where it and the sections above disagree, section 12 is what was
-built.
+Status: **closed 2026-09-19** (approved 2026-09-18; David's four
+decisions are in section 9). Built on the 18th: 8.0.4, 8.2a, 8.2b and
+8.2c; on the 19th: 8.2d, 8.3a, 8.3b and 8.3c, then the key deployed,
+the live checks played and 8.3d's close (section 12). Section 12, "As
+implemented", was written as each step landed; where it and the
+sections above disagree, section 12 is what was built.
 
 ## 1. Context
 
@@ -737,8 +737,11 @@ from the session: `play` (a four-seat game with two throwaway accounts,
 63 turns, 186.7 s wall time, the replay opening after; poll median 94 ms,
 work 764 ms, answer 806 ms over 97/84/95 requests) and `start` (table
 `19ac4efe45` left three answers in). The redeploy between `start` and
-`resume` is again David's, and 8.3a's deploy serves as it: the cold
-rebuild time is recorded in `docs/web.md` when `resume` has run. The two
+`resume` was 8.3a's key deploy (revision `clude-00004-jl9`, 21:32 UTC),
+and David ran `resume` after it: the first poll came back at the same
+pending decision in 0.1 s (three answers in, no memory to load), and
+the table finished (63 turns; poll median 93 ms, answer 849 ms, work
+823 ms). The two
 batch files David wrote for this became `scripts/deploy.bat` and
 `scripts/live_check.bat`, runnable from any directory with the venv's
 interpreter (the first draft used `#` for comments, which batch does
@@ -839,3 +842,44 @@ the entry.
 
 Tests: `tests/test_metered.py` (6), `tests/test_web_llm.py` (6),
 `tests/test_chat.py` (11), `tests/test_web_debrief.py` (3).
+
+### 8.3d, the live checks and the close (2026-09-19)
+
+The key went out as `clude-anthropic-key` (`docs/web.md`, "What is out
+there") in David's deploy at 21:32 UTC, and the three 8.3 checks were
+one table, played by David in the browser rather than the $1-2 scripted
+runs section 5 quoted: table `1b31ccffd9`, David as Scarlett, White and
+Peacock on the model, Mustard and Green as characters, the floor bot at
+Plum, "characters remember" on. 58 turns; 55 model-seat decisions, 19
+of which called the model (the rest had one legal option), 0 fallbacks,
+1 deviation from the character; David said 6 lines, the model seats 8
+on-turn lines and 28 off-turn reactions; $0.34 against the $2 budget
+(`spend/2026-09-19.json`). Peacock's and White's lines read in voice and
+answered what was said, which was 8.3b's question. The debriefs (8.3c)
+were still `pending` when this was written: a debrief runs only while
+someone has the finished table open to drive `/work`, and the page was
+closed; David is opening it to drain them (about $0.20). Opening it
+found the second bug of the pass: the page polled every 1.5 s and never
+posted `/work`, because `table.js` only worked an *unfinished* table
+(`current.work && !current.finished`), while the server marks a
+finished, wrapping-up table as needing work. The test-client tests
+call the route directly and so never saw it. Fixed in `table.js`
+(`|| current.wrapping_up`); it reaches the service with the next
+`scripts\deploy.bat`, after which reopening the table drains both
+debriefs.
+
+The other thing the pass found in the code: a served reaction was put back on
+a rebuild through `TableGame.remark`, which fans a line to every *other*
+speaker, so the seat that said it no longer remembered it, and the
+reaction's `Decision` was never stored, so a finish after a cold rebuild
+lost those calls from `llm_log`. Fixed: `remark` takes an `audit`,
+`Reactions.serve` stores the reaction's decision with the entry, and
+`rebuild` reminds the speaker's wrapper and gives the decision back. The
+cold-rebuild test in `tests/test_web_llm.py` had been timing-dependent
+(it saw the difference only when a reaction fell due during its loop,
+hence under `-n auto` load); it now forces a reaction and asserts on it.
+
+Docs closed: `CLAUDE.md` (status, spend, the suite at 440 passed and 16
+skipped), `docs/phase-plan.md`, `docs/web.md` ("Deploying" gains the
+live numbers), `README.md`, and this section. Phase 8 is closed; Phase 9
+(in-depth UX) is next.

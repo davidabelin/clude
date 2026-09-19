@@ -39,7 +39,10 @@ login, a lobby, a replay scrubber and a Watch screen, run locally or on
 Cloud Run for family and friends ([docs/web.md](docs/web.md)). Since
 Phase 8.2 people sit at the table too: a table in the lobby seats you
 beside the characters and the game is played from the browser, or from
-the terminal with `play --human`. Chat on the web is Phase 8.3.
+the terminal with `play --human`. Since Phase 8.3 a character can play
+"on the model" at a web table under a spend cap, people talk at the
+table and the model seats answer off-turn, and a remembering table ends
+with each model seat writing its logbook.
 
 ## Quick start
 

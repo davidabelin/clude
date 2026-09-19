@@ -445,6 +445,17 @@ plays to the end in about a second. A replay opened for the first time
 computes its trace, which took 16 s for a three-seat game there against
 about 10 s on Orbit.
 
+As measured on 2026-09-19 with the live check below (Phase 8.2d and
+8.3): a four-seat table with two people plays 63 turns in about 190 s
+of wall time; the poll median is 93 ms, an answer 850 ms and a unit of
+bot work 820 ms (n = 94, 92 and 77). The cold rebuild, a table three
+answers in with no memory to load, polled after a redeploy in 0.1 s: a
+rebuild replays the entry log, so a long table costs more, and a
+remembering table pays Mustard's logbook load (about 30 s) on top. The
+one live model table so far (David with White and Peacock on the model,
+"remember" on, 58 turns, 28 off-turn lines) cost $0.34 against its $2
+budget, with no fallbacks.
+
 **Name the project on every command.** Orbit keeps a gcloud
 configuration per project, and a command that relies on the active one
 acts on whichever project was used last: forgetting to switch back from

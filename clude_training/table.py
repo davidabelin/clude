@@ -751,14 +751,17 @@ class TableGame:
         audit = wrapper.decisions[-1].to_dict() if wrapper.decisions else None
         self.answer(request.seat, len(self.entries), encode_answer(request.kind, value), by="llm", audit=audit)
 
-    def remark(self, seat: int, text: str, about: str = "chat") -> None:
+    def remark(self, seat: int, text: str, about: str = "chat", audit: Optional[dict] = None) -> None:
         """Append a line of table talk from an external seat as a
         `RemarkEvent`, logged as an entry so a rebuild puts it back at the
         same place (Phase 8.3). Allowed only while the game is paused,
-        which is the only time a driver holds it."""
-        self.entries.append(
-            {"kind": about, "seat": seat, "text": text, "at": len(self.events)}
-        )
+        which is the only time a driver holds it. `audit` is the model's
+        `Decision.to_dict()` behind an off-turn line, stored so a rebuild
+        can give it back to the wrapper (8.3d)."""
+        entry = {"kind": about, "seat": seat, "text": text, "at": len(self.events)}
+        if audit:
+            entry["audit"] = audit
+        self.entries.append(entry)
         remark = RemarkEvent(self.state.turn, seat, text, about)
         self.events.append(remark)
         for who, speaker in self.speakers.items():
@@ -898,7 +901,20 @@ class TableGame:
                     raise TableError(
                         f"entry {index} was said after event {target}, which the game does not reach"
                     )
-                game.remark(int(entry["seat"]), str(entry["text"]), str(entry["kind"]))
+                seat, text = int(entry["seat"]), str(entry["text"])
+                game.remark(seat, text, str(entry["kind"]), audit=entry.get("audit"))
+                if entry.get("kind") == "reaction":
+                    # `remark` fans a line to everyone else; the wrapper
+                    # that said it live remembered it itself (`react`), so
+                    # a wrapper present at the rebuild is reminded here,
+                    # and its decision given back, as for an answer above.
+                    speaker = game.speakers.get(seat)
+                    if speaker is not None and speaker.inner is not None:
+                        speaker.inner._remember(seat, text)
+                        if entry.get("audit"):
+                            from clude_llm import Decision  # noqa: PLC0415
+
+                            speaker.inner.decisions.append(Decision(**entry["audit"]))
         while not game.finished and game.pending is None and game.turns < turns:
             game._resume(turns=1)
         return game

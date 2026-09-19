@@ -146,11 +146,18 @@ def test_plum_on_the_model_plays_to_the_end_one_decision_per_work(tmp_path, stor
     assert app.extensions["tables"].document(table_id)["llm"]["spent"] == pytest.approx(Ledger(store).spent(table_id), abs=1e-4)
 
 
-def test_a_cold_registry_rebuilds_a_model_table_with_no_call(tmp_path, store):
+def test_a_cold_registry_rebuilds_a_model_table_with_no_call(tmp_path, store, monkeypatch):
+    # Off-turn talk is made certain and immediate, so the rebuild is proved
+    # over a served reaction too (8.3d: the seat that said one must
+    # remember it, and its decision, after a rebuild).
+    from clude_web import chat
+    monkeypatch.setattr(chat, "delay", lambda rng: 0.0)
+    monkeypatch.setattr(chat, "joins", lambda rng, p: True)
     factory = Factory()
     app = make_app(tmp_path, store, factory)
     ann = login(app, ANN)
     table_id = new_table(ann, SEATS, seed=SEED)
+    assert ann.post(f"/tables/{table_id}/say", data={"csrf": csrf(ann), "text": "Good evening, all."}).status_code == 200
     tables.WORK_INTERVAL, saved = 0.0, tables.WORK_INTERVAL
     try:
         payload = poll(ann, table_id)
@@ -167,6 +174,8 @@ def test_a_cold_registry_rebuilds_a_model_table_with_no_call(tmp_path, store):
         tables.WORK_INTERVAL = saved
     live = app.extensions["tables"].game(table_id)
     assert any(e.get("by") == "llm" for e in live.entries)
+    reactions = [e for e in live.entries if e.get("kind") == "reaction"]
+    assert reactions and all(e.get("audit") for e in reactions), "no reaction was served, or one without its audit"
     calls_before = factory.calls
     cold = tables.TableRegistry(store, app.extensions["tables"].llm)
     again = cold.game(table_id)

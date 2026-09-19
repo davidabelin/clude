@@ -15,9 +15,9 @@ the plan sections above it, and over this file if they disagree.
 
 ## Status (2026-09-19)
 
-Phases 1-7 are done and committed. Each phase's record is the "as
+Phases 1-8 are done and committed. Each phase's record is the "as
 implemented" section of its plan doc (`docs/phase5-plan.md` to
-`docs/phase7-plan.md`; Phases 1-4 in `docs/phase-plan.md`), and every
+`docs/phase8-plan.md`; Phases 1-4 in `docs/phase-plan.md`), and every
 measurement is in `docs/strategy-glossary.md`. The game runs headless
 through `scripts/clude_cli.py`, and since 8.1a also in a local Flask app
 (`docs/web.md`): a login, a lobby, a replay scrubber for any stored game,
@@ -27,16 +27,19 @@ and a Watch screen that plays a headless game a turn at a time. Since
 `data/llm` in the bucket (`docs/web.md`, "Deploying"). Phase 8 was
 planned to completion on 2026-09-18 (`docs/phase8-plan.md`); that day
 8.0.4 (the landing rule) and 8.2a-c (human players) were built, and on
-2026-09-19 8.2d was deployed and live-checked and 8.3a-c built on fake
-backends: a character can play "on the model" at a web table under a
-per-table budget and a daily cap, people type at the table and the
-model seats answer off-turn with pacing, and a remembering table wraps
-up with each model seat's logbook entry. **Not yet done:** the deploy
-with the key (David's, `scripts/deploy.bat` after the secret in
-`docs/web.md`), the `resume` half of the 8.2d check, the three 8.3 live
-checks ($1-2 each, a yes per check), and 8.3d's close. Suite: 446
-passed, 16 skipped (the live-credential and browser tests), about three
-minutes with `-n auto`; the browser tests run under `CLUDE_WEB_BROWSER=1`.
+2026-09-19 8.2d was deployed and live-checked, 8.3a-c built on fake
+backends, the key deployed and 8.3 live-checked on the URL: a character
+can play "on the model" at a web table under a per-table budget and a
+daily cap, people type at the table and the model seats answer off-turn
+with pacing, and a remembering table wraps up with each model seat's
+logbook entry. **Phase 8 closed 2026-09-19** (`docs/phase8-plan.md` 12,
+"8.3d"): the live table cost $0.34 with no fallbacks, and the cold
+rebuild came back in 0.1 s for a short table. One loose end: the
+table's two debriefs drain on the next deploy (a `table.js` fix, below).
+Next is Phase 9. Suite:
+440 passed, 16 skipped (the live-credential and browser tests), about
+three minutes with `-n auto`; the browser tests run under
+`CLUDE_WEB_BROWSER=1`.
 
 **The road from here** (David renumbered it on 2026-09-16;
 `docs/phase-plan.md` has the table):
@@ -45,8 +48,8 @@ minutes with `-n auto`; the browser tests run under `CLUDE_WEB_BROWSER=1`.
 |---|---|---|
 | 8.0 | Re-measure the glossary on the Classic board (was the "re-measurement plan"; stages 8.0.0-8.0.4) | done: 8.0.0-8.0.3, and 8.0.4 the landing rule for the passage loop (2026-09-18) -- `docs/phase8.0-plan.md`, `docs/phase8-plan.md` |
 | 8.1 | 8.1a a basic UX scaffold as a local Flask app; 8.1b the same app on Cloud Run behind an app login | done: 8.1a built 2026-09-17 (steps 1-5: the engine seam, the login and accounts, the board and replay data, the replay scrubber, the lobby and Watch); 8.1b deployed 2026-09-18 (steps 6-9: the container, `store copy`, the service running as `clude-run`) -- `docs/phase8.1-plan.md`, `docs/web.md` |
-| 8.2 | Human players | done: 8.2a-c built 2026-09-18 (the table driver and `play --human`; the table on the web with open seats, autopilot, cold rebuild and "characters remember"); 8.2d deployed and live-checked 2026-09-19, the cold-rebuild number waiting on the next redeploy (`docs/phase8-plan.md` 12, `docs/web.md`) |
-| 8.3 | The rest of chat: the model on the web under a spend cap, human chat, off-turn talk with pacing, debriefs after web games | 8.3a-c built 2026-09-19 on fake backends (`docs/phase8-plan.md` 12); the deploy with the key, the three live checks and 8.3d's close remain |
+| 8.2 | Human players | done: 8.2a-c built 2026-09-18 (the table driver and `play --human`; the table on the web with open seats, autopilot, cold rebuild and "characters remember"); 8.2d deployed and live-checked 2026-09-19, the cold rebuild 0.1 s on a 3-turn table (`docs/phase8-plan.md` 12, `docs/web.md`) |
+| 8.3 | The rest of chat: the model on the web under a spend cap, human chat, off-turn talk with pacing, debriefs after web games | done: 8.3a-c built 2026-09-19 on fake backends, the key deployed and one live table played the same day (two model seats, chat, "remember"; $0.34, no fallbacks); 8.3d closed Phase 8 (`docs/phase8-plan.md` 12) |
 | 9 | In-depth UX | not started |
 | 10 | Clean-up and close; then version 1.0.0, released to family and friends, and planning in versions, not phases | not started |
 
@@ -107,7 +110,16 @@ Where things stand:
   model seat's logbook (read-back) and wraps up with one debrief per
   `work` after the end. The key reaches the service as
   `ANTHROPIC_API_KEY` from Secret Manager (`docs/web.md`, "Deploying");
-  without it the option is not offered.
+  without it the option is not offered. Live-checked the same day on
+  one table (David as Scarlett, White and Peacock on the model,
+  "remember" on): 58 turns, 55 model decisions of which 19 called the
+  model, 0 fallbacks, 28 off-turn lines, $0.34. A served reaction and
+  its audit are given back to the seat's wrapper on a rebuild (8.3d);
+  before that fix a rebuilt model seat forgot its own off-turn lines.
+  The same pass found `table.js` never posting `/work` for a finished
+  table, so no web debrief had ever run; fixed, and the first live
+  debriefs (the two pending on table `1b31ccffd9`) drain once the
+  fix is deployed and the table reopened.
 - **Worth knowing from the earlier phases** (the detail is in the docs
   named):
   - An LLM seat chooses only within the leash of its character's own
@@ -131,7 +143,8 @@ Where things stand:
   $0.26 re-recording fixtures on 2026-09-15, and $14.24 for 8.0.2a
   and 8.0.2b on 2026-09-16 ($9.36 and $4.88, against a $21-35 quote):
   about $78 in all, with $0.22 more re-recording the fixtures for 8.0.4
-  on 2026-09-18. An LLM seat-game
+  on 2026-09-18 and $0.34 for the 8.3 live table on 2026-09-19 (plus
+  its two debriefs, about $0.20). An LLM seat-game
   costs $0.07-0.11 for most characters and about $0.25 for Plum. Estimates have come in
   under twice: quote a range, not a point, and get a yes before any
   live run.
@@ -395,11 +408,10 @@ Suggestions to raise, not decisions to implement.
 
 ## Open questions (ask, don't assume)
 
-None outstanding as of 2026-09-18. Still open but non-blocking, with
-what is assumed meanwhile (`docs/phase8-plan.md` 9): the autopilot
-stand-in (the floor bot), 8.3's budgets ($2 a table, $10 a day, a yes
-per live check), and `--min-instances 1` (not proposed; the cold
-rebuild is accepted and measured).
+None outstanding as of 2026-09-19. Phase 8's assumptions stood through
+its close (`docs/phase8-plan.md` 9): the floor bot as the autopilot
+stand-in, 8.3's budgets ($2 a table, $10 a day), and no
+`--min-instances 1` (the cold rebuild is accepted and measured).
 
 Resolved 2026-09-13: leash presets stand; the parking fix waits behind
 logbooks; `docs/zenbot_memories.json` is the logbook model; no writing

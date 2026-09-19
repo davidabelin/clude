@@ -470,7 +470,9 @@
     timer = null;
     if (document.hidden) { schedule(15000); return; }
     var request;
-    if (current.work && !current.finished) {
+    /* A finished table still needs work while it wraps up: each debrief
+       runs inside a /work request from whoever has the page open. */
+    if (current.work && (!current.finished || current.wrapping_up)) {
       request = post(urls.work, { since: since });
     } else {
       request = get(urls.poll + "?since=" + since);

@@ -166,7 +166,8 @@ class Reactions:
         text = wrapper.react(obs, reaction.trigger, names)
         if not text:
             return None
-        game.remark(reaction.seat, text, REACTION)
+        audit = wrapper.decisions[-1].to_dict() if wrapper.decisions else None
+        game.remark(reaction.seat, text, REACTION, audit=audit)
         self._scanned = len(game.events)
         turn = game.state.turn
         self.served_turn[turn] = self.served_turn.get(turn, 0) + 1
