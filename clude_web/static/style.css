@@ -729,6 +729,10 @@ button.warn { background: var(--warn); border-color: var(--warn); color: #fff; }
 .log li.kind-accusation { color: var(--warn); font-weight: 600; }
 .log li.kind-remark { font-style: italic; color: var(--ink-soft); }
 .log li.kind-over { font-weight: 700; }
+.log li.kind-remark.about-chat { font-style: normal; color: var(--ink); }
+.say { display: flex; gap: 0.4rem; margin-top: 0.5rem; }
+.say input { flex: 1; min-width: 0; font: inherit; padding: 0.3rem 0.5rem; }
+.say button { margin: 0; }
 
 .seat.compact.mine h2 { color: var(--accent); }
 

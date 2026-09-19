@@ -496,14 +496,28 @@ def resolve_accusation(
     return accusation
 
 
-def _append_remarks(
-    events: list[GameEvent], bots: dict[int, PlayerProtocol], seat: int, turn: int, about: str
-) -> None:
+class _Talkers:
+    """The seats that may speak: the players, and the external seats'
+    speakers (Phase 8.3), read afresh at every drain so a driver may
+    install or swap a speaker while the generator is paused."""
+
+    def __init__(self, bots: dict, speakers) -> None:
+        self.bots = bots
+        self.speakers = speakers if speakers is not None else {}
+
+    def get(self, seat: int):
+        return self.speakers.get(seat, self.bots.get(seat))
+
+    def items(self):
+        return {**self.bots, **self.speakers}.items()
+
+
+def _append_remarks(events: list[GameEvent], bots, seat: int, turn: int, about: str) -> None:
     """Drain `seat`'s buffered table talk into `events`, if it speaks, and
     let every other speaking seat hear each line.
 
-    An external seat has no player object at all, so it is simply never
-    asked; its own talk reaches the log another way (Phase 8.3).
+    `bots` is the players, or a `_Talkers` that also knows the external
+    seats' speakers; a seat with neither says nothing here.
     """
     player = bots.get(seat)
     if not isinstance(player, SpeakingPlayer):
@@ -569,10 +583,11 @@ def game_steps(
     observer: Observer = ClueObservation.for_player,
     suspects=None,
     external: frozenset = frozenset(),
+    speakers=None,
 ):
     """The turn loop as a resumable generator; `run_game` drives it.
 
-    Takes `run_game`'s parameters and one more:
+    Takes `run_game`'s parameters and two more:
 
     Parameters
     ----------
@@ -582,6 +597,12 @@ def game_steps(
         driver answers with ``steps.send(answer)``; the answer is checked
         before it touches the game (`_checked`). Default empty, which is
         `run_game`.
+    speakers : dict[int, SpeakingPlayer] or None
+        Table talk for external seats (Phase 8.3): a seat's speaker is
+        drained and made to hear exactly where a player object in that
+        seat would be, so an LLM seat answered from outside has its
+        remarks land after the event they accompany and the other
+        speakers hear them. Never asked for a decision.
 
     Yields
     ------
@@ -607,6 +628,7 @@ def game_steps(
     rng = random.Random(seed)
     state = setup(n_players, rng, suspects)
     events: list[GameEvent] = []
+    talkers = _Talkers(bots, speakers)
     yield LiveGame(state, events)
     turns_taken = 0
     idx = 0
@@ -636,7 +658,7 @@ def game_steps(
         events.append(
             MoveEvent(state.turn, player, state.positions[player], choice.kind == "secret_passage")
         )
-        _append_remarks(events, bots, player, state.turn, "move")
+        _append_remarks(events, talkers, player, state.turn, "move")
 
         room = board.room_of(state.positions[player])
         if room is not None:
@@ -652,9 +674,9 @@ def game_steps(
                     state, player, suspect, weapon, bots, rng, observer, external
                 )
                 events.append(SuggestionEvent(state.turn, suggestion))
-                _append_remarks(events, bots, player, state.turn, "suggest")
+                _append_remarks(events, talkers, player, state.turn, "suggest")
                 if suggestion.refuter is not None:
-                    _append_remarks(events, bots, suggestion.refuter, state.turn, "show")
+                    _append_remarks(events, talkers, suggestion.refuter, state.turn, "show")
                 obs = observer(state, player)
 
         accused = yield from _ask(
@@ -668,7 +690,7 @@ def game_steps(
             suspect, weapon, room2 = accused
             accusation = resolve_accusation(state, player, suspect, weapon, room2)
             events.append(AccusationEvent(state.turn, accusation))
-        _append_remarks(events, bots, player, state.turn, "accuse")
+        _append_remarks(events, talkers, player, state.turn, "accuse")
         won = accusation is not None and accusation.correct
         if won:
             events.append(GameOverEvent(state.turn, player, state.envelope))

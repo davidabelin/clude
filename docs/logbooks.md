@@ -128,6 +128,15 @@ Opponents may be named any way the model likes ("Mrs. Peacock", "the
 Mustard token", `P2 White (Green)`); `resolve_opponents` maps them to
 roster labels before the entry is built.
 
+**From the web** (Phase 8.3c, `docs/web.md`, "A table"). A table dealt
+with "characters remember" on attaches a `Logbook` to each seat on the
+model, which reads it back at its `memory` dial's depth before the deal;
+when the game ends the table wraps up, one debrief per `work` request
+from whoever has the page open (the record read back face up, exactly
+as the CLI's), and the entry's dossiers name people by their account
+key, so a character's read on a person follows them across whichever
+token they play next.
+
 ## Running it
 
 ```

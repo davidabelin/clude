@@ -1,10 +1,11 @@
 # Phase 8 to completion: 8.0.4, 8.2 human players, 8.3 the rest of chat
 
 Status: **approved 2026-09-18** (David's four decisions are in section
-9). Built the same day: 8.0.4, 8.2a, 8.2b and 8.2c (section 12); 8.2d
-follows below it. Section 12, "As implemented", is written as each
-step lands; where it and the sections above disagree, section 12 is
-what was built.
+9). Built on the 18th: 8.0.4, 8.2a, 8.2b and 8.2c; on the 19th: 8.2d,
+8.3a, 8.3b and 8.3c (section 12), with the live checks and 8.3d's
+close following. Section 12, "As implemented", is written as each step
+lands; where it and the sections above disagree, section 12 is what was
+built.
 
 ## 1. Context
 
@@ -723,20 +724,118 @@ holding in the log on autopilot). The screenshot script shoots the
 table on the person's move, a few answers later, and waiting for
 players.
 
-### 8.2d, the deploy (2026-09-18, not finished)
+### 8.2d, the deploy (2026-09-18 and 2026-09-19)
 
-Everything up to the deploy is done: the suite is green (414 passed, 16
-skipped, 2 min 26 s with `-n auto`; the 14 browser tests pass under
-`CLUDE_WEB_BROWSER=1`), every screen was shot and looked at (the seat
-form's cards and the table's empty log were fixed from the shots), and
-the docs are updated. The deploy itself (`gcloud run deploy`, the
-command in `docs/web.md`) was refused by the session's permission
-check, as 8.1b's first `gcloud services enable` was, so it is David's
-to run, followed by the scripted check now kept as
-`scripts/clude_live_check.py` (`docs/web.md`, "Checking a deploy with a
-game"): a four-seat game with two throwaway accounts to the end, a
-second table left three answers in across a redeploy for the cold
-rebuild, and the rebuild time and request timings recorded in
-`docs/web.md` under "Deploying". The two throwaway accounts made for it
-were removed again; the commands to make them are beside the check.
+Everything up to the deploy was done on the 18th: the suite green,
+every screen shot and looked at (the seat form's cards and the table's
+empty log were fixed from the shots), the docs updated. The deploy
+itself was refused by the session's permission check, as 8.1b's first
+`gcloud services enable` was, so David ran it on the 19th (revision
+`clude-00003-6nf`, 17:55 UTC) and played a four-seat table to the end
+in the browser (replay `web/4`). The scripted check ran the same day
+from the session: `play` (a four-seat game with two throwaway accounts,
+63 turns, 186.7 s wall time, the replay opening after; poll median 94 ms,
+work 764 ms, answer 806 ms over 97/84/95 requests) and `start` (table
+`19ac4efe45` left three answers in). The redeploy between `start` and
+`resume` is again David's, and 8.3a's deploy serves as it: the cold
+rebuild time is recorded in `docs/web.md` when `resume` has run. The two
+batch files David wrote for this became `scripts/deploy.bat` and
+`scripts/live_check.bat`, runnable from any directory with the venv's
+interpreter (the first draft used `#` for comments, which batch does
+not have, and the global `python`); `docs/web.md` names them.
 
+### 8.3a, the model on the web (2026-09-19)
+
+As 4.1, with these pins and departures:
+
+- **The engine's hook is a `speakers` mapping read at every drain**, not
+  merged once: `game_steps(..., speakers=None)` wraps `bots` and
+  `speakers` in `_Talkers`, whose `get` prefers the speaker, so the
+  driver may install a replay speaker while the generator is paused.
+  `run_game` is untouched and the goldens prove it.
+- **`Table.wrappers` and `TableGame.speakers`.** `build_table(setup,
+  llm_backend=None)` builds an `LLMCharacter` for each `llm` seat when a
+  backend factory is given (`Table.wrappers`), reset and told the table
+  like a character; without one the seat has no wrapper and only replays.
+  Each `llm` seat's voice in the engine is a `Speaker` proxy: live, it
+  drains the wrapper's line at the event it belongs to and records it;
+  on a rebuild the stored lines are queued on it first and returned
+  instead, so the events match with no call, and a wrapper present at
+  the rebuild is reminded of its own lines and hears everyone else's.
+- **Where a line is stored.** An answer entry gains `said: [[seat,
+  text], ...]` for every line drained during *that answer's* resume,
+  whoever said it: Plum's suggestion line lands on the refuter's answer
+  when a person showed him a card, because that is when the
+  `SuggestionEvent` lands. `rebuild` queues each entry's lines before
+  sending it. `audit` on an `llm` entry is the `Decision.to_dict()`,
+  replayed into the wrapper's audit on a warm rebuild and gathered into
+  `GameRecord.llm_log` at the finish; `SeatRecord` gets `kind="llm"`
+  and the model id.
+- **One decision per `work`.** `TableGame.llm_answer` calls the
+  wrapper's `choose_*` on the request's own observation with a per-seat
+  RNG seeded like the stand-in's; `TableRegistry.work` answers a pending
+  model seat that way (`did = "model"`) and returns, so the screen reads
+  "Plum is thinking" between calls. `view_payload.work` is true while a
+  model seat is pending, or the client would never fire `/work` for it.
+  A `NullBackend` twin plays the headless characters' game exactly
+  (`test_the_null_twin_is_the_headless_game`).
+- **Metering** is `clude_llm.metered.MeteredBackend` over a `Ledger`
+  (`spend/<date>.json`), one per seat sharing the table's budget and the
+  day's cap; both refusals are error results the wrapper's fallback
+  absorbs, and the audit says `error: budget: ...`. The backend keeps
+  `known_spent` so a poll never reads the store. The web config is
+  `LLMConfig(key, model, budget, daily_cap, make_backend)`, built by
+  `create_app` from `ANTHROPIC_API_KEY` (or `.env` locally),
+  `CLUDE_LLM_MODEL`, `CLUDE_WEB_LLM_BUDGET` and `CLUDE_WEB_LLM_DAILY_CAP`;
+  under `TESTING` only what is passed in counts, so no test ever finds
+  the developer's key. The screenshot app gets a stand-in key and a
+  `NullBackend` factory so the lobby shows the option.
+- The lobby's per-token select gains "Plum, on the model" and the form a
+  budget field, only with a key; `anthropic` joins the image and the
+  deploy test now asserts it is there.
+
+### 8.3b, humans talk and the characters answer (2026-09-19)
+
+As 4.2-4.3, with:
+
+- `POST /tables/<id>/say`: `clean_line` strips control characters,
+  collapses whitespace and caps at 240; `TableRegistry.say` takes the
+  game lock, appends the `chat` remark (fanned to every speaker's
+  `hear`, which `TableGame.remark` now does), scans for opportunities
+  and saves. The engine never sees it: `test_chat_never_reaches_the_engine`.
+- `LLMCharacter.react(obs, trigger, names)` with `REMARK_KIND`,
+  `REMARK_SCHEMA` (`say` alone) and `prompt.remark_prompt`; the
+  chattiness draw is the caller's, so the wrapper's RNG moves only where
+  the caller says. `LLMSettings.remark_max_tokens` (200).
+- `clude_web.chat.Reactions` on every `WebGame`: `scan` opens an
+  opportunity per new chat line, on-turn remark, suggestion or
+  accusation; each model seat but the actor joins with probability
+  `chattiness ** (depth + 1)` on its own RNG, at most two queued in all,
+  each due 2-8 s later; `work` serves one due reaction per call and,
+  **departing from 4.3, holds bot and model turns while one is queued**
+  (at a 1.5 s beat every reaction would have gone stale before it was
+  due), while a person's own answer is never held. Caps: two lines a
+  turn, forty a game. The queue is memory only.
+- The chat form under the log, "The table is talking." on the status
+  line, and `.log li.kind-remark` for the lines.
+
+### 8.3c, debriefs and read-back on the web (2026-09-19)
+
+As 4.4, with one departure: **the lobby never drains a debrief
+synchronously** (42 s in a page load is worse than a late entry); it
+lists a wrapping-up table with its link, the table page stays a table
+rather than a redirect while a debrief pends, and whoever has it open
+drives `/work`, which serves one pending debrief per call
+(`TableRegistry.debrief_one`: the record read back face up, the entry
+written with its dossiers on everyone present, people by account key;
+the document marks `done` with the serial or `failed` with the reason).
+With "characters remember" on, `_prepare` attaches a `Logbook` to every
+model seat's wrapper at the deal (read-back at the `memory` dial's
+depth) and loads its method memory from the snapshot like a character's;
+`_remember` folds the game into a model seat's method memory too. The
+finish schedules the debriefs only when "remember" is on. A cold
+registry rebuilds the finished table with its wrappers and still writes
+the entry.
+
+Tests: `tests/test_metered.py` (6), `tests/test_web_llm.py` (6),
+`tests/test_chat.py` (11), `tests/test_web_debrief.py` (3).

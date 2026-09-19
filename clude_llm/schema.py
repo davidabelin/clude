@@ -15,6 +15,10 @@ Its lists carry no length keywords -- structured outputs support only a
 subset of JSON Schema -- so the bounds are stated in the prompt and
 enforced by `clude_storage.logbooks.LogbookEntry.build`.
 
+A fourth, `REMARK_SCHEMA` (Phase 8.3b), is off-turn table talk: `say`
+alone, an empty string for silence. Fixed like the others, and never
+part of a decision, so the two recorded fixtures are untouched by it.
+
 `parse_response` is the client-side half: it turns the model's text into
 a validated dict or raises `ValueError` with the reason, which the
 wrapper records as the fallback cause.
@@ -38,6 +42,16 @@ LABEL_FIELDS: dict = {
 
 LOGBOOK_KIND = "logbook"
 """The request kind of the debrief call."""
+
+REMARK_KIND = "remark"
+"""The request kind of an off-turn line (Phase 8.3b)."""
+
+REMARK_SCHEMA: dict = {
+    "type": "object",
+    "properties": {"say": {"type": "string"}},
+    "required": ["say"],
+    "additionalProperties": False,
+}
 
 
 def _schema(fields: tuple) -> dict:
@@ -103,11 +117,13 @@ def schema_for(kind: str) -> dict:
     Raises
     ------
     KeyError
-        For a kind other than ``move``, ``suggest``, ``accuse``, ``show``
-        or ``logbook``.
+        For a kind other than ``move``, ``suggest``, ``accuse``, ``show``,
+        ``logbook`` or ``remark``.
     """
     if kind == LOGBOOK_KIND:
         return LOGBOOK_SCHEMA
+    if kind == REMARK_KIND:
+        return REMARK_SCHEMA
     fields = LABEL_FIELDS[kind]
     return SUGGEST_SCHEMA if fields == ("suspect", "weapon") else CHOICE_SCHEMA
 
@@ -128,7 +144,8 @@ def parse_response(kind: str, text: str) -> dict:
         The label fields upper-cased (``"a"`` is accepted as ``"A"``) and
         ``say`` stripped, a missing or non-string ``say`` becoming ``""``.
         Extra keys are ignored. For `LOGBOOK_KIND` the object as parsed:
-        `LogbookEntry.build` does the normalising.
+        `LogbookEntry.build` does the normalising. For `REMARK_KIND`,
+        ``say`` alone, stripped.
 
     Raises
     ------
@@ -144,6 +161,9 @@ def parse_response(kind: str, text: str) -> dict:
         raise ValueError("not a JSON object")
     if kind == LOGBOOK_KIND:
         return data
+    if kind == REMARK_KIND:
+        say = data.get("say", "")
+        return {"say": say.strip() if isinstance(say, str) else ""}
     parsed: dict = {}
     for name in LABEL_FIELDS[kind]:
         value = data.get(name)

@@ -13,7 +13,7 @@ phase's plan doc ends with an "as implemented" section that records what
 was actually built and where it departed from the plan: trust that over
 the plan sections above it, and over this file if they disagree.
 
-## Status (2026-09-18, evening)
+## Status (2026-09-19)
 
 Phases 1-7 are done and committed. Each phase's record is the "as
 implemented" section of its plan doc (`docs/phase5-plan.md` to
@@ -25,13 +25,18 @@ and a Watch screen that plays a headless game a turn at a time. Since
 8.1b the same app runs on Cloud Run at
 <https://clude-648214345192.us-central1.run.app>, reading a mirror of
 `data/llm` in the bucket (`docs/web.md`, "Deploying"). Phase 8 was
-planned to completion on 2026-09-18 (`docs/phase8-plan.md`) and the
-same day 8.0.4 (the landing rule) and 8.2a-c (human players) were
-built: people sit at a table beside the characters and play from the
-browser, or from the terminal with `play --human`. Suite: 414 passed, 16
-skipped (the live-credential and browser tests), about two and a half
-minutes with `-n auto`; the 14 browser tests pass under
-`CLUDE_WEB_BROWSER=1`.
+planned to completion on 2026-09-18 (`docs/phase8-plan.md`); that day
+8.0.4 (the landing rule) and 8.2a-c (human players) were built, and on
+2026-09-19 8.2d was deployed and live-checked and 8.3a-c built on fake
+backends: a character can play "on the model" at a web table under a
+per-table budget and a daily cap, people type at the table and the
+model seats answer off-turn with pacing, and a remembering table wraps
+up with each model seat's logbook entry. **Not yet done:** the deploy
+with the key (David's, `scripts/deploy.bat` after the secret in
+`docs/web.md`), the `resume` half of the 8.2d check, the three 8.3 live
+checks ($1-2 each, a yes per check), and 8.3d's close. Suite: 446
+passed, 16 skipped (the live-credential and browser tests), about three
+minutes with `-n auto`; the browser tests run under `CLUDE_WEB_BROWSER=1`.
 
 **The road from here** (David renumbered it on 2026-09-16;
 `docs/phase-plan.md` has the table):
@@ -40,8 +45,8 @@ minutes with `-n auto`; the 14 browser tests pass under
 |---|---|---|
 | 8.0 | Re-measure the glossary on the Classic board (was the "re-measurement plan"; stages 8.0.0-8.0.4) | done: 8.0.0-8.0.3, and 8.0.4 the landing rule for the passage loop (2026-09-18) -- `docs/phase8.0-plan.md`, `docs/phase8-plan.md` |
 | 8.1 | 8.1a a basic UX scaffold as a local Flask app; 8.1b the same app on Cloud Run behind an app login | done: 8.1a built 2026-09-17 (steps 1-5: the engine seam, the login and accounts, the board and replay data, the replay scrubber, the lobby and Watch); 8.1b deployed 2026-09-18 (steps 6-9: the container, `store copy`, the service running as `clude-run`) -- `docs/phase8.1-plan.md`, `docs/web.md` |
-| 8.2 | Human players | 8.2a-c built 2026-09-18 (the table driver and `play --human`; the table on the web with open seats, autopilot, cold rebuild and "characters remember"); 8.2d, the deploy and the live check, is David's to run (`docs/phase8-plan.md` 12, `docs/web.md`) |
-| 8.3 | The rest of chat: the model on the web under a spend cap, human chat, off-turn talk with pacing, debriefs after web games | planned in `docs/phase8-plan.md` 4; not started |
+| 8.2 | Human players | done: 8.2a-c built 2026-09-18 (the table driver and `play --human`; the table on the web with open seats, autopilot, cold rebuild and "characters remember"); 8.2d deployed and live-checked 2026-09-19, the cold-rebuild number waiting on the next redeploy (`docs/phase8-plan.md` 12, `docs/web.md`) |
+| 8.3 | The rest of chat: the model on the web under a spend cap, human chat, off-turn talk with pacing, debriefs after web games | 8.3a-c built 2026-09-19 on fake backends (`docs/phase8-plan.md` 12); the deploy with the key, the three live checks and 8.3d's close remain |
 | 9 | In-depth UX | not started |
 | 10 | Clean-up and close; then version 1.0.0, released to family and friends, and planning in versions, not phases | not started |
 
@@ -87,6 +92,22 @@ Where things stand:
   snapshot. Watch is now a table with nobody human at it. A human's
   label is the account key; the suspect names, `floor`, `random`,
   `web` and `envelope` are refused as account names.
+- **8.3 (2026-09-19).** An `llm` seat is the character on the model,
+  external to the engine like a person: `TableGame.llm_answer` makes
+  one wrapper call per `work` request, every answer is stored with its
+  audit and the lines it said (`Speaker`, the engine's `speakers` hook)
+  so a rebuild never calls the model, and `MeteredBackend` over a daily
+  `Ledger` (`spend/<date>.json`) refuses past the table's budget or the
+  day's cap, the character playing on. `/say` is a person's line (240
+  characters, never read by the engine); `clude_web.chat.Reactions`
+  opens the floor on a line, a suggestion or an accusation, each model
+  seat joining with probability `chattiness` (squared for a reply to a
+  reply), two queued at most, served one per `work` a few seconds
+  apart, bot turns held meanwhile. A remembering table attaches each
+  model seat's logbook (read-back) and wraps up with one debrief per
+  `work` after the end. The key reaches the service as
+  `ANTHROPIC_API_KEY` from Secret Manager (`docs/web.md`, "Deploying");
+  without it the option is not offered.
 - **Worth knowing from the earlier phases** (the detail is in the docs
   named):
   - An LLM seat chooses only within the leash of its character's own
@@ -296,23 +317,27 @@ Built; the detail is in `docs/architecture.md`.
   prompts, personas (`personas/*.md` and `rules.md`), backends
   (`NullBackend`, `ScriptedBackend`, `RecordingBackend`/`ReplayBackend`,
   `AnthropicBackend`), `LLMCharacter` (with `attach_logbook`,
-  `read_back`, `debrief`), `logbook` (the debrief prompt).
+  `read_back`, `debrief`, and `react` for off-turn talk), `logbook` (the
+  debrief prompt), `metered` (`MeteredBackend` and the daily `Ledger`,
+  the web's spend caps).
 - `clude_web` -- the Flask app: `create_app`, `config` (secret, store,
   cookie policy), `auth` (the login gate, CSRF, rate limit), `users`
   (accounts as store documents), `board_svg` (the grid drawn from
   `clude_core.board`, colourless so the stylesheet decides), `replay_data`
   (event lines, board frames, the cached belief trace), `tables` (the
   registry that stores, drives and rebuilds every game, the seat form,
-  the view of a game from one seat), `watch` (Watch as a table with
-  nobody human at it), `views`, templates, one stylesheet, `replay.js`
-  and `table.js`.
+  the view of a game from one seat, the model seats and their metering),
+  `chat` (off-turn talk: the reaction queue and its pacing), `watch`
+  (Watch as a table with nobody human at it), `views`, templates, one
+  stylesheet, `replay.js` and `table.js`.
   Imports every other package; nothing imports it (`docs/web.md`).
   `clude_training.arena.headless_table` is the table `play` seats, shared
   with Watch and pinned to the CLI by a test.
 - `scripts/clude_cli.py` -- the maintainer CLI (`play --human` seats
   you from the terminal); `scripts/clude_shots.py` screenshots every
   screen; `scripts/clude_live_check.py` plays a table on the deployed
-  service; `tests/` -- pytest.
+  service, wrapped by `scripts/live_check.bat`; `scripts/deploy.bat` is
+  the deploy command; `tests/` -- pytest.
 - `Dockerfile`, `requirements-web.txt`, `.gcloudignore`,
   `.dockerignore` -- the Cloud Run image; the ignore files keep the key
   file, `.env` and `data/` out (`tests/test_deploy.py`).

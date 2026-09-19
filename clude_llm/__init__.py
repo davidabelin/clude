@@ -35,8 +35,17 @@ from .menu import (
 from .logbook import debrief_prompt, resolve_opponents
 from .persona import DISPLAY_NAMES, Persona, load_persona, load_rules
 from .player import Decision, LLMCharacter, LLMSettings
-from .prompt import system_prompt, user_prompt
-from .schema import LABELS, LOGBOOK_KIND, LOGBOOK_SCHEMA, MAX_OPTIONS, parse_response, schema_for
+from .prompt import remark_prompt, system_prompt, user_prompt
+from .schema import (
+    LABELS,
+    LOGBOOK_KIND,
+    LOGBOOK_SCHEMA,
+    MAX_OPTIONS,
+    REMARK_KIND,
+    REMARK_SCHEMA,
+    parse_response,
+    schema_for,
+)
 
 __all__ = [
     "DEFAULT_MODEL",
@@ -52,6 +61,8 @@ __all__ = [
     "LOGBOOK_SCHEMA",
     "MAX_OPTIONS",
     "Menu",
+    "REMARK_KIND",
+    "REMARK_SCHEMA",
     "NullBackend",
     "Option",
     "Persona",
@@ -68,6 +79,7 @@ __all__ = [
     "movement_menu",
     "open_backend",
     "parse_response",
+    "remark_prompt",
     "resolve_opponents",
     "schema_for",
     "show_menu",

@@ -188,3 +188,76 @@ def user_prompt(
     shape = ANSWER_SHAPES["suggest" if isinstance(menu, SuggestionMenu) else "choice"]
     lines.append(f"Answer with JSON only: {shape}")
     return "\n".join(lines) + "\n"
+
+
+REMARK_SHAPE = '{"say": "<one short line in your voice, or an empty string to say nothing>"}'
+
+
+def remark_prompt(
+    obs: ClueObservation,
+    belief,
+    character: Character,
+    remarks: Sequence,
+    trigger: str,
+    names: Optional[Sequence[str]] = None,
+    recent_remarks: int = 8,
+) -> str:
+    """The prompt for one off-turn line (Phase 8.3b): who you are, the
+    compact state through the same formatters as `user_prompt`, the
+    recent table talk, what just happened, and the instruction to say
+    one short line or nothing. No decision is asked for, so nothing here
+    can move a token or show a card.
+
+    Parameters
+    ----------
+    obs, belief, character, remarks, names, recent_remarks
+        As `user_prompt`.
+    trigger : str
+        What opened the floor, already described in words: a line
+        someone said, a suggestion resolving, an accusation.
+
+    Raises
+    ------
+    ValueError
+        If `obs.mask` is None.
+    """
+    if obs.mask is None:
+        raise ValueError(
+            "the LLM prompt needs a masked observation: run the game with "
+            "`observer=clude_constraints.observe`"
+        )
+    names = list(names) if names is not None else seat_labels(obs.suspects)
+    me = names[obs.my_index]
+    display = DISPLAY_NAMES.get(character.name, character.name)
+    token = obs.suspects[obs.my_index]
+    who = (
+        f"You are {display}, seat {me}."
+        if token == character.name
+        else f"You are {display}, playing the {token} token as seat {me}."
+    )
+    table = ", ".join(n + ("" if active else " (out)") for n, active in zip(names, obs.active_players))
+    lines = [
+        f"{who} Turn {obs.turn}; it is not your turn.",
+        f"At the table: {table}.",
+        f"Your hand: {', '.join(sorted(obs.own_hand))}.",
+        "",
+        "What is certain (the shared deduction floor):",
+        *_floor_lines(obs, names),
+        "",
+        "What your method believes (top cards per category; * = proven):",
+        f"  {format_belief(belief.probabilities, obs.mask, top=3)}",
+    ]
+    if remarks:
+        lines.append("")
+        lines.append("Table talk, most recent last:")
+        for seat, text in list(remarks)[-recent_remarks:]:
+            lines.append(f'  {names[seat]}: "{text}"')
+    lines.append("")
+    lines.append(f"Just now: {trigger}")
+    lines.append("")
+    lines.append(
+        "You may say one short line in your voice, or nothing. Say nothing rather than "
+        "repeat a point already made, and never reveal a card you were shown."
+    )
+    lines.append(f"Answer with JSON only: {REMARK_SHAPE}")
+    return "\n".join(lines) + "\n"

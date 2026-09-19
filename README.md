@@ -36,10 +36,10 @@ over 24 games, at the price of two early accusations
 2026-09-14 every character is locked to its own token: Plum is always
 Plum. Phase 8.1 put the first screens in front of it: a Flask app with a
 login, a lobby, a replay scrubber and a Watch screen, run locally or on
-Cloud Run for family and friends ([docs/web.md](docs/web.md)). There
-are no human seats and no chat yet. Since Phase 8.2 people sit at the table too: a table in the
-lobby seats you beside the characters and the game is played from the
-browser, or from the terminal with `play --human`.
+Cloud Run for family and friends ([docs/web.md](docs/web.md)). Since
+Phase 8.2 people sit at the table too: a table in the lobby seats you
+beside the characters and the game is played from the browser, or from
+the terminal with `play --human`. Chat on the web is Phase 8.3.
 
 ## Quick start
 
@@ -85,7 +85,7 @@ clude_agents/        AgentProtocol, the AgentSpec registry, one module per metho
 clude_llm/           the LLM wrapper: menus, personas, prompts, backends, LLMCharacter, the debrief
 clude_training/      self-play snapshots, the belief benchmark, trace, record replay, method memory, arena, sweeps
 clude_storage/       game records and logbooks; local-directory and Cloud Storage stores
-clude_web/           the Flask app: the login gate, accounts, and the screens
+clude_web/           the Flask app: the login gate, accounts, the lobby, tables people play at, Watch and the replay
 Dockerfile           the Cloud Run image (with requirements-web.txt, .gcloudignore, .dockerignore)
 scripts/             clude_cli.py, the maintainer CLI
 tests/               pytest suite
@@ -95,8 +95,9 @@ legacy/              code from an earlier chat; ported from, never imported
 
 The structure mirrors the `rps` repo (a shared protocol, a name-keyed
 registry, sibling packages by concern). `clude_web/` is the newest: the
-login gate, the lobby, the replay and Watch screens, served locally with
-`flask run` or from Cloud Run (`docs/web.md`, "Deploying").
+login gate, the lobby, the table you play at, the replay and Watch
+screens, served locally with `flask run` or from Cloud Run
+(`docs/web.md`, "Deploying").
 
 ## The six
 
@@ -123,6 +124,8 @@ five personality dials. Each is documented in
 - [docs/phase5-plan.md](docs/phase5-plan.md) -- the Phase 5 plan, David's decisions, and how the build departed from it
 - [docs/phase6-plan.md](docs/phase6-plan.md) -- the Phase 6 plan, David's decisions, and what was built
 - [docs/phase7-plan.md](docs/phase7-plan.md) -- the Phase 7 plan, David's decisions, and what was built
+- [docs/phase8-plan.md](docs/phase8-plan.md) -- Phase 8 to completion: the landing rule, human players, the model and chat on the web, and what was built
+- [docs/web.md](docs/web.md) -- the Flask app: running it, accounts, the table, Watch, the replay, and deploying to Cloud Run
 - [docs/llm-wrapper.md](docs/llm-wrapper.md) -- how an LLM pilots a character: menus, leash, personas, backends, cost
 - [docs/logbooks.md](docs/logbooks.md) -- playerbot memory: the three tiers, the `memory` dial, the debrief, the CLI
 - [docs/strategy-glossary.md](docs/strategy-glossary.md) -- each method in plain language, with benchmark and arena results

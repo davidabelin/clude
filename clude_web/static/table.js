@@ -30,6 +30,8 @@
   var myToken = document.getElementById("my-token");
   var autopilotButton = document.getElementById("autopilot");
   var log = document.getElementById("log");
+  var sayForm = document.getElementById("say-form");
+  var sayText = document.getElementById("say-text");
   var seatsBox = document.getElementById("seats");
   var notepad = document.getElementById("notepad");
   var svg = document.querySelector("svg.board");
@@ -131,7 +133,13 @@
     if (payload.over) {
       var who = payload.over.winner ? payload.over.winner + " wins." : "Nobody wins.";
       var e = payload.over.envelope;
-      return who + " It was " + e[0] + " with the " + e[1] + " in the " + e[2] + ".";
+      var ending = who + " It was " + e[0] + " with the " + e[1] + " in the " + e[2] + ".";
+      if (payload.wrapping_up && payload.debriefs) {
+        ending += " " + payload.debriefs.pending[0] + " is writing up notes on the game.";
+      } else if (payload.debriefs && payload.debriefs.done && payload.debriefs.done.length) {
+        ending += " Notes written by " + payload.debriefs.done.join(", ") + ".";
+      }
+      return ending;
     }
     if (payload.pending) {
       switch (payload.pending.kind) {
@@ -145,8 +153,12 @@
     if (payload.waiting) {
       var w = payload.waiting;
       var what = { movement: "move", suggestion: "suggest", accusation: "decide whether to accuse", card_to_show: "show a card" }[w.kind] || "decide";
+      if (w.no_model) return w.name + " is on the model, but this server has no key; the table cannot go on.";
+      if (w.model && w.refused) return w.name + "'s model budget is spent; the character plays on.";
+      if (w.model) return w.name + " is thinking.";
       return "Waiting for " + w.name + " to " + what + (w.autopilot ? " (on autopilot)" : "") + ".";
     }
+    if (payload.chatter) return "The table is talking.";
     if (payload.work) return "The table is playing.";
     return "";
   }
@@ -179,6 +191,24 @@
         showError(err.message);
         schedule(1000);
       });
+  }
+
+  if (sayForm) {
+    sayForm.addEventListener("submit", function (event) {
+      event.preventDefault();
+      var text = (sayText.value || "").trim();
+      if (!text || busy) return;
+      busy = true;
+      post(urls.say, { text: text, since: since })
+        .then(function (payload) {
+          sayText.value = "";
+          showError("");
+          render(payload);
+          schedule(300);
+        })
+        .catch(function (err) { showError(err.message); })
+        .then(function () { busy = false; });
+    });
   }
 
   function select(name, items, label) {
@@ -401,6 +431,8 @@
     appendEvents(payload.events);
     since = Math.max(since, payload.n_events || 0);
     if (status) status.textContent = statusText(payload);
+    var spend = document.getElementById("spend");
+    if (spend) spend.textContent = spendText(payload);
     renderDecision(payload.pending);
     renderHand(payload.me);
     renderSeats(payload);
@@ -419,8 +451,16 @@
 
   /* --- polling and work ---------------------------------------------- */
 
+  function spendText(payload) {
+    if (!payload.llm) return "";
+    var refused = payload.llm.refused || {};
+    var out = "Model spend $" + Number(payload.llm.spent || 0).toFixed(2) + " of $" + Number(payload.llm.budget || 0).toFixed(2) + ".";
+    Object.keys(refused).forEach(function (seat) { out += " " + refused[seat] + "."; });
+    return out;
+  }
+
   function interval() {
-    if (current.finished) return 0;
+    if (current.finished && !current.work) return 0;
     if (current.work) return 1500;
     if (current.pending) return 10000;
     return 4000;

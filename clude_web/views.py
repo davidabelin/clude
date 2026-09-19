@@ -137,6 +137,8 @@ def _table_listing(me: str) -> list:
                 "mine": tables.viewer_seat(setup, me) is not None,
                 "human": bool(humans),
                 "remember": setup.remember,
+                "model": any(spec.kind == "llm" for spec in setup.seats),
+                "wrapping_up": bool(tables.pending_debriefs(document)),
             }
         )
     return out
@@ -176,6 +178,8 @@ def _lobby(error=None, form=None, status=200, table_error=None, table_form=None)
             table_seed=table_form.get("seed", ""),
             remember=bool(table_form.get("remember")),
             table_error=table_error,
+            llm=_registry().llm,
+            budget=table_form.get("budget", ""),
         ),
         status,
     )
@@ -310,7 +314,7 @@ def _table_page(table_id: str):
             board=None,
         )
     game = _live(table_id)
-    if game.finished:
+    if game.finished and not tables.pending_debriefs(document):
         return _finished(table_id, game)
     if not setup.external:
         return _watch_page(table_id, game, document)
@@ -335,6 +339,7 @@ def _table_page(table_id: str):
                     "work": url_for("main.table_work", table_id=table_id),
                     "answer": url_for("main.table_answer", table_id=table_id),
                     "autopilot": url_for("main.table_autopilot", table_id=table_id),
+                    "say": url_for("main.table_say", table_id=table_id),
                 },
             )
         ),
@@ -369,10 +374,14 @@ def table_new():
     for the people its open seats are for."""
     me = _me()
     try:
-        setup = tables.parse_table_form(request.form, me)
+        setup = tables.parse_table_form(request.form, me, _registry().llm)
     except ValueError as exc:
         return _lobby(table_error=str(exc), table_form=request.form.to_dict(), status=400)
-    table_id = _registry().create(setup, current_user())
+    try:
+        budget = tables.parse_budget(request.form, _registry().llm)
+        table_id = _registry().create(setup, current_user(), budget)
+    except ValueError as exc:
+        return _lobby(table_error=str(exc), table_form=request.form.to_dict(), status=400)
     return redirect(url_for("main.table", table_id=table_id))
 
 
@@ -460,6 +469,24 @@ def table_answer(table_id):
         return jsonify({"error": "That answer is not in the shape the decision needs."}), 400
     try:
         _registry().answer(table_id, game, viewer, seq, data)
+    except TableError as exc:
+        return jsonify({"error": str(exc)}), 400
+    try:
+        since = int(request.form.get("since", 0) or 0)
+    except ValueError:
+        since = 0
+    return jsonify(_payload(table_id, game, since))
+
+
+@bp.post("/tables/<table_id>/say")
+def table_say(table_id):
+    """One line of chat from the viewer's seat (Phase 8.3b)."""
+    game = _live(table_id)
+    viewer = tables.viewer_seat(game.setup, _me())
+    if viewer is None:
+        return jsonify({"error": "You are not sitting at this table."}), 403
+    try:
+        _registry().say(table_id, game, viewer, request.form.get("text", ""))
     except TableError as exc:
         return jsonify({"error": str(exc)}), 400
     try:

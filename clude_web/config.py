@@ -30,6 +30,27 @@ DEFAULT_STORE = "data/llm"
 """Every grid-era run lives here (CLAUDE.md, "Environment and how to
 run"), so the replay list is the real one out of the box."""
 
+KEY_ENV = "ANTHROPIC_API_KEY"
+"""The workspace-scoped key for LLM seats on the web (Phase 8.3a). On
+Cloud Run it arrives from Secret Manager; locally the `.env` fallback
+serves, as for the session secret. Without it the lobby offers no model
+seats and nothing reachable from the URL can spend."""
+
+BUDGET_ENV = "CLUDE_WEB_LLM_BUDGET"
+"""Dollars one table may spend on the model, the lobby form's default."""
+
+DAILY_CAP_ENV = "CLUDE_WEB_LLM_DAILY_CAP"
+"""Dollars the whole service may spend on the model in one UTC day."""
+
+DEFAULT_BUDGET = 2.0
+DEFAULT_DAILY_CAP = 10.0
+"""David's 8.3 budgets (docs/phase8-plan.md 9)."""
+
+MODEL_ENV = "CLUDE_LLM_MODEL"
+DEFAULT_MODEL = "claude-opus-5"
+"""The model every web table uses, as the CLI's default; the same
+variable the live smoke test reads."""
+
 
 def read_env_file(name: str, path=None):
     """The value of `name` in a ``KEY=value`` file, or None.
@@ -94,3 +115,33 @@ def store_uri() -> str:
 def https_only() -> bool:
     """Whether to mark the session cookie `Secure`."""
     return os.environ.get(HTTPS_ENV, "").strip().lower() in {"1", "true", "yes"}
+
+
+def anthropic_key():
+    """The model key, or None: the environment first, then `.env`."""
+    return os.environ.get(KEY_ENV) or read_env_file(KEY_ENV)
+
+
+def _dollars(name: str, default: float) -> float:
+    raw = (os.environ.get(name) or "").strip()
+    if not raw:
+        return default
+    try:
+        return max(0.0, float(raw))
+    except ValueError:
+        return default
+
+
+def llm_budget() -> float:
+    """The per-table default budget, in dollars."""
+    return _dollars(BUDGET_ENV, DEFAULT_BUDGET)
+
+
+def llm_daily_cap() -> float:
+    """The service's daily cap, in dollars."""
+    return _dollars(DAILY_CAP_ENV, DEFAULT_DAILY_CAP)
+
+
+def llm_model() -> str:
+    """The model id for web tables."""
+    return (os.environ.get(MODEL_ENV) or "").strip() or DEFAULT_MODEL

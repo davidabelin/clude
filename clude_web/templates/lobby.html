@@ -7,8 +7,10 @@
     <h1>Play a game</h1>
     <p class="note">
       Take a token and pick who sits at the others. A character plays its own
-      token; a <em>floor</em> bot is the plain deducer; an <em>open</em> seat
-      waits for another player to sit before the table is dealt.
+      token{% if llm %}, or plays it <em>on the model</em>, with Claude choosing within
+      its leash and talking at the table{% endif %}; a <em>floor</em> bot is the plain
+      deducer; an <em>open</em> seat waits for another player to sit before
+      the table is dealt.
     </p>
     {% if table_error %}<p class="error" role="alert">{{ table_error }}</p>{% endif %}
     <form method="post" action="{{ url_for('main.table_new') }}" id="table-form">
@@ -23,6 +25,7 @@
               <option value="empty" {% if t.value == 'empty' %}selected{% endif %}>empty</option>
               <option value="me" {% if t.value == 'me' %}selected{% endif %}>me ({{ user }})</option>
               <option value="character" {% if t.value == 'character' %}selected{% endif %}>{{ t.token }}, the character</option>
+              {% if llm %}<option value="llm" {% if t.value == 'llm' %}selected{% endif %}>{{ t.token }}, on the model</option>{% endif %}
               <option value="floor" {% if t.value == 'floor' %}selected{% endif %}>floor bot</option>
               <option value="open" {% if t.value == 'open' %}selected{% endif %}>open seat</option>
             </select>
@@ -38,6 +41,10 @@
           the characters remember
           <span class="note">(their method memory from earlier games; with Mustard at the table the deal takes about half a minute)</span>
         </label>
+        {% if llm %}
+        <label for="table-budget">Model budget, $ <span class="note">(a seat on the model costs about $0.10 a game, Plum $0.25; the day's cap is ${{ '%.2f'|format(llm.daily_cap) }})</span></label>
+        <input id="table-budget" name="budget" inputmode="decimal" value="{{ budget or ('%.2f'|format(llm.budget)) }}" autocomplete="off">
+        {% endif %}
       </div>
       <button type="submit">Deal</button>
     </form>
@@ -50,10 +57,10 @@
       {% for t in tables %}
         <li>
           <a href="{{ t.url }}">
-            {% for s in t.seats %}{% if not loop.first %}, {% endif %}{% if s.kind == 'human' %}{{ s.label }} as {{ s.token }}{% elif s.kind == 'open' %}{{ s.token }} (open){% elif s.kind == 'character' %}{{ s.token }}{% else %}{{ s.token }} ({{ s.label }}){% endif %}{% endfor %}
+            {% for s in t.seats %}{% if not loop.first %}, {% endif %}{% if s.kind == 'human' %}{{ s.label }} as {{ s.token }}{% elif s.kind == 'open' %}{{ s.token }} (open){% elif s.kind == 'character' %}{{ s.token }}{% elif s.kind == 'llm' %}{{ s.token }} (model){% else %}{{ s.token }} ({{ s.label }}){% endif %}{% endfor %}
           </a>
           <span class="note">
-            {% if t.status == 'open' %}waiting for {{ t.open }} more{% else %}turn {{ t.turns }}{% endif %}
+            {% if t.status == 'open' %}waiting for {{ t.open }} more{% elif t.wrapping_up %}over; the characters are writing up their notes{% else %}turn {{ t.turns }}{% endif %}
             &middot; seed {{ t.seed }}
             {% if t.started_by %}&middot; started by {{ t.started_by }}{% endif %}
             {% if t.mine %}&middot; <strong>you are seated</strong>{% endif %}

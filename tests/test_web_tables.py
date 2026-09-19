@@ -134,15 +134,15 @@ def play_out(app, table_id, clients: dict, max_steps=4000, on_payload=None):
                 on_payload(payload)
             if payload["finished"]:
                 return payload
-            if payload["waiting"] is not None:
+            if payload["work"]:
+                payload = work(first, table_id)
+            elif payload["waiting"] is not None:
                 who = payload["waiting"]["seat"]
                 seat = next(s for s in payload["seats"] if s["seat"] == who)
                 owner = clients[seat["label"]]
                 mine = poll(owner, table_id)
                 assert mine["pending"] is not None, "the owner was not shown the decision"
                 payload = answer(owner, table_id, mine["pending"]["seq"], simple_answer(mine["pending"]))
-            elif payload["work"]:
-                payload = work(first, table_id)
             else:
                 payload = poll(first, table_id)
         raise AssertionError("the game did not end")

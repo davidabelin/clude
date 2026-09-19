@@ -51,10 +51,8 @@ def test_the_image_installs_its_own_requirements_and_serves_the_factory():
     assert '"clude_web:create_app()"' in dockerfile
     assert "--workers 1" in dockerfile
     wanted = (ROOT / "requirements-web.txt").read_text(encoding="utf-8")
-    for package in ("flask", "gunicorn", "google-cloud-storage"):
-        assert package in wanted
-    # The service has no API key, and the image should not carry the SDK.
-    assert "anthropic" not in [line.split(">")[0] for line in wanted.splitlines()]
+    for package in ("flask", "gunicorn", "google-cloud-storage", "anthropic"):
+        assert package in wanted, f"{package} is not installed in the image"
 
 
 def test_behind_https_the_cookie_is_secure_and_the_proxy_is_trusted(monkeypatch, tmp_path):

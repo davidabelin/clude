@@ -47,6 +47,7 @@ __all__ = [
     "MAX_TURNS",
     "SEAT_KINDS",
     "SeatSpec",
+    "Speaker",
     "TableError",
     "TableGame",
     "TableSetup",
@@ -324,13 +325,17 @@ class TableSetup:
         )
 
 
-def build_table(setup: TableSetup) -> tuple:
+def build_table(setup: TableSetup, llm_backend=None) -> tuple:
     """The players for `setup`, built as `arena.headless_table` builds
     them: each character with its preset dials and reset with the game
     seed, each floor bot with a private RNG from `fill_seed`, and every
     character told who it is sitting with -- humans by their labels, so
     White's per-opponent priors find them. External seats get no player
-    object.
+    object. An ``llm`` seat (Phase 8.3a) gets an `LLMCharacter` in
+    `Table.wrappers`, reset and told the table like a character, when
+    `llm_backend(seat)` is given to build its backend; without one -- a
+    rebuild, which must never call a model -- the seat has no wrapper and
+    its stored answers are simply replayed.
 
     Returns
     -------
@@ -346,6 +351,7 @@ def build_table(setup: TableSetup) -> tuple:
         raise ValueError("an open seat cannot be dealt; fill it first (TableSetup.dealt)")
     labels = setup.labels
     players: dict = {}
+    wrappers: dict = {}
     for seat, spec in enumerate(setup.seats):
         if spec.kind == "character":
             character = build_character(spec.label)
@@ -355,15 +361,24 @@ def build_table(setup: TableSetup) -> tuple:
             players[seat] = clude_constraints.FloorBot(rng=random.Random(fill_seed(setup.seed, seat)))
         elif spec.kind == "random":
             players[seat] = RandomBot()
+        elif spec.kind == "llm" and llm_backend is not None:
+            from clude_llm import LLMCharacter  # noqa: PLC0415 -- only a table with model seats needs it
+
+            wrapper = LLMCharacter(build_character(spec.label), llm_backend(seat))
+            wrapper.reset(setup.seed)
+            wrappers[seat] = wrapper
     for seat, spec in enumerate(setup.seats):
         if spec.kind == "character":
             players[seat].new_game(labels)
+        elif seat in wrappers:
+            wrappers[seat].new_game(labels)
     table = Table(
         players=players,
         labels=labels,
         suspects=setup.suspects,
         observer=clude_constraints.observe,
         kinds=setup.kinds,
+        wrappers=wrappers,
     )
     return table, setup.external
 
@@ -482,6 +497,45 @@ class TableSnapshot:
     broken: Optional[str] = None
 
 
+class Speaker:
+    """An external seat's voice in the engine (Phase 8.3a): what
+    `game_steps` drains and makes hear in that seat's place.
+
+    Live, it fronts the seat's `LLMCharacter`: the lines the wrapper
+    offered with a decision are drained here, at the event they belong
+    to, and recorded in `said` so the entry can store them. On a rebuild
+    the stored lines are put on `queue` first and returned instead, so
+    the events match without a call; a wrapper present at the rebuild
+    (a warm instance about to play on) is reminded of its own lines and
+    hears everyone else's.
+    """
+
+    def __init__(self, seat: int, inner=None) -> None:
+        self.seat = seat
+        self.inner = inner
+        self.queue: list = []
+        self.said: list = []
+
+    def take_remarks(self) -> list:
+        if self.queue:
+            lines, self.queue = self.queue, []
+            if self.inner is not None:
+                for text in lines:
+                    self.inner._remember(self.seat, text)
+        else:
+            lines = list(self.inner.take_remarks()) if self.inner is not None else []
+        self.said.extend(lines)
+        return lines
+
+    def hear(self, remark: RemarkEvent) -> None:
+        if self.inner is not None:
+            self.inner.hear(remark)
+
+    def drain_said(self) -> list:
+        lines, self.said = self.said, []
+        return lines
+
+
 class TableGame:
     """One game at a table, driven through `engine.game_steps` and paused
     whenever an external seat must decide.
@@ -495,14 +549,23 @@ class TableGame:
     it.
     """
 
-    def __init__(self, setup: TableSetup, prepare=None) -> None:
+    def __init__(self, setup: TableSetup, prepare=None, llm_backend=None) -> None:
         """`prepare(table)`, if given, runs after the players are built
         and before the game deals: where the web app loads the
-        characters' method memory (Phase 8.2, "characters remember")."""
+        characters' method memory (Phase 8.2, "characters remember").
+        `llm_backend(seat)`, if given, builds the backend of each ``llm``
+        seat's wrapper (`build_table`); without it those seats can only
+        replay stored answers."""
         self.setup = setup
-        self.table, self.external = build_table(setup)
+        self.table, self.external = build_table(setup, llm_backend)
         if prepare is not None:
             prepare(self.table)
+        self.speakers: dict = {
+            seat: Speaker(seat, self.table.wrappers.get(seat))
+            for seat, spec in enumerate(setup.seats)
+            if spec.kind == "llm"
+        }
+        self._seat_rngs: dict = {}
         self._steps = engine.game_steps(
             setup.n_players,
             self.table.players,
@@ -511,6 +574,7 @@ class TableGame:
             observer=self.table.observer,
             suspects=self.table.suspects,
             external=self.external,
+            speakers=self.speakers,
         )
         self._live = next(self._steps)
         self.pending: Optional[DecisionRequest] = None
@@ -589,7 +653,12 @@ class TableGame:
         """Play every remaining turn, or up to the next external request."""
         return self.run(self.setup.max_turns + 1)
 
-    def answer(self, seat: int, seq: int, data, by: str = "human") -> None:
+    @property
+    def wrappers(self) -> dict:
+        """Seat -> the LLM wrapper piloting it, for the seats that have one."""
+        return self.table.wrappers
+
+    def answer(self, seat: int, seq: int, data, by: str = "human", audit=None) -> None:
         """Send one decision in for the seat the game is stopped on.
 
         Parameters
@@ -603,7 +672,11 @@ class TableGame:
             As `encode_answer` shapes it.
         by : str
             Who answered, for the entry: ``"human"``, ``"autopilot"``,
-            or Phase 8.3's ``"llm"``.
+            or ``"llm"``.
+        audit : dict or None
+            An LLM seat's `Decision.to_dict()` for the entry (Phase 8.3a),
+            which becomes the record's `llm_log` and rebuilds the
+            wrapper's audit on a cold instance.
 
         Raises
         ------
@@ -625,18 +698,58 @@ class TableGame:
             engine.check_answer(request, value)
         except ValueError as exc:
             raise TableError(str(exc)) from exc
-        self.entries.append(
-            {
-                "kind": "answer",
-                "seat": seat,
-                "decision": request.kind,
-                "data": encode_answer(request.kind, value),
-                "at": len(self.events),
-                "by": by,
-            }
-        )
+        entry = {
+            "kind": "answer",
+            "seat": seat,
+            "decision": request.kind,
+            "data": encode_answer(request.kind, value),
+            "at": len(self.events),
+            "by": by,
+        }
+        if audit is not None:
+            entry["audit"] = audit
+        self.entries.append(entry)
         self.pending = None
-        self._resume(answer=value, ready=True, turns=1)
+        try:
+            self._resume(answer=value, ready=True, turns=1)
+        finally:
+            said = [[who, text] for who, speaker in sorted(self.speakers.items()) for text in speaker.drain_said()]
+            if said:
+                entry["said"] = said
+                self._publish()
+
+    def llm_answer(self) -> None:
+        """Let the pending seat's LLM wrapper decide (Phase 8.3a): one
+        `choose_*` call on the request's own observation, within the
+        character's leash and with the character as the fallback, stored
+        as an entry with its audit and the lines it said, so a rebuild
+        never asks the model again.
+
+        Raises
+        ------
+        TableError
+            When nothing is pending, or the pending seat has no wrapper
+            (a table built without a backend).
+        """
+        request = self.pending
+        if request is None:
+            raise TableError("nothing is waiting for an answer")
+        wrapper = self.table.wrappers.get(request.seat)
+        if wrapper is None:
+            raise TableError(f"seat {request.seat} has no model to answer for it")
+        rng = self._seat_rngs.get(request.seat)
+        if rng is None:
+            rng = self._seat_rngs[request.seat] = random.Random(fill_seed(self.setup.seed, request.seat))
+        if request.kind == "movement":
+            value = wrapper.choose_movement(request.obs, request.choices, rng)
+        elif request.kind == "suggestion":
+            value = wrapper.choose_suggestion(request.obs, request.room, rng)
+        elif request.kind == "accusation":
+            value = wrapper.choose_accusation(request.obs, rng)
+        else:
+            value = wrapper.choose_card_to_show(request.obs, request.candidates, request.shown_to, rng)
+        audit = wrapper.decisions[-1].to_dict() if wrapper.decisions else None
+        self.answer(request.seat, len(self.entries), encode_answer(request.kind, value), by="llm", audit=audit)
 
     def remark(self, seat: int, text: str, about: str = "chat") -> None:
         """Append a line of table talk from an external seat as a
@@ -646,7 +759,14 @@ class TableGame:
         self.entries.append(
             {"kind": about, "seat": seat, "text": text, "at": len(self.events)}
         )
-        self.events.append(RemarkEvent(self.state.turn, seat, text, about))
+        remark = RemarkEvent(self.state.turn, seat, text, about)
+        self.events.append(remark)
+        for who, speaker in self.speakers.items():
+            if who != seat:
+                speaker.hear(remark)
+        for who, player in self.table.players.items():
+            if who != seat and isinstance(player, engine.SpeakingPlayer):
+                player.hear(remark)
         self._publish()
 
     def stand_in_answer(self) -> dict:
@@ -734,7 +854,7 @@ class TableGame:
     # -- rebuilding --------------------------------------------------------
 
     @classmethod
-    def rebuild(cls, setup: TableSetup, entries: list, turns: int, prepare=None) -> "TableGame":
+    def rebuild(cls, setup: TableSetup, entries: list, turns: int, prepare=None, llm_backend=None) -> "TableGame":
         """A game brought back to where it was from its setup, its entry
         log and its turn count: every answer is sent in at the request it
         answered, every remark put back at the event it followed, and the
@@ -747,9 +867,16 @@ class TableGame:
             comes, or comes for another seat or decision, which means the
             stored document and the code disagree.
         """
-        game = cls(setup, prepare)
+        game = cls(setup, prepare, llm_backend)
         for index, entry in enumerate(entries):
             if entry.get("kind") == "answer":
+                for who, text in entry.get("said") or []:
+                    game.speakers[int(who)].queue.append(str(text))
+                wrapper = game.table.wrappers.get(int(entry["seat"]))
+                if wrapper is not None and entry.get("audit"):
+                    from clude_llm import Decision  # noqa: PLC0415
+
+                    wrapper.decisions.append(Decision(**entry["audit"]))
                 while game.pending is None and not game.finished:
                     game._resume(turns=1)
                 request = game.pending
@@ -759,7 +886,10 @@ class TableGame:
                     raise TableError(
                         f"entry {index} answers {expected[1]} for seat {expected[0]}, but the game reached {got}"
                     )
-                game.answer(request.seat, len(game.entries), entry["data"], by=str(entry.get("by", "human")))
+                game.answer(
+                    request.seat, len(game.entries), entry["data"],
+                    by=str(entry.get("by", "human")), audit=entry.get("audit"),
+                )
             else:
                 target = int(entry["at"])
                 while len(game.events) < target and game.pending is None and not game.finished:

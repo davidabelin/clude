@@ -197,7 +197,8 @@ class SeatRecord:
         Roster label: a character name or a bot kind (``"floor"``).
     kind : str
         ``"character"``, ``"llm"`` (an LLM piloting a character, Phase 6),
-        ``"floor"`` or ``"random"``.
+        ``"floor"``, ``"random"`` or ``"human"`` (a person, labelled by
+        their account key, Phase 8.2).
     profile : dict or None
         The character's `Profile.to_dict()` at play time; None for bots.
     model : str or None

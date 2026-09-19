@@ -31,10 +31,7 @@ from clude_core import engine
 from clude_training.arena import parse_roster
 from clude_training.table import MAX_TURNS, TableSetup
 
-from .tables import TableRegistry, WebGame
-
-WEB_RUN = "web"
-"""The run every game played through the web app is saved under."""
+from .tables import WEB_RUN, TableRegistry, WebGame
 
 
 @dataclass(frozen=True)
@@ -106,10 +103,10 @@ class WatchGame(WebGame):
     every seat played by its own object, so the generator only ever
     pauses at the end of a turn and `advance` plays the next one."""
 
-    def __init__(self, setup, prepare=None) -> None:
+    def __init__(self, setup, prepare=None, llm_backend=None) -> None:
         if isinstance(setup, WatchSetup):
             setup = setup.to_table_setup()
-        super().__init__(setup, prepare)
+        super().__init__(setup, prepare, llm_backend)
 
 
 WatchRegistry = TableRegistry

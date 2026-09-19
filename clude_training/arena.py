@@ -561,6 +561,10 @@ class Table:
         person's name, so the kind can no longer be read off the label.
         Empty for a table built before Phase 8.2, which `seat_kind`
         still covers.
+    wrappers : dict[int, LLMCharacter]
+        Seat -> the LLM wrapper piloting an ``llm`` seat from outside the
+        engine (Phase 8.3a); such a seat is external and absent from
+        `players`. Empty when the table was built without a backend.
     """
 
     players: dict
@@ -568,6 +572,7 @@ class Table:
     suspects: list
     observer: object
     kinds: list = field(default_factory=list)
+    wrappers: dict = field(default_factory=dict)
 
 
 def headless_table(roster, n_players: int, seed: int) -> Table:

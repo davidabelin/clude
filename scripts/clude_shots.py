@@ -92,7 +92,14 @@ def seed_store(target: Path, source_uri: str, run: str, games: int) -> tuple:
 
 def serve(store_uri: str):
     """Run the app on a spare port in a background thread."""
-    app = create_app({"STORE_URI": store_uri, "SECRET_KEY": "screenshots-only"})
+    from clude_llm import NullBackend  # noqa: PLC0415
+
+    # A stand-in key so the lobby shows its model seats; the backend
+    # never answers, so nothing here can spend even if a table were dealt.
+    app = create_app({
+        "STORE_URI": store_uri, "SECRET_KEY": "screenshots-only",
+        "LLM_KEY": "screenshots-only", "LLM_BACKEND": lambda model, key: NullBackend(),
+    })
     port = free_port()
     server = make_server("127.0.0.1", port, app, handler_class=_Quiet)
     thread = threading.Thread(target=server.serve_forever, daemon=True)

@@ -287,6 +287,18 @@ Remarks are public and have no game effect; they exist so replay and
 Phase 8's live view get dialogue interleaved with the actions it
 accompanied, in one ordered log.
 
+Phase 8.3a added the `speakers` mapping to `game_steps`: a speaking
+object for an *external* seat, consulted at every drain in place of the
+missing player object, so an LLM seat answered from outside the engine
+has its lines land exactly where a wrapped player's would and the other
+speakers hear them. The mapping is read at each drain, not copied, so
+the driver may swap in a replay speaker while the generator is paused
+(`clude_training.table.Speaker`). Table talk typed by a person
+(`about="chat"`) and a model seat's off-turn line (`about="reaction"`)
+are appended by the driver, never by the engine, and the engine never
+reads a remark of any kind: the formal refutation stays checked against
+the hands (`tests/test_chat.py`, "chat never reaches the engine").
+
 ## `AgentProtocol`
 
 Same shape as `rps_agents/base.py`. `select_action` returns numbers only,

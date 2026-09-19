@@ -44,6 +44,28 @@ dials. An `LLMCharacter` wraps that character and, for each question:
    the line, tokens, seconds. Records keep these per seat
    (`GameRecord.llm_log`), and the arena turns them into columns.
 
+**Off-turn talk** (Phase 8.3b) is a fifth request kind, `remark`:
+`LLMCharacter.react(obs, trigger, names)` shows the seat's view, the
+recent table talk and what just happened (a line someone typed, a
+suggestion resolving, an accusation) and asks for one short line or an
+empty string, against `REMARK_SCHEMA` (`say` alone) with 200 tokens of
+room. It is audited as a `Decision` of kind `remark`, counts toward the
+game's budget, and falls silent on any failure. Whether to ask is the
+caller's draw on `chattiness`, made by the web table's reaction queue
+(`clude_web.chat`), so the wrapper's RNG moves only where the caller
+says and the on-turn gate is untouched. No persona or rules text
+changed for it, so both recorded fixtures still replay.
+
+**On the web** (Phase 8.3a) a model seat is an external seat: the web
+driver calls `choose_*` on the request's own observation and stores the
+answer with its audit and lines, so a cold instance replays the game
+without a call; the engine's `speakers` hook lands the lines where a
+player object's would. Every backend there is a
+`clude_llm.metered.MeteredBackend`: it prices each call with
+`estimate_cost`, keeps a daily ledger in the store (`spend/<date>.json`),
+and refuses -- as an error result the fallback absorbs -- an unpriced
+model, a table past its budget or a day past its cap.
+
 ## What the model is shown, and what it is not
 
 The user prompt is rendered from the seat's `ClueObservation` only,

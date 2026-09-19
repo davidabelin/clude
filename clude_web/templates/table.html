@@ -59,6 +59,7 @@
     <section class="replay-board">
       {{ board|safe }}
       <p class="status" id="status" aria-live="polite"></p>
+      {% if payload and payload.llm %}<p class="note spend" id="spend"></p>{% endif %}
     </section>
 
     <section class="watch-side">
@@ -78,6 +79,12 @@
       <div class="panel log-panel">
         <h2>The game so far</h2>
         <ol class="log" id="log"></ol>
+        {% if viewer is not none %}
+        <form id="say-form" class="say" autocomplete="off">
+          <input id="say-text" name="text" maxlength="240" placeholder="Say something at the table" aria-label="Say something at the table">
+          <button type="submit" class="quiet">Say</button>
+        </form>
+        {% endif %}
       </div>
 
       <div class="seats-compact" id="seats"></div>

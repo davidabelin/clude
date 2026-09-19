@@ -27,7 +27,16 @@ their own view and, when the game is stopped on them, the decision as
 data in the shape `decode_answer` takes back. Watch's compact readings
 of every seat are shown to everyone (David, 2026-09-18).
 
-Nothing here spends money: an LLM seat on the web is Phase 8.3.
+**The model at the table (Phase 8.3a).** An ``llm`` seat is the token's
+own character piloted by the model from outside the engine: `work`
+answers its pending decision through `TableGame.llm_answer`, one call
+per request so the screen reads "Plum is thinking" rather than freezing,
+and the answer is stored with its audit and the lines it said, so a
+rebuild never asks the model again. Every backend is a `MeteredBackend`
+over the table's budget and the service's daily cap (`LLMConfig`), and
+past either the wrapper's fallback plays the headless character. Without
+a key (`LLMConfig` None) the lobby offers no model seats and nothing
+here can spend.
 """
 from __future__ import annotations
 
@@ -43,6 +52,8 @@ from clude_agents.bandit import RevealedOutcome
 from clude_core import engine
 from clude_core.domain import ALL_CARDS, ROOMS, SUSPECTS, WEAPONS
 from clude_core.events import GameOverEvent, SuggestionEvent
+from clude_llm.backend import DEFAULT_MODEL
+from clude_llm.metered import Ledger, MeteredBackend
 from clude_storage import GameRecord, Logbook, SeatRecord
 from clude_training import memory as method_memory
 from clude_training.table import (
@@ -53,7 +64,67 @@ from clude_training.table import (
     TableSetup,
 )
 
-from . import board_svg, replay_data
+from . import board_svg, chat, replay_data
+
+from dataclasses import dataclass
+
+MAX_LINE = 240
+"""Characters a person may type in one line of chat (Phase 8.3b): it
+lives in records for ever and in every later prompt."""
+
+
+def clean_line(text) -> str:
+    """A person's line fit to keep: control characters out, whitespace
+    collapsed, at most `MAX_LINE` characters.
+
+    Raises
+    ------
+    TableError
+        Empty once cleaned, or too long.
+    """
+    text = "" if text is None else str(text)
+    kept = "".join(ch if ch.isprintable() else " " for ch in text)
+    line = " ".join(kept.split())
+    if not line:
+        raise TableError("Say something, or nothing.")
+    if len(line) > MAX_LINE:
+        raise TableError(f"A line is at most {MAX_LINE} characters; that one is {len(line)}.")
+    return line
+
+
+def anthropic_backend(model: str, key: str):
+    """The real backend, built only when a table with model seats is
+    dealt or rebuilt, never at app start (the SDK is imported here)."""
+    from clude_llm.anthropic_backend import AnthropicBackend  # noqa: PLC0415
+
+    return AnthropicBackend(model, api_key=key)
+
+
+@dataclass(frozen=True)
+class LLMConfig:
+    """How the service reaches the model (Phase 8.3a).
+
+    Parameters
+    ----------
+    key : str
+        The workspace-scoped API key.
+    model : str
+        The model id every table uses; must be priced (`estimate_cost`).
+    budget : float
+        Dollars a table may spend by default; the lobby form may lower
+        or raise it.
+    daily_cap : float
+        Dollars the whole service may spend in one UTC day.
+    make_backend : Callable[[str, str], LLMBackend]
+        ``(model, key)`` to the backend one seat calls through; the real
+        one by default, a scripted one in tests.
+    """
+
+    key: str
+    model: str = DEFAULT_MODEL
+    budget: float = 2.0
+    daily_cap: float = 10.0
+    make_backend: object = anthropic_backend
 
 TABLES_PREFIX = "tables"
 """Store folder holding one document per table."""
@@ -93,10 +164,11 @@ def table_key(table_id: str) -> str:
 # --- the form -------------------------------------------------------------
 
 
-def parse_table_form(form, me: str) -> TableSetup:
+def parse_table_form(form, me: str, llm: Optional[LLMConfig] = None) -> TableSetup:
     """A `TableSetup` from the lobby's table form: one select per token
-    named ``seat-<Token>`` reading *empty*, *me*, *character*, *floor* or
-    *open*, an optional seed, and *remember*.
+    named ``seat-<Token>`` reading *empty*, *me*, *character*, *llm* (the
+    character on the model; only with `llm`), *floor* or *open*, an
+    optional seed, and *remember*.
 
     Parameters
     ----------
@@ -105,6 +177,8 @@ def parse_table_form(form, me: str) -> TableSetup:
     me : str
         The account key of the person submitting it: the label of the
         seat they take.
+    llm : LLMConfig or None
+        Whether model seats may be asked for.
 
     Raises
     ------
@@ -122,6 +196,10 @@ def parse_table_form(form, me: str) -> TableSetup:
             mine += 1
         elif value == "character":
             seats.append(SeatSpec(token, "character", token))
+        elif value == "llm":
+            if llm is None:
+                raise ValueError("Model seats are not available here: the service has no key.")
+            seats.append(SeatSpec(token, "llm", token))
         elif value == "floor":
             seats.append(SeatSpec(token, "floor"))
         elif value == "open":
@@ -152,6 +230,29 @@ def parse_table_form(form, me: str) -> TableSetup:
         raise ValueError(str(exc)) from None
 
 
+def parse_budget(form, llm: Optional[LLMConfig]) -> Optional[float]:
+    """The table's model budget from the form's ``budget`` field, in
+    dollars: the config's default when blank; None without a config.
+
+    Raises
+    ------
+    ValueError
+        With a message fit to show on the form.
+    """
+    if llm is None:
+        return None
+    raw = (form.get("budget") or "").strip().lstrip("$")
+    if not raw:
+        return float(llm.budget)
+    try:
+        budget = float(raw)
+    except ValueError:
+        raise ValueError("The budget must be a number of dollars, or left blank.") from None
+    if budget < 0:
+        raise ValueError("The budget cannot be negative.")
+    return round(budget, 2)
+
+
 # --- the game with what the screens ask of it ----------------------------
 
 
@@ -160,8 +261,10 @@ class WebGame(TableGame):
     compact bar per seat, this turn's lines and the last suggestion.
     `advance` is Watch's name for `run`."""
 
-    def __init__(self, setup: TableSetup, prepare=None) -> None:
-        super().__init__(setup, prepare)
+    def __init__(self, setup: TableSetup, prepare=None, llm_backend=None) -> None:
+        super().__init__(setup, prepare, llm_backend)
+        self.table_id: str = ""
+        self.reactions = chat.Reactions(self, lambda: seat_names(self))
         self._readings_at = -1
         self._readings: list = []
 
@@ -369,12 +472,16 @@ def view_payload(
                 ]
             if request.get("shown_to") is not None:
                 pending["shown_to_name"] = names[request["shown_to"]]
+        wrapper = game.wrappers.get(who)
         waiting = {
             "seat": who,
             "name": names[who],
             "kind": request["kind"],
             "seconds": round(waiting_for, 1),
             "autopilot": bool(autopilot.get(str(who))),
+            "model": game.kinds[who] == "llm",
+            "no_model": game.kinds[who] == "llm" and wrapper is None,
+            "refused": getattr(getattr(wrapper, "backend", None), "last_refusal", None),
         }
 
     me = None
@@ -398,8 +505,37 @@ def view_payload(
             "replay": replay_url,
         }
 
+    debriefs = None
+    if document.get("debriefs"):
+        debriefs = {
+            "pending": [names[seat] for seat in pending_debriefs(document)],
+            "done": [
+                names[int(seat)] for seat, state in document["debriefs"].items()
+                if (state or {}).get("status") == "done"
+            ],
+            "failed": [
+                names[int(seat)] for seat, state in document["debriefs"].items()
+                if (state or {}).get("status") == "failed"
+            ],
+        }
+    wrapping_up = bool(debriefs and debriefs["pending"] and game.wrappers)
+
+    llm = document.get("llm")
+    if llm:
+        backends = [getattr(w, "backend", None) for w in game.wrappers.values()]
+        llm = dict(
+            llm,
+            spent=round(max([getattr(b, "known_spent", 0.0) for b in backends] + [float(llm.get("spent", 0.0))]), 4),
+            refused={
+                str(seat): getattr(getattr(w, "backend", None), "last_refusal", None)
+                for seat, w in game.wrappers.items()
+                if getattr(getattr(w, "backend", None), "last_refusal", None)
+            },
+        )
+
     return {
         "id": document.get("id"),
+        "llm": llm,
         "status": "finished" if snap.finished else "playing",
         "turns": snap.turns,
         "finished": snap.finished,
@@ -411,7 +547,21 @@ def view_payload(
         "events": events,
         "pending": pending,
         "waiting": waiting,
-        "work": (not snap.finished) and snap.pending is None and not snap.broken,
+        "work": (
+            wrapping_up
+            or (
+                (not snap.finished)
+                and not snap.broken
+                and (
+                    snap.pending is None
+                    or bool(waiting and waiting["model"] and not waiting["no_model"])
+                    or game.reactions.pending
+                )
+            )
+        ),
+        "chatter": game.reactions.pending,
+        "debriefs": debriefs,
+        "wrapping_up": wrapping_up,
         "offer_autopilot": (
             waiting is not None and not waiting["autopilot"] and waiting_for >= AUTOPILOT_AFTER
         ),
@@ -440,13 +590,31 @@ class TableRegistry:
     document by replaying its entries (`WebGame.rebuild`), single-flight.
     """
 
-    def __init__(self, store) -> None:
+    def __init__(self, store, llm: Optional[LLMConfig] = None) -> None:
         self.store = store
+        self.llm = llm
+        self.ledger = Ledger(store) if llm is not None else None
         self._games: dict = {}
         self._lock = threading.Lock()
         self._building: dict = {}
         self._last_work: dict = {}
         self._pending_since: dict = {}
+
+    def _backend_factory(self, document: dict):
+        """``seat -> MeteredBackend`` for a table with model seats, or None
+        when this service has no key (its stored answers still replay)."""
+        llm = self.llm
+        if llm is None or not document.get("llm"):
+            return None
+        budget = float(document["llm"].get("budget", llm.budget))
+        table_id = document["id"]
+
+        def factory(seat: int):
+            return MeteredBackend(
+                llm.make_backend(llm.model, llm.key), self.ledger, table_id, budget, llm.daily_cap, llm.model
+            )
+
+        return factory
 
     # -- documents -----------------------------------------------------
 
@@ -462,13 +630,24 @@ class TableRegistry:
         self.store.put_doc(table_key(document["id"]), document)
         return document
 
-    def create(self, setup, started_by: Optional[str]) -> str:
+    def create(self, setup, started_by: Optional[str], budget: Optional[float] = None) -> str:
         """A new table. Deals at once when no seat is open; otherwise the
         table waits in the lobby for people to sit (`sit`, `deal`).
-        `setup` may be a Watch setup (anything with `to_table_setup`)."""
+        `setup` may be a Watch setup (anything with `to_table_setup`).
+        `budget` is the table's model spend in dollars, for a table with
+        ``llm`` seats.
+
+        Raises
+        ------
+        ValueError
+            Model seats asked for on a service with no key.
+        """
         if hasattr(setup, "to_table_setup"):
             setup = setup.to_table_setup()
         table_id = secrets.token_hex(5)
+        model_seats = [seat for seat, kind in enumerate(setup.kinds) if kind == "llm"]
+        if model_seats and self.llm is None:
+            raise ValueError("Model seats are not available here: the service has no key.")
         document = {
             "version": DOCUMENT_VERSION,
             "id": table_id,
@@ -483,6 +662,11 @@ class TableRegistry:
             "finished": False,
             "record": None,
             "memory": None,
+            "llm": (
+                {"model": self.llm.model, "budget": float(self.llm.budget if budget is None else budget), "spent": 0.0}
+                if model_seats
+                else None
+            ),
         }
         if not setup.open_seats:
             self._deal(document, setup)
@@ -495,7 +679,8 @@ class TableRegistry:
         document["setup"] = setup.to_dict()
         document["memory"] = self._snapshot(setup) if setup.remember else None
         document["status"] = "playing"
-        game = WebGame(setup, self._prepare(setup, document["memory"]))
+        game = WebGame(setup, self._prepare(setup, document["memory"]), self._backend_factory(document))
+        game.table_id = document["id"]
         with self._lock:
             self._games[document["id"]] = game
         self._pending_since[document["id"]] = time.monotonic()
@@ -506,20 +691,33 @@ class TableRegistry:
     def _snapshot(self, setup: TableSetup) -> dict:
         out = {}
         for spec in setup.seats:
-            if spec.kind == "character":
+            if spec.kind in ("character", "llm"):
                 snap = method_memory.snapshot(Logbook(self.store, spec.label), spec.label)
                 if snap is not None:
                     out[spec.label] = snap
         return out
 
     def _prepare(self, setup: TableSetup, snapshot: Optional[dict]):
-        if not setup.remember or not snapshot:
+        """What runs after the players are built and before the deal, with
+        "characters remember" on: each character's method memory from the
+        snapshot, and for a model seat (Phase 8.3c) its logbook attached,
+        so it reads its notes back at the `memory` dial's depth and can
+        write an entry at the end."""
+        if not setup.remember:
             return None
+        snapshot = snapshot or {}
 
         def prepare(table) -> None:
             for seat, label in enumerate(table.labels):
-                if table.kinds[seat] == "character" and label in snapshot:
+                kind = table.kinds[seat]
+                if kind == "character" and label in snapshot:
                     method_memory.load_snapshot(table.players[seat], Logbook(self.store, label), snapshot[label])
+                elif kind == "llm" and seat in table.wrappers:
+                    wrapper = table.wrappers[seat]
+                    logbook = Logbook(self.store, label)
+                    if label in snapshot:
+                        method_memory.load_snapshot(wrapper.character, logbook, snapshot[label])
+                    wrapper.attach_logbook(logbook)
 
         return prepare
 
@@ -534,9 +732,14 @@ class TableRegistry:
         lock, so two finishes cannot interleave.
         """
         for seat, label in enumerate(game.labels):
-            if game.kinds[seat] != "character" or method_memory.kind_for(label) is None:
+            if game.kinds[seat] not in ("character", "llm") or method_memory.kind_for(label) is None:
                 continue
-            character = game.table.players[seat]
+            if game.kinds[seat] == "llm":
+                if seat not in game.wrappers:
+                    continue
+                character = game.wrappers[seat].character
+            else:
+                character = game.table.players[seat]
             logbook = Logbook(self.store, label)
             if method_memory.kind_for(label) == "state":
                 method_memory.load_into(character, logbook)
@@ -570,7 +773,9 @@ class TableRegistry:
                 list(document.get("entries", [])),
                 int(document.get("turns", 0)),
                 self._prepare(setup, document.get("memory")),
+                self._backend_factory(document),
             )
+            game.table_id = table_id
             with self._lock:
                 self._games.setdefault(table_id, game)
                 game = self._games[table_id]
@@ -605,6 +810,9 @@ class TableRegistry:
         )
         if record_ref is not None:
             document["record"] = record_ref
+        if document.get("llm") and game.wrappers:
+            spent = max(getattr(w.backend, "known_spent", 0.0) for w in game.wrappers.values())
+            document["llm"]["spent"] = round(max(spent, float(document["llm"].get("spent", 0.0))), 4)
         return self._put(document)
 
     def waiting_for(self, table_id: str, game: TableGame) -> float:
@@ -625,14 +833,31 @@ class TableRegistry:
         those answers too, so a seat handed to the stand-in never shows
         the person a decision. Never waits for the lock. Returns what
         happened: ``"busy"``, ``"waiting"``, ``"turn"``, ``"autopilot"``,
-        ``"finished"`` or ``"nothing"``."""
+        ``"model"`` (one decision by a model seat, Phase 8.3a),
+        ``"reaction"`` (one off-turn line, 8.3b), ``"debrief"`` (one
+        logbook entry after the game, 8.3c), ``"finished"`` or
+        ``"nothing"``. A queued reaction is served before anything else,
+        and while one waits to be due no bot or model plays, so the
+        chatter lands before the next move; a person's own answer is
+        never held."""
         if not game.lock.acquire(blocking=False):
             return "busy"
         try:
             if game.finished or game.broken:
+                if game.finished and self.debrief_one(table_id, game) is not None:
+                    return "debrief"
                 return "finished" if game.finished else "nothing"
             document = self.document(table_id) or {}
             autopilot = document.get("autopilot") or {}
+            game.reactions.scan()
+            reaction = game.reactions.due()
+            if reaction is not None:
+                said = game.reactions.serve(reaction)
+                if said:
+                    self.save(table_id, game)
+                return "reaction"
+            if game.reactions.pending:
+                return "waiting"
 
             def stand_in_plays() -> bool:
                 played = False
@@ -645,9 +870,25 @@ class TableRegistry:
                     played = True
                 return played
 
+            def model_plays() -> bool:
+                if game.pending is None or game.kinds[game.pending.seat] != "llm":
+                    return False
+                if game.pending.seat not in game.wrappers:
+                    return False
+                game.llm_answer()
+                return True
+
             did = "nothing"
             if game.pending is not None:
-                did = "autopilot" if stand_in_plays() else "waiting"
+                if stand_in_plays():
+                    did = "autopilot"
+                    if model_plays():
+                        did = "model"
+                elif model_plays():
+                    did = "model"
+                    stand_in_plays()
+                else:
+                    did = "waiting"
             else:
                 now = time.monotonic()
                 if now - self._last_work.get(table_id, 0.0) < WORK_INTERVAL:
@@ -657,7 +898,8 @@ class TableRegistry:
                     self._last_work[table_id] = now
                     did = "turn"
                     stand_in_plays()
-            if did in ("turn", "autopilot"):
+            if did in ("turn", "autopilot", "model"):
+                game.reactions.scan()
                 self._moved(table_id)
                 self.save(table_id, game)
                 if game.finished:
@@ -665,6 +907,26 @@ class TableRegistry:
             return did
         finally:
             game.lock.release()
+
+    def say(self, table_id: str, game: WebGame, seat: int, text) -> str:
+        """A seated person's line (Phase 8.3b): cleaned, said at the table
+        as a ``chat`` remark every speaker hears, stored as an entry, and
+        an opportunity for the model seats to answer. Never read by the
+        engine: the formal refutation stays checked against the hands.
+
+        Raises
+        ------
+        TableError
+            An empty or over-long line, or a finished table.
+        """
+        line = clean_line(text)
+        with game.lock:
+            if game.finished:
+                raise TableError("The game is over.")
+            game.remark(seat, line, "chat")
+            game.reactions.scan()
+            self.save(table_id, game)
+        return line
 
     def answer(self, table_id: str, game: WebGame, seat: int, seq: int, data) -> None:
         """One seat's decision, sent in under the lock; a `TableError`
@@ -747,13 +1009,54 @@ class TableRegistry:
     # -- listing ---------------------------------------------------------
 
     def in_progress(self) -> list:
-        """Every unfinished table's document, newest first."""
+        """Every unfinished table's document, newest first, and every
+        finished one still wrapping up (a debrief pending, Phase 8.3c)."""
         documents = []
         for key in self.store.list_docs(TABLES_PREFIX):
             document = self.document(key)
-            if document is not None and document.get("status") != "finished":
+            if document is None:
+                continue
+            if document.get("status") != "finished" or pending_debriefs(document):
                 documents.append(document)
         return sorted(documents, key=lambda d: d.get("created", ""), reverse=True)
+
+    # -- debriefs (Phase 8.3c) ------------------------------------------------
+
+    def _set_debriefs(self, table_id: str, seats: list) -> None:
+        document = self.document(table_id)
+        if document is None or not seats:
+            return
+        document["debriefs"] = {str(seat): {"status": "pending"} for seat in seats}
+        self._put(document)
+
+    def debrief_one(self, table_id: str, game: WebGame) -> Optional[int]:
+        """Write one pending debrief: the seat's wrapper reads the finished
+        record face up and adds a logbook entry with its dossiers on
+        everyone present, people by their account key (42 s and about
+        $0.09 on the model). Returns the seat served, or None when nothing
+        was pending. Marks the document ``done`` with the serial, or
+        ``failed`` with the reason."""
+        document = self.document(table_id) or {}
+        pending = pending_debriefs(document)
+        if not pending or not document.get("record"):
+            return None
+        seat = pending[0]
+        wrapper = game.wrappers.get(seat)
+        entry_state: dict
+        if wrapper is None:
+            entry_state = {"status": "failed", "reason": "no model on this server"}
+        else:
+            ref = document["record"]
+            record = GameRecord.from_dict(self.store.get_game(ref["run_id"], ref["index"]))
+            entry = wrapper.debrief(record, seat)
+            if entry is not None:
+                entry_state = {"status": "done", "serial": entry.serial}
+            else:
+                entry_state = {"status": "failed", "reason": str(wrapper.last_debrief.get("fallback"))}
+        document = self.document(table_id) or document
+        document.setdefault("debriefs", {})[str(seat)] = entry_state
+        self._put(document)
+        return seat
 
     # -- the end -----------------------------------------------------------
 
@@ -763,10 +1066,13 @@ class TableRegistry:
         the identity every logbook keys on."""
         if not game.finished:
             raise ValueError("a game in progress has no record yet")
+        document = self.document(getattr(game, "table_id", "")) or {}
+        model = (document.get("llm") or {}).get("model") or (self.llm.model if self.llm else None)
         seats = []
+        llm_log: dict = {}
         for seat, label in enumerate(game.labels):
             kind = game.kinds[seat]
-            player = game.table.players.get(seat)
+            player = game.table.players.get(seat) or game.wrappers.get(seat)
             profile = getattr(player, "profile", None)
             seats.append(
                 SeatRecord(
@@ -775,8 +1081,14 @@ class TableRegistry:
                     label=label,
                     kind=kind,
                     profile=profile.to_dict() if profile is not None else None,
+                    model=model if kind == "llm" else None,
                 )
             )
+            if kind == "llm":
+                llm_log[seat] = [
+                    entry["audit"] for entry in game.entries
+                    if entry.get("kind") == "answer" and entry.get("seat") == seat and entry.get("audit")
+                ]
         return GameRecord.from_game(
             run_id=run_id,
             game_index=game_index,
@@ -784,6 +1096,7 @@ class TableRegistry:
             state=game.state,
             events=game.events,
             seats=seats,
+            llm_log=llm_log or None,
         )
 
     def finish(self, table_id: str, game: WebGame) -> dict:
@@ -805,7 +1118,18 @@ class TableRegistry:
                 self._remember(game, record)
         ref = {"run_id": WEB_RUN, "index": index}
         self.save(table_id, game, record_ref=ref)
+        if game.setup.remember:
+            self._set_debriefs(
+                table_id,
+                [seat for seat, kind in enumerate(game.kinds) if kind == "llm" and seat in game.wrappers],
+            )
         return ref
+
+
+def pending_debriefs(document: dict) -> list:
+    """The seats whose debrief is still to be written, in seat order."""
+    debriefs = document.get("debriefs") or {}
+    return sorted(int(seat) for seat, state in debriefs.items() if (state or {}).get("status") == "pending")
 
 
 def add_to_web_run(store, record: GameRecord, max_turns: int) -> None:

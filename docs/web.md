@@ -126,6 +126,7 @@ Alongside it:
 | `clude_web/board_svg.py` | The Classic grid as SVG, generated from `clude_core.board`. |
 | `clude_web/replay_data.py` | Per-event lines and board frames, and the cached per-game belief trace. |
 | `clude_web/tables.py` | Tables people play at (Phase 8.2): the registry that stores, drives and rebuilds every game, the form, and the view of a game from one seat. |
+| `clude_web/chat.py` | Off-turn talk (Phase 8.3b): the reaction queue, the participation draw, the pacing and the caps. |
 | `clude_web/watch.py` | Watch as a table with nobody human at it: the all-bot form and the names the Watch screen speaks. |
 | `clude_web/views.py` | The lobby, a run's games, the replay, Watch, and the table routes (page, poll, work, answer, sit, deal, autopilot). |
 | `clude_web/templates/` | Jinja templates; `base.html` is the shell, `table.html` the table. |
@@ -270,7 +271,8 @@ so two polls arriving together do not both replay it.
 **Characters remember.** Off by default. With it on, the deal loads each
 character's method memory from the store's `logbooks/` as `play
 --logbook` does (Mustard's rows, White's per-opponent counts, Green's
-posteriors), and the finish folds the game back in -- White's counts
+posteriors), a model seat's logbook is attached for read-back and a
+debrief (below), and the finish folds the game back in -- White's counts
 under the person's account key, so a human's suggestion habits follow
 them across whichever token they play. The document snapshots what was
 loaded (Green's arms; the game ids Mustard's and White's documents held)
@@ -281,9 +283,46 @@ tables finishing in either order lose nothing. The cost is Mustard's
 tree retraining at the deal, about 30 s with his 116k-row memory; the
 form says so.
 
+**A character on the model** (Phase 8.3a, `docs/phase8-plan.md` 4.1 and
+12). With a key on the service the seat form offers "Plum, on the model"
+beside "Plum, the character": the same character, its moves chosen by
+Claude within its leash, its table talk in its voice. A model seat is
+answered from outside the engine like a person's, one decision per
+`work` call (two to three seconds each, the status line reading "Plum is
+thinking"), and every answer is stored with the model's audit and the
+lines it said, so a rebuilt table replays them without a call and the
+record carries `llm_log` and `kind="llm"`. The form's **budget** is what
+the table may spend (default `CLUDE_WEB_LLM_BUDGET`, $2); the service
+has a daily cap besides (`CLUDE_WEB_LLM_DAILY_CAP`, $10); the spend is
+metered per call into `spend/<date>.json` and shown under the status
+line, and past either cap the character plays on by itself and the
+line says so. Without a key the option is not offered and nothing
+reachable from the URL can spend.
+
+**Table talk** (8.3b). A seated person types a line under the log
+(`POST /tables/<id>/say`, at most 240 characters, control characters
+stripped); everyone reads it, every model seat hears it, and the engine
+never does: "I don't have it" changes nothing about a forced show.
+Model seats answer off-turn: a line, a suggestion resolving, an
+accusation or another seat's remark opens the floor, each model seat
+joins with probability `chattiness` (squared for a reply to a reply, so
+a thread tails off), at most two are queued, each a few seconds out,
+and `work` serves one at a time -- holding the next bot move until the
+chatter has landed, so the table reads at a human pace. Two off-turn
+lines a turn, forty a game, and the dollar budget bound the rest.
+
 **The end.** The game is saved as an ordinary record in the `web` run,
 human seats recorded with `kind="human"` under the account key, and the
-page offers the replay, where everything is laid face up.
+page offers the replay, where everything is laid face up. With
+"characters remember" on and a model seat at the table (8.3c), the
+table first **wraps up**: each such seat writes its logbook entry
+(`docs/logbooks.md`; 42 s and about $0.09 on the model, one per `work`
+call, the status line naming who is writing), with its dossier on every
+opponent present, people by account key; the lobby lists the table as
+wrapping up until then, and whoever has it open drives it. Before the
+deal such a seat read its logbook back at its `memory` dial's depth, so
+a character that has met you before comes to the table with its read on
+you.
 
 The same driver plays from the terminal: `clude_cli.py play --human
 Scarlett` (`docs/cli.md`).
@@ -424,13 +463,16 @@ $P = '--project=clude-game'
 | Service `clude` | The `Dockerfile`'s image: gunicorn, one worker, 8 threads, 300 s timeout; 1 vCPU, 1 GiB; 0 to 1 instances, so idle time is free and the in-memory Watch games and login rate limit are simply correct. |
 | `clude-run@clude-game` | The identity the service runs as. It holds **Storage Object Admin on `gs://clude-game-data`** and **Secret Accessor on `clude-flask-secret`**, and nothing else, so the most the internet-facing login page can ever expose is the game store. `clude-sa`, which is project owner, stays on Orbit. |
 | `clude-flask-secret` | The session secret, in Secret Manager, generated for the service and never the same as the local `.env` one. Handed to the app as `FLASK_SECRET_KEY`. |
-| `gs://clude-game-data/llm` | The service's store: a mirror of `data/llm`'s grid-era runs, cached traces and logbooks, plus the service's own accounts (`users/`), watched games (`watch/`), games played there (`runs/web`) and the traces it computes. |
+| `clude-anthropic-key` | The workspace-scoped Anthropic key, in Secret Manager since Phase 8.3a, handed to the app as `ANTHROPIC_API_KEY`; `clude-run` holds Secret Accessor on it. With it the lobby offers "on the model" seats; the spend is capped per table (`CLUDE_WEB_LLM_BUDGET`, $2 by default, the form may change it) and per UTC day (`CLUDE_WEB_LLM_DAILY_CAP`, $10), and the ledger is `spend/<date>.json` in the store. |
+| `gs://clude-game-data/llm` | The service's store: a mirror of `data/llm`'s grid-era runs, cached traces and logbooks, plus the service's own accounts (`users/`), every table played or watched there (`tables/`), the games they became (`runs/web`) and the traces it computes. |
 | `cloud-run-source-deploy` | The Artifact Registry repository the builds go to, with a cleanup policy that keeps the 3 newest images. |
 
-The service has no Anthropic key, so nothing reachable from its URL can
-spend API money. It is reachable without Cloud Run authentication on
-purpose: the app login is the gate, and anyone can load the login page
-and nothing else.
+What the URL can spend is bounded by the two caps: a table with model
+seats stops calling the model at its budget and the whole service at
+its daily cap, and past either the characters play on by themselves
+(`docs/phase8-plan.md` 4.1, "The model on the web"). The service is
+reachable without Cloud Run authentication on purpose: the app login is
+the gate, and anyone can load the login page and nothing else.
 
 ### Deploying a new version
 
@@ -439,9 +481,22 @@ gcloud run deploy clude --source . --region us-central1 `
     --service-account clude-run@clude-game.iam.gserviceaccount.com `
     --allow-unauthenticated --min-instances 0 --max-instances 1 --concurrency 8 `
     --cpu 1 --memory 1Gi --timeout 300 `
-    --set-env-vars "CLUDE_WEB_HTTPS=1,CLUDE_WEB_STORE=gs://clude-game-data/llm" `
-    --set-secrets "FLASK_SECRET_KEY=clude-flask-secret:latest" `
+    --set-env-vars "CLUDE_WEB_HTTPS=1,CLUDE_WEB_STORE=gs://clude-game-data/llm,CLUDE_WEB_LLM_BUDGET=2.00,CLUDE_WEB_LLM_DAILY_CAP=10.00" `
+    --set-secrets "FLASK_SECRET_KEY=clude-flask-secret:latest,ANTHROPIC_API_KEY=clude-anthropic-key:latest" `
     --quiet $A $P
+```
+
+`scripts\deploy.bat` is this command, runnable from any directory. The
+key secret was made once, on 2026-09-19, from the key in `.env` written
+to a temporary file so no newline rides along (a key with a trailing
+newline fails every call):
+
+```powershell
+$k = (Get-Content .env | Where-Object { $_ -match '^ANTHROPIC_API_KEY=' }) -replace '^ANTHROPIC_API_KEY=', ''
+[IO.File]::WriteAllText("$env:TEMP\clude-key.txt", $k)
+gcloud secrets create clude-anthropic-key --replication-policy=automatic --data-file="$env:TEMP\clude-key.txt" $A $P
+Remove-Item "$env:TEMP\clude-key.txt"
+gcloud secrets add-iam-policy-binding clude-anthropic-key --member=serviceAccount:clude-run@clude-game.iam.gserviceaccount.com --role=roles/secretmanager.secretAccessor $A $P
 ```
 
 `--source .` uploads the repo minus `.gcloudignore` and Cloud Build
@@ -458,25 +513,24 @@ marked `Secure`.
 
 `scripts/clude_live_check.py` plays a table on the service through the
 same JSON routes the table screen uses, under two throwaway accounts,
-and times every request kind (Phase 8.2d). The sequence, each command
-run from Orbit:
+and times every request kind (Phase 8.2d). `scripts/live_check.bat`
+wraps it with the URL, the store and the accounts filled in, and
+`scripts/deploy.bat` is the deploy command above; both run from any
+directory on Orbit with the venv's interpreter. The sequence:
 
 ```powershell
-& .venv\Scripts\python.exe scripts\clude_cli.py users add t8a --uri gs://clude-game-data/llm
-& .venv\Scripts\python.exe scripts\clude_cli.py users add t8b --uri gs://clude-game-data/llm
-& .venv\Scripts\python.exe scripts\clude_live_check.py https://clude-648214345192.us-central1.run.app play t8a t8b
-& .venv\Scripts\python.exe scripts\clude_live_check.py https://clude-648214345192.us-central1.run.app start t8a t8b
-# redeploy (the command above), then, with the table id `start` printed:
-& .venv\Scripts\python.exe scripts\clude_live_check.py https://clude-648214345192.us-central1.run.app resume t8a t8b TABLE_ID
-& .venv\Scripts\python.exe scripts\clude_cli.py users remove t8a --uri gs://clude-game-data/llm
-& .venv\Scripts\python.exe scripts\clude_cli.py users remove t8b --uri gs://clude-game-data/llm
+scripts\live_check.bat play      # makes t8a and t8b if missing; a four-seat game to the end, then the replay
+scripts\live_check.bat start     # a second table left three answers in; prints its TABLE id
+scripts\deploy.bat               # the redeploy that empties the instance
+scripts\live_check.bat resume TABLE_ID
+scripts\live_check.bat cleanup   # removes t8a and t8b
 ```
 
 `play` sits, deals, plays a four-seat game with two people to the end
 and opens the replay; `start` leaves a second table three answers in;
 `resume`, after a redeploy, is the cold rebuild: the first poll must
 come back at the same pending decision, and its time is the rebuild
-cost to record here. The two games stay in `runs/web`.
+cost recorded under "Deploying" above. The two games stay in `runs/web`.
 
 ### Accounts and records in the cloud
 

@@ -27,6 +27,24 @@ from . import auth, config, tables, views
 __all__ = ["create_app"]
 
 
+def _llm_config(app_config, testing: bool):
+    """The `tables.LLMConfig` for this app, or None without a key."""
+    key = app_config.get("LLM_KEY")
+    if key is None and not testing:
+        key = config.anthropic_key()
+    if not key:
+        return None
+    return tables.LLMConfig(
+        key=key,
+        model=app_config.get("LLM_MODEL") or config.llm_model(),
+        budget=float(app_config.get("LLM_BUDGET") if app_config.get("LLM_BUDGET") is not None else config.llm_budget()),
+        daily_cap=float(
+            app_config.get("LLM_DAILY_CAP") if app_config.get("LLM_DAILY_CAP") is not None else config.llm_daily_cap()
+        ),
+        make_backend=app_config.get("LLM_BACKEND") or tables.anthropic_backend,
+    )
+
+
 def create_app(settings=None) -> Flask:
     """Build the app.
 
@@ -35,9 +53,15 @@ def create_app(settings=None) -> Flask:
     settings : dict or None
         Overrides, for tests and for 8.1b. ``STORE_URI`` picks the record
         store, ``SECRET_KEY`` the session secret, ``TESTING`` relaxes the
-        secret to an ephemeral one; anything else is passed straight to
-        Flask's config, so `SESSION_COOKIE_SECURE` and friends can be set
-        from outside.
+        secret to an ephemeral one; ``LLM_KEY``, ``LLM_MODEL``,
+        ``LLM_BUDGET``, ``LLM_DAILY_CAP`` and ``LLM_BACKEND`` (a
+        ``(model, key) -> backend`` factory) configure model seats
+        (Phase 8.3a; outside tests the key and the caps default to the
+        environment, `config.anthropic_key` and friends, and under
+        ``TESTING`` only what is passed counts, so a test never finds the
+        developer's key); anything else is passed straight to Flask's
+        config, so `SESSION_COOKIE_SECURE` and friends can be set from
+        outside.
 
     Notes
     -----
@@ -72,7 +96,7 @@ def create_app(settings=None) -> Flask:
 
     app.extensions["store"] = open_store(store_uri)
     app.extensions["rate_limit"] = auth.RateLimit()
-    app.extensions["tables"] = tables.TableRegistry(app.extensions["store"])
+    app.extensions["tables"] = tables.TableRegistry(app.extensions["store"], _llm_config(app.config, testing))
     # Watch is a table with nobody human at it (Phase 8.2); one registry.
     app.extensions["watch"] = app.extensions["tables"]
 

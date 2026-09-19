@@ -40,8 +40,8 @@ from .backend import DEFAULT_MODEL, LLMBackend, LLMRequest, LLMResult
 from .logbook import debrief_prompt, opponents_of, resolve_opponents
 from .menu import EPS, accusation_menu, movement_menu, show_menu, suggestion_menu
 from .persona import Persona, load_persona, load_rules
-from .prompt import system_prompt, user_prompt
-from .schema import LOGBOOK_KIND, parse_response, schema_for
+from .prompt import remark_prompt, system_prompt, user_prompt
+from .schema import LOGBOOK_KIND, REMARK_KIND, parse_response, schema_for
 
 TRANSCRIPT_LIMIT = 200
 
@@ -70,6 +70,8 @@ class LLMSettings:
         The debrief's own effort, room and patience: a reflective task,
         unlike a move, gets ``medium``, 4096 tokens and 180 s by default
         (at medium effort it runs 40-90 s, past a move's 30 s).
+    remark_max_tokens
+        Room for an off-turn line (Phase 8.3b): one short sentence.
     """
 
     model: str = DEFAULT_MODEL
@@ -85,6 +87,7 @@ class LLMSettings:
     debrief_effort: str = "medium"
     debrief_max_tokens: int = 4096
     debrief_timeout: float = 180.0
+    remark_max_tokens: int = 200
 
     def to_dict(self) -> dict:
         return dict(vars(self))
@@ -321,6 +324,78 @@ class LLMCharacter:
         self.entries_written += 1
         self.last_debrief = {"called": True, "fallback": None, "serial": entry.serial, **cost}
         return entry
+
+    # -- off-turn talk (Phase 8.3b) -------------------------------------------
+
+    def react(self, obs: ClueObservation, trigger: str, names=None) -> Optional[str]:
+        """One off-turn line, or None for silence: the model is shown the
+        seat's view and what just happened (`remark_prompt`) and asked for
+        a line or an empty string. Audited as a `Decision` of kind
+        ``remark``; counts toward the game's call and token budget; falls
+        silent, never crashes, on any failure. Whether to ask at all -- the
+        chattiness draw -- is the caller's, so the wrapper's own RNG is
+        consumed exactly where the caller says.
+
+        Parameters
+        ----------
+        obs : ClueObservation
+            This seat's masked view now.
+        trigger : str
+            What opened the floor, in words.
+        names : Sequence[str] or None
+            A label per seat, as `user_prompt` takes.
+        """
+        base = {"turn": obs.turn, "kind": REMARK_KIND, "menu": {}}
+        if (self.game_calls >= self.settings.max_calls_per_game
+                or self.game_tokens >= self.settings.max_tokens_per_game):
+            self.fallbacks += 1
+            self._record(Decision(called=False, chosen=None, action="", fallback="budget",
+                                  deviated=False, said="", spoke=False, **base))
+            return None
+        request = LLMRequest(
+            system=self._system,
+            user=remark_prompt(
+                obs, self.character.select_action(obs), self.character, self.transcript, trigger,
+                names=names, recent_remarks=self.settings.recent_remarks,
+            ),
+            schema=schema_for(REMARK_KIND),
+            kind=REMARK_KIND,
+            memory=self.memory_block,
+            max_tokens=self.settings.remark_max_tokens,
+        )
+        started = time.perf_counter()
+        try:
+            result = self.backend.complete(request)
+        except Exception as exc:  # any backend failure is silence, never a crash
+            result = LLMResult(error=f"{type(exc).__name__}: {exc}")
+        if not result.seconds:
+            result.seconds = time.perf_counter() - started
+        self._account(result)
+        cost = {
+            "input_tokens": result.input_tokens, "output_tokens": result.output_tokens,
+            "cached_tokens": result.cached_tokens, "seconds": result.seconds,
+        }
+        if not result.ok:
+            reason = "refusal" if result.stop_reason == "refusal" else (
+                f"error: {result.error or result.stop_reason or 'empty reply'}"
+            )
+            self.fallbacks += 1
+            self._record(Decision(called=True, chosen=None, action="", fallback=reason,
+                                  deviated=False, said="", spoke=False, **cost, **base))
+            return None
+        try:
+            say = parse_response(REMARK_KIND, result.text)["say"]
+        except ValueError as exc:
+            self.fallbacks += 1
+            self._record(Decision(called=True, chosen=None, action="", fallback=f"malformed: {exc}",
+                                  deviated=False, said="", spoke=False, **cost, **base))
+            return None
+        if say and self.settings.speak:
+            self._remember(obs.my_index, say)
+            self.remarks_made += 1
+        self._record(Decision(called=True, chosen=None, action="", fallback=None, deviated=False,
+                              said=say, spoke=bool(say and self.settings.speak), **cost, **base))
+        return say if say and self.settings.speak else None
 
     # -- SpeakingPlayer ------------------------------------------------------
 
