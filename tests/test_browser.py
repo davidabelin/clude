@@ -296,3 +296,60 @@ def test_the_board_is_actually_painted(page):
     for what, colour in fills.items():
         assert colour and colour not in ("none", "rgba(0, 0, 0, 0)"), f"{what} unpainted"
     assert fills["room"] != fills["corridor"], "the corridor is invisible against the rooms"
+
+# --- a table with a person at it (Phase 8.2) --------------------------------
+
+
+def _deal_table(page, seats: dict, seed="7"):
+    base = page.base
+    page.goto(f"{base}/")
+    for token, value in seats.items():
+        page.select_option(f"#seat-{token}", value)
+    page.fill("#table-seed", seed)
+    page.click("#table-form button[type=submit]")
+
+
+def test_a_table_shows_the_move_on_the_board_and_as_buttons(page):
+    """The legal destinations of the person's move are drawn on the board
+    at the server's coordinates and listed as buttons, one for one."""
+    _deal_table(page, {"Scarlett": "me", "Mustard": "character", "White": "character",
+                       "Green": "empty", "Peacock": "empty", "Plum": "empty"})
+    page.wait_for_selector(".decision .options button", timeout=20000)
+    assert page.inner_text("#status") == "Your move."
+    buttons = page.locator(".decision .options button").count()
+    targets = page.locator(".board-target").count()
+    assert buttons == targets >= 1
+    assert page.locator("#hand .card-chip").count() >= 5
+    assert page.locator("#notepad tr").count() > 21
+    assert page.locator(".seat.compact").count() == 3
+
+
+def test_clicking_a_target_plays_the_move(page):
+    _deal_table(page, {"Scarlett": "me", "Mustard": "character", "White": "character",
+                       "Green": "empty", "Peacock": "empty", "Plum": "empty"})
+    page.wait_for_selector(".board-target", timeout=20000)
+    before = page.locator("#log li:not(.placeholder)").count()
+    page.locator(".board-target").first.click()
+    page.wait_for_function(
+        "n => document.querySelectorAll('#log li:not(.placeholder)').length > n",
+        arg=before, timeout=20000,
+    )
+    lines = page.locator("#log li:not(.placeholder)").all_inner_texts()
+    assert any("Scarlett (browser) moves to" in line for line in lines)
+    assert page.locator(".board-target").count() == 0 or page.inner_text("#status") != "Your move."
+
+
+def test_the_table_page_never_names_a_card_shown_between_others(page):
+    """Play a few turns on autopilot: the log a person sees names a shown
+    card only when they were the suggester or the refuter."""
+    _deal_table(page, {"Scarlett": "me", "Mustard": "character", "White": "character",
+                       "Green": "empty", "Peacock": "empty", "Plum": "empty"})
+    page.wait_for_selector("#autopilot", timeout=20000)
+    page.click("#autopilot")
+    page.wait_for_function(
+        "() => document.querySelectorAll('#log li.kind-suggestion').length >= 4", timeout=60000
+    )
+    lines = page.locator("#log li.kind-suggestion").all_inner_texts()
+    for line in lines:
+        if " showed " in line:
+            assert line.startswith("Scarlett (browser) suggests") or "(browser) showed" in line, line

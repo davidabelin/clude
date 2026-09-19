@@ -22,9 +22,9 @@ clude/
     character.py       # Character(agent, profile): the four engine decisions
     explain.py         # plain-text views of a seat's knowledge: CLI, LLM prompt, later UI
   clude_llm/           # Phase 6: menus, personas, LLM backends, LLMCharacter; Phase 7: the debrief (logbook.py)
-  clude_training/      # self-play snapshots, belief benchmark, trace, arena, sweeps; Phase 7: replay.py, memory.py
+  clude_training/      # self-play snapshots, belief benchmark, trace, arena, sweeps; Phase 7: replay.py, memory.py; Phase 8.2: table.py
   clude_storage/       # game records and logbooks; local and Cloud Storage stores
-  clude_web/           # Flask app: login, lobby, replay, Watch (phase 8.1; docs/web.md)
+  clude_web/           # Flask app: login, lobby, replay, Watch, tables people play at (8.1-8.2; docs/web.md)
   scripts/             # clude_cli.py
   tests/
   docs/
@@ -428,6 +428,18 @@ Not yet in the features: opponent danger. docs/phase5-plan.md defers a
 `w_danger` dial until there is a measured signal for it; White's
 `closeness` proxy in `ClueBelief.extra` is the candidate input.
 
+**The landing rule (Phase 8.0.4, 2026-09-18).** A room entered this
+turn is a destination (`proximity` 1.0) only when a suggestion there can
+still teach something: the room is still in play for this agent, or
+nobody else can refute with its card because it is in the agent's own
+hand or proven to be the envelope's (FloorBot's rule once every room is
+placed). A room placed in another seat's hand scores as the corridor
+rule would from that room, `1 / (1 + steps to the nearest live room)`:
+a place on the way, not a destination. Before this every landing scored
+1.0, which paid Plum to ride a secret passage into a cleared room,
+suggest, be shown the room and ride back; measured in
+`docs/strategy-glossary.md`, "The landing rule".
+
 ## Personality layer (Phase 5c)
 
 `clude_agents.personality.Profile` is five floats, all-numeric and
@@ -763,13 +775,14 @@ Cloud Storage bucket above is in the same boat: a few hundred kilobytes
 per arena run, inside the always-free 5 GB-months for US regions. The
 web app's mirror of `data/llm` under `llm/` is about 30 MB.
 
-## Seats and player identity (the cludebot half built; the human half proposed)
+## Seats and player identity (both halves built)
 
 Answers "how do human players play, and how are they recognized across
 games" (`CLAUDE.md`). The cludebot half was built on 2026-09-14 (a
-character is locked to its own token; below); Phase 8 builds human
-seats and Phase 7 built logbooks, and the identity model is recorded
-here so neither needs a breaking change.
+character is locked to its own token; below), Phase 7 built logbooks,
+and Phase 8.2 built human seats on 2026-09-18 (the "As built" note at
+the end); the identity model was recorded here first so that none of
+the three needed a breaking change.
 
 - **Seat** -- one of the six suspect slots for a single game. Exactly
   `suspects_in_play[i]` in `GameState`, now chosen by the caller
@@ -829,6 +842,23 @@ here so neither needs a breaking change.
   label across seats with no further work; what Phase 8 must do is
   write the display name into `label`. See "Memory: the logbooks"
   above and `docs/logbooks.md`.
+
+  **As built (Phase 8.2, 2026-09-18):** a seat is a
+  `clude_training.table.SeatSpec` (token, kind, label) and a table a
+  `TableSetup` of them in the board's order; the kinds are `character`
+  (label is the token's own character), `floor`, `random`, `human`,
+  `open` (waiting for a person) and, for Phase 8.3, `llm`. A human's
+  label is the account *key* (`clude_web.users.normalise`: the login
+  name lower-cased), not the name as typed, because logbook paths and
+  bucket keys are case-sensitive; the six suspect names, `floor`,
+  `random`, `web` and `envelope` are refused as account names so no
+  person can share a character's logbook. The seat's `SeatRecord` is
+  written with `kind="human"` and that label, so White's per-opponent
+  counts and every dossier key on the person whichever token they play,
+  with no further work. There is no `localStorage` token: the login
+  itself is the identity. The engine and the agents stayed
+  index-based; a human seat is simply one in `game_steps`'s `external`
+  set, driven by `TableGame` (docs/phase8-plan.md 3.1).
 
 ## Open questions
 

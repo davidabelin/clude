@@ -15,6 +15,7 @@ from clude_agents.features import (
     score_choices,
 )
 from clude_agents.personality import DIALS, NEUTRAL, PRESETS, Profile, preset
+from clude_constraints import ENVELOPE
 from clude_core import board
 from clude_core.domain import ALL_CARDS, ROOMS
 from clude_core.engine import MoveChoice
@@ -99,6 +100,51 @@ def test_room_features_land_now_or_head_for_the_best_discounted_room():
     assert hallway.target == "Kitchen"
     assert hallway.information == pytest.approx(0.6 * DISTANCE_DISCOUNT)
     assert hallway.proximity == pytest.approx(0.5)
+
+
+def test_a_cleared_room_is_a_place_on_the_way_not_a_destination():
+    """Phase 8.0.4: entering a room whose card is already placed scores
+    the corridor rule from that room to the nearest live one, so a
+    secret passage into a cleared room no longer beats the walk toward
+    a room still in play."""
+    belief = _belief({"Conservatory": 0.5, "Dining": 0.5})  # Study and Kitchen cleared
+    choices = [
+        MoveChoice("secret_passage", "Study"),  # from the Kitchen
+        MoveChoice("move", "Kitchen"),
+        MoveChoice("move", "Conservatory"),
+    ]
+    study, kitchen, conservatory = room_features(None, belief, choices)
+    assert conservatory.proximity == 1.0 and conservatory.information == pytest.approx(0.5)
+    assert study.information == 0.0 and kitchen.information == 0.0
+    steps = {r: min(board.room_distances(r)[live] for live in ("Conservatory", "Dining")) for r in ("Study", "Kitchen")}
+    assert study.proximity == pytest.approx(1.0 / (1.0 + steps["Study"]))
+    assert kitchen.proximity == pytest.approx(1.0 / (1.0 + steps["Kitchen"]))
+    assert study.proximity < 1.0 and kitchen.proximity < 1.0
+    # With every room placed, any room serves again (FloorBot's rule).
+    none_live = _belief({})
+    features = room_features(None, none_live, choices)
+    assert all(f.proximity == 1.0 for f in features)
+    # A placed room nobody else can refute with -- mine, or the
+    # envelope's -- is still a destination: a suggestion there is a
+    # clean test of a suspect and a weapon.
+    class Mask:
+        def __init__(self, holders):
+            self.holders = holders
+
+        def holder_of(self, card):
+            return self.holders.get(card)
+
+    class Obs:
+        my_index = 1
+
+        def __init__(self, holders):
+            self.mask = Mask(holders)
+
+    mine = room_features(Obs({"Study": 1, "Kitchen": 2}), belief, choices)
+    assert mine[0].proximity == 1.0, "the Study is in my hand"
+    assert mine[1].proximity < 1.0, "an opponent holds the Kitchen"
+    envelope = room_features(Obs({"Study": ENVELOPE, "Kitchen": 0}), belief, choices)
+    assert envelope[0].proximity == 1.0 and envelope[1].proximity < 1.0
 
 
 def test_score_choices_blends_by_curiosity():

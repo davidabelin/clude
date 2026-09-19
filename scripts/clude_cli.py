@@ -29,6 +29,8 @@ Usage
 from __future__ import annotations
 
 import argparse
+import dataclasses
+import getpass
 import json
 import random
 import sys
@@ -69,7 +71,7 @@ from clude_agents.explain import (
 from clude_agents.personality import DIALS, preset
 from clude_core import board, engine
 from clude_core.bots import RandomBot
-from clude_core.domain import ALL_CARDS
+from clude_core.domain import ALL_CARDS, ROOMS, SUSPECTS, WEAPONS
 from clude_core.events import AccusationEvent, GameOverEvent, MoveEvent, RemarkEvent, SuggestionEvent
 from clude_core.state import ClueObservation
 from clude_llm import (
@@ -89,7 +91,9 @@ from clude_storage import GameRecord, Logbook, SeatRecord, list_logbooks, open_s
 from clude_storage.records import GRID_RECORD_VERSION
 from clude_storage.mirror import LOGBOOK_PREFIX, TRACE_PREFIX, copy_docs, plan_mirror
 from clude_training import memory as method_memory
+from clude_training.table import TableError, TableGame, TableSetup, describe_request
 from clude_training.arena import (
+    BOT_LABELS,
     DEFAULT_MAX_TURNS as ARENA_MAX_TURNS,
     DEFAULT_N_GAMES as ARENA_N_GAMES,
     DEFAULT_ROSTER,
@@ -520,8 +524,204 @@ def cmd_agents(args) -> int:
     return 0
 
 
+def _event_line(event, state, labels, names) -> str:
+    """One terminal line per event, or an empty string for an event
+    that prints nothing (the game-over line is printed separately)."""
+    if isinstance(event, RemarkEvent):
+        return f'turn {event.turn}: {names[event.seat]} says: "{event.text}"'
+    if isinstance(event, MoveEvent):
+        tag = " (secret passage)" if event.used_secret_passage else ""
+        return (
+            f"turn {event.turn}: {_player_label(state, event.player, labels)} -> "
+            f"{_node_label(event.destination)}{tag}"
+        )
+    if isinstance(event, SuggestionEvent):
+        return describe_suggestion(event.suggestion, names, event.turn)
+    if isinstance(event, AccusationEvent):
+        a = event.accusation
+        verdict = "CORRECT" if a.correct else "wrong, eliminated"
+        return (
+            f"turn {event.turn}: {_player_label(state, a.accuser, labels)} accuses "
+            f"{a.suspect}/{a.weapon}/{a.room} -- {verdict}"
+        )
+    return ""
+
+
+LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+
+def _read_line(prompt: str) -> str:
+    try:
+        return input(prompt).strip()
+    except EOFError as exc:
+        raise SystemExit("stdin closed; the game is abandoned") from exc
+
+
+def _pick(prompt: str, n: int, extra=()) -> "int | str":
+    """A letter among the first `n`, or one of `extra` words, from stdin;
+    asks again on anything else."""
+    while True:
+        text = _read_line(prompt).upper()
+        if text.lower() in extra:
+            return text.lower()
+        if len(text) == 1 and text in LETTERS[:n]:
+            return LETTERS.index(text)
+        print(f"  type a letter A-{LETTERS[n - 1]}" + (f" or {'/'.join(extra)}" if extra else ""))
+
+
+def _pick_cards(prompt: str, categories: list, extra=()) -> "list | str":
+    """One letter per category on one line (``A C``), or an `extra` word."""
+    while True:
+        text = _read_line(prompt)
+        if text.lower() in extra:
+            return text.lower()
+        parts = text.upper().split()
+        if len(parts) == len(categories) and all(
+            len(part) == 1 and part in LETTERS[: len(cat)] for part, cat in zip(parts, categories)
+        ):
+            return [cat[LETTERS.index(part)] for part, cat in zip(parts, categories)]
+        print("  type one letter per list, e.g. " + " ".join("A" for _ in categories)
+              + (f", or {'/'.join(extra)}" if extra else ""))
+
+
+def _lettered(items, text=lambda item: item) -> None:
+    for letter, item in zip(LETTERS, items):
+        print(f"  {letter}. {text(item)}")
+
+
+def _option_text(option: dict) -> str:
+    if option["move"] == "stay":
+        return "stay where you are"
+    if option["move"] == "secret_passage":
+        return f"take the secret passage to the {option['to']}"
+    node = option["to"]
+    if isinstance(node, str):
+        return f"enter the {node}"
+    return f"corridor square row {node['row']}, column {node['col']}"
+
+
+def _answer_from_terminal(game: TableGame, names: list) -> None:
+    """Put the pending decision to the person at the keyboard and send
+    their answer in. ``?`` prints the floor's grid for that seat."""
+    request = game.pending
+    obs = request.obs
+    me = names[request.seat]
+    print(f"\n-- {me}, your hand: {', '.join(sorted(obs.own_hand))}  (type ? for your notes)")
+    while True:
+        if request.kind == "movement":
+            options = describe_request(request)["options"]
+            print("Where to?")
+            _lettered(options, _option_text)
+            pick = _pick("move> ", len(options), extra=("?",))
+            if pick == "?":
+                print(format_mask(obs.mask, obs.n_players))
+                continue
+            data = options[pick]
+        elif request.kind == "suggestion":
+            print(f"You are in the {request.room}. Suggest a suspect and a weapon (two letters), or 'pass'.")
+            print("Suspects:"); _lettered(SUSPECTS)
+            print("Weapons:"); _lettered(WEAPONS)
+            pick = _pick_cards("suggest> ", [SUSPECTS, WEAPONS], extra=("pass", "?"))
+            if pick == "?":
+                print(format_mask(obs.mask, obs.n_players))
+                continue
+            data = None if pick == "pass" else {"suspect": pick[0], "weapon": pick[1]}
+        elif request.kind == "accusation":
+            print("Accuse? Three letters (suspect, weapon, room), or 'pass'. A wrong accusation puts you out.")
+            print("Suspects:"); _lettered(SUSPECTS)
+            print("Weapons:"); _lettered(WEAPONS)
+            print("Rooms:"); _lettered(ROOMS)
+            pick = _pick_cards("accuse> ", [SUSPECTS, WEAPONS, ROOMS], extra=("pass", "?"))
+            if pick == "?":
+                print(format_mask(obs.mask, obs.n_players))
+                continue
+            if pick == "pass":
+                data = None
+            else:
+                if _read_line(f"Accuse {pick[0]} with the {pick[1]} in the {pick[2]}? Type YES to confirm: ") != "YES":
+                    continue
+                data = {"suspect": pick[0], "weapon": pick[1], "room": pick[2]}
+        else:
+            print(f"{names[request.shown_to]} named cards you hold. Which do you show?")
+            _lettered(request.candidates)
+            pick = _pick("show> ", len(request.candidates), extra=("?",))
+            if pick == "?":
+                print(format_mask(obs.mask, obs.n_players))
+                continue
+            data = {"card": request.candidates[pick]}
+        try:
+            game.answer(request.seat, game.seq, data)
+        except TableError as exc:
+            print(f"  {exc}")
+            continue
+        return
+
+
+def _for_viewer(event, my_seats: set):
+    """The event as the people at the keyboard may see it: a card shown
+    between two other seats is hidden, as `ClueObservation.for_player`
+    hides it."""
+    if isinstance(event, SuggestionEvent):
+        s = event.suggestion
+        if s.card_shown is not None and s.suggester not in my_seats and s.refuter not in my_seats:
+            return dataclasses.replace(event, suggestion=dataclasses.replace(s, card_shown=None))
+    return event
+
+
+def _play_human(args) -> int:
+    """A person at the table from the terminal (Phase 8.2): the driver the
+    web app uses, with each decision put to the keyboard and the rest of
+    the table headless. No record, model or logbook yet."""
+    if getattr(args, "llm", False) or getattr(args, "store", "") or getattr(args, "logbook", None) is not None:
+        raise SystemExit("--human plays a plain table: --llm, --store and --logbook are not combined with it yet")
+    tokens = [t.strip() for t in args.human.split(",") if t.strip()]
+    base = (args.name or getpass.getuser()).strip().lower() or "you"
+    humans = {token: (base if i == 0 else f"{base}-{i + 1}") for i, token in enumerate(tokens)}
+    roster = args.roster.strip()
+    n_bots = args.players - len(tokens)
+    entries = [roster] * n_bots if roster in BOT_LABELS else roster.split(",")
+    try:
+        setup = TableSetup.from_roster(entries, args.players, args.seed, humans=humans, max_turns=args.max_turns)
+        game = TableGame(setup)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    names = seat_labels(game.suspects, game.labels)
+    my_seats = set(game.external)
+    print(f"seed={args.seed} players={args.players} roster={args.roster} you={','.join(humans.values())}")
+    _print_seats(game.state, game.labels)
+    print()
+    shown = 0
+    while not game.finished:
+        if game.pending is None:
+            game.run(1)
+        else:
+            _answer_from_terminal(game, names)
+        for event in game.events[shown:]:
+            line = _event_line(_for_viewer(event, my_seats), game.state, game.labels, names)
+            if line:
+                print(line)
+        shown = len(game.events)
+    state = game.state
+    final = game.events[-1]
+    print(f"\nEnvelope: {'/'.join(final.solution)}")
+    print(
+        f"Turns played: {state.turn}; suggestions: {len(state.suggestion_log)}; "
+        f"accusations: {len(state.accusation_log)}"
+    )
+    if final.winner is not None:
+        print(f"Winner: {_player_label(state, final.winner, game.labels)}")
+    elif not any(state.active):
+        print("No winner -- every player accused incorrectly.")
+    else:
+        print(f"No winner -- hit the {args.max_turns}-turn cap.")
+    return 0
+
+
 def cmd_play(args) -> int:
-    """Play one game and print the outcome (and event log)."""
+    """Play one game and print the outcome (and event log); with
+    ``--human`` a person plays a seat from the keyboard."""
+    if getattr(args, "human", ""):
+        return _play_human(args)
     llm_seats: dict = {}
     players: dict = {}
     state, events, labels = _play_game(args, llm_seats, players)
@@ -531,23 +731,9 @@ def cmd_play(args) -> int:
         print()
         names = seat_labels(state.suspects_in_play, labels)
         for event in events:
-            if isinstance(event, RemarkEvent):
-                print(f'turn {event.turn}: {names[event.seat]} says: "{event.text}"')
-            elif isinstance(event, MoveEvent):
-                tag = " (secret passage)" if event.used_secret_passage else ""
-                print(
-                    f"turn {event.turn}: {_player_label(state, event.player, labels)} -> "
-                    f"{_node_label(event.destination)}{tag}"
-                )
-            elif isinstance(event, SuggestionEvent):
-                print(describe_suggestion(event.suggestion, names, event.turn))
-            elif isinstance(event, AccusationEvent):
-                a = event.accusation
-                verdict = "CORRECT" if a.correct else "wrong, eliminated"
-                print(
-                    f"turn {event.turn}: {_player_label(state, a.accuser, labels)} accuses "
-                    f"{a.suspect}/{a.weapon}/{a.room} -- {verdict}"
-                )
+            line = _event_line(event, state, labels, names)
+            if line:
+                print(line)
     final = events[-1]
     assert isinstance(final, GameOverEvent)
     print(f"\nEnvelope: {'/'.join(final.solution)}")
@@ -1330,6 +1516,15 @@ def build_parser() -> argparse.ArgumentParser:
     _add_game_args(play_p)
     play_p.add_argument("--verbose", action="store_true", help="Print every move/suggestion/accusation.")
     play_p.add_argument("--hands", action="store_true", help="Also print the dealt hands.")
+    play_p.add_argument(
+        "--human", default="",
+        help="Play a seat yourself from the keyboard: the token to take (e.g. Scarlett), or several "
+        "comma-separated for a hot-seat game. The roster fills the other seats (Phase 8.2).",
+    )
+    play_p.add_argument(
+        "--name", default="",
+        help="Your name for --human, the label the game records you under (default: your login name).",
+    )
     play_p.add_argument(
         "--store", default="",
         help="Save the game record here (a directory or gs://bucket/prefix) as game 0 of a run.",

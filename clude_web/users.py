@@ -23,6 +23,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from clude_core.domain import SUSPECTS
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from clude_storage.stores import validate_run_id
@@ -31,6 +32,14 @@ USERS_PREFIX = "users"
 """Folder holding the account documents, beside `runs/` and `games/`."""
 
 DEFAULT_PASSWORD = "password"
+
+RESERVED_NAMES: frozenset = frozenset(
+    {suspect.lower() for suspect in SUSPECTS} | {"floor", "random", "web", "envelope"}
+)
+"""Names an account may not take, compared in key form (lower-cased): a
+login name is a logbook identity (`SeatRecord.label`), and an account
+called ``mustard`` would share ``logbooks/mustard/`` with the character
+on a case-insensitive file system, or a bot's label anywhere."""
 """What a new account gets. Accounts are handed out by David himself to
 family and friends, so convenience beats secrecy here (David,
 2026-09-17; CLAUDE.md, "Settled decisions"). A player is offered a
@@ -106,6 +115,8 @@ def add_user(store, name: str, password: str = DEFAULT_PASSWORD) -> dict:
         On a bad name, an empty password, or a name already taken.
     """
     key = normalise(name)
+    if key in RESERVED_NAMES:
+        raise ValueError(f"{name!r} is taken: it is a character's name or a bot's")
     if not password:
         raise ValueError("a password cannot be empty")
     if get_user(store, key) is not None:

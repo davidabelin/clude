@@ -1415,3 +1415,85 @@ made, a trip that could learn nothing:
   metric could not see the thing it was meant to catch, so "the parking
   question is closed for the grid" does not follow. What to do about it
   is David's call (`docs/phase8.0-plan.md`, Stage 2).
+
+### The landing rule (Phase 8.0.4, 2026-09-18)
+
+What to do about the passage loop was David's call, made on 2026-09-18
+with `docs/phase8-plan.md`: change the scoring, measured headless, before
+the characters sit down with people. The change is in
+`clude_agents/features.room_features`, the shared feature arithmetic
+every character's `choose_destination` reads, not in any method, so the
+"six distinct methods" rule holds.
+
+**The rule.** A landing in a room used to score `proximity = 1.0`
+whatever the room, which is what paid for the loop: a secret passage
+into a cleared room scored 0.50 at curiosity 0.5 against 0.29 for the
+walk toward a live one, the leash hid the walk, and Plum rode the
+passage. Now a landing is a *destination* (1.0) only when a suggestion
+there can still teach something: the room is still in play for this
+agent (`p[room] > 0`), or nobody else can refute with the room card
+because it is in this agent's own hand or proven to be the envelope's,
+so a suggestion there is a clean test of a suspect and a weapon, which
+is `FloorBot`'s rule once every room is placed. A room placed in
+*another* seat's hand is a place on the way: whoever holds it answers
+any suggestion there by showing the room, so it scores as the corridor
+rule would from that room, `1 / (1 + steps to the nearest live room)`,
+secret passages counted as one step (`features._landing_proximity`).
+The corridor rule itself is untouched.
+
+**Two forms were measured**, each as three paired 24-game arenas at the
+presets on the baselines' seeds (`arena-grid-tuned-24` at 3-6 seats,
+`grid-twin-base-24` at 4, `grid-plum-base-24` on `Plum,Mustard,Green`),
+with `loop_report.py` and `board_report.py` over every run:
+
+- *First form* (`*-prox-24`): every placed room a place on the way,
+  own-hand and envelope rooms included. It removed every exact repeat
+  (0 for all six characters on all three tables) but overshot: the
+  characters walked past rooms where a suggestion was still worth
+  making, suggestions per game fell by a third and the four-seat games
+  ran **17 turns longer** (41.9 to 58.7), Mustard's first accusation
+  moving from turn 39 to 106.
+- *Second form* (`*-prox2-24`, **kept**): as described above.
+
+| run (24 games, seed 7007) | turns/game | suggestions/game | passages | to a room / corridor |
+|---|---|---|---|---|
+| `arena-grid-tuned-24` (3-6 seats, baseline) | 53.9 | 29.0 | 229 | 600 / 597 |
+| `arena-grid-prox-24` (first form) | 43.3 | 15.1 | 80 | 307 / 677 |
+| `arena-grid-prox2-24` (kept) | **45.9** | 18.4 | 127 | 390 / 660 |
+| `grid-twin-base-24` (4 seats, baseline) | 41.9 | 21.6 | 191 | 449 / 488 |
+| `grid-twin-prox-24` (first form) | 58.7 | 16.3 | 99 | 346 / 1016 |
+| `grid-twin-prox2-24` (kept) | **35.6** | 14.1 | 88 | 291 / 515 |
+| `grid-plum-base-24` (3 seats, baseline) | 31.9 | 15.9 | 158 | 360 / 384 |
+| `grid-plum-prox-24` (first form) | 35.7 | 12.2 | 79 | 277 / 562 |
+| `grid-plum-prox2-24` (kept) | **30.1** | 12.8 | 76 | 284 / 417 |
+
+Exact repeats of a seat's own earlier suggestion, baseline against the
+kept form (`loop_report.py`; a character plays 16 or 20 of the 24 games
+on the mixed table):
+
+| | 3-6 seats | 4 seats | 3 seats (Plum's table) |
+|---|---|---|---|
+| Plum | 66 of 154 (43%) to 5 of 84 (6%) | 15 of 104 (14%) to 8 of 70 (11%) | 47 of 187 (25%) to 6 of 138 (4%) |
+| Mustard | 10 (12%) to 4 (6%) | 7 (10%) to 0 | 8 (7%) to 1 (1%) |
+| Peacock | 37 (25%) to 3 (3%) | 15 (15%) to 5 (8%) | -- |
+| White | 26 (17%) to 11 (9%) | 13 (11%) to 3 (4%) | -- |
+| Scarlett | 14 (15%) to 0 | 0 to 1 | -- |
+| Green | 4 (6%) to 0 | 8 (12%) to 0 | 2 (2%) to 1 (1%) |
+| games with 10+ repeats, all seats | 4 to 0 | 2 to 0 | 2 to 0 |
+
+Win rates moved both ways by up to 25 points, which at 16-24 games is
+one to two binomial sigmas and the noise floor the confirmation arena
+already made visible: Plum 37.5% to 58.3% on his own table and 37.5% to
+12.5% at four seats, White 10% to 30% on the mixed table, Green 19% to
+0% there, Scarlett's wrong accusations 20% to 40% there and 25% to 19%
+at four seats. Nothing moved the same way on two tables except the
+loop, which fell on all three, and the length of a game, which fell on
+all three. Secret passages are taken half as often, moves end in the
+corridor more often, and suggestions per game fall by a third, which is
+the wasted ones going: every game still ends in a correct accusation.
+
+**Kept.** The goldens in `tests/test_character.py` were re-captured and
+both LLM fixtures re-recorded ($0.26); the open question in `CLAUDE.md`
+closes as answered. Not run: 2c and 2d, the paid ladders, which measure
+the model where the mechanism was the leash. The first form's runs stay
+in the store as the record of the overshoot.

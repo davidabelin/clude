@@ -33,6 +33,17 @@ Status (2026-09-16):
   reset after a copy to `data/llm/logbooks-ring`, and Mustard's and
   White's method memory rebuilt from grid-era records only (Stage 3,
   below).
+- **8.0.4 done** (David's decision, 2026-09-18: the scoring change,
+  headless, first): the landing rule in `features.room_features`. A
+  placed room is a destination only when nobody else can refute with it
+  (the agent's own, or the envelope's); one placed in another seat's
+  hand scores as a place on the way. Measured as three paired arenas
+  against the 8.0 baselines: games shorter on every table, exact repeats
+  down by two thirds or more for every character, win rates within
+  noise; goldens re-captured, fixtures re-recorded ($0.22). Numbers in
+  the glossary under "The landing rule"; the record in
+  `docs/phase8-plan.md` section 12. The parking question is closed; 2c
+  and 2d were not run. Phase 8.0 is complete.
 
 Each paid stage needs its own yes from David, with the cost quoted as a
 range at the time (estimates have come in under twice). Every run goes

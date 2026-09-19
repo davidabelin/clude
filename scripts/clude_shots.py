@@ -9,8 +9,9 @@ width. Hence Playwright.
 This is a maintainer tool, not part of the app and not imported by it.
 It boots the app on a spare port against a throwaway store seeded from
 real records, signs in, and writes a PNG per screen: the login, the
-lobby, a run's games, a watched game as dealt and a few turns in, and a
-replay at its start, middle and end.
+lobby, a run's games, a watched game as dealt and a few turns in, a
+table with a person at it on their move and a few answers later, a
+table waiting for players, and a replay at its start, middle and end.
 
 Usage
 -----
@@ -159,6 +160,49 @@ def shoot(base: str, run: str, index: int, out: Path, dark: bool, phone: bool) -
                     page.click("#next-turn")
                     page.wait_for_selector("#next-turn")
                 save("watch-turn")
+
+                # A table with a person at it (Phase 8.2): you as Scarlett
+                # against Mustard, White and Green, then the same table
+                # after the board has been answered a few times.
+                page.goto(f"{base}/")
+                page.select_option("#seat-Scarlett", "me")
+                page.select_option("#seat-Mustard", "character")
+                page.select_option("#seat-White", "character")
+                page.select_option("#seat-Green", "character")
+                page.select_option("#seat-Peacock", "empty")
+                page.select_option("#seat-Plum", "empty")
+                page.fill("#table-seed", "7")
+                page.click("#table-form button[type=submit]")
+                page.wait_for_selector(".decision .options button", timeout=20000)
+                save("table-move")
+                # Answer whatever is asked (the first button is always a
+                # legal, harmless choice: a move, "Suggest", "Pass") until
+                # the bots have had a turn and it is our move again.
+                for _ in range(6):
+                    before = page.inner_text("#status")
+                    page.click(".decision .options button")
+                    page.wait_for_function(
+                        "s => document.querySelector('#status').textContent !== s",
+                        arg=before, timeout=20000,
+                    )
+                    if page.inner_text("#status") == "Your move.":
+                        break
+                    page.wait_for_selector(".decision .options button", timeout=40000)
+                page.wait_for_function(
+                    "() => document.querySelectorAll('#log li:not(.placeholder)').length >= 4",
+                    timeout=40000,
+                )
+                save("table-later")
+
+                # A table waiting for players.
+                page.goto(f"{base}/")
+                page.select_option("#seat-Scarlett", "me")
+                page.select_option("#seat-Mustard", "character")
+                page.select_option("#seat-White", "open")
+                page.select_option("#seat-Green", "empty")
+                page.click("#table-form button[type=submit]")
+                page.wait_for_selector(".table-open")
+                save("table-open")
 
                 page.goto(f"{base}/replay/{run}/{index}")
                 page.wait_for_selector(".board-token")

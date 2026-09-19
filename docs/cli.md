@@ -87,6 +87,25 @@ The event log is omniscient: it always names the card shown. `trace`
 and `floor` show the redacted, per-seat view instead.
 
 ```
+python scripts/clude_cli.py play --human Scarlett --roster Mustard,White --players 3
+python scripts/clude_cli.py play --human Scarlett,Plum --name david --roster Mustard --players 3 --seed 7
+```
+
+`--human TOKEN` (Phase 8.2) seats you at the table from the keyboard:
+you take the token named, the roster fills the other seats, and each of
+your decisions is put to you as lettered choices (a move, a suggestion
+as two letters or `pass`, an accusation as three letters behind a `YES`,
+a card to show when another seat's suggestion names one of yours; `?`
+prints the deduction floor's grid from your seat). Several tokens make a
+hot-seat game at one keyboard. `--name` is the label the game records
+you under (default your login name, lower-cased), the same identity the
+web app uses. It drives the same `clude_training.table.TableGame` the
+web app plays through, so the terminal is the headless proof of that
+driver; `--llm`, `--store` and `--logbook` are not combined with it
+yet. The rest of the table sees your token by its name, as at a real
+table ("P0 Scarlett (david)").
+
+```
 python scripts/clude_cli.py play --roster Plum,Scarlett,floor --llm --llm-backend null --verbose
 python scripts/clude_cli.py play --roster Plum,Scarlett,floor --llm --llm-characters Scarlett
 python scripts/clude_cli.py play --roster Plum,Scarlett,floor --llm --llm-backend replay:data/exports/llm-1.json

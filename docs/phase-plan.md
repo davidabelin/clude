@@ -14,9 +14,9 @@ to the next phase.
 | 5 | Personality parameter profiles turning beliefs into actions; self-play checks that dials move win rate | done -- plan and David's decisions in `docs/phase5-plan.md`, results in `docs/strategy-glossary.md` |
 | 6 | LLM wrapper: leashed menu of legal actions + persona -> structured action + remark; anything illegal, malformed or failed falls back to the character's own decision | done: built (6a-6d), tested on fake backends, and live-checked, persona-tuned and measured on Opus 5 on 2026-09-13, with per-character leash ladders the same day (presets stand) -- `docs/phase6-plan.md` |
 | 7 | Logbooks: persistent, per-character, written after every game | done: built (7a-7c) on fake backends and live-checked and measured (7d) on Opus 5, all on 2026-09-14: three tiers of memory, a `memory` dial, the debrief, `--logbook-characters`, seat-locked characters; at leash 0.5 Plum's own notes cut his stalls by more than half at the price of two early accusations -- `docs/phase7-plan.md`, `docs/logbooks.md` |
-| 8.0 | Re-measurement on the Classic board: every glossary number re-run on the grid, presets retuned, the LLM measurements repeated, method memory reset | 8.0.0 and 8.0.1 done (2026-09-15); 8.0.2a, 8.0.2b and 8.0.3 done (2026-09-16); whether to go further on Plum's grid parking is open -- `docs/phase8.0-plan.md` |
+| 8.0 | Re-measurement on the Classic board: every glossary number re-run on the grid, presets retuned, the LLM measurements repeated, method memory reset, the landing rule for the passage loop | done: 8.0.0-8.0.1 (2026-09-15), 8.0.2a-b and 8.0.3 (2026-09-16), 8.0.4 the landing rule (2026-09-18) -- `docs/phase8.0-plan.md`, `docs/phase8-plan.md` |
 | 8.1 | 8.1a a basic UX scaffold as a local Flask app (login, lobby, replay, watching a headless game); 8.1b the same app on Cloud Run | done: 8.1a 2026-09-17, 8.1b deployed 2026-09-18 -- `docs/phase8.1-plan.md`, `docs/web.md` |
-| 8.2 | Human players: human seats beside the cludebots, identity by login name | not started |
+| 8.2 | Human players: human seats beside the cludebots, identity by login name | built 2026-09-18: the table driver and `play --human` (8.2a), the table on the web with open seats, autopilot, rebuild and "characters remember" (8.2b-c), deployed (8.2d) -- `docs/phase8-plan.md`, `docs/web.md` |
 | 8.3 | The rest of chat: off-turn talk, staggered arrivals, capped concurrent speakers, chattiness-gated | not started |
 | 9 | In-depth UX: the decorated board and logo, typography, motion, the six-seat layouts, the case-file styling | not started |
 | 10 | Clean-up and close; then release to family and friends as version 1.0.0, planned in versions from then on | not started |
@@ -307,13 +307,11 @@ scale.
 
 ## Open questions
 
-Ask before assuming; do not resolve unilaterally. One outstanding as of
-2026-09-16: whether to change `movement_scores` for Plum's parking. The
-logbook was tried first on the ring (David's choice); it halved his
-stalls at leash 0.5 but could not act at the preset 0.25. On the grid
-the free "stay" is gone, so 8.0.2b re-asks the question, with the
-trigger for going further written down before its results
-(`docs/phase8.0-plan.md`, Stage 2).
+Ask before assuming; do not resolve unilaterally. None outstanding as of
+2026-09-18: the parking question (whether to change the movement
+scoring for Plum's loop) was decided that day -- the landing rule,
+measured headless and kept (`docs/phase8.0-plan.md` 8.0.4,
+`docs/strategy-glossary.md` "The landing rule").
 
 Resolved:
 

@@ -22,7 +22,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from clude_storage import open_store
 
-from . import auth, config, views, watch
+from . import auth, config, tables, views
 
 __all__ = ["create_app"]
 
@@ -72,7 +72,16 @@ def create_app(settings=None) -> Flask:
 
     app.extensions["store"] = open_store(store_uri)
     app.extensions["rate_limit"] = auth.RateLimit()
-    app.extensions["watch"] = watch.WatchRegistry(app.extensions["store"])
+    app.extensions["tables"] = tables.TableRegistry(app.extensions["store"])
+    # Watch is a table with nobody human at it (Phase 8.2); one registry.
+    app.extensions["watch"] = app.extensions["tables"]
+
+    @app.after_request
+    def _nosniff(response):
+        # The table screens read JSON with `fetch`; a browser must never
+        # be tempted to render a response as anything but what it is.
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        return response
 
     app.jinja_env.globals["csrf_token"] = auth.csrf_token
     app.before_request(auth.require_session)

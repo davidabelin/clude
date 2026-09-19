@@ -37,7 +37,9 @@ over 24 games, at the price of two early accusations
 Plum. Phase 8.1 put the first screens in front of it: a Flask app with a
 login, a lobby, a replay scrubber and a Watch screen, run locally or on
 Cloud Run for family and friends ([docs/web.md](docs/web.md)). There
-are no human seats and no chat yet.
+are no human seats and no chat yet. Since Phase 8.2 people sit at the table too: a table in the
+lobby seats you beside the characters and the game is played from the
+browser, or from the terminal with `play --human`.
 
 ## Quick start
 

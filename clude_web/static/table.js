@@ -1,0 +1,462 @@
+/* The table screen (Phase 8.2).
+ *
+ * The page arrives with the viewer's view of the game embedded; from then
+ * on it polls for what changed, fires one unit of bot work whenever the
+ * server says work is due, and posts the viewer's answers. Everything
+ * the server sends is written into the page as text (textContent) or as
+ * DOM nodes, never as markup: table talk and names are text from outside
+ * the app.
+ *
+ * Nothing here knows the board's geometry: token positions and the legal
+ * destinations of a move come as coordinates worked out server-side from
+ * `clude_core.board`, as the replay's do.
+ */
+(function () {
+  "use strict";
+
+  var node = document.getElementById("table-data");
+  if (!node) return;
+  var data = JSON.parse(node.textContent);
+  var urls = data.urls || {};
+  var csrfMeta = document.querySelector('meta[name="csrf"]');
+  var csrf = csrfMeta ? csrfMeta.getAttribute("content") : "";
+
+  var status = document.getElementById("status");
+  var title = document.getElementById("title");
+  var decision = document.getElementById("decision");
+  var decisionTitle = document.getElementById("decision-title");
+  var errorBox = document.getElementById("error");
+  var hand = document.getElementById("hand");
+  var myToken = document.getElementById("my-token");
+  var autopilotButton = document.getElementById("autopilot");
+  var log = document.getElementById("log");
+  var seatsBox = document.getElementById("seats");
+  var notepad = document.getElementById("notepad");
+  var svg = document.querySelector("svg.board");
+
+  var since = 0;
+  var timer = null;
+  var busy = false;
+  var current = data;
+
+  /* suspect -> its circle on the board, looked up once. */
+  var tokens = {};
+  Array.prototype.forEach.call(document.querySelectorAll(".board-token"), function (circle) {
+    tokens[circle.getAttribute("data-suspect")] = circle;
+  });
+
+  function el(tag, className, text) {
+    var e = document.createElement(tag);
+    if (className) e.className = className;
+    if (text !== undefined && text !== null) e.textContent = String(text);
+    return e;
+  }
+
+  function post(url, fields) {
+    var body = new URLSearchParams();
+    body.set("csrf", csrf);
+    Object.keys(fields || {}).forEach(function (key) {
+      body.set(key, fields[key]);
+    });
+    return fetch(url, {
+      method: "POST",
+      body: body,
+      credentials: "same-origin",
+      headers: { "Accept": "application/json" }
+    }).then(handle);
+  }
+
+  function get(url) {
+    return fetch(url, { credentials: "same-origin", headers: { "Accept": "application/json" } }).then(handle);
+  }
+
+  /* An expired session answers with a redirect to the login page, and a
+     stale CSRF token with an HTML 400; either way the page must start
+     over rather than parse HTML as JSON. */
+  function handle(response) {
+    var type = response.headers.get("content-type") || "";
+    if (response.redirected || type.indexOf("application/json") < 0) {
+      window.location.reload();
+      return new Promise(function () {});
+    }
+    return response.json().then(function (payload) {
+      if (!response.ok) {
+        var err = new Error(payload.error || "Something went wrong.");
+        err.payload = payload;
+        throw err;
+      }
+      return payload;
+    });
+  }
+
+  /* --- rendering ------------------------------------------------------ */
+
+  function showError(message) {
+    if (!errorBox) return;
+    errorBox.textContent = message || "";
+    errorBox.hidden = !message;
+  }
+
+  function moveTokens(points) {
+    Object.keys(points || {}).forEach(function (suspect) {
+      var circle = tokens[suspect];
+      if (!circle) return;
+      circle.setAttribute("cx", points[suspect][0]);
+      circle.setAttribute("cy", points[suspect][1]);
+    });
+  }
+
+  function appendEvents(events) {
+    if (!log) return;
+    var placeholder = log.querySelector(".placeholder");
+    (events || []).forEach(function (event) {
+      if (event.i < since) return;
+      if (placeholder) {
+        log.removeChild(placeholder);
+        placeholder = null;
+      }
+      var li = el("li", "kind-" + event.kind, event.text);
+      li.setAttribute("data-index", event.i);
+      log.appendChild(li);
+    });
+    if (!log.children.length) {
+      var empty = el("li", "placeholder note", "The cards are dealt. Nobody has moved yet.");
+      log.appendChild(empty);
+    }
+    if (events && events.length) log.scrollTop = log.scrollHeight;
+  }
+
+  function statusText(payload) {
+    if (payload.broken) return "This table is broken: " + payload.broken;
+    if (payload.over) {
+      var who = payload.over.winner ? payload.over.winner + " wins." : "Nobody wins.";
+      var e = payload.over.envelope;
+      return who + " It was " + e[0] + " with the " + e[1] + " in the " + e[2] + ".";
+    }
+    if (payload.pending) {
+      switch (payload.pending.kind) {
+        case "movement": return "Your move.";
+        case "suggestion": return "You are in the " + payload.pending.room + ". Make a suggestion?";
+        case "accusation": return "Accuse, or pass?";
+        case "card_to_show": return payload.pending.shown_to_name + " named cards you hold. Show one.";
+        default: return "Your decision.";
+      }
+    }
+    if (payload.waiting) {
+      var w = payload.waiting;
+      var what = { movement: "move", suggestion: "suggest", accusation: "decide whether to accuse", card_to_show: "show a card" }[w.kind] || "decide";
+      return "Waiting for " + w.name + " to " + what + (w.autopilot ? " (on autopilot)" : "") + ".";
+    }
+    if (payload.work) return "The table is playing.";
+    return "";
+  }
+
+  function clearTargets() {
+    if (!svg) return;
+    var old = svg.querySelector("#targets");
+    if (old) old.parentNode.removeChild(old);
+  }
+
+  function optionText(option) {
+    if (option.move === "stay") return "Stay where you are";
+    if (option.move === "secret_passage") return "Secret passage to the " + option.to;
+    if (typeof option.to === "string") return "Enter the " + option.to;
+    return "Corridor, row " + option.to.row + ", column " + option.to.col;
+  }
+
+  function answer(dataForAnswer) {
+    if (busy) return;
+    busy = true;
+    showError("");
+    post(urls.answer, { seq: current.pending ? current.pending.seq : -1, since: since, data: JSON.stringify(dataForAnswer) })
+      .then(function (payload) {
+        busy = false;
+        render(payload);
+        schedule();
+      })
+      .catch(function (err) {
+        busy = false;
+        showError(err.message);
+        schedule(1000);
+      });
+  }
+
+  function select(name, items, label) {
+    var wrap = el("label", "field", label + " ");
+    var s = el("select");
+    s.name = name;
+    items.forEach(function (item) {
+      var o = el("option", null, item.replace("_", " "));
+      o.value = item;
+      s.appendChild(o);
+    });
+    wrap.appendChild(s);
+    return { wrap: wrap, select: s };
+  }
+
+  var SUSPECTS = ["Scarlett", "Mustard", "White", "Green", "Peacock", "Plum"];
+  var WEAPONS = ["Candlestick", "Knife", "Lead_Pipe", "Revolver", "Rope", "Wrench"];
+  var ROOMS = ["Kitchen", "Ballroom", "Conservatory", "Billiard", "Library", "Study", "Hall", "Lounge", "Dining"];
+
+  function renderDecision(pending) {
+    if (!decision) return;
+    while (decision.firstChild) decision.removeChild(decision.firstChild);
+    clearTargets();
+    if (!pending) {
+      decisionTitle.textContent = current.over ? "Game over" : "Not your decision";
+      if (current.over && current.over.replay) {
+        var a = el("a", null, "Open the replay");
+        a.href = current.over.replay;
+        decision.appendChild(a);
+      } else {
+        decision.appendChild(el("p", "note", current.waiting ? statusText(current) : "Wait for your turn."));
+      }
+      return;
+    }
+    var buttons = el("div", "options");
+    if (pending.kind === "movement") {
+      decisionTitle.textContent = "Your move";
+      var group = null;
+      if (svg) {
+        group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        group.setAttribute("id", "targets");
+      }
+      pending.options.forEach(function (option) {
+        var button = el("button", null, optionText(option));
+        button.type = "button";
+        button.addEventListener("click", function () {
+          answer({ move: option.move, to: option.to });
+        });
+        buttons.appendChild(button);
+        if (group) {
+          var circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          circle.setAttribute("class", "board-target");
+          circle.setAttribute("cx", option.x);
+          circle.setAttribute("cy", option.y);
+          circle.setAttribute("r", 9);
+          var tip = document.createElementNS("http://www.w3.org/2000/svg", "title");
+          tip.textContent = optionText(option);
+          circle.appendChild(tip);
+          circle.addEventListener("click", function () {
+            answer({ move: option.move, to: option.to });
+          });
+          group.appendChild(circle);
+        }
+      });
+      if (group) svg.appendChild(group);
+      decision.appendChild(el("p", "note", "Click a highlighted square or room on the board, or a button."));
+      decision.appendChild(buttons);
+    } else if (pending.kind === "suggestion") {
+      decisionTitle.textContent = "Suggest, in the " + pending.room;
+      var suspect = select("suspect", SUSPECTS, "Suspect");
+      var weapon = select("weapon", WEAPONS, "Weapon");
+      decision.appendChild(suspect.wrap);
+      decision.appendChild(weapon.wrap);
+      var go = el("button", null, "Suggest");
+      go.type = "button";
+      go.addEventListener("click", function () {
+        answer({ suspect: suspect.select.value, weapon: weapon.select.value });
+      });
+      var pass = el("button", "quiet", "No suggestion");
+      pass.type = "button";
+      pass.addEventListener("click", function () { answer(null); });
+      buttons.appendChild(go);
+      buttons.appendChild(pass);
+      decision.appendChild(buttons);
+    } else if (pending.kind === "accusation") {
+      decisionTitle.textContent = "Accuse?";
+      var as = select("suspect", SUSPECTS, "Suspect");
+      var aw = select("weapon", WEAPONS, "Weapon");
+      var ar = select("room", ROOMS, "Room");
+      decision.appendChild(as.wrap);
+      decision.appendChild(aw.wrap);
+      decision.appendChild(ar.wrap);
+      var accuse = el("button", "warn", "Accuse");
+      accuse.type = "button";
+      accuse.addEventListener("click", function () {
+        var text = as.select.value + " with the " + aw.select.value.replace("_", " ") + " in the " + ar.select.value;
+        if (window.confirm("Accuse " + text + "? A wrong accusation puts you out of the game.")) {
+          answer({ suspect: as.select.value, weapon: aw.select.value, room: ar.select.value });
+        }
+      });
+      var skip = el("button", null, "Pass");
+      skip.type = "button";
+      skip.addEventListener("click", function () { answer(null); });
+      buttons.appendChild(skip);
+      buttons.appendChild(accuse);
+      decision.appendChild(el("p", "note", "Pass unless you are sure: a wrong accusation ends your game, though you still show cards."));
+      decision.appendChild(buttons);
+    } else if (pending.kind === "card_to_show") {
+      decisionTitle.textContent = "Show a card to " + pending.shown_to_name;
+      pending.candidates.forEach(function (card) {
+        var button = el("button", null, card.replace("_", " "));
+        button.type = "button";
+        button.addEventListener("click", function () { answer({ card: card }); });
+        buttons.appendChild(button);
+      });
+      decision.appendChild(buttons);
+    }
+  }
+
+  function renderHand(me) {
+    if (!hand || !me) return;
+    while (hand.firstChild) hand.removeChild(hand.firstChild);
+    me.hand.forEach(function (card) {
+      hand.appendChild(el("li", "card-chip", card.replace("_", " ")));
+    });
+    if (myToken) myToken.textContent = "(" + me.token + (me.active ? "" : ", out") + ")";
+    if (autopilotButton) {
+      autopilotButton.textContent = me.autopilot ? "Take my seat back" : "Let the floor bot play for me";
+      autopilotButton.onclick = function () {
+        post(urls.autopilot, { seat: me.seat, on: me.autopilot ? "0" : "1" })
+          .then(function (payload) { render(payload); schedule(); })
+          .catch(function (err) { showError(err.message); });
+      };
+    }
+  }
+
+  function renderSeats(payload) {
+    if (!seatsBox) return;
+    while (seatsBox.firstChild) seatsBox.removeChild(seatsBox.firstChild);
+    var seatsByIndex = {};
+    (payload.seats || []).forEach(function (s) { seatsByIndex[s.seat] = s; });
+    (payload.readings || []).forEach(function (r) {
+      var seat = seatsByIndex[r.seat] || {};
+      var article = el("article", "seat compact" + (r.active ? "" : " out") + (seat.me ? " mine" : ""));
+      article.setAttribute("data-seat", r.seat);
+      var h2 = el("h2");
+      h2.appendChild(el("span", "pip suspect-" + r.suspect.toLowerCase()));
+      h2.appendChild(document.createTextNode(" " + r.suspect + " "));
+      if (r.label !== r.suspect) h2.appendChild(el("span", "who", "(" + r.label + (seat.me ? ", you" : "") + ")"));
+      h2.appendChild(el("span", "placed", r.placed + "/" + r.total));
+      article.appendChild(h2);
+      var method = r.method || (seat.kind === "human" ? "a person" : r.label);
+      article.appendChild(el("p", "method", method + (r.active ? "" : " · out, accused wrongly") + (seat.autopilot ? " · autopilot" : "")));
+      r.groups.forEach(function (g) {
+        var gauge = el("div", "gauge" + (g.solved ? " solved" : ""));
+        gauge.appendChild(el("span", "gname", g.name));
+        var cells = el("span", "cells");
+        cells.title = g.placed + " of " + g.size + " placed";
+        for (var i = 0; i < g.size; i += 1) cells.appendChild(el("span", "cell" + (i < g.placed ? " on" : "")));
+        gauge.appendChild(cells);
+        if (g.confidence !== null && g.confidence !== undefined) {
+          var sure = el("span", "sure");
+          var fill = el("span", "sure-fill");
+          fill.style.width = (g.confidence * 100).toFixed(1) + "%";
+          sure.appendChild(fill);
+          sure.title = "its best guess, " + Math.round(g.confidence * 100) + "% sure";
+          gauge.appendChild(sure);
+          gauge.appendChild(el("span", "pct", Math.round(g.confidence * 100) + "%"));
+        } else {
+          gauge.appendChild(el("span", "sure none"));
+          gauge.appendChild(el("span", "pct note", "–"));
+        }
+        article.appendChild(gauge);
+      });
+      seatsBox.appendChild(article);
+    });
+  }
+
+  function renderNotepad(payload) {
+    if (!notepad || !payload.notepad) return;
+    while (notepad.firstChild) notepad.removeChild(notepad.firstChild);
+    var seats = payload.seats || [];
+    var head = el("tr");
+    head.appendChild(el("th", null, "card"));
+    seats.forEach(function (s) { head.appendChild(el("th", null, s.token.slice(0, 3))); });
+    head.appendChild(el("th", null, "env"));
+    notepad.appendChild(head);
+    var lastCategory = null;
+    payload.notepad.forEach(function (row) {
+      if (row.category !== lastCategory) {
+        var divider = el("tr", "category");
+        var th = el("th", null, row.category);
+        th.colSpan = seats.length + 2;
+        divider.appendChild(th);
+        notepad.appendChild(divider);
+        lastCategory = row.category;
+      }
+      var tr = el("tr", row.holder === null ? "open" : "placed");
+      tr.appendChild(el("td", "card", row.card.replace("_", " ")));
+      seats.forEach(function (s) {
+        var cell;
+        if (row.holder === s.seat) cell = el("td", "holder", "■");
+        else if (row.holder === null && row.possible.indexOf(s.seat) >= 0) cell = el("td", "maybe", "·");
+        else cell = el("td", "no", "");
+        tr.appendChild(cell);
+      });
+      var env;
+      if (row.holder === "envelope") env = el("td", "holder envelope", "■");
+      else if (row.holder === null && row.envelope) env = el("td", "maybe", "·");
+      else env = el("td", "no", "");
+      tr.appendChild(env);
+      notepad.appendChild(tr);
+    });
+  }
+
+  function render(payload) {
+    current = payload;
+    if (title) title.textContent = "Turn " + payload.turns;
+    moveTokens(payload.tokens);
+    appendEvents(payload.events);
+    since = Math.max(since, payload.n_events || 0);
+    if (status) status.textContent = statusText(payload);
+    renderDecision(payload.pending);
+    renderHand(payload.me);
+    renderSeats(payload);
+    renderNotepad(payload);
+    if (payload.over && payload.over.replay && !payload.pending) {
+      var link = document.getElementById("replay-link");
+      if (!link && status) {
+        var a = el("a", null, "Open the replay");
+        a.id = "replay-link";
+        a.href = payload.over.replay;
+        status.appendChild(document.createTextNode(" "));
+        status.appendChild(a);
+      }
+    }
+  }
+
+  /* --- polling and work ---------------------------------------------- */
+
+  function interval() {
+    if (current.finished) return 0;
+    if (current.work) return 1500;
+    if (current.pending) return 10000;
+    return 4000;
+  }
+
+  function tick() {
+    timer = null;
+    if (document.hidden) { schedule(15000); return; }
+    var request;
+    if (current.work && !current.finished) {
+      request = post(urls.work, { since: since });
+    } else {
+      request = get(urls.poll + "?since=" + since);
+    }
+    request
+      .then(function (payload) {
+        render(payload);
+        schedule();
+      })
+      .catch(function (err) {
+        showError(err.message);
+        schedule(5000);
+      });
+  }
+
+  function schedule(delay) {
+    if (timer) window.clearTimeout(timer);
+    var wait = delay !== undefined ? delay : interval();
+    if (!wait) return;
+    timer = window.setTimeout(tick, wait);
+  }
+
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) schedule(200);
+  });
+
+  render(data);
+  schedule(current.work ? 300 : undefined);
+})();

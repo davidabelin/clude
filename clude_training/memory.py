@@ -217,6 +217,48 @@ def load_into(character, logbook: Logbook) -> bool:
     return agent.load_state(memory) > 0
 
 
+def snapshot(logbook: Logbook, identity: str) -> Optional[dict]:
+    """What `load_into` would load for `identity` right now, in a form
+    small enough to store beside a web table (Phase 8.2): Green's arms
+    themselves, and for Mustard and White the ids of the games their
+    document holds. A table rebuilt on a cold instance loads the same
+    memory through `load_snapshot`, not a document that has moved on
+    since the deal -- which would change the bots' moves and could make
+    a stored human answer illegal. None for a memoryless identity or an
+    empty logbook."""
+    kind = kind_for(identity)
+    if kind is None:
+        return None
+    memory = logbook.method()
+    if memory is None or memory.get("kind") != kind:
+        return None
+    if kind == "state":
+        return {"kind": kind, "arms": memory.get("arms", {})}
+    return {"kind": kind, "games": sorted(memory.get("games", {}))}
+
+
+def load_snapshot(character, logbook: Logbook, snap: Optional[dict]) -> bool:
+    """`load_into`, but restricted to what `snapshot` recorded: the same
+    arms, or the same games' rows or counts, whatever the document holds
+    now. Returns whether anything was loaded."""
+    agent = character.agent
+    kind = kind_of(agent)
+    if kind is None or not snap or snap.get("kind") != kind:
+        return False
+    if kind == "state":
+        return agent.load_state({"arms": snap.get("arms", {})}) > 0
+    memory = logbook.method() or {}
+    games = memory.get("games", {}) if memory.get("kind") == kind else {}
+    kept = {"kind": kind, "games": {g: games[g] for g in snap.get("games", []) if g in games}}
+    if kind == "rows":
+        rows = extra_rows(kept)
+        agent.set_extra_rows(rows)
+        return bool(rows)
+    counts = priors(kept)
+    agent.set_priors(counts)
+    return bool(counts)
+
+
 def update(logbook: Logbook, record: GameRecord, character) -> bool:
     """After a game: fold `record` into `character`'s method memory in
     `logbook` (Mustard, White), or save its live state (Green). Returns

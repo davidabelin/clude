@@ -8,7 +8,9 @@ headless as they were.
 Built: 8.1a, the local app -- the login gate and accounts, the lobby, the
 replay scrubber and the Watch screen -- and 8.1b, the same app on Cloud
 Run at <https://clude-648214345192.us-central1.run.app> ("Deploying",
-below).
+below). Since Phase 8.2 (2026-09-18) people play at it too: a table
+seats you beside the characters and the game is played from the browser
+("A table", below).
 
 ## Running it locally
 
@@ -123,10 +125,12 @@ Alongside it:
 | `clude_web/users.py` | Accounts as `users/<name>.json` documents. |
 | `clude_web/board_svg.py` | The Classic grid as SVG, generated from `clude_core.board`. |
 | `clude_web/replay_data.py` | Per-event lines and board frames, and the cached per-game belief trace. |
-| `clude_web/watch.py` | A game watched a turn at a time, its compact readings, and the registry that stores and rebuilds it. |
-| `clude_web/views.py` | The lobby, a run's games, the replay, and Watch. |
-| `clude_web/templates/` | Jinja templates; `base.html` is the shell. |
+| `clude_web/tables.py` | Tables people play at (Phase 8.2): the registry that stores, drives and rebuilds every game, the form, and the view of a game from one seat. |
+| `clude_web/watch.py` | Watch as a table with nobody human at it: the all-bot form and the names the Watch screen speaks. |
+| `clude_web/views.py` | The lobby, a run's games, the replay, Watch, and the table routes (page, poll, work, answer, sit, deal, autopilot). |
+| `clude_web/templates/` | Jinja templates; `base.html` is the shell, `table.html` the table. |
 | `clude_web/static/style.css` | One stylesheet, every colour a variable. |
+| `clude_web/static/table.js` | The table screen: polls, fires bot work, draws the decision and posts the answer; writes only text into the page. |
 
 The stylesheet is plain on purpose. Typography, ornament, the decorated
 board and its logo, and motion are Phase 9; what is there now is the colour
@@ -166,20 +170,123 @@ be shown on the screen rather than hidden.
 
 ## The lobby
 
-`/` is the lobby, in three parts:
+`/` is the lobby, in four parts:
 
-- **Watch a game.** Tick the characters to seat, pick a table size (3-6)
-  and optionally a seed; empty seats go to `floor` bots, and each
-  character plays its own token, as it always does. "Deal" starts the game
-  and opens it on the Watch screen. Nothing here can call a model, so
-  nothing here costs money.
-- **In progress.** Every watched game not yet finished, newest first,
-  whoever dealt it -- so a game survives closing the tab.
+- **Play a game** (Phase 8.2). Six rows, one per token: *empty*, *me*,
+  that token's character, a *floor* bot, or an *open* seat for someone
+  else to take. Three to six seats, an optional seed, and "the characters
+  remember" (below). "Deal" starts the game at once, or, with an open
+  seat, puts the table under **Tables** until people have sat and someone
+  seated deals it; open seats still empty then go to floor bots.
+- **Tables.** Every unfinished table, newest first: who sits where,
+  whether it waits for people, whose turn it is, and whether you are at
+  it. A table survives closing the tab, a restart and a fresh Cloud Run
+  instance.
+- **Watch a game.** Characters only: tick who sits, pick a table size
+  and optionally a seed, and step through it a turn at a time on the
+  Watch screen. Nothing here can call a model, so nothing here costs
+  money.
 - **Stored games.** Every run in the store, the web app's own run (`web`)
   first. It is read from each run's summary, which already carries every
   game's seats, winner and length, so the lobby opens no game record at
   all: 51 runs list in about 0.3 s on Orbit. `/runs/<run_id>` lists that
   run's games, each a link to its replay.
+
+## A table
+
+`/tables/<id>` is a game with people at it (Phase 8.2,
+`docs/phase8-plan.md` 3.2-3.5). It is Watch's layout -- the board on the
+left, a column on the right, stacked on a phone -- plus the person's own
+panel: a status line ("Your move.", "Waiting for Mustard to suggest.",
+"Mustard named cards you hold. Show one."), the decision, their hand,
+the log of the game as their seat saw it, every seat's compact bar, and
+their notes.
+
+**The decision** is one form at a time, from the request the game is
+stopped on. A move shows the legal destinations both as highlighted
+squares and rooms on the board, at coordinates the server works out from
+`clude_core.board` (so the geometry stays in one place, as the replay's
+does), and as a list of buttons -- "Enter the Lounge", "Corridor, row 9,
+column 7", "Stay where you are", "Secret passage to the Study". A
+suggestion is two selects, the room fixed, and "Suggest" or "No
+suggestion"; an accusation three selects behind a confirm, or "Pass"; a
+card to show, when another seat's suggestion names cards you hold, one
+button per card, on someone else's turn. What you see is the engine's own
+list of legal options, the same list a character scores.
+
+**The notes** are the deduction floor from your seat: for every card,
+who is proven to hold it and which holders are still possible. Every
+cludebot gets the same sheet, so the person does too (David, 2026-09-18).
+
+**The other seats** show Watch's compact bar each -- cards placed and
+how sure its method is per category (David, 2026-09-18) -- and whether
+it is out. A human seat's bar shows what its floor has placed and no
+confidence.
+
+**What each viewer sees.** The card shown at a refutation is named only
+to the suggester and the refuter, which is `ClueObservation.for_player`'s
+rule; everyone else reads "Mustard disproved it". A spectator -- anyone
+signed in who holds no seat -- sees the board, the log and the bars and
+nothing else: no hand, no notes, no decision. A person whose token a
+suggestion dragged into a room is told so, since the drag has no event of
+its own, and may stay and suggest there on their turn, as the rules
+allow.
+
+**How it moves.** Nothing runs between requests: the service is billed
+per request and has CPU only while one is in flight. So the page polls
+(`GET /tables/<id>/poll?since=N`, a few seconds apart, slower while it
+waits on a person, not at all while the tab is hidden) and fires one
+unit of bot work (`POST /tables/<id>/work`) whenever the poll says work
+is due: one bot turn, no sooner than a second and a half after the last,
+so a run of bot turns reads at a human pace. The first caller takes the
+game lock without waiting and does the work; everyone else comes
+straight back; the poll never takes the lock at all, reading a snapshot
+the driver publishes after every advance, so six browsers polling never
+queue behind a slow turn. An answer (`POST /tables/<id>/answer`) quotes
+the entry count it answers, so a stale or doubled submission is refused
+rather than applied twice, and a bad answer -- a square not offered, a
+card you do not hold -- is a 400 with the reason and the game is exactly
+as it was. Every write is a form POST with the CSRF token, which the page
+reads from a `<meta>` tag; a JSON body would fail the check on purpose.
+
+**Autopilot.** "Let the floor bot play for me" hands your seat to the
+stand-in -- the plain characterless player, so a seat on autopilot never
+impersonates a character -- and "Take my seat back" takes it back. Anyone
+seated may hand a seat to the stand-in once it has kept the table
+waiting ten minutes, so one person leaving cannot lock the table.
+
+**Surviving a restart.** A table's document (`tables/<id>.json`) holds
+its setup and its *entries*: every answer sent in, with the length of
+the event log when it was applied. A game is deterministic per seed and
+every pause is deterministic given the entries before it, so a game
+missing from memory is rebuilt by replaying its entries into a fresh
+generator, which lands on the same pause, its pending decision included.
+The rebuild replays every bot decision too, so a long six-seat game with
+Plum and Green at the table can take most of a minute on a cold
+instance; it happens only after the instance has idled to zero or a
+redeploy, never while anyone is polling. The rebuild is single-flight,
+so two polls arriving together do not both replay it.
+
+**Characters remember.** Off by default. With it on, the deal loads each
+character's method memory from the store's `logbooks/` as `play
+--logbook` does (Mustard's rows, White's per-opponent counts, Green's
+posteriors), and the finish folds the game back in -- White's counts
+under the person's account key, so a human's suggestion habits follow
+them across whichever token they play. The document snapshots what was
+loaded (Green's arms; the game ids Mustard's and White's documents held)
+so a rebuild loads the same memory and not a document that has moved on
+since, which would change the bots' moves. Green's arms are reloaded
+from the latest document before the game's outcome is folded in, so two
+tables finishing in either order lose nothing. The cost is Mustard's
+tree retraining at the deal, about 30 s with his 116k-row memory; the
+form says so.
+
+**The end.** The game is saved as an ordinary record in the `web` run,
+human seats recorded with `kind="human"` under the account key, and the
+page offers the replay, where everything is laid face up.
+
+The same driver plays from the terminal: `clude_cli.py play --human
+Scarlett` (`docs/cli.md`).
 
 ## The Watch screen
 
@@ -190,11 +297,14 @@ plays the rest, which takes about 20 s with Plum or Green at the table
 (well under a second without them). When the game ends it is saved as an
 ordinary record in the `web` run and the screen becomes its replay.
 
-It plays exactly the game `clude_cli.py play` would for the same roster,
-table size and seed: the table comes from
-`clude_training.arena.headless_table`, lifted out of the CLI for the
-purpose, and the tests pin both the table and the turn-by-turn game to
-the CLI's own code.
+Since Phase 8.2 a watched game is a table with nobody human at it: the
+same driver (`clude_training.table.TableGame`), registry and
+`tables/<id>.json` document as a game people play, advanced by the two
+buttons rather than by polling. It plays exactly the game
+`clude_cli.py play` would for the same roster, table size and seed:
+`clude_training.arena.headless_table` now builds its table through the
+same `TableSetup.from_roster`, and the tests pin both the table and the
+turn-by-turn game to the CLI's own code.
 
 **What a spectator sees, and why so little.** The hands and the envelope
 stay hidden until the end. That rules out the replay's per-card bars, and
@@ -214,14 +324,13 @@ No card is named. A refutation reads "Scarlett disproved it", never what
 she showed -- which is all anyone but the two seats involved learns at a
 real table. A wrong accusation is announced, as it is in the game.
 
-**Surviving a restart.** Only the setup and the number of turns played are
-stored (`watch/<id>.json`); the game itself lives in memory. A game
-missing from memory -- a restarted process, a fresh Cloud Run instance --
-is rebuilt by dealing the same setup and replaying that many turns, which
-the engine's determinism makes exact. Belief readings come from fresh
-agents reset with the game seed, never from the agents actually playing,
-so a reading cannot disturb the game and a rebuilt game reads exactly as
-the live one did.
+**Surviving a restart.** Only the setup and the number of turns played
+matter for a watched game (its entry log is empty); a game missing from
+memory is rebuilt by dealing the same setup and replaying that many
+turns, which the engine's determinism makes exact. Belief readings come
+from fresh agents reset with the game seed, never from the agents
+actually playing, so a reading cannot disturb the game and a rebuilt
+game reads exactly as the live one did.
 
 ## The replay screen
 
@@ -345,6 +454,30 @@ only. `CLUDE_WEB_HTTPS=1` matters twice: it marks the session cookie
 (`ProxyFix`); without it the login would work but the cookie would not be
 marked `Secure`.
 
+### Checking a deploy with a game
+
+`scripts/clude_live_check.py` plays a table on the service through the
+same JSON routes the table screen uses, under two throwaway accounts,
+and times every request kind (Phase 8.2d). The sequence, each command
+run from Orbit:
+
+```powershell
+& .venv\Scripts\python.exe scripts\clude_cli.py users add t8a --uri gs://clude-game-data/llm
+& .venv\Scripts\python.exe scripts\clude_cli.py users add t8b --uri gs://clude-game-data/llm
+& .venv\Scripts\python.exe scripts\clude_live_check.py https://clude-648214345192.us-central1.run.app play t8a t8b
+& .venv\Scripts\python.exe scripts\clude_live_check.py https://clude-648214345192.us-central1.run.app start t8a t8b
+# redeploy (the command above), then, with the table id `start` printed:
+& .venv\Scripts\python.exe scripts\clude_live_check.py https://clude-648214345192.us-central1.run.app resume t8a t8b TABLE_ID
+& .venv\Scripts\python.exe scripts\clude_cli.py users remove t8a --uri gs://clude-game-data/llm
+& .venv\Scripts\python.exe scripts\clude_cli.py users remove t8b --uri gs://clude-game-data/llm
+```
+
+`play` sits, deals, plays a four-seat game with two people to the end
+and opens the replay; `start` leaves a second table three answers in;
+`resume`, after a redeploy, is the cold rebuild: the first poll must
+come back at the same pending decision, and its time is the rebuild
+cost to record here. The two games stay in `runs/web`.
+
 ### Accounts and records in the cloud
 
 Accounts are per store, so a cloud account is made against the bucket:
@@ -369,6 +502,13 @@ removed by hand.
 ## Tests
 
 `tests/test_web.py` runs Flask's test client against a `LocalStore` in a
-temp dir, with no network and no real store. `TESTING` makes the app sign
+temp dir, with no network and no real store. `tests/test_web_watch.py` pins the Watch screen and
+`tests/test_web_tables.py` the table: two accounts play a game to the end
+through the JSON routes, each reading only what its seat may; a bad
+answer leaves the game alive; a cold registry rebuilds a table at its
+pending decision; open seats, dealing, autopilot, reserved names and the
+memory toggle. `tests/test_browser.py` adds the table page in Chromium:
+the legal squares drawn where the server says, a click that plays the
+move, and the reveal rule holding in the log. `TESTING` makes the app sign
 its cookies with an ephemeral key, so a test never depends on the
 developer's `FLASK_SECRET_KEY` and never signs anything with the real one.

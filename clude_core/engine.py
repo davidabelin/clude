@@ -288,7 +288,7 @@ def apply_move(state: GameState, player: int, choice: MoveChoice) -> None:
     state.positions[player] = choice.destination
 
 
-def _checked(request: DecisionRequest, answer):
+def check_answer(request: DecisionRequest, answer):
     """Check an external seat's answer before it is allowed to touch the
     game, and return it.
 
@@ -299,6 +299,16 @@ def _checked(request: DecisionRequest, answer):
     network would otherwise be the first thing able to break. A
     suggestion or an accusation only has to name real cards -- naming the
     wrong ones is the game.
+
+    `_ask` runs this on every answer sent into `game_steps`, but a
+    `ValueError` raised there finishes the generator, so a driver that
+    wants to refuse a bad answer and keep the game alive calls this
+    itself first (Phase 8.2, `clude_training.table.TableGame.answer`).
+
+    Raises
+    ------
+    ValueError
+        With a message that says what was wrong.
     """
     if request.kind == "movement":
         if answer not in request.choices:
@@ -326,6 +336,9 @@ def _checked(request: DecisionRequest, answer):
     return answer
 
 
+_checked = check_answer
+
+
 def _ask(
     bots: dict[int, PlayerProtocol],
     external: frozenset,
@@ -342,7 +355,7 @@ def _ask(
     ever pausing.
     """
     if request.seat in external:
-        return _checked(request, (yield request))
+        return check_answer(request, (yield request))
     player = bots[request.seat]
     if request.kind == "movement":
         return player.choose_movement(request.obs, request.choices, rng)

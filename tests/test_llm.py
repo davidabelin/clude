@@ -663,11 +663,14 @@ FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures"
 # the character's own accuse_threshold, so Scarlett's move from 0.15 to
 # 0.3 rekeyed seed 1 and Plum's retuned curiosity and sample budget
 # rekeyed seed 2.
+# Re-recorded again on 2026-09-18 for Phase 8.0.4's landing rule
+# (`features._landing_proximity`): every movement menu's scores moved,
+# so every key did ($0.22).
 RECORDED_GAMES = [
     (
         "llm_seed1.json", "1", "3", "Scarlett,Peacock",
         "Mustard/Rope/Ballroom", "P1 Mustard (floor)",
-        "Turns played: 41; suggestions: 18; accusations: 1",
+        "Turns played: 41; suggestions: 17; accusations: 1",
     ),
     (
         "llm_seed2.json", "2", "4", "Plum,Mustard,Green,White",

@@ -555,12 +555,19 @@ class Table:
     observer : Callable
         What builds each seat's view: `clude_constraints.observe`, which
         every character needs.
+    kinds : list[str]
+        Seat -> what occupies it (`clude_training.table.SEAT_KINDS`),
+        which is what `SeatRecord.kind` holds; a human seat's label is a
+        person's name, so the kind can no longer be read off the label.
+        Empty for a table built before Phase 8.2, which `seat_kind`
+        still covers.
     """
 
     players: dict
     labels: list
     suspects: list
     observer: object
+    kinds: list = field(default_factory=list)
 
 
 def headless_table(roster, n_players: int, seed: int) -> Table:
@@ -574,27 +581,22 @@ def headless_table(roster, n_players: int, seed: int) -> Table:
     test pins a game played here to the one `play` produces for the same
     roster and seed, so the two cannot drift apart unnoticed.
 
+    Since Phase 8.2 this is `clude_training.table.build_table` over
+    `TableSetup.from_roster` with no humans, so a watched game, a game
+    with people at the table and `play`'s game are one code path. The
+    import is deferred because `table` imports this module's seating
+    helpers.
+
     Raises
     ------
     ValueError
         From `parse_roster`, on an empty roster, an unknown label or a
         character listed twice.
     """
-    lineup, suspects = seat_lineup(lineup_for_game(parse_roster(roster), 0, n_players))
-    players = {}
-    for seat, label in enumerate(lineup):
-        if label in AGENT_SPECS:
-            character = build_character(label)
-            character.reset(seed)
-            players[seat] = character
-        elif label == "floor":
-            players[seat] = clude_constraints.FloorBot(rng=Random(fill_seed(seed, seat)))
-        else:
-            players[seat] = RandomBot()
-    for seat, label in enumerate(lineup):
-        if label in AGENT_SPECS:
-            players[seat].new_game(lineup)
-    return Table(players=players, labels=lineup, suspects=suspects, observer=clude_constraints.observe)
+    from .table import TableSetup, build_table  # noqa: PLC0415 -- `table` imports this module
+
+    table, _external = build_table(TableSetup.from_roster(roster, n_players, seed))
+    return table
 
 
 def seat_kind(label: str) -> str:

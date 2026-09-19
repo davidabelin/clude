@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}{% if open_table %}Waiting for players{% else %}Table &middot; turn {{ payload.turns }}{% endif %}{% endblock %}
+{% block content %}
+<div class="watch table{% if viewer is none %} spectating{% endif %}" id="table" data-id="{{ table_id }}">
+
+  <header class="replay-head">
+    <p class="crumbs"><a href="{{ url_for('main.index') }}">Lobby</a> &rsaquo; table</p>
+    <h1 id="title">{% if open_table %}Waiting for players{% else %}Turn {{ payload.turns }}{% endif %}</h1>
+    <p class="note">
+      {{ setup.n_players }} seats, seed {{ setup.seed }}{% if document.started_by %}, started by {{ document.started_by }}{% endif %}{% if setup.remember %}; the characters remember{% endif %}.
+      {% if viewer is none and not open_table %}You are watching: hands stay hidden until the game ends.{% endif %}
+    </p>
+  </header>
+
+  {% if open_table %}
+  <section class="panel table-open">
+    <h2>Seats</h2>
+    <ul class="seat-rows">
+      {% for s in seats %}
+        <li class="seat-row">
+          <span class="pip suspect-{{ s.token|lower }}"></span>
+          <span class="name">{{ s.token }}</span>
+          <span class="occupant">
+            {% if s.kind == 'human' %}{{ s.label }}{% if s.label == me %} (you){% endif %}
+            {% elif s.kind == 'character' %}the character
+            {% elif s.kind == 'open' %}open
+            {% else %}{{ s.label }} bot{% endif %}
+          </span>
+          {% if s.kind == 'open' and viewer is none %}
+            <form method="post" action="{{ url_for('main.table_sit', table_id=table_id) }}">
+              <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+              <input type="hidden" name="token" value="{{ s.token }}">
+              <button type="submit" class="quiet">Sit here</button>
+            </form>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+    <div class="buttons">
+      {% if viewer is not none or document.started_by == user %}
+        <form method="post" action="{{ url_for('main.table_deal', table_id=table_id) }}">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <button type="submit">Deal now</button>
+        </form>
+      {% endif %}
+      {% if viewer is not none %}
+        <form method="post" action="{{ url_for('main.table_leave', table_id=table_id) }}">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <button type="submit" class="quiet">Leave the table</button>
+        </form>
+      {% endif %}
+    </div>
+    <p class="note">Open seats still empty when the table is dealt go to floor bots. Send the others this page's address.</p>
+  </section>
+
+  {% else %}
+
+  <div class="replay-body">
+    <section class="replay-board">
+      {{ board|safe }}
+      <p class="status" id="status" aria-live="polite"></p>
+    </section>
+
+    <section class="watch-side">
+      {% if viewer is not none %}
+      <div class="panel controls decision-panel">
+        <h2 id="decision-title">Your decision</h2>
+        <div class="decision" id="decision"></div>
+        <p class="error" id="error" role="alert" hidden></p>
+      </div>
+      <div class="panel me-panel">
+        <h2>Your hand <span class="who" id="my-token"></span></h2>
+        <ul class="hand" id="hand"></ul>
+        <div class="buttons"><button type="button" class="quiet" id="autopilot"></button></div>
+      </div>
+      {% endif %}
+
+      <div class="panel log-panel">
+        <h2>The game so far</h2>
+        <ol class="log" id="log"></ol>
+      </div>
+
+      <div class="seats-compact" id="seats"></div>
+
+      {% if viewer is not none %}
+      <div class="panel notepad-panel">
+        <h2>Your notes</h2>
+        <p class="note">What the deduction floor has established from your seat: a filled cell is a proven holder, a dot a holder still possible. Every cludebot has the same sheet.</p>
+        <table class="notepad" id="notepad"></table>
+      </div>
+      {% endif %}
+    </section>
+  </div>
+
+  <p class="note key">
+    Each seat shows how many of the 21 cards it has placed and how sure its
+    own method is of its best guess in each category. {{ limitation }}
+  </p>
+
+  <script id="table-data" type="application/json">{{ payload_json|safe }}</script>
+  <script src="{{ url_for('static', filename='table.js') }}"></script>
+  {% endif %}
+</div>
+{% endblock %}

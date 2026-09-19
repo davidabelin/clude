@@ -238,24 +238,26 @@ def test_movement_scores_and_accusation_test_are_pure():
 # and re-captured on 2026-09-14 when characters were locked to their
 # own tokens (`seat_lineup`): every seat moved, so every game did; and
 # again on 2026-09-15 when the ring board gave way to the Classic grid
-# and rules (`docs/board-plan.md`), which moved every game once more.
+# and rules (`docs/board-plan.md`), which moved every game once more; and
+# on 2026-09-18 when Phase 8.0.4 changed what a landing in a placed room
+# is worth (`features._landing_proximity`, docs/phase8-plan.md 6).
 # They pin the character layer the way `tests/test_engine.py`'s goldens
 # pin the rules engine: a change here means a character's behaviour
 # moved, which no Phase 6 work is supposed to do. Regenerate
 # deliberately if a method or a preset is meant to change.
 GOLDEN_CHARACTER_GAMES = {
     (23, 5, ("Scarlett", "Peacock", "Mustard", "White")): (
-        "713ebff2d8fb53cce75fb35e7ffb09fa5b460d170a463d28abd2eac2cb85c752", 111,
+        "419cdb36db41f3f7ece0649f18a0237df7e543700556b6b1523c252c583d0ab5", 86,
     ),
     (9, 3, ("Scarlett", "White", "Mustard")): (
-        "231ce5824663dc1eae93d9898436238bd26d8134a6c2cfd78cebc7a8b6e64ad1", 105,
+        "5f4ac82167a97e04a58264ee861799de1bed017a053e39520f797c4ba90b612f", 91,
     ),
     (31, 4, ("Peacock", "Scarlett")): (
-        "9c3c3c1e36b47833cd7a35a11033ea512a520278117faa64035efe45e8076633", 62,
+        "cbf2e6ccb9254cd6e60d5158365dc32b8bc6f57391e9f588f41e2b668df7bcc3", 62,
     ),
 }
 GOLDEN_FOUR_CHARACTER_GAME = (
-    "e1dc257ff9e04d452fccf34937202219ed2f31b7b71bb7070d151a391b7c34f6", 152,
+    "d8abc56749882ab2234d129ed2c2aa45f67712b1f0ca7d4886292ea72ca3ca90", 49,
 )
 
 

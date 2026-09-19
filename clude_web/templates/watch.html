@@ -33,11 +33,11 @@
           </ul>
         {% endif %}
         <div class="buttons">
-          <form method="post" action="{{ url_for('main.watch_next', watch_id=watch_id) }}">
+          <form method="post" action="{{ url_for('main.watch_next', table_id=watch_id) }}">
             <input type="hidden" name="csrf" value="{{ csrf_token() }}">
             <button type="submit" id="next-turn" autofocus>Next turn</button>
           </form>
-          <form method="post" action="{{ url_for('main.watch_end', watch_id=watch_id) }}">
+          <form method="post" action="{{ url_for('main.watch_end', table_id=watch_id) }}">
             <input type="hidden" name="csrf" value="{{ csrf_token() }}">
             <button type="submit" class="quiet" id="play-to-end">Play to the end</button>
           </form>

@@ -13,7 +13,7 @@ phase's plan doc ends with an "as implemented" section that records what
 was actually built and where it departed from the plan: trust that over
 the plan sections above it, and over this file if they disagree.
 
-## Status (2026-09-18)
+## Status (2026-09-18, evening)
 
 Phases 1-7 are done and committed. Each phase's record is the "as
 implemented" section of its plan doc (`docs/phase5-plan.md` to
@@ -24,9 +24,13 @@ through `scripts/clude_cli.py`, and since 8.1a also in a local Flask app
 and a Watch screen that plays a headless game a turn at a time. Since
 8.1b the same app runs on Cloud Run at
 <https://clude-648214345192.us-central1.run.app>, reading a mirror of
-`data/llm` in the bucket (`docs/web.md`, "Deploying"). Suite: 370
-passed, 13 skipped (the live-credential and browser tests), about two
-and a half minutes with `-n auto`; the 11 browser tests pass under
+`data/llm` in the bucket (`docs/web.md`, "Deploying"). Phase 8 was
+planned to completion on 2026-09-18 (`docs/phase8-plan.md`) and the
+same day 8.0.4 (the landing rule) and 8.2a-c (human players) were
+built: people sit at a table beside the characters and play from the
+browser, or from the terminal with `play --human`. Suite: 414 passed, 16
+skipped (the live-credential and browser tests), about two and a half
+minutes with `-n auto`; the 14 browser tests pass under
 `CLUDE_WEB_BROWSER=1`.
 
 **The road from here** (David renumbered it on 2026-09-16;
@@ -34,10 +38,10 @@ and a half minutes with `-n auto`; the 11 browser tests pass under
 
 | Phase | What | State |
 |---|---|---|
-| 8.0 | Re-measure the glossary on the Classic board (was the "re-measurement plan"; stages 8.0.0-8.0.3) | 8.0.0-8.0.3 done; what to do about Plum's grid parking (2c, 2d or a scoring change) is David's call -- `docs/phase8.0-plan.md` |
+| 8.0 | Re-measure the glossary on the Classic board (was the "re-measurement plan"; stages 8.0.0-8.0.4) | done: 8.0.0-8.0.3, and 8.0.4 the landing rule for the passage loop (2026-09-18) -- `docs/phase8.0-plan.md`, `docs/phase8-plan.md` |
 | 8.1 | 8.1a a basic UX scaffold as a local Flask app; 8.1b the same app on Cloud Run behind an app login | done: 8.1a built 2026-09-17 (steps 1-5: the engine seam, the login and accounts, the board and replay data, the replay scrubber, the lobby and Watch); 8.1b deployed 2026-09-18 (steps 6-9: the container, `store copy`, the service running as `clude-run`) -- `docs/phase8.1-plan.md`, `docs/web.md` |
-| 8.2 | Human players | not started |
-| 8.3 | The rest of chat | not started |
+| 8.2 | Human players | 8.2a-c built 2026-09-18 (the table driver and `play --human`; the table on the web with open seats, autopilot, cold rebuild and "characters remember"); 8.2d, the deploy and the live check, is David's to run (`docs/phase8-plan.md` 12, `docs/web.md`) |
+| 8.3 | The rest of chat: the model on the web under a spend cap, human chat, off-turn talk with pacing, debriefs after web games | planned in `docs/phase8-plan.md` 4; not started |
 | 9 | In-depth UX | not started |
 | 10 | Clean-up and close; then version 1.0.0, released to family and friends, and planning in versions, not phases | not started |
 
@@ -64,25 +68,38 @@ Where things stand:
   all four logbooks reset (the ring-era copy is `data/llm/logbooks-ring`)
   and Mustard's and White's memory rebuilt from grid records only
   (`logbook rebuild --min-version`, default 3). Mustard's is now 116k
-  rows, and loading it takes a 3-seat game from 1 s to 30 s.
+  rows, and loading it takes a 3-seat game from 1 s to 30 s. **8.0.4
+  (2026-09-18)** closed the parking question: a placed room is a
+  destination only when nobody else can refute with it (the agent's
+  own, or the envelope's), a room in another seat's hand a place on the
+  way (`features._landing_proximity`). Three paired arenas: games
+  shorter on every table, exact repeats down two thirds or more for
+  every character, win rates within noise (glossary, "The landing
+  rule"). Goldens re-captured, fixtures re-recorded.
+- **8.2 (2026-09-18).** `clude_training.table` is the driver: seats
+  as `SeatSpec`s, a table as a `TableSetup`, human seats external to
+  the engine, answers as data checked before they are sent in, an
+  entry log that rebuilds a paused game exactly. `clude_web.tables`
+  puts it on the web: a table document per game, polling and one unit
+  of bot work per request (no threads, no websockets), open seats,
+  autopilot, the reveal rule per viewer, the floor's notepad and
+  Watch's bars for the person, "characters remember" with a memory
+  snapshot. Watch is now a table with nobody human at it. A human's
+  label is the account key; the suspect names, `floor`, `random`,
+  `web` and `envelope` are refused as account names.
 - **Worth knowing from the earlier phases** (the detail is in the docs
   named):
   - An LLM seat chooses only within the leash of its character's own
     scores and falls back to the character on anything illegal,
     malformed or failed; `NullBackend` reproduces the headless game
     byte for byte (`docs/llm-wrapper.md`, `docs/phase6-plan.md` 8).
-  - **Plum's parking** (glossary, "Per-character leash ladders"): the
-    model plays the top-scored option, and `movement_scores` pays 0.20
-    for any room he can suggest in this turn whatever its probability,
-    so on the ring "stay" in a cleared room topped his menu. His own
-    logbook halved the stalls at leash 0.5 but cannot act at the preset
-    0.25 ("Plum's logbook at leash 0.5"). The grid removed the free
-    stay, and 8.0.2b found the grid's form ("Plum on the model on the
-    grid"): a secret passage into a cleared room scores 0.50 against
-    0.29 for walking toward a live one, the walk falls outside the 0.25
-    leash, so the wrapper plays the loop without asking the model (108
-    of 148 wasted trips) and he repeats half his suggestions. A logbook
-    cannot reach options the leash hides.
+  - **Plum's parking, resolved 2026-09-18** (glossary, "The landing
+    rule"): on the ring it was a free "stay" in a cleared room, on the
+    grid a secret passage into one, both paid for by a landing scoring
+    `proximity` 1.0 whatever the room; the leash hid the walk toward a
+    live room, so the wrapper played the loop without asking the model
+    and a logbook could not reach it. 8.0.4's landing rule removed the
+    payment; the history is in the glossary's ring and grid sections.
   - **Retracted:** the twin arena's "the leash rescues Mustard". Alone
     on the model his win rate does not move at any leash.
   - Logbooks: three tiers of memory per identity, a `memory` dial, off
@@ -92,7 +109,8 @@ Where things stand:
   twin run and pooled sweep, $27 for the ladders, $12.60 for 7d), then
   $0.26 re-recording fixtures on 2026-09-15, and $14.24 for 8.0.2a
   and 8.0.2b on 2026-09-16 ($9.36 and $4.88, against a $21-35 quote):
-  about $78 in all. An LLM seat-game
+  about $78 in all, with $0.22 more re-recording the fixtures for 8.0.4
+  on 2026-09-18. An LLM seat-game
   costs $0.07-0.11 for most characters and about $0.25 for Plum. Estimates have come in
   under twice: quote a range, not a point, and get a yes before any
   live run.
@@ -240,6 +258,15 @@ it; `docs/phase-plan.md` has the disposition of every file.
   game store. I raised that the service is internet-reachable and
   `password` is guessable; David's call, made knowingly
   (`docs/web.md`).
+- **Phase 8 to completion (2026-09-18).** The plan is
+  `docs/phase8-plan.md`; David's four decisions: 8.0.4 first, the
+  scoring change measured headless (not the paid ladders, not Phase
+  10); the model comes onto the web in 8.3a, after human seats; a
+  seated human sees the floor's notepad *and* Watch's compact bars for
+  the bot seats; "characters remember" ships in 8.2, default off, the
+  cost stated on the form. Assumed unless he says otherwise: the floor
+  bot as the autopilot stand-in, $2 per table and $10 a day as 8.3's
+  budgets, no `--min-instances 1`.
 - **Commit messages are printed in the reply, never written into
   `commit_msg.md`** by me (David declined that, 2026-09-13).
 
@@ -256,8 +283,11 @@ Built; the detail is in `docs/architecture.md`.
   (belief -> action), `explain.py` (text formatters).
 - `clude_training` -- self-play snapshots, the belief benchmark, `trace`
   (per-seat belief replay), `replay` (a stored record back into a
-  `GameState` or any seat's view), `memory` (Tier 1 method memory), the
-  arena and dial sweeps.
+  `GameState` or any seat's view), `memory` (Tier 1 method memory, and
+  the snapshot a web table stores), the arena and dial sweeps, `table`
+  (seats, the answer codec and `TableGame`, the driver for seats
+  answered from outside the engine; `arena.headless_table` builds
+  through it).
 - `clude_storage` -- `GameRecord`/`SeatRecord`, `LocalStore`, `GcsStore`
   (with generic document methods), `logbooks` (`LogbookEntry`,
   `LogbookHead`, `Logbook`, the memory-depth renderer), `mirror` (one
@@ -271,13 +301,18 @@ Built; the detail is in `docs/architecture.md`.
   cookie policy), `auth` (the login gate, CSRF, rate limit), `users`
   (accounts as store documents), `board_svg` (the grid drawn from
   `clude_core.board`, colourless so the stylesheet decides), `replay_data`
-  (event lines, board frames, the cached belief trace), `watch` (a game
-  played a turn at a time through `engine.game_steps`, stored as setup
-  plus turn count), `views`, templates, one stylesheet, `replay.js`.
+  (event lines, board frames, the cached belief trace), `tables` (the
+  registry that stores, drives and rebuilds every game, the seat form,
+  the view of a game from one seat), `watch` (Watch as a table with
+  nobody human at it), `views`, templates, one stylesheet, `replay.js`
+  and `table.js`.
   Imports every other package; nothing imports it (`docs/web.md`).
   `clude_training.arena.headless_table` is the table `play` seats, shared
   with Watch and pinned to the CLI by a test.
-- `scripts/clude_cli.py` -- the maintainer CLI; `tests/` -- pytest.
+- `scripts/clude_cli.py` -- the maintainer CLI (`play --human` seats
+  you from the terminal); `scripts/clude_shots.py` screenshots every
+  screen; `scripts/clude_live_check.py` plays a table on the deployed
+  service; `tests/` -- pytest.
 - `Dockerfile`, `requirements-web.txt`, `.gcloudignore`,
   `.dockerignore` -- the Cloud Run image; the ignore files keep the key
   file, `.env` and `data/` out (`tests/test_deploy.py`).
@@ -335,21 +370,11 @@ Suggestions to raise, not decisions to implement.
 
 ## Open questions (ask, don't assume)
 
-- **What to do about Plum's parking on the grid.** On the ring the
-  logbook (David's first hypothesis) halved Plum's stalls at leash 0.5
-  but could not act at the preset 0.25. 8.0.2b shows it alive on the
-  grid as a passage loop, three quarters of it on moves the model is
-  never asked about, and present more mildly in the headless character
-  too. The trigger written before the results used a count that could
-  not see this and is withdrawn (`docs/phase8.0-plan.md`, Stage 2).
-  Options: the `movement_scores` change (prefer a step toward a live
-  room over a cleared one; free to measure headless, moves the goldens
-  and fixtures), 2c's leash ladder, 2d's logbook pair, or nothing. 2a
-  shows Mustard looping on the model too (34% repeated suggestions
-  against 10% headless), so the scoring change would reach more than
-  Plum. Separately, 2a meets the pre-written condition for 2c Mustard
-  ($10-20), a question the ring ladder already answered for the same
-  pattern.
+None outstanding as of 2026-09-18. Still open but non-blocking, with
+what is assumed meanwhile (`docs/phase8-plan.md` 9): the autopilot
+stand-in (the floor bot), 8.3's budgets ($2 a table, $10 a day, a yes
+per live check), and `--min-instances 1` (not proposed; the cold
+rebuild is accepted and measured).
 
 Resolved 2026-09-13: leash presets stand; the parking fix waits behind
 logbooks; `docs/zenbot_memories.json` is the logbook model; no writing
@@ -361,7 +386,9 @@ login as read, the engine seam built now rather than in 8.2, no LLM
 seats on the web in 8.1, the Cloud Run changes with the service running
 as a new narrow `clude-run` rather than the now-owner `clude-sa`, and
 uploading the grid-era runs *and* the logbooks. Resolved 2026-09-18:
-the one-time Google Cloud changes for 8.1b, made by David in the Console.
+the one-time Google Cloud changes for 8.1b, made by David in the
+Console; the parking question (8.0.4, the landing rule, kept); the four
+Phase 8 decisions above.
 
 ## Working with David
 
