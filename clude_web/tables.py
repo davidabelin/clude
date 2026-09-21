@@ -1,5 +1,9 @@
-"""Tables: games played on the web, with people, characters and floor
-bots in any mix of seats (Phase 8.2, docs/phase8-plan.md 3.2).
+"""Tables with people, LLM characters, silent headless characters and
+floorbots in any mix of seats (Phase 8.2, docs/phase8-plan.md 3.2).
+
+New tables remember by default. The registry loads and updates method
+memory for Mustard, White and Green in either character mode, and
+attaches LLM narrative logbooks at each seat's saved memory depth.
 
 `clude_training.table.TableGame` is the driver; this module is what the
 web app puts around it. A `TableRegistry` keeps the live games in memory
@@ -35,7 +39,7 @@ and the answer is stored with its audit and the lines it said, so a
 rebuild never asks the model again. Every backend is a `MeteredBackend`
 over the table's budget and the service's daily cap (`LLMConfig`), and
 past either the wrapper's fallback plays the headless character. Without
-a key (`LLMConfig` None) the lobby offers no model seats and nothing
+a key (`LLMConfig` None) the lobby disables LLM seats and nothing
 here can spend.
 
 **A chat seat (Phase 9).** `clude_web.mcp` seats a Claude in a chat
@@ -206,11 +210,23 @@ def table_key(table_id: str) -> str:
 # --- the form -------------------------------------------------------------
 
 
+def remember_from_form(form) -> bool:
+    """Read the remembering choice, enabled when no field is supplied.
+
+    Checkbox forms send a trailing hidden ``remember=0`` so unchecking
+    explicitly opts out; the checked checkbox's first value is ``1``.
+    """
+    return str(form.get("remember", "1")).strip().lower() in ("1", "on", "true", "yes")
+
+
 def parse_table_form(form, me: str, llm: Optional[LLMConfig] = None) -> TableSetup:
     """A `TableSetup` from the lobby's table form: one select per token
-    named ``seat-<Token>`` reading *empty*, *me*, *character*, *llm* (the
-    character on the model; only with `llm`), *floor* or *open*, an
-    optional seed, and *remember*.
+    named ``seat-<Token>``. Labels, in order: empty, open, floorbot,
+    me (signed-in name), X (LLM), X (headless). Stored form values remain
+    ``empty``, ``open``, ``floor``, ``me``, ``llm``, ``character``.
+    LLM seats require `llm`; ``memory-<Token>`` sets their logbook depth
+    in [0, 1], default 0. Remembering defaults on; ``remember=0`` opts out.
+    An optional seed fixes the deal.
 
     Parameters
     ----------
@@ -240,8 +256,12 @@ def parse_table_form(form, me: str, llm: Optional[LLMConfig] = None) -> TableSet
             seats.append(SeatSpec(token, "character", token))
         elif value == "llm":
             if llm is None:
-                raise ValueError("Model seats are not available here: the service has no key.")
-            seats.append(SeatSpec(token, "llm", token))
+                raise ValueError("LLM seats are not available here: the service has no key.")
+            try:
+                memory = float(form.get(f"memory-{token}", "0") or "0")
+            except (TypeError, ValueError):
+                raise ValueError(f"{token}'s memory must be a number from 0 to 1.") from None
+            seats.append(SeatSpec(token, "llm", token, memory=memory))
         elif value == "floor":
             seats.append(SeatSpec(token, "floor"))
         elif value == "open":
@@ -265,7 +285,7 @@ def parse_table_form(form, me: str, llm: Optional[LLMConfig] = None) -> TableSet
             raise ValueError("The seed must be a whole number, or left blank.") from None
     else:
         seed = secrets.randbelow(1_000_000)
-    remember = (form.get("remember") or "").strip().lower() in ("1", "on", "true", "yes")
+    remember = remember_from_form(form)
     try:
         return TableSetup(tuple(seats), seed, MAX_TURNS, remember)
     except ValueError as exc:
@@ -727,7 +747,7 @@ class TableRegistry:
         table_id = secrets.token_hex(5)
         model_seats = [seat for seat, kind in enumerate(setup.kinds) if kind == "llm"]
         if model_seats and self.llm is None:
-            raise ValueError("Model seats are not available here: the service has no key.")
+            raise ValueError("LLM seats are not available here: the service has no key.")
         document = {
             "version": DOCUMENT_VERSION,
             "id": table_id,
@@ -1149,7 +1169,7 @@ class TableRegistry:
         """Write one pending debrief: the seat's wrapper reads the finished
         record face up and adds a logbook entry with its dossiers on
         everyone present, people by their account key (42 s and about
-        $0.09 on the model). Returns the seat served, or None when nothing
+        $0.09 with Claude). Returns the seat served, or None when nothing
         was pending. Marks the document ``done`` with the serial, or
         ``failed`` with the reason."""
         document = self.document(table_id) or {}

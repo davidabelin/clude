@@ -318,7 +318,7 @@ decisions are recorded there) and built in three sub-phases on
   named characters a logbook; and every character was locked to its
   own token (`seat_lineup`, `engine.run_game(..., suspects=...)`,
   goldens and fixtures re-captured). Measured on 24 paired games with
-  Plum on the model at leash 0.5, his logbook on against off: stalls
+  Plum with Claude at leash 0.5, his logbook on against off: stalls
   fall by more than half over the run (37 to 3 in the last quarter),
   two early accusations, wins a wash (`docs/strategy-glossary.md`,
   "Plum's logbook at leash 0.5"). About $12.60 of live spend.
@@ -344,7 +344,7 @@ between 2026-09-15 and 2026-09-19; every measurement is in
   Plum's `curiosity` 0.5 and sample budget 10,000) and the confirmation
   arena run. 8.0.2a-b, the two paid runs ($14.24 against a $21-35
   quote, no fallbacks): the twin arena reproduced the ring's findings
-  in direction, and Plum alone on the model showed the parking alive as
+  in direction, and Plum alone with Claude showed the parking alive as
   a passage loop the leash hides. 8.0.3: all four logbooks reset (the
   ring-era copy kept as `data/llm/logbooks-ring`) and Mustard's and
   White's method memory rebuilt from grid records only. 8.0.4, the
@@ -531,6 +531,19 @@ translation, though nothing may block it; a native app, a service
 worker or offline play; music; the IP scrub proper (renaming the
 characters and rooms is Phase 11's question); anything that needs a
 build step.
+
+## Seat setup update, 2026-09-21 (implemented)
+
+New Play and Watch tables remember by default, with a checkbox to opt
+out. Lobby choices
+are now `empty`, `open`, `floorbot`, `me (signed-in name)`, `X (LLM)`,
+`X (headless)`, in that order. LLM characters use Claude's persona,
+leashed decisions and chat; headless characters never chat. Remembering
+attaches narrative logbooks to LLM seats and method memory to Mustard,
+White and Green in either mode. LLM seats have a saved memory-depth dial
+(0 = condensed head; 1 = full entries), visible when remembering is on.
+Saved table choices and legacy replay behavior are preserved. CLI memory
+still requires `--logbook`. See `docs/web.md`, "The lobby".
 
 ## Open questions
 

@@ -22,7 +22,9 @@
           <span class="name">{{ s.token }}</span>
           <span class="occupant">
             {% if s.kind == 'human' %}{{ s.label }}{% if s.label == me %} (you){% endif %}
-            {% elif s.kind == 'character' %}the character
+            {% elif s.kind == 'character' %}{{ s.token }} (headless)
+            {% elif s.kind == 'llm' %}{{ s.token }} (LLM)
+            {% elif s.kind == 'floor' %}floorbot
             {% elif s.kind == 'open' %}open
             {% else %}{{ s.label }} bot{% endif %}
           </span>
@@ -50,7 +52,7 @@
         </form>
       {% endif %}
     </div>
-    <p class="note">Open seats still empty when the table is dealt go to floor bots. Send the others this page's address.</p>
+    <p class="note">Open seats still unclaimed when the table is dealt go to floorbots. Send the others this page's address.</p>
   </section>
 
   {% else %}

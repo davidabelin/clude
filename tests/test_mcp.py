@@ -388,6 +388,13 @@ async def test_a_line_is_said_at_the_table_and_an_empty_one_refused(server, regi
 # --- the combined app -------------------------------------------------------------------
 
 
+DISCOVERY_PATHS = [
+    f"/.well-known/{name}{suffix}"
+    for name in ("oauth-protected-resource", "oauth-authorization-server")
+    for suffix in ("", "/", "/mcp", f"/mcp/{SECRET}")
+] + ["/.well-known/openid-configuration"]
+
+
 async def asgi(app, method: str, path: str, body: bytes = b"", headers=()):
     """One request through an ASGI app, with no HTTP client: the status,
     the headers and the body."""
@@ -467,6 +474,16 @@ async def test_the_combined_app_serves_the_lobby_behind_the_gate_and_the_endpoin
         assert b"clude" in hello["body"]
 
 
+async def test_discovery_returns_json_404_without_redirecting_to_login(tmp_path):
+    combined = mcp.combined_app({"TESTING": True, "STORE_URI": str(tmp_path)}, secret=SECRET)
+    for path in DISCOVERY_PATHS:
+        response = await asgi(combined, "GET", path)
+        assert response["status"] == 404, (path, response)
+        assert response["headers"]["content-type"] == "application/json", path
+        assert json.loads(response["body"]) == {"error": "Not found"}, path
+        assert "location" not in response["headers"], path
+
+
 async def test_without_a_secret_the_endpoint_is_not_mounted(tmp_path, monkeypatch):
     monkeypatch.delenv("CLUDE_MCP_SECRET", raising=False)
     monkeypatch.setattr("clude_web.config.read_env_file", lambda *_a, **_k: None)
@@ -474,6 +491,9 @@ async def test_without_a_secret_the_endpoint_is_not_mounted(tmp_path, monkeypatc
     assert combined.state.mcp is None
     assert (await asgi(combined, "GET", "/"))["status"] == 302
     assert (await asgi(combined, "GET", f"/mcp/{SECRET}"))["status"] == 302  # Flask's gate, not the endpoint
+    for path in DISCOVERY_PATHS:
+        response = await asgi(combined, "GET", path)
+        assert response["status"] == 302 and "/login" in response["headers"]["location"], path
 
 
 def test_a_short_or_unsafe_secret_is_refused(tmp_path):

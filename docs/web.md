@@ -173,10 +173,23 @@ be shown on the screen rather than hidden.
 
 `/` is the lobby, in four parts:
 
-- **Play a game** (Phase 8.2). Six rows, one per token: *empty*, *me*,
-  that token's character, a *floor* bot, or an *open* seat for someone
-  else to take. Three to six seats, an optional seed, and "the characters
-  remember" (below). "Deal" starts the game at once, or, with an open
+- **Play a game** (Phase 8.2, labels and defaults updated 2026-09-21).
+  Six rows, one per token, with options in this order: **empty**, **open**,
+  **floorbot**, **me (signed-in name)**, **X (LLM)**, **X (headless)**.
+  X is that token's named character. Empty leaves the token out; open
+  reserves it for another player; floorbot is the plain deduction bot.
+  An LLM character combines its numerical method with Claude's persona,
+  leashed decisions and chat; a headless character uses only its numerical
+  method and never chats. LLM options remain visible but disabled without
+  a service key. Three to six occupied/reserved seats, an optional seed,
+  and "the characters remember", **checked by default**. Each remembering
+  LLM seat has a memory-depth dial from 0 to 1, saved with the table.
+  `static/lobby.js` shows the method only for character seats and the
+  memory dial only for an LLM seat with remembering checked; the form
+  still works without JavaScript. Stored seat kinds remain `character`
+  (headless), `llm`, `floor`, `human` and `open`. Checkbox forms submit an
+  explicit `remember=0` when unchecked; missing fields default to on.
+  "Deal" starts the game at once, or, with an open
   seat, puts the table under **Tables** until people have sat and someone
   seated deals it; open seats still empty then go to floor bots.
 - **Tables.** Every unfinished table, newest first: who sits where,
@@ -268,7 +281,8 @@ instance; it happens only after the instance has idled to zero or a
 redeploy, never while anyone is polling. The rebuild is single-flight,
 so two polls arriving together do not both replay it.
 
-**Characters remember.** Off by default. With it on, the deal loads each
+**Characters remember.** On by default for new Play and Watch tables
+since 2026-09-21; uncheck to opt out. With it on, the deal loads each
 character's method memory from the store's `logbooks/` as `play
 --logbook` does (Mustard's rows, White's per-opponent counts, Green's
 posteriors), a model seat's logbook is attached for read-back and a
@@ -283,9 +297,9 @@ tables finishing in either order lose nothing. The cost is Mustard's
 tree retraining at the deal, about 30 s with his 116k-row memory; the
 form says so.
 
-**A character on the model** (Phase 8.3a, `docs/phase8-plan.md` 4.1 and
-12). With a key on the service the seat form offers "Plum, on the model"
-beside "Plum, the character": the same character, its moves chosen by
+**An LLM character** (Phase 8.3a, `docs/phase8-plan.md` 4.1 and
+12). The seat form offers "Plum (LLM)" beside "Plum (headless)":
+the same numerical character, its moves chosen by
 Claude within its leash, its table talk in its voice. A model seat is
 answered from outside the engine like a person's, one decision per
 `work` call (two to three seconds each, the status line reading "Plum is
@@ -296,8 +310,8 @@ the table may spend (default `CLUDE_WEB_LLM_BUDGET`, $2); the service
 has a daily cap besides (`CLUDE_WEB_LLM_DAILY_CAP`, $10); the spend is
 metered per call into `spend/<date>.json` and shown under the status
 line, and past either cap the character plays on by itself and the
-line says so. Without a key the option is not offered and nothing
-reachable from the URL can spend.
+line says so. Without a key the LLM option is disabled, submitted LLM seats are
+refused, and nothing reachable from the URL can spend.
 
 **Table talk** (8.3b). A seated person types a line under the log
 (`POST /tables/<id>/say`, at most 240 characters, control characters
@@ -316,7 +330,7 @@ human seats recorded with `kind="human"` under the account key, and the
 page offers the replay, where everything is laid face up. With
 "characters remember" on and a model seat at the table (8.3c), the
 table first **wraps up**: each such seat writes its logbook entry
-(`docs/logbooks.md`; 42 s and about $0.09 on the model, one per `work`
+(`docs/logbooks.md`; 42 s and about $0.09 with Claude, one per `work`
 call, the status line naming who is writing), with its dossier on every
 opponent present, people by account key; the lobby lists the table as
 wrapping up until then, and whoever has it open drives it. Before the
@@ -339,8 +353,10 @@ ordinary record in the `web` run and the screen becomes its replay.
 Since Phase 8.2 a watched game is a table with nobody human at it: the
 same driver (`clude_training.table.TableGame`), registry and
 `tables/<id>.json` document as a game people play, advanced by the two
-buttons rather than by polling. It plays exactly the game
-`clude_cli.py play` would for the same roster, table size and seed:
+buttons rather than by polling. Watch remembers method memory by
+default, with its own checkbox to opt out. With remembering off it plays
+exactly the game `clude_cli.py play` would for the same roster, table size
+and seed; with remembering on its stored memory snapshot also matters:
 `clude_training.arena.headless_table` now builds its table through the
 same `TableSetup.from_roster`, and the tests pin both the table and the
 turn-by-turn game to the CLI's own code.
@@ -408,16 +424,19 @@ The screens can be seen without opening a browser by hand:
 ```
 
 It boots the app on a spare port against a throwaway store seeded from
-real records, signs in, and writes a PNG per screen -- login, the index,
-and the replay at its start, middle and end -- in light and dark and at
-wide and phone widths. `--out DIR` chooses where they land; `--run` and
+real records, signs in, and writes a PNG per screen -- login, lobby,
+lobby with an LLM memory dial, run listing, Watch and Play states, a
+waiting table, and replay at its start, middle and end -- in light and
+dark and at wide and phone widths. `--out DIR` chooses where they land; `--run` and
 `--game` choose which game.
 
 `tests/test_browser.py` drives the same browser and checks what markup
 tests cannot: that every token lands where the payload says, that tokens
 sharing a room never stack, that the arrow keys step the game, that a
 proven envelope row is drawn solid and full, and that the board is
-painted at all. It is skipped unless `CLUDE_WEB_BROWSER=1`, like the
+painted at all. It also checks the six seat labels, remembering defaults,
+LLM memory-dial visibility and the lobby's fit at 390 px. It is skipped
+unless `CLUDE_WEB_BROWSER=1`, like the
 tests that need credentials, so the default suite stays fast.
 
 Both need Playwright, which is optional:
@@ -452,7 +471,7 @@ bot work 820 ms (n = 94, 92 and 77). The cold rebuild, a table three
 answers in with no memory to load, polled after a redeploy in 0.1 s: a
 rebuild replays the entry log, so a long table costs more, and a
 remembering table pays Mustard's logbook load (about 30 s) on top. The
-one live model table so far (David with White and Peacock on the model,
+one live LLM table so far (David with White (LLM) and Peacock (LLM),
 "remember" on, 58 turns, 28 off-turn lines) cost $0.34 against its $2
 budget, with no fallbacks.
 
@@ -485,7 +504,7 @@ $P = '--project=clude-game'
 | `clude-run@clude-game` | The identity the service runs as. It holds **Storage Object Admin on `gs://clude-game-data`** and **Secret Accessor on `clude-flask-secret`**, and nothing else, so the most the internet-facing login page can ever expose is the game store. `clude-sa`, which is project owner, stays on Orbit. |
 | `clude-flask-secret` | The session secret, in Secret Manager, generated for the service and never the same as the local `.env` one. Handed to the app as `FLASK_SECRET_KEY`. |
 | `clude-mcp-secret` | The MCP endpoint's path segment (Phase 9), handed to the app as `CLUDE_MCP_SECRET`; `clude-run` holds Secret Accessor on it. Its value is the connector URL's last segment and nothing else guards the endpoint. |
-| `clude-anthropic-key` | The workspace-scoped Anthropic key, in Secret Manager since Phase 8.3a, handed to the app as `ANTHROPIC_API_KEY`; `clude-run` holds Secret Accessor on it. With it the lobby offers "on the model" seats; the spend is capped per table (`CLUDE_WEB_LLM_BUDGET`, $2 by default, the form may change it) and per UTC day (`CLUDE_WEB_LLM_DAILY_CAP`, $10), and the ledger is `spend/<date>.json` in the store. |
+| `clude-anthropic-key` | The workspace-scoped Anthropic key, in Secret Manager since Phase 8.3a, handed to the app as `ANTHROPIC_API_KEY`; `clude-run` holds Secret Accessor on it. With it the lobby enables "X (LLM)" seats; the spend is capped per table (`CLUDE_WEB_LLM_BUDGET`, $2 by default, the form may change it) and per UTC day (`CLUDE_WEB_LLM_DAILY_CAP`, $10), and the ledger is `spend/<date>.json` in the store. |
 | `gs://clude-game-data/llm` | The service's store: a mirror of `data/llm`'s grid-era runs, cached traces and logbooks, plus the service's own accounts (`users/`), every table played or watched there (`tables/`), the games they became (`runs/web`) and the traces it computes. |
 | `cloud-run-source-deploy` | The Artifact Registry repository the builds go to, with a cleanup policy that keeps the 3 newest images. |
 
@@ -646,7 +665,7 @@ connector is added at claude.ai (Settings, Connectors, add a
 custom connector) with the URL
 `https://clude-648214345192.us-central1.run.app/mcp/<the secret>` and no
 authentication. A game then goes: make a table in the browser with one
-open seat (and model seats and "remember" if wanted); in the chat, ask
+open seat (and LLM seats if wanted; remembering starts on); in the chat, ask
 Claude to sit; deal; Claude plays, `clude_say`ing as it goes; the
 finished game shows in the lobby and replays like any other, the chat
 seat labelled `claude`.

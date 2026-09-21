@@ -73,10 +73,11 @@ def csrf(client) -> str:
 
 def new_table(client, seats: dict, seed=SEED, remember=False, expect=302):
     """POST the lobby's table form; returns the table id, or the response
-    when `expect` is not a redirect."""
+    when `expect` is not a redirect. Tests opt out of persistent memory
+    unless requested; ``remember=None`` exercises the app's default."""
     fields = [("csrf", csrf(client)), ("seed", str(seed))]
-    if remember:
-        fields.append(("remember", "1"))
+    if remember is not None:
+        fields.append(("remember", "1" if remember else "0"))
     for token, value in seats.items():
         fields.append((f"seat-{token}", value))
     response = client.post("/tables", data=MultiDict(fields))
@@ -151,6 +152,23 @@ def play_out(app, table_id, clients: dict, max_steps=4000, on_payload=None):
 
 
 # --- the form -------------------------------------------------------------
+
+
+def test_remembering_defaults_on_and_an_unchecked_form_stays_off(ann, app):
+    page = ann.get("/").get_data(as_text=True)
+    assert 'value="1" checked' in page.split('id="remember"')[1].split(">", 1)[0]
+    seats = {"Scarlett": "me", "White": "character", "Plum": "open"}
+    table_id = new_table(ann, seats, remember=None)
+    assert app.extensions["tables"].document(table_id)["setup"]["remember"] is True
+    table_id = new_table(ann, seats, remember=False)
+    assert app.extensions["tables"].document(table_id)["setup"]["remember"] is False
+    for value in ("0", "1"):
+        invalid = ann.post("/tables", data={"csrf": csrf(ann), "remember": value})
+        assert invalid.status_code == 400
+        checkbox = invalid.get_data(as_text=True).split('id="remember"')[1].split(">", 1)[0]
+        assert ("checked" in checkbox) == (value == "1")
+    assert tables.remember_from_form(MultiDict([("remember", "1"), ("remember", "0")]))
+    assert not tables.remember_from_form(MultiDict([("remember", "0")]))
 
 
 def test_the_table_form_rejects_what_it_should(ann):
@@ -384,17 +402,17 @@ def _finish_by_registry(registry, table_id):
 def test_memory_off_reads_and_writes_nothing(store):
     registry = tables.TableRegistry(store)
     setup = TableSetup((SeatSpec("Scarlett", "human", ANN), SeatSpec("Mustard", "character", "Mustard"),
-                        SeatSpec("White", "character", "White")), SEED, max_turns=12)
+                        SeatSpec("White", "character", "White")), SEED, max_turns=12, remember=False)
     table_id = registry.create(setup, ANN)
     _finish_by_registry(registry, table_id)
     assert Logbook(store, "White").method() is None and Logbook(store, "Mustard").method() is None
     assert registry.document(table_id)["memory"] is None
 
 
-def test_memory_on_writes_whites_counts_under_the_human_label(store):
+def test_default_memory_writes_whites_counts_under_the_human_label(store):
     registry = tables.TableRegistry(store)
     setup = TableSetup((SeatSpec("Scarlett", "human", ANN), SeatSpec("Mustard", "character", "Mustard"),
-                        SeatSpec("White", "character", "White")), SEED, max_turns=30, remember=True)
+                        SeatSpec("White", "character", "White")), SEED, max_turns=30)
     table_id = registry.create(setup, ANN)
     assert registry.document(table_id)["memory"] == {}, "nothing to snapshot from an empty logbook"
     game = _finish_by_registry(registry, table_id)

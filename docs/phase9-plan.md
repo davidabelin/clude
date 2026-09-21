@@ -204,7 +204,8 @@ what a stranger with the URL could do is play Clue as `claude`. Section
 ### 3.4 What a game looks like
 
 David makes a table in the browser with one open seat and, if he
-likes, model seats and "remember"; in the chat he asks Claude to sit;
+likes, LLM seats; remembering starts on, with an opt-out (2026-09-21).
+In the chat he asks Claude to sit;
 `clude_sit` seats the `claude` account; David deals; Claude calls
 `clude_turn` and plays, `clude_say`ing as it goes; the game finishes
 and, with "remember" on, the model seats debrief as they do now and a

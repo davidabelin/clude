@@ -157,6 +157,7 @@ def _lobby(error=None, form=None, status=200, table_error=None, table_form=None)
             "token": token,
             "method": replay_data.seat_method(token),
             "value": table_form.get(f"seat-{token}", DEFAULT_SEATS.get(token, "empty")),
+            "memory": table_form.get(f"memory-{token}", "0"),
         }
         for token in SUSPECTS
     ]
@@ -176,7 +177,8 @@ def _lobby(error=None, form=None, status=200, table_error=None, table_form=None)
             error=error,
             tokens=tokens,
             table_seed=table_form.get("seed", ""),
-            remember=bool(table_form.get("remember")),
+            remember=tables.remember_from_form(table_form),
+            watch_remember=tables.remember_from_form(form),
             table_error=table_error,
             llm=_registry().llm,
             budget=table_form.get("budget", ""),
@@ -537,6 +539,7 @@ def watch_new():
             "characters": request.form.getlist("characters"),
             "n_players": request.form.get("n_players", DEFAULT_TABLE),
             "seed": request.form.get("seed", ""),
+            "remember": request.form.get("remember", "1"),
         }
         return _lobby(error=str(exc), form=form, status=400)
     table_id = _registry().create(setup, current_user())

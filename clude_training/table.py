@@ -3,7 +3,10 @@ the players built for it, and a game driven through `engine.game_steps`
 that stops whenever such a seat has to decide (Phase 8.2,
 docs/phase8-plan.md 3.1).
 
-Every seat has a `SeatSpec`: a token, a kind and a label. A character
+Every seat has a `SeatSpec`: a token, a kind, a label, and an LLM-only
+memory-depth dial. New setups default to remembering through the web
+registry; its memory snapshot joins the setup and entries for rebuilds.
+A character
 plays its own token, as it always has (`arena.seat_lineup`); a floor bot
 takes a free one; a *human* seat -- and in Phase 8.3 an LLM-piloted seat
 driven from here rather than from inside the engine -- has no player
@@ -63,7 +66,8 @@ MAX_TURNS = 300
 """The turn cap, as `clude_cli.py play` and the Watch screen have it."""
 
 SEAT_KINDS: tuple = ("character", "floor", "random", "human", "open", "llm")
-"""What can occupy a seat. ``open`` is a seat waiting for a person and
+"""Stored seat kinds: ``character`` means headless, ``floor`` means floorbot.
+``open`` is a seat waiting for a person and
 cannot be dealt; ``llm`` is Phase 8.3's, an LLM-piloted character answered
 from the driver rather than from inside the engine."""
 
@@ -89,7 +93,8 @@ class SeatSpec:
     token : str
         A suspect name: the token, and the seat's place in the turn order.
     kind : str
-        One of `SEAT_KINDS`.
+        One of `SEAT_KINDS`: ``character`` is the silent headless method;
+        ``llm`` adds Claude's persona, leashed choices and table talk.
     label : str
         The occupant's identity, which is what `SeatRecord.label` and a
         logbook are keyed by: a character's own name (seat-locked, so it
@@ -100,18 +105,27 @@ class SeatSpec:
         as a "head" (Phase 9, a chat seat over MCP): read-only, advisory,
         fixed when the seat is taken. Only a human seat may have one -- a
         character *is* its head, and a bot has none.
+    memory : float
+        An LLM seat's narrative logbook depth, from 0 (the condensed head)
+        to 1 (every entry in full). Applies when the table remembers;
+        independent of numeric method memory. Other seat kinds keep 0.
     """
 
     token: str
     kind: str
     label: str = ""
     head: bool = False
+    memory: float = 0.0
 
     def __post_init__(self) -> None:
         if self.token not in SUSPECTS:
             raise ValueError(f"{self.token!r} is not a suspect")
         if self.kind not in SEAT_KINDS:
             raise ValueError(f"unknown seat kind {self.kind!r}; expected one of {SEAT_KINDS}")
+        if not 0.0 <= self.memory <= 1.0:
+            raise ValueError("memory must be a number from 0 to 1")
+        if self.memory and self.kind != "llm":
+            raise ValueError("only an LLM seat has a narrative memory dial")
         if self.head and self.kind != "human":
             raise ValueError(f"only a human seat takes a head, not a {self.kind} seat")
         if self.head and self.token not in AGENT_SPECS:
@@ -142,12 +156,15 @@ class SeatSpec:
         out = {"token": self.token, "kind": self.kind, "label": self.label}
         if self.head:  # only when set, so every stored setup reads as before
             out["head"] = True
+        if self.kind == "llm":
+            out["memory"] = self.memory
         return out
 
     @classmethod
     def from_dict(cls, data: dict) -> "SeatSpec":
         return cls(
-            str(data["token"]), str(data["kind"]), str(data.get("label", "")), bool(data.get("head", False))
+            str(data["token"]), str(data["kind"]), str(data.get("label", "")),
+            bool(data.get("head", False)), float(data.get("memory", 0.0)),
         )
 
 
@@ -213,15 +230,16 @@ class TableSetup:
     seed : int
     max_turns : int
     remember : bool
-        Whether the characters read and write their method memory
-        (Phase 8.2, "characters remember"; the driver itself does nothing
-        with it, the web layer does).
+        True for new tables by default. The web layer loads and updates
+        supported method memory for headless and LLM characters, and
+        attaches narrative logbooks to LLM seats for read-back and debrief.
+        The driver itself does no storage I/O; CLI logbooks remain explicit.
     """
 
     seats: tuple
     seed: int
     max_turns: int = MAX_TURNS
-    remember: bool = False
+    remember: bool = True
 
     def __post_init__(self) -> None:
         seats = _board_order(self.seats)
@@ -296,7 +314,7 @@ class TableSetup:
         *,
         humans: Optional[dict] = None,
         max_turns: int = MAX_TURNS,
-        remember: bool = False,
+        remember: bool = True,
     ) -> "TableSetup":
         """The table ``clude_cli.py play`` seats for `roster` at
         `n_players`, plus any `humans` (token -> label) in seats of
@@ -332,6 +350,11 @@ class TableSetup:
 
     @classmethod
     def from_dict(cls, data: dict) -> "TableSetup":
+        """Restore a saved setup, preserving its remembering choice.
+
+        Legacy documents without ``remember`` retain the old False
+        behavior so rebuilding an existing game never enables memory.
+        """
         return cls(
             tuple(SeatSpec.from_dict(item) for item in data["seats"]),
             int(data["seed"]),
@@ -342,7 +365,8 @@ class TableSetup:
 
 def build_table(setup: TableSetup, llm_backend=None) -> tuple:
     """The players for `setup`, built as `arena.headless_table` builds
-    them: each character with its preset dials and reset with the game
+    them: each character with its preset dials (an LLM seat overrides
+    narrative ``memory`` with its saved dial) and reset with the game
     seed, each floor bot with a private RNG from `fill_seed`, and every
     character told who it is sitting with -- humans by their labels, so
     White's per-opponent priors find them. External seats get no player
@@ -379,7 +403,8 @@ def build_table(setup: TableSetup, llm_backend=None) -> tuple:
         elif spec.kind == "llm" and llm_backend is not None:
             from clude_llm import LLMCharacter  # noqa: PLC0415 -- only a table with model seats needs it
 
-            wrapper = LLMCharacter(build_character(spec.label), llm_backend(seat))
+            profile = AGENT_SPECS[spec.label].profile.with_dials(memory=spec.memory)
+            wrapper = LLMCharacter(build_character(spec.label, profile), llm_backend(seat))
             wrapper.reset(setup.seed)
             wrappers[seat] = wrapper
     for seat, spec in enumerate(setup.seats):
@@ -567,7 +592,8 @@ class TableGame:
     def __init__(self, setup: TableSetup, prepare=None, llm_backend=None) -> None:
         """`prepare(table)`, if given, runs after the players are built
         and before the game deals: where the web app loads the
-        characters' method memory (Phase 8.2, "characters remember").
+        supported method memory and LLM narrative logbooks ("characters
+        remember", enabled by default for new web tables).
         `llm_backend(seat)`, if given, builds the backend of each ``llm``
         seat's wrapper (`build_table`); without it those seats can only
         replay stored answers."""

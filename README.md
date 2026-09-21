@@ -40,9 +40,18 @@ Cloud Run for family and friends ([docs/web.md](docs/web.md)). Since
 Phase 8.2 people sit at the table too: a table in the lobby seats you
 beside the characters and the game is played from the browser, or from
 the terminal with `play --human`. Since Phase 8.3 a character can play
-"on the model" at a web table under a spend cap, people talk at the
+as **X (LLM)** at a web table under a spend cap, people talk at the
 table and the model seats answer off-turn, and a remembering table ends
 with each model seat writing its logbook.
+
+New Play and Watch tables **remember by default**, with a checkbox to
+opt out. The seat choices are **empty**, **open**, **floorbot**,
+**me (signed-in name)**, **X (LLM)** and **X (headless)**. X is that seat's
+named character: LLM adds Claude's choices, voice and narrative logbook;
+headless plays silently using its numerical method. Mustard, White and
+Green retain method memory in either mode. LLM seats have a memory-depth
+dial (0 = condensed notes, 1 = full entries); they require a service key.
+CLI memory still requires `--logbook`. See [the lobby guide](docs/web.md#the-lobby).
 
 ## Quick start
 

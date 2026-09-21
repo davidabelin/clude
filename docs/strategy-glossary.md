@@ -488,7 +488,7 @@ Mustard looked like the mirror image: wrong accusations down from
 37.5% of games to 6.2%, win rate tripled. The first reading was that a
 decision tree that pattern-matches into confident errors is exactly the
 character an extra judgment layer can rescue. **The per-character ladder
-below does not bear that out.** With only Mustard on the model, his
+below does not bear that out.** With only Mustard playing as an LLM, his
 wrong% at the preset leash is 41.7% against 25% headless, and his win
 rate does not move outside noise at any leash. Whatever improved him in
 the twin run came from the table -- five other LLM-piloted seats ending
@@ -564,7 +564,7 @@ neither character gains from more rope, and the presets stand.
 ### Per-character leash ladders (2026-09-13)
 
 The pooled sweep could not see who gains from the rope, so this runs
-one character on the model at a time. Fixed 3-seat table `Plum,Mustard,
+one character with Claude at a time. Fixed 3-seat table `Plum,Mustard,
 Green`, seed 7007, 24 games per value, the swept character alone
 LLM-piloted and the other two headless at preset. One headless run on
 the same deals is the baseline for both (`ladder-headless` in
@@ -775,7 +775,7 @@ therefore played fresh on both legs.
 
 The Phase 7d measurement: does Plum's own logbook teach him out of the
 parking? Fixed seating (Mustard, Green, Plum), seed 7007, 24 paired
-games, Plum alone on the model at `leash` 0.5 and `memory` 0 (he reads
+games, Plum alone with Claude at `leash` 0.5 and `memory` 0 (he reads
 the head: tally, standing instructions, dossiers), the other two
 headless at preset. The off leg has no logbook; the on leg gives one to
 Plum only (`--logbook-characters Plum`), starting empty, so it is a
@@ -1267,7 +1267,7 @@ mean 53.9 turns against 40.4 before.
 
 The grid-era twin of the Phase 6 twin comparison: `arena --seed 7007
 --games 24 --players 4`, the default six, headless (`grid-twin-base-24`)
-and with every character on the model (`grid-twin-llm-24`), same deals
+and with every character playing as an LLM (`grid-twin-llm-24`), same deals
 and dice. Each character plays 16 of the 24 games, now always in its
 own seat. Every game in both runs ended in a correct accusation.
 
@@ -1287,7 +1287,7 @@ across 2794 decisions.
 | Peacock | 12.5 | 31.2 | 2 / 5 | 0.0 | 0.0 | 56.5 | 33.2 | 87.5 | 68.8 |
 | Plum | **37.5** | **6.2** | 6 / 1 | 0.0 | 0.0 | 29.0 | 40.0 | 62.5 | 93.8 |
 
-Mean game length 41.9 turns headless, 37.1 on the model. The binomial
+Mean game length 41.9 turns headless, 37.1 with Claude. The binomial
 std is 6-12 points on 16 games: Plum's -31 is about 2.3 sigma, Mustard's
 wrong% -25 about 1.9, his win% +19 and Peacock's +19 about 1.3 each.
 
@@ -1307,19 +1307,19 @@ wrong% -25 about 1.9, his win% +19 and Peacock's +19 about 1.3 each.
   accused sooner and Plum's own first accusation barely moved. Here the
   opponents again accuse sooner (White 53.4 to 35.8, Peacock 56.5 to
   33.2), but Plum also accuses *later* (29.0 to 40.0) and not at all in
-  15 of 16 games, and on the model he repeats 30% of his suggestions
+  15 of 16 games, and with Claude he repeats 30% of his suggestions
   against 14% headless, with 34 wasted trips (27 never put to the
   model; `loop_report.py`). So on the grid a faster table and his own
   passage loop (Stage 2b, below) both work against him, and 16 games
-  cannot say in what proportion. Alone on the model (2b) he did not
+  cannot say in what proportion. Alone with Claude (2b) he did not
   lose ground, which fits the ring's reading that it takes an LLM table
   to punish him.
 - **Mustard's wrong accusations fall again**: 31.2% to 6.2% (ring:
   37.5% to 6.2%), with his win% up 19 points. On the ring the
   per-character ladder showed this was the table, not the model
-  improving his choices: alone on the model he was *worse*. Nothing
+  improving his choices: alone with Claude he was *worse*. Nothing
   here measures Mustard alone, so that reading is inherited, not
-  re-tested. He also loops on the model: 34% of his suggestions repeat
+  re-tested. He also loops with Claude: 34% of his suggestions repeat
   (10% headless), 31 wasted trips, 17 of them asked.
 - **Everyone else's first accusation comes earlier** (by 3 to 23
   turns) and games are five turns shorter, as on the ring.
@@ -1337,11 +1337,11 @@ wrong% -25 about 1.9, his win% +19 and Peacock's +19 about 1.3 each.
   same question for the same pattern, whether to pay $10-20 to re-ask
   it on the grid is David's call.
 
-### Plum on the model on the grid (Stage 2b, 2026-09-16)
+### Plum with Claude on the grid (Stage 2b, 2026-09-16)
 
 The grid-era twin of the Plum ladder's preset leg: fixed seating
-(Mustard, Green, Plum), seed 7007, 24 paired games, Plum alone on the
-model at the preset `leash` 0.25 and `memory` 0, the other two headless
+(Mustard, Green, Plum), seed 7007, 24 paired games, Plum alone with Claude
+at the preset `leash` 0.25 and `memory` 0, the other two headless
 at preset. The headless half is `grid-plum-base-24`.
 
 ```
@@ -1355,11 +1355,11 @@ no fallbacks, 13 deviations from his top option (2.8% of the asked),
 | run | win% | +- | wrong% | 1st accusation | never% | mean turns |
 |---|---|---|---|---|---|---|
 | `grid-plum-base-24` (headless) | 37.5 | 9.9 | 0 | 31.0 | 62.5 | 31.9 |
-| `grid-plum-llm-24` (on the model) | 54.2 | 10.2 | 0 | 34.8 | 45.8 | 42.6 |
+| `grid-plum-llm-24` (with Claude) | 54.2 | 10.2 | 0 | 34.8 | 45.8 | 42.6 |
 
 Paired by game, Plum lost 5 and gained 9 (net +4). Mustard's win%
 went 33.3 to 12.5 and Green's 29.2 to 33.3. On the ring the same leg
-cost Plum a little (62.5 headless, 58.3 on the model; characters
+cost Plum a little (62.5 headless, 58.3 with Claude; characters
 still rotated through seats then).
 
 **The parking is not gone; it changed form, and the count the plan
@@ -1377,7 +1377,7 @@ made, a trip that could learn nothing:
 |---|---|---|---|---|---|
 | ring, `ladder-plum-leash-0.25` | 73 / 20 | 56 / 5 | 62 of 210 (30%) | 28 | 2 |
 | grid headless, `grid-plum-base-24` | -- | -- | 47 of 187 (25%) | 97 | 2 |
-| grid on the model, `grid-plum-llm-24` | 54 / 149 | 40 / 108 | 148 of 291 (51%) | 195 | 5 |
+| grid with Claude, `grid-plum-llm-24` | 54 / 149 | 40 / 108 | 148 of 291 (51%) | 195 | 5 |
 
 - **The mechanism is the ring's, with a passage instead of "stay".**
   Game 8, turn 81: Plum is in the Kitchen, and only the room is left

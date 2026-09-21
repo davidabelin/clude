@@ -60,7 +60,8 @@ and leaves the schema display-ready for the Phase 8 case-file view.
   arena run only; `reset` rebuilds the arms to Beta(1,1); no codec.
 - **Goldens.** Mustard sits in three of the four pinned character games
   and Green in one (`tests/test_character.py`), so any memory must be
-  off by default and change nothing when off.
+  explicitly off in fixtures and change nothing when off. CLI logbooks
+  remain opt-in; new web tables default to remembering since 2026-09-21.
 - **The LLM side.** `LLMRequest.key()` hashes system, user and schema
   (not `kind`); the system prompt is built once per character and is
   both the API cache key and the fixture key. `AnthropicBackend.params`
@@ -567,7 +568,7 @@ leash-0.5 learning run is priced above as an option, not planned).
   the paired leash-0.5 run needed both legs fresh, since the ladder's
   leash-0.5 leg rotated seats.
 - **The measurement** (`docs/strategy-glossary.md`, "Plum's logbook at
-  leash 0.5"): 24 paired games, Plum alone on the model at leash 0.5
+  leash 0.5"): 24 paired games, Plum alone with Claude at leash 0.5
   and `memory` 0, logbook on (Plum only, from empty) against off.
   His stalls fall from 97 to 40 over the run and from 37 to 3 in the
   last quarter on the same deals, games with a long stall from 8 to

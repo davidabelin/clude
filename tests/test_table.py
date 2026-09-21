@@ -155,6 +155,17 @@ def test_setup_validation_and_round_trip():
     assert dealt.kinds == ["human", "floor", "character"] and dealt.remember
     again = TableSetup.from_dict(setup.to_dict())
     assert again == setup
+    assert TableSetup(seats, SEED).remember
+    assert TableSetup.from_roster(("Plum",), 3, SEED).remember
+    assert not TableSetup.from_dict(dict(setup.to_dict(), remember=False)).remember
+    legacy = setup.to_dict()
+    del legacy["remember"]
+    assert not TableSetup.from_dict(legacy).remember
+    llm = SeatSpec("Plum", "llm", "Plum", memory=0.75)
+    assert SeatSpec.from_dict(llm.to_dict()) == llm
+    assert SeatSpec.from_dict({"token": "Plum", "kind": "llm", "label": "Plum"}).memory == 0
+    with pytest.raises(ValueError, match="only an LLM"):
+        SeatSpec("Plum", "character", "Plum", memory=0.5)
     sat = setup.with_seat(1, SeatSpec("White", "human", "ann"))
     assert sat.external == frozenset({0, 1})
     with pytest.raises(ValueError, match="keeps its token"):

@@ -20,7 +20,7 @@ question. "Finish Phase 8" therefore means:
   passage into a cleared room scores 0.50 against 0.29 for walking toward
   a live one, the leash hides the walk, and Plum rides the loop (108 of
   148 wasted trips never put to the model; the headless character has
-  the habit mildly; Mustard loops on the model too). Section 6.
+  the habit mildly; Mustard loops with Claude too). Section 6.
 - **8.2, human players.** A person signs in, takes a token beside the
   cludebots and plays a whole game from the browser: moves, suggests,
   shows a card when another seat's suggestion names one of theirs,
@@ -237,7 +237,7 @@ the game.
 
 | Route | What |
 |---|---|
-| `POST /tables` | New table from the lobby form: six token rows, each *Empty*, *Me*, that token's character, *Floor bot* or *Open seat*; 3-6 non-empty; optional seed; "characters remember". Deals at once if no seat is open, else the table waits in the lobby. |
+| `POST /tables` | New table from the lobby form: six token rows, each **empty**, **open**, **floorbot**, **me (signed-in name)**, **X (LLM)** or **X (headless)**, in that order; 3-6 non-empty; optional seed; "characters remember" checked by default; an LLM memory-depth dial per seat. Deals at once if no seat is open, else the table waits in the lobby. |
 | `POST /tables/<id>/sit`, `/leave` | Take or give up an open seat before the deal. |
 | `POST /tables/<id>/deal` | Anyone seated deals; open seats still empty become floor bots. |
 | `GET /tables/<id>` | The table screen: the play view if the viewer holds a seat, the spectator view (Watch's) otherwise, with the initial payload embedded through `embed_json`. |
@@ -320,7 +320,8 @@ the human's own panel. All server text reaches the page as
   lobby and `/runs/web` show the labels; the replay works unchanged (a
   human seat's block is the floor's proven cards and no belief, like
   `floor`).
-- **"Characters remember"** (David, 2026-09-18: in 8.2, default off, the
+- **"Characters remember"** (shipped in 8.2; David changed the
+  default to on for new web tables on 2026-09-21, with an opt-out and the
   cost stated on the form). With it on, the deal does what `play
   --logbook` does against the web store's `logbooks/`, and the document
   snapshots what was loaded (Green's arms; the game ids Mustard's rows
@@ -373,7 +374,7 @@ the human's own panel. All server text reaches the page as
   one-time change made only after David's yes, as 8.1b's were. No secret
   client in the app; the backend is built per table at the deal, not in
   `create_app`, so the deploy tests still build the app with no network.
-  Without a key the lobby option does not appear.
+  Without a key the LLM option is visible but disabled.
 - **`MeteredBackend(inner, ledger, per_game_cap)`** in `clude_llm`: one
   place for both caps. It prices every call with `estimate_cost` (an
   unpriced model is refused, not uncapped), keeps per-table spend, writes
@@ -399,7 +400,7 @@ the human's own panel. All server text reaches the page as
   `GameRecord.llm_log` at the finish. The wrapper's chattiness RNG is not
   advanced on rebuild: the past is exact, the future may branch, which a
   game with people in it accepts.
-- A bot turn on the model is two to four calls of 2-3 s each, one per
+- A bot turn with Claude is two to four calls of 2-3 s each, one per
   `/work` request, so the table sees "Plum is thinking" for a few seconds
   rather than a frozen page; every request stays inside the 300 s
   timeout and the 30 s call timeout.
@@ -582,8 +583,9 @@ Taken by David on 2026-09-18:
    humans play the headless characters.
 3. **A seated human sees the floor's notepad and Watch's compact bars
    for the bot seats**, beyond their own hand and the legal choices.
-4. **"Characters remember" ships in 8.2**, default off, the cost stated
-   on the form.
+4. **"Characters remember" shipped in 8.2** initially off. Superseded
+   2026-09-21: new Play and Watch tables remember by default, with an
+   opt-out and the cost stated on the form.
 
 Still open, non-blocking, with what I will do unless told otherwise:
 
@@ -793,8 +795,10 @@ As 4.1, with these pins and departures:
   under `TESTING` only what is passed in counts, so no test ever finds
   the developer's key. The screenshot app gets a stand-in key and a
   `NullBackend` factory so the lobby shows the option.
-- The lobby's per-token select gains "Plum, on the model" and the form a
-  budget field, only with a key; `anthropic` joins the image and the
+- The lobby's per-token select offers "Plum (LLM)" and
+  "Plum (headless)" (labels updated 2026-09-21), and a budget field
+  with a key. Without a key the LLM option is visible but disabled;
+  `anthropic` joins the image and the
   deploy test now asserts it is there.
 
 ### 8.3b, humans talk and the characters answer (2026-09-19)
@@ -849,7 +853,7 @@ The key went out as `clude-anthropic-key` (`docs/web.md`, "What is out
 there") in David's deploy at 21:32 UTC, and the three 8.3 checks were
 one table, played by David in the browser rather than the $1-2 scripted
 runs section 5 quoted: table `1b31ccffd9`, David as Scarlett, White and
-Peacock on the model, Mustard and Green as characters, the floor bot at
+Peacock with Claude, Mustard and Green as characters, the floor bot at
 Plum, "characters remember" on. 58 turns; 55 model-seat decisions, 19
 of which called the model (the rest had one legal option), 0 fallbacks,
 1 deviation from the character; David said 6 lines, the model seats 8
@@ -884,3 +888,12 @@ skipped), `docs/phase-plan.md`, `docs/web.md` ("Deploying" gains the
 live numbers), `README.md`, and this section. Phase 8 is closed. What came next was
 renumbered on 2026-09-20: Phase 9 is now the seat over MCP
 (`docs/phase9-plan.md`), and the in-depth UX is Phase 10.
+
+### Seat setup follow-up (2026-09-21)
+
+New Play and Watch tables now remember by default, with an opt-out;
+this supersedes 8.2's original
+default. The six seat choices are empty, open, floorbot, me (signed-in
+name), X (LLM), X (headless). An LLM seat also exposes its saved narrative
+memory-depth dial. Headless characters remain silent, with method memory
+only for Mustard, White and Green. See `docs/web.md` for current behavior.

@@ -552,6 +552,24 @@ ever wants to read table talk, that is the point to revisit.
 
 ## Memory: the logbooks (Phase 7)
 
+Since 2026-09-21, new web Play and Watch tables remember by default.
+`TableSetup.remember` and `TableSetup.from_roster` default to True;
+the web registry performs memory I/O, while bare drivers and CLI arenas
+remain store-independent unless a logbook is explicitly attached.
+Both lobby forms send `remember=0` to opt out. Saved tables preserve
+their choice; legacy documents missing `remember` restore False.
+
+The seat menu is **empty**, **open**, **floorbot**, **me (signed-in name)**,
+**X (LLM)**, **X (headless)**, in that order. Empty omits a token; open
+reserves a seat until somebody joins or a floorbot fills it at the deal.
+The stored kinds remain `floor`, `human`, `llm`, and `character` for
+compatibility. `character` is the silent numerical method; `llm` adds
+Claude's persona, leashed choices, chat and an optional narrative logbook.
+Method memory applies to Mustard, White and Green in either mode.
+`SeatSpec.memory` persists an LLM seat's depth in [0, 1] (default 0, the
+condensed head), and `build_table` applies it to the wrapper's profile.
+The LLM option is visible but disabled when no service key is configured.
+
 Planned in `docs/phase7-plan.md` (David's three decisions are recorded
 there); the working guide is `docs/logbooks.md`. One `Logbook` per
 identity (a `SeatRecord.label`: a character name whichever token it

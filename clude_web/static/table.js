@@ -153,8 +153,8 @@
     if (payload.waiting) {
       var w = payload.waiting;
       var what = { movement: "move", suggestion: "suggest", accusation: "decide whether to accuse", card_to_show: "show a card" }[w.kind] || "decide";
-      if (w.no_model) return w.name + " is on the model, but this server has no key; the table cannot go on.";
-      if (w.model && w.refused) return w.name + "'s model budget is spent; the character plays on.";
+      if (w.no_model) return w.name + " is an LLM character, but this server has no key; the table cannot go on.";
+      if (w.model && w.refused) return w.name + "'s LLM budget is spent; its headless method plays on.";
       if (w.model) return w.name + " is thinking.";
       return "Waiting for " + w.name + " to " + what + (w.autopilot ? " (on autopilot)" : "") + ".";
     }
@@ -357,7 +357,11 @@
       var h2 = el("h2");
       h2.appendChild(el("span", "pip suspect-" + r.suspect.toLowerCase()));
       h2.appendChild(document.createTextNode(" " + r.suspect + " "));
-      if (r.label !== r.suspect) h2.appendChild(el("span", "who", "(" + r.label + (seat.me ? ", you" : "") + ")"));
+      if (seat.kind === "llm" || seat.kind === "character") {
+        h2.appendChild(el("span", "who", seat.kind === "llm" ? "(LLM)" : "(headless)"));
+      } else if (r.label !== r.suspect) {
+        h2.appendChild(el("span", "who", "(" + (seat.kind === "floor" ? "floorbot" : r.label) + (seat.me ? ", you" : "") + ")"));
+      }
       h2.appendChild(el("span", "placed", r.placed + "/" + r.total));
       article.appendChild(h2);
       var method = r.method || (seat.kind === "human" ? "a person" : r.label);

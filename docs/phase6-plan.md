@@ -470,7 +470,7 @@ wait until then.
     All seats are swept characters, so the sweep cannot show per-character
     effects.
 - **Per-character leash ladders** (same day; glossary, "Per-character
-  leash ladders"): one character on the model at a time, on a fixed
+  leash ladders"): one character with Claude at a time, on a fixed
   3-seat table `Plum,Mustard,Green`, seed 7007, 24 paired games per
   value, with a free headless baseline on the same deals and every
   record stored under `data/llm` (`ladder-*`). Mustard at 0 / 0.25 /
@@ -478,8 +478,8 @@ wait until then.
   cut after one 90-turn game, kept as `ladder-plum-leash-0-aborted`).
   No fallbacks in either.
   - Mustard does not move at any leash (paired net 0 to +2 games in 24).
-    This retracts the twin run's "the leash rescues Mustard": alone on
-    the model his wrong% at the preset is 41.7% against 25% headless.
+    This retracts the twin run's "the leash rescues Mustard": alone with
+    Claude his wrong% at the preset is 41.7% against 25% headless.
   - Plum: 62.5% headless, then 58.3 / 45.8 / 58.3; paired net -1 / -4 /
     -1; first accusation 10-15 turns later at every leash.
   - The mechanism, quantified from the stored menus: the model plays

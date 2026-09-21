@@ -1,8 +1,8 @@
 """Model seats at a web table (Phase 8.3a, docs/phase8-plan.md 4.1).
 
 Pinned, all on a scripted backend and never the API: that the lobby
-offers no model seat and the form refuses one without a key; that with
-a key a table with Plum on the model plays to the end through `work`,
+disables LLM seats and the form refuses one without a key; that with
+a key a table with Plum (LLM) plays to the end through `work`,
 one model decision per call, its remarks landing in the log; that the
 answers are stored with their audit and the record carries `llm_log`
 and ``kind="llm"`` with the model id; that a cold registry rebuilds the
@@ -81,10 +81,12 @@ def make_app(tmp_path, store, factory=None, budget=2.0, daily_cap=10.0, key="tes
     return create_app(settings)
 
 
-def test_without_a_key_the_lobby_offers_no_model_seat_and_the_form_refuses_one(tmp_path, store):
+def test_without_a_key_the_lobby_disables_llm_seats_and_the_form_refuses_one(tmp_path, store):
     app = make_app(tmp_path, store, key=None)
     ann = login(app, ANN)
-    assert "on the model" not in ann.get("/").get_data(as_text=True)
+    page = ann.get("/").get_data(as_text=True)
+    option = page.split('<option value="llm"', 1)[1].split("</option>", 1)[0]
+    assert "disabled" in option and "(LLM)" in option
     response = new_table(ann, SEATS, seed=SEED, expect=400)
     assert "no key" in response.get_data(as_text=True)
 
@@ -93,7 +95,7 @@ def test_with_a_key_the_lobby_offers_it_and_the_form_takes_a_budget(tmp_path, st
     app = make_app(tmp_path, store)
     ann = login(app, ANN)
     page = ann.get("/").get_data(as_text=True)
-    assert "Plum, on the model" in page and 'name="budget"' in page
+    assert "Plum (LLM)" in page and 'name="budget"' in page
     fields = [("csrf", csrf(ann)), ("seed", str(SEED)), ("budget", "0.75")]
     fields += [(f"seat-{t}", v) for t, v in SEATS.items()]
     response = ann.post("/tables", data=MultiDict(fields))
@@ -105,6 +107,35 @@ def test_with_a_key_the_lobby_offers_it_and_the_form_takes_a_budget(tmp_path, st
     assert bad.status_code == 400 and "number of dollars" in bad.get_data(as_text=True)
 
 
+def test_seat_labels_and_llm_memory_depth_are_saved_and_restored(tmp_path, store):
+    import re
+
+    app = make_app(tmp_path, store)
+    ann = login(app, ANN)
+    page = ann.get("/").get_data(as_text=True)
+    select = page.split('id="seat-Plum">')[1].split("</select>")[0]
+    assert re.findall(r'<option[^>]*>([^<]+)</option>', select) == [
+        "empty", "open", "floorbot", "me (ann)", "Plum (LLM)", "Plum (headless)",
+    ]
+    fields = {"csrf": csrf(ann), "seed": str(SEED), "memory-Plum": "0.75"}
+    fields.update({f"seat-{t}": v for t, v in SEATS.items()})
+    response = ann.post("/tables", data=fields)
+    assert response.status_code == 302
+    table_id = response.headers["Location"].rstrip("/").split("/")[-1]
+    registry = app.extensions["tables"]
+    game = registry.game(table_id)
+    plum = game.suspects.index("Plum")
+    assert game.setup.remember
+    assert game.wrappers[plum].profile.memory == 0.75
+    assert game.wrappers[plum].logbook.identity == "Plum"
+    cold = tables.TableRegistry(store, registry.llm).game(table_id)
+    assert cold.wrappers[plum].profile.memory == 0.75
+    assert cold.setup == game.setup
+    for invalid in ("oops", "nan", "inf", "-0.1", "1.1"):
+        bad = ann.post("/tables", data=dict(fields, **{"memory-Plum": invalid}))
+        assert bad.status_code == 400 and "memory" in bad.get_data(as_text=True)
+
+
 def _play(app, ann, factory):
     table_id = new_table(ann, SEATS, seed=SEED)
     dids = []
@@ -112,7 +143,7 @@ def _play(app, ann, factory):
     return table_id, final, dids
 
 
-def test_plum_on_the_model_plays_to_the_end_one_decision_per_work(tmp_path, store):
+def test_plum_with_claude_plays_to_the_end_one_decision_per_work(tmp_path, store):
     factory = Factory()
     app = make_app(tmp_path, store, factory)
     ann = login(app, ANN)

@@ -403,6 +403,11 @@ def combined_app(settings=None, secret: Optional[str] = None, account: Optional[
     registry: Flask under ``/`` and the MCP server under
     ``/mcp/<secret>``, anything else under ``/mcp`` a 404.
 
+    With a secret configured, OAuth protected-resource and authorization-
+    server discovery (including path suffixes), and OpenID configuration
+    discovery return JSON 404 before either mount sees the request.
+    Without a secret, routing stays entirely with Flask.
+
     Parameters
     ----------
     settings : dict or None
@@ -435,7 +440,8 @@ def combined_app(settings=None, secret: Optional[str] = None, account: Optional[
     from asgiref.wsgi import WsgiToAsgi, WsgiToAsgiInstance  # noqa: PLC0415
     from mcp.server.transport_security import TransportSecuritySettings  # noqa: PLC0415
     from starlette.applications import Starlette  # noqa: PLC0415
-    from starlette.routing import Mount  # noqa: PLC0415
+    from starlette.responses import JSONResponse  # noqa: PLC0415
+    from starlette.routing import Mount, Route  # noqa: PLC0415
 
     from . import create_app  # noqa: PLC0415
 
@@ -460,6 +466,16 @@ def combined_app(settings=None, secret: Optional[str] = None, account: Optional[
             raise RuntimeError(
                 f"{config.MCP_SECRET_ENV} must be 16 to 128 URL-safe characters (letters, digits, - and _)"
             )
+
+        async def no_discovery(_request):
+            """Return JSON 404 for unsupported discovery without Flask's login gate."""
+            return JSONResponse({"error": "Not found"}, status_code=404)
+
+        for path in ("/.well-known/oauth-protected-resource", "/.well-known/oauth-authorization-server"):
+            routes.append(Route(path, no_discovery))
+            routes.append(Route(f"{path}/{{path:path}}", no_discovery))
+        routes.append(Route("/.well-known/openid-configuration", no_discovery))
+
         server = build_server(flask_app.extensions["tables"], account)
         endpoint = server.streamable_http_app(
             streamable_http_path=f"/{secret}",

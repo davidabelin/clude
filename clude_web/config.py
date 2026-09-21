@@ -33,14 +33,14 @@ run"), so the replay list is the real one out of the box."""
 KEY_ENV = "ANTHROPIC_API_KEY"
 """The workspace-scoped key for LLM seats on the web (Phase 8.3a). On
 Cloud Run it arrives from Secret Manager; locally the `.env` fallback
-serves, as for the session secret. Without it the lobby offers no model
+serves, as for the session secret. Without it the lobby disables LLM
 seats and nothing reachable from the URL can spend."""
 
 BUDGET_ENV = "CLUDE_WEB_LLM_BUDGET"
-"""Dollars one table may spend on the model, the lobby form's default."""
+"""Dollars one table may spend with Claude, the lobby form's default."""
 
 DAILY_CAP_ENV = "CLUDE_WEB_LLM_DAILY_CAP"
-"""Dollars the whole service may spend on the model in one UTC day."""
+"""Dollars the whole service may spend with Claude in one UTC day."""
 
 DEFAULT_BUDGET = 2.0
 DEFAULT_DAILY_CAP = 10.0

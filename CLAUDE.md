@@ -29,7 +29,7 @@ planned to completion on 2026-09-18 (`docs/phase8-plan.md`); that day
 8.0.4 (the landing rule) and 8.2a-c (human players) were built, and on
 2026-09-19 8.2d was deployed and live-checked, 8.3a-c built on fake
 backends, the key deployed and 8.3 live-checked on the URL: a character
-can play "on the model" at a web table under a per-table budget and a
+can play as an LLM character at a web table under a per-table budget and a
 daily cap, people type at the table and the model seats answer off-turn
 with pacing, and a remembering table wraps up with each model seat's
 logbook entry. **Phase 8 closed 2026-09-19** (`docs/phase8-plan.md` 12,
@@ -62,6 +62,20 @@ live-credential and browser tests), about three minutes with
 
 Where things stand:
 
+- **Seats and remembering (2026-09-21).** New Play and Watch tables
+  remember by default, with an opt-out. The lobby options, in order, are
+  `empty`, `open`, `floorbot`, `me (signed-in name)`, `X (LLM)`, and
+  `X (headless)`. An LLM character uses its numerical method plus Claude's
+  persona, leashed choices, chat and narrative logbook; a headless
+  character never chats. Mustard, White and Green have method memory in
+  either mode. Each LLM seat's memory-depth dial is saved as
+  `SeatSpec.memory` (0 = condensed head, not off). Without a service key
+  the LLM option is visible but disabled. Saved tables keep their memory
+  choice; legacy setups missing the flag restore False. CLI logbooks
+  remain explicit with `--logbook`. Working guide: `docs/web.md`.
+  Validation: 472 passed, 2 live-credential tests skipped with browser
+  tests enabled; the lobby also passes a 390 px overflow check.
+
 - **The board (2026-09-15).** The engine plays the Classic 24 x 25 grid
   under the Classic movement rules, measured from
   `docs/ux/sample_board_A.png` into `docs/ux/board_map.txt` and
@@ -71,8 +85,8 @@ Where things stand:
   under "Re-measurement on the Classic board", every dial keeps the
   direction the ring found, and the presets were retuned (Settled
   decisions). On 2026-09-16 the two paid runs started: 8.0.2a
-  (`grid-twin-llm-24`, all six on the model, 4 seats) and 8.0.2b
-  (`grid-plum-llm-24`, Plum alone on the model at `Plum,Mustard,Green`),
+  (`grid-twin-llm-24`, all six with Claude, 4 seats) and 8.0.2b
+  (`grid-plum-llm-24`, Plum alone with Claude at `Plum,Mustard,Green`),
   quoted $21-35 together and paired with the headless
   `grid-twin-base-24` and `grid-plum-base-24`; both finished ($14.24,
   no fallbacks). 2a reproduces the ring twin's findings in direction: an
@@ -102,7 +116,7 @@ Where things stand:
   snapshot. Watch is now a table with nobody human at it. A human's
   label is the account key; the suspect names, `floor`, `random`,
   `web` and `envelope` are refused as account names.
-- **8.3 (2026-09-19).** An `llm` seat is the character on the model,
+- **8.3 (2026-09-19).** An `llm` seat is the character with Claude,
   external to the engine like a person: `TableGame.llm_answer` makes
   one wrapper call per `work` request, every answer is stored with its
   audit and the lines it said (`Speaker`, the engine's `speakers` hook)
@@ -117,8 +131,8 @@ Where things stand:
   model seat's logbook (read-back) and wraps up with one debrief per
   `work` after the end. The key reaches the service as
   `ANTHROPIC_API_KEY` from Secret Manager (`docs/web.md`, "Deploying");
-  without it the option is not offered. Live-checked the same day on
-  one table (David as Scarlett, White and Peacock on the model,
+  without it the LLM option is visible but disabled. Live-checked the
+  same day on one table (David as Scarlett, White and Peacock with Claude,
   "remember" on): 58 turns, 55 model decisions of which 19 called the
   model, 0 fallbacks, 28 off-turn lines, $0.34. A served reaction and
   its audit are given back to the seat's wrapper on a rebuild (8.3d);
@@ -141,9 +155,10 @@ Where things stand:
     and a logbook could not reach it. 8.0.4's landing rule removed the
     payment; the history is in the glossary's ring and grid sections.
   - **Retracted:** the twin arena's "the leash rescues Mustard". Alone
-    on the model his win rate does not move at any leash.
-  - Logbooks: three tiers of memory per identity, a `memory` dial, off
-    by default. The debrief is $0.09 and 42 s per seat-game and needs
+    with Claude his win rate does not move at any leash.
+  - Logbooks: three tiers of memory per identity and a `memory` dial.
+    New web tables remember by default; CLI runs opt in with `--logbook`.
+    The debrief is $0.09 and 42 s per seat-game and needs
     its own 180 s timeout (`docs/logbooks.md`, `docs/phase7-plan.md` 8).
 - **Live spend** was about $63 at list prices before 8.0 ($23 for the
   twin run and pooled sweep, $27 for the ladders, $12.60 for 7d), then
@@ -316,8 +331,9 @@ it; `docs/phase-plan.md` has the disposition of every file.
   scoring change measured headless (not the paid ladders, not Phase
   10); the model comes onto the web in 8.3a, after human seats; a
   seated human sees the floor's notepad *and* Watch's compact bars for
-  the bot seats; "characters remember" ships in 8.2, default off, the
-  cost stated on the form. Assumed unless he says otherwise: the floor
+  the bot seats; "characters remember" shipped in 8.2 initially off; David changed
+  the default to on for new web tables on 2026-09-21, with an opt-out.
+  The cost is stated on the form. Assumed unless he says otherwise: the floor
   bot as the autopilot stand-in, $2 per table and $10 a day as 8.3's
   budgets, no `--min-instances 1`.
 - **Commit messages are printed in the reply, never written into
@@ -392,7 +408,9 @@ Invariants to keep:
   scores and falls back to the character on anything illegal, malformed
   or failed. `NullBackend` reproduces the headless game byte for byte;
   that twin is what every LLM measurement is paired against.
-- Memory is off by default and changes nothing when off: Mustard's
+- New Play and Watch tables remember by default (2026-09-21); an
+  unchecked checkbox opts out. Existing saved tables retain their choice.
+  CLI memory still requires `--logbook` and changes nothing when off: Mustard's
   default tree is still the 25 FloorBot self-play games (seed 2026) and
   White's chain still starts from the Laplace prior. With `--logbook`
   they load their method memory from the store; determinism is then

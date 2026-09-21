@@ -101,8 +101,8 @@ def _landing_proximity(obs, p: dict, room: str) -> float:
 
     Before Phase 8.0.4 every landing scored 1.0, which is what paid Plum
     to ride a secret passage into a room an opponent held, suggest, be
-    shown the room, and ride back (docs/strategy-glossary.md, "Plum on
-    the model on the grid"): the leash never showed the model the walk
+    shown the room, and ride back (docs/strategy-glossary.md, "Plum with
+    Claude on the grid"): the leash never showed the model the walk
     toward a live room, because the cleared room next door scored higher
     than any step toward it.
     """

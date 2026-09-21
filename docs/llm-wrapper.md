@@ -4,6 +4,15 @@ How a character gets a voice and a little discretion, without losing
 its method. Design and David's decisions are in `docs/phase6-plan.md`;
 this is the working guide.
 
+The web lobby calls this **X (LLM)**; **X (headless)** is the same
+numerical character without Claude or chat. New web tables remember by
+default, attaching each LLM character's narrative logbook and loading
+supported method memory for both kinds. Each LLM seat's lobby memory-depth
+dial is saved in `SeatSpec.memory` and applied to `Profile.memory` when
+the wrapper is built. Unchecking "the characters remember" disables
+cross-game memory, independently of choosing LLM or headless play.
+CLI logbooks still require `--logbook`.
+
 ## What happens on one decision
 
 The engine asks a seat one of four questions: where to move, what to
@@ -104,7 +113,7 @@ editing dials.
 
 | Dial | What it does | Arena footprint |
 |---|---|---|
-| `leash` | how far below the character's best-scored option the model may pick, and how wide the accusation window opens around the threshold | deviation rate; wrong-accusation rate against the headless twin |
+| `leash` | how far below the character's best-scored option Claude may pick, and how wide the accusation window opens around the threshold | deviation rate; wrong-accusation rate against the headless twin |
 | `chattiness` | the probability a line the model offered is actually said | remarks per game |
 
 Both live on `Profile`, so `--set Plum.leash=0.5`, `sweep --dial leash`

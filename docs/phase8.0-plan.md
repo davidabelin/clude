@@ -22,7 +22,7 @@ Status (2026-09-16):
   leash hides from the model, which the trigger below could not see; the
   trigger is withdrawn. What follows (2c, 2d, a `movement_scores` change,
   or nothing) is David's decision (glossary, "Twin comparison on the
-  grid" and "Plum on the model on the grid").
+  grid" and "Plum with Claude on the grid").
   The free headless halves are in the store as
   `grid-twin-base-24` (24 games, 4 seats, the default six roster, mean
   41.9 turns) and `grid-plum-base-24` (24 games, the 3-seat
@@ -106,8 +106,8 @@ the paid stages have a baseline at the presets they run at (glossary,
 
 | Step | Was | Quote now | Run only if |
 |---|---|---|---|
-| 2a Twin arena: all six on the model, 24 games, 4 seats, against the headless twin | $6.98 | $12-20 (grid games run about twice the ring's turns, so the model is asked about twice as often per game) | always: it is the check that the new menu text (corridor squares) draws no fallbacks and that an LLM table still changes outcomes the way it did. Headless half done: `grid-twin-base-24` |
-| 2b Plum alone on the model at the preset leash, 24 games on `Plum,Mustard,Green` seed 7007, with the parking report | $6-8 (one ladder leg) | $9-15 (same reason) | always: it is the question the board change bears on most. If the Classic stay rule has ended the parking, the leash ladders and the logbook pair below are not needed. Headless half done: `grid-plum-base-24`, where Plum wins 37.5% against the ring's 62.5% on the same table |
+| 2a Twin arena: all six with Claude, 24 games, 4 seats, against the headless twin | $6.98 | $12-20 (grid games run about twice the ring's turns, so the model is asked about twice as often per game) | always: it is the check that the new menu text (corridor squares) draws no fallbacks and that an LLM table still changes outcomes the way it did. Headless half done: `grid-twin-base-24` |
+| 2b Plum alone with Claude at the preset leash, 24 games on `Plum,Mustard,Green` seed 7007, with the parking report | $6-8 (one ladder leg) | $9-15 (same reason) | always: it is the question the board change bears on most. If the Classic stay rule has ended the parking, the leash ladders and the logbook pair below are not needed. Headless half done: `grid-plum-base-24`, where Plum wins 37.5% against the ring's 62.5% on the same table |
 | 2c Per-character leash ladders, Mustard (4 values) and Plum (3 values) | $8.94 and $18.13 | $10-20 and $18-36 | 2b still shows stalls, or 2a shows the leash mattering |
 | 2d Plum's logbook on against off at leash 0.5, 24 paired games | $10.19 | $10-20 | 2b still shows stalls; it re-asks whether his own notes fix them on the grid |
 | 2e Pooled leash sweep | $14.99 | skip | never: it could not see individual characters and the ladders superseded it |
@@ -131,7 +131,7 @@ made in this turn. The trigger, fixed before the results:
 
 - **2c Plum and 2d** are proposed if 2b shows any of: such calls in 10%
   or more of Plum's move calls; three or more games with five or more
-  such calls; Plum's win% on the model more than 12 points (about one
+  such calls; Plum's win% with Claude more than 12 points (about one
   binomial sigma at 24 games) below `grid-plum-base-24`.
 - **2c Mustard** is proposed only if Mustard's line in 2a moves against
   `grid-twin-base-24` by more than one sigma on win% or wrong%.
@@ -147,7 +147,7 @@ plays the parked move without asking. The trigger read 1 parked move in
 145, while Plum made 148 trips into a cleared room that ended in a
 suggestion he had already made, 108 of them never put to the model,
 riding the Study-Kitchen and Conservatory-Lounge passages and repeating
-half his suggestions (glossary, "Plum on the model on the
+half his suggestions (glossary, "Plum with Claude on the
 grid"). By its letter no condition was met; the conclusion it promised
 ("closed for the grid") does not follow, and I have not drawn it.
 `data/llm/loop_report.py` counts parked and wasted moves, asked and not asked.

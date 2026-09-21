@@ -12,6 +12,16 @@ Three screens carry the whole app: **the table** (play), **the replay** (post-ga
 
 ## 2\. What the code dictates
 
+**Seat setup baseline (2026-09-21).** Keep the lobby options in this
+order: **empty**, **open**, **floorbot**, **me (signed-in name)**,
+**X (LLM)**, **X (headless)**. X is the seat's named character. LLM seats
+use Claude for leashed decisions and chat; headless seats use only the
+numerical method and never chat. New Play and Watch tables remember by
+default, with a checkbox to opt out. Remembering LLM seats expose a saved
+memory-depth dial (0 = condensed head, 0.5 = summaries, 1 = full entries);
+method memory belongs to Mustard, White and Green in either mode.
+LLM seats are visible but disabled without a service key.
+
 Read off the modules, not guessed. Each of these is a fence the design has to live inside.
 
 - **No build step, no framework.** One stylesheet, a few vanilla JS files (`docs/phase8.1-plan.md` 3.1). So: web fonts are `@font-face` files served from `static/fonts/`, not a CDN link; there is no preprocessor, so the token layer is CSS custom properties and nothing else; there is no component library, so every "component" below is a class name and a block of CSS.  

@@ -9,7 +9,7 @@ width. Hence Playwright.
 This is a maintainer tool, not part of the app and not imported by it.
 It boots the app on a spare port against a throwaway store seeded from
 real records, signs in, and writes a PNG per screen: the login, the
-lobby, a run's games, a watched game as dealt and a few turns in, a
+lobby (including an LLM seat's memory dial), a run's games, a watched game as dealt and a few turns in, a
 table with a person at it on their move and a few answers later, a
 table waiting for players, and a replay at its start, middle and end.
 
@@ -149,6 +149,9 @@ def shoot(base: str, run: str, index: int, out: Path, dark: bool, phone: bool) -
                 page.click("button[type=submit]")
                 page.wait_for_url(f"{base}/")
                 save("lobby")
+                page.select_option("#seat-Plum", "llm")
+                page.locator("#memory-Plum").fill("0.75")
+                save("lobby-llm-memory")
 
                 page.goto(f"{base}/runs/{run}")
                 save("run")

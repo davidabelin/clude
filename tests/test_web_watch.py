@@ -2,12 +2,12 @@
 
 Three things are pinned here that matter more than any layout:
 
-1. **A watched game is the game `clude_cli.py play` would have played.**
+1. **Without stored memory, Watch plays the same game as `clude_cli.py play`.**
    `headless_table` was lifted out of the CLI's private `_play_game`, and
    a watched game is that table driven a turn at a time through the
    engine seam. Both halves are checked against the originals.
-2. **A watched game survives losing its process.** Only the setup and a
-   turn count are stored; a rebuilt game must match the live one exactly.
+2. **A watched game survives losing its process.** The setup, memory
+   snapshot and turn count rebuild the live game exactly.
 3. **A watched game gives nothing away.** Hands and the envelope stay
    hidden until the end (`docs/phase8.1-plan.md` 3.2), and a refutation
    names who disproved a suggestion, never the card they showed.
@@ -239,6 +239,21 @@ def test_the_watch_page_never_names_a_shown_card(client, app):
         assert "data-card=" not in page, "a per-card bar leaked in"
         assert "It was " not in page, "the envelope was announced"
     assert shown_so_far, "the sample never produced a refutation to hide"
+
+
+def test_watch_remembers_by_default_and_preserves_an_opt_out(client, app):
+    fields = [("csrf", csrf(client)), ("characters", "White"), ("n_players", "3"), ("seed", "7")]
+    for value in (None, "0"):
+        form = MultiDict(fields + ([] if value is None else [("remember", value)]))
+        response = client.post("/watch", data=form)
+        assert response.status_code == 302
+        table_id = response.headers["Location"].rstrip("/").split("/")[-1]
+        assert app.extensions["tables"].document(table_id)["setup"]["remember"] == (value is None)
+    form["seed"] = "bad"
+    response = client.post("/watch", data=form)
+    assert response.status_code == 400
+    checkbox = response.get_data(as_text=True).split('id="watch-remember"')[1].split(">", 1)[0]
+    assert "checked" not in checkbox
 
 
 def test_the_lobby_form_rejects_what_it_should(client):

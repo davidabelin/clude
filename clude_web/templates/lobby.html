@@ -6,11 +6,12 @@
   <section class="panel new-game">
     <h1>Play a game</h1>
     <p class="note">
-      Take a token and pick who sits at the others. A character plays its own
-      token{% if llm %}, or plays it <em>on the model</em>, with Claude choosing within
-      its leash and talking at the table{% endif %}; a <em>floor</em> bot is the plain
-      deducer; an <em>open</em> seat waits for another player to sit before
-      the table is dealt.
+      Take a token and pick who sits at the others. <em>Empty</em> leaves the
+      token out; <em>open</em> reserves it for another player; <em>floorbot</em>
+      is the plain deducer. An <em>LLM</em> character uses Claude to choose
+      moves within its leash and talk in character. A <em>headless</em>
+      character plays by its numerical method, without chat.
+      {% if not llm %}LLM seats need a configured service key.{% endif %}
     </p>
     {% if table_error %}<p class="error" role="alert">{{ table_error }}</p>{% endif %}
     <form method="post" action="{{ url_for('main.table_new') }}" id="table-form">
@@ -18,19 +19,25 @@
       <fieldset class="cast seats-form">
         <legend>Seats</legend>
         {% for t in tokens %}
-          <label class="pick seat-pick">
+          <div class="pick seat-pick">
             <span class="pip suspect-{{ t.token|lower }}"></span>
-            <span class="name">{{ t.token }}</span>
+            <label class="name" for="seat-{{ t.token }}">{{ t.token }}</label>
             <select name="seat-{{ t.token }}" id="seat-{{ t.token }}">
               <option value="empty" {% if t.value == 'empty' %}selected{% endif %}>empty</option>
+              <option value="open" {% if t.value == 'open' %}selected{% endif %}>open</option>
+              <option value="floor" {% if t.value == 'floor' %}selected{% endif %}>floorbot</option>
               <option value="me" {% if t.value == 'me' %}selected{% endif %}>me ({{ user }})</option>
-              <option value="character" {% if t.value == 'character' %}selected{% endif %}>{{ t.token }}, the character</option>
-              {% if llm %}<option value="llm" {% if t.value == 'llm' %}selected{% endif %}>{{ t.token }}, on the model</option>{% endif %}
-              <option value="floor" {% if t.value == 'floor' %}selected{% endif %}>floor bot</option>
-              <option value="open" {% if t.value == 'open' %}selected{% endif %}>open seat</option>
+              <option value="llm" {% if t.value == 'llm' %}selected{% endif %} {% if not llm %}disabled{% endif %}>{{ t.token }} (LLM)</option>
+              <option value="character" {% if t.value == 'character' %}selected{% endif %}>{{ t.token }} (headless)</option>
             </select>
             <span class="method">{{ t.method }}</span>
-          </label>
+            {% if llm %}
+            <div class="seat-memory">
+              <label for="memory-{{ t.token }}">LLM memory depth: <output for="memory-{{ t.token }}">{{ t.memory }}</output></label>
+              <input type="range" id="memory-{{ t.token }}" name="memory-{{ t.token }}" min="0" max="1" step="0.05" value="{{ t.memory }}" aria-describedby="memory-help">
+            </div>
+            {% endif %}
+          </div>
         {% endfor %}
       </fieldset>
       <div class="knobs">
@@ -39,13 +46,15 @@
         <label class="check" for="remember">
           <input type="checkbox" id="remember" name="remember" value="1" {% if remember %}checked{% endif %}>
           the characters remember
-          <span class="note">(their method memory from earlier games; with Mustard at the table the deal takes about half a minute)</span>
+          <span class="note">(LLM logbooks and supported method memory; Mustard may take about half a minute to prepare)</span>
         </label>
+        <input type="hidden" name="remember" value="0">
         {% if llm %}
-        <label for="table-budget">Model budget, $ <span class="note">(a seat on the model costs about $0.10 a game, Plum $0.25; the day's cap is ${{ '%.2f'|format(llm.daily_cap) }})</span></label>
+        <label for="table-budget">LLM budget, $ <span class="note">(an LLM seat costs about $0.10 a game, Plum $0.25, plus a logbook entry; the day's cap is ${{ '%.2f'|format(llm.daily_cap) }})</span></label>
         <input id="table-budget" name="budget" inputmode="decimal" value="{{ budget or ('%.2f'|format(llm.budget)) }}" autocomplete="off">
         {% endif %}
       </div>
+      <p class="note" id="memory-help">Remembering starts on. LLM characters read and write their logbooks; Mustard, White and Green also retain method memory in either mode. For LLM memory depth, 0 keeps standing instructions and opponent notes, 0.5 adds summaries, and 1 includes every entry in full.</p>
       <button type="submit">Deal</button>
     </form>
   </section>
@@ -57,7 +66,7 @@
       {% for t in tables %}
         <li>
           <a href="{{ t.url }}">
-            {% for s in t.seats %}{% if not loop.first %}, {% endif %}{% if s.kind == 'human' %}{{ s.label }} as {{ s.token }}{% elif s.kind == 'open' %}{{ s.token }} (open){% elif s.kind == 'character' %}{{ s.token }}{% elif s.kind == 'llm' %}{{ s.token }} (model){% else %}{{ s.token }} ({{ s.label }}){% endif %}{% endfor %}
+            {% for s in t.seats %}{% if not loop.first %}, {% endif %}{% if s.kind == 'human' %}{{ s.label }} as {{ s.token }}{% elif s.kind == 'open' %}{{ s.token }} (open){% elif s.kind == 'character' %}{{ s.token }} (headless){% elif s.kind == 'llm' %}{{ s.token }} (LLM){% elif s.kind == 'floor' %}{{ s.token }} (floorbot){% else %}{{ s.token }} ({{ s.label }}){% endif %}{% endfor %}
           </a>
           <span class="note">
             {% if t.status == 'open' %}waiting for {{ t.open }} more{% elif t.wrapping_up %}over; the characters are writing up their notes{% else %}turn {{ t.turns }}{% endif %}
@@ -75,8 +84,8 @@
   <section class="panel">
     <h2>Watch a game</h2>
     <p class="note">
-      Characters only, no people: pick who sits at the table and step through
-      it a turn at a time. Empty seats go to <code>floor</code> bots.
+      Headless characters only, no people or chat: pick who sits at the table
+      and step through it a turn at a time. Remaining seats go to floorbots.
     </p>
     {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
     <form method="post" action="{{ url_for('main.watch_new') }}">
@@ -102,6 +111,12 @@
         </select>
         <label for="seed">Seed <span class="note">(blank for a random one)</span></label>
         <input id="seed" name="seed" inputmode="numeric" value="{{ seed }}" autocomplete="off">
+        <label class="check" for="watch-remember">
+          <input type="checkbox" id="watch-remember" name="remember" value="1" {% if watch_remember %}checked{% endif %}>
+          the characters remember
+          <span class="note">(method memory for Mustard, White and Green)</span>
+        </label>
+        <input type="hidden" name="remember" value="0">
       </div>
       <button type="submit" class="quiet">Deal and watch</button>
     </form>
@@ -129,4 +144,5 @@
   </section>
 
 </div>
+<script src="{{ url_for('static', filename='lobby.js') }}"></script>
 {% endblock %}

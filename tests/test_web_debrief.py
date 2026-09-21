@@ -58,7 +58,7 @@ class Factory:
         return [r for b in self.backends for r in b.requests]
 
 
-def _finish(app, ann, remember):
+def _finish(app, ann, remember=None):
     table_id = new_table(ann, SEATS, seed=SEED, remember=remember)
     final = play_out(app, table_id, {ANN: ann})
     assert final["finished"]
@@ -70,7 +70,7 @@ def test_a_remembering_model_seat_writes_its_entry_through_work(tmp_path):
     factory = Factory()
     app = make_app(tmp_path, store, factory)
     ann = login(app, ANN)
-    table_id, final = _finish(app, ann, remember=True)
+    table_id, final = _finish(app, ann)
     registry = app.extensions["tables"]
     # play_out stops at the first finished payload; the debrief is scheduled by finish.
     document = registry.document(table_id)

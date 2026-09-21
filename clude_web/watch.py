@@ -31,23 +31,30 @@ from clude_core import engine
 from clude_training.arena import parse_roster
 from clude_training.table import MAX_TURNS, TableSetup
 
-from .tables import WEB_RUN, TableRegistry, WebGame
+from .tables import WEB_RUN, TableRegistry, WebGame, remember_from_form
 
 
 @dataclass(frozen=True)
 class WatchSetup:
-    """The lobby's all-bot form: with the engine deterministic per seed,
-    this and a turn count *are* the game."""
+    """The lobby's headless form, with method memory enabled by default.
+
+    Stored memory snapshots, the setup and a turn count reproduce a game.
+    ``remember=False`` opts out of learning across games.
+    """
 
     roster: tuple
     n_players: int
     seed: int
     max_turns: int = MAX_TURNS
+    remember: bool = True
 
     def to_table_setup(self) -> TableSetup:
         """The same table as `arena.headless_table` seats for this
-        roster, size and seed."""
-        return TableSetup.from_roster(self.roster, self.n_players, self.seed, max_turns=self.max_turns)
+        roster, size and seed; the web registry also applies method memory
+        when remembering is enabled."""
+        return TableSetup.from_roster(
+            self.roster, self.n_players, self.seed, max_turns=self.max_turns, remember=self.remember,
+        )
 
     def to_dict(self) -> dict:
         return {
@@ -55,6 +62,7 @@ class WatchSetup:
             "n_players": self.n_players,
             "seed": self.seed,
             "max_turns": self.max_turns,
+            "remember": self.remember,
         }
 
 
@@ -64,6 +72,7 @@ def parse_setup(form) -> WatchSetup:
     The roster is the characters ticked, each at most once; the seats
     they leave empty are filled with `floor` bots, as `play` fills them.
     Characters are seat-locked (CLAUDE.md), so each plays its own token.
+    Method memory defaults on; ``remember=0`` opts out.
 
     Raises
     ------
@@ -95,7 +104,7 @@ def parse_setup(form) -> WatchSetup:
     else:
         seed = secrets.randbelow(1_000_000)
     roster = tuple(parse_roster(chosen))
-    return WatchSetup(roster=roster, n_players=n_players, seed=seed)
+    return WatchSetup(roster=roster, n_players=n_players, seed=seed, remember=remember_from_form(form))
 
 
 class WatchGame(WebGame):

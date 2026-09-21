@@ -108,7 +108,7 @@ def clock(monkeypatch):
 
 
 def _model_table(talkers):
-    """Scarlett a floor bot, and Plum, White and Green on the model."""
+    """Scarlett a floor bot, and Plum, White and Green with Claude."""
     setup = TableSetup(
         (SeatSpec("Scarlett", "floor"), SeatSpec("Plum", "llm", "Plum"),
          SeatSpec("White", "llm", "White"), SeatSpec("Green", "llm", "Green")),

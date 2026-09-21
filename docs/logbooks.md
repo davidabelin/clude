@@ -6,6 +6,20 @@ in `docs/phase7-plan.md`; this is the working guide.
 
 ## Three tiers
 
+New web tables, including Watch, **remember by default** (2026-09-21).
+Uncheck "the characters remember" to opt out of reading and updating
+cross-game memory. Existing tables keep their saved setting. CLI runs
+still opt in with `--logbook`; the bare table driver performs no memory I/O.
+
+The lobby distinguishes **X (LLM)** from **X (headless)**. Both use X's
+numerical method. The LLM option also uses Claude's persona, chooses
+within the leash, chats, and reads and writes X's narrative logbook when
+remembering is enabled. The headless option never chats or writes a
+narrative entry. Mustard, White and Green retain method memory in either
+mode when remembering is enabled; Scarlett, Plum and Peacock have no
+persistent method memory. Each LLM seat has a saved `memory` dial in the
+lobby; **0 means the condensed head, not memory off** (depths below).
+
 ```
 Tier 0  the record      GameRecord in the store (Phase 5d)          omniscient, immutable
 Tier 1  method memory   numeric, per method, headless, no LLM       logbooks/<id>/method.json
@@ -129,9 +143,9 @@ Mustard token", `P2 White (Green)`); `resolve_opponents` maps them to
 roster labels before the entry is built.
 
 **From the web** (Phase 8.3c, `docs/web.md`, "A table"). A table dealt
-with "characters remember" on attaches a `Logbook` to each seat on the
-model, which reads it back at its `memory` dial's depth before the deal;
-when the game ends the table wraps up, one debrief per `work` request
+with "characters remember" on (the default) attaches a `Logbook` to each
+LLM seat, which reads it back at its saved `SeatSpec.memory` dial's depth
+before the deal. When the game ends the table wraps up, one debrief per `work` request
 from whoever has the page open (the record read back face up, exactly
 as the CLI's), and the entry's dossiers name people by their account
 key, so a character's read on a person follows them across whichever

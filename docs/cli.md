@@ -589,6 +589,14 @@ traces and 4 logbook documents, and leaves the 13 ring-era runs behind.
 
 ## `logbook`
 
+Web Play and Watch tables remember by default since 2026-09-21; their
+checkbox opts out. CLI games still require `--logbook` to attach stored
+memory, keeping benchmarks and fixtures independent of previous games.
+The web labels `X (LLM)` and `X (headless)` correspond to an LLM-piloted
+character (`--llm`) and the ordinary numerical character, respectively.
+An LLM character's `memory` dial controls narrative depth; 0 still reads
+the condensed head when a logbook is attached.
+
 ```
 python scripts/clude_cli.py logbook list --uri data/llm
 python scripts/clude_cli.py logbook show --uri data/llm --identity Plum

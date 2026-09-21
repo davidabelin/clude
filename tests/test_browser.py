@@ -27,6 +27,7 @@ import pytest
 import clude_constraints
 from clude_constraints import FloorBot
 from clude_core import engine
+from clude_llm import NullBackend
 from clude_storage import GameRecord, SeatRecord, open_store
 from clude_web import create_app, users
 
@@ -68,7 +69,10 @@ def served(tmp_path_factory):
     users.add_user(store, NAME, PASSWORD)
     users.mark_password_prompted(store, NAME)
 
-    app = create_app({"STORE_URI": str(root), "SECRET_KEY": "browser-tests"})
+    app = create_app({
+        "STORE_URI": str(root), "SECRET_KEY": "browser-tests",
+        "LLM_KEY": "browser-tests", "LLM_BACKEND": lambda model, key: NullBackend(),
+    })
     with socket.socket() as probe:
         probe.bind(("127.0.0.1", 0))
         port = probe.getsockname()[1]
@@ -298,6 +302,31 @@ def test_the_board_is_actually_painted(page):
     assert fills["room"] != fills["corridor"], "the corridor is invisible against the rooms"
 
 # --- a table with a person at it (Phase 8.2) --------------------------------
+
+
+def test_lobby_seat_modes_and_memory_dial(page):
+    """Seat choices are explicit; opting out hides the LLM memory dial."""
+    page.goto(f"{page.base}/")
+    assert page.locator("#remember").is_checked()
+    assert page.locator("#watch-remember").is_checked()
+    assert not page.locator('.seat-pick:has(#seat-Scarlett) .method').is_visible()
+    assert page.locator("#seat-Plum option").all_text_contents() == [
+        "empty", "open", "floorbot", "me (browser)", "Plum (LLM)", "Plum (headless)",
+    ]
+    assert not page.locator("#memory-Plum").is_visible()
+    page.select_option("#seat-Plum", "llm")
+    assert page.locator("#memory-Plum").is_visible()
+    page.locator("#memory-Plum").fill("0.75")
+    assert page.locator('output[for="memory-Plum"]').inner_text() == "0.75"
+    page.set_viewport_size({"width": 390, "height": 844})
+    assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+    page.uncheck("#remember")
+    assert not page.locator("#memory-Plum").is_visible()
+    page.check("#remember")
+    assert page.locator("#memory-Plum").input_value() == "0.75"
+    page.select_option("#seat-Plum", "character")
+    assert not page.locator("#memory-Plum").is_visible()
+    assert page.locator('.seat-pick:has(#seat-Plum) .method').is_visible()
 
 
 def _deal_table(page, seats: dict, seed="7"):
