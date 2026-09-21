@@ -1,8 +1,8 @@
 # Phase 9: a seat over MCP
 
 Planned 2026-09-20. Status: 9a (this plan and the renumbering) done;
-9b built 2026-09-21 with the code side of 9c; the rest of 9c (the
-deploy, the connector and the live game) and 9d not started. The "as
+9b built and 9c deployed 2026-09-21; the connector at claude.ai, the
+live game from the chat and 9d not started. The "as
 implemented" section at the end is written as the work lands and wins
 over the plan above it where they differ.
 
@@ -365,6 +365,30 @@ written, from the two drafts; where it departs, the departure is here.
 - Suite after: 454 passed, 16 skipped.
 
 Not built, as planned: OAuth, the shadow-agent head, a chat seat that
-makes or deals a table. Left for 9c: the secret in Secret Manager and
-on the service, a deploy, the connector at claude.ai, and one live game
-from the chat, costed and approved first.
+makes or deals a table.
+
+**9c up to the deploy (2026-09-21).** Done as `docs/web.md` ("A seat
+over MCP") records: `clude-mcp-secret` made in Secret Manager (32
+characters from `secrets.token_urlsafe(24)`, written from a file so no
+newline rides along) with Secret Accessor for `clude-run`;
+`CLUDE_MCP_SECRET=clude-mcp-secret:latest` added to the `--set-secrets`
+list in `scripts/deploy.bat` and the docs; the `claude` account made on
+the bucket; revision `clude-00006-mlg` deployed. Live probes: the login
+page 200 (3.1 s, a cold start), a wrong secret a 404, `initialize` under
+the right one 200 in 179 ms, `tools/list` the six tools; the SDK's own
+streamable-HTTP client listed the tools in 0.7 s and `clude_tables`
+answered as `claude` in 0.8 s, a missing table coming back as a
+message. The documented live check (`live_check.bat play`) then tripped
+mid-game: Cloud Run replaced the instance at 18:45:54 ("AUTOSCALING",
+no error logged; the lobby page had taken 6.5 s just before), the poll
+that met the fresh instance took 13.5 s (an 8 s worker boot plus the
+rebuild), and the script's assumption that two consecutive polls see
+one instance failed -- not the game. `live_check.bat resume` on the
+same table found the cold rebuild in 0.1 s at the same pending
+decision and played it to the end (63 turns, `runs/web/11`, the replay
+opens). Timings on that resumed game: poll median 112 ms, answer
+1,113 ms, a unit of bot work 1,074 ms (n = 67, 65, 53), against 93,
+850 and 820 ms measured under the threaded worker on 2026-09-19 -- one
+sample, about a quarter slower, worth watching rather than acting on.
+The throwaway accounts were removed. Left: the connector at claude.ai
+and one live game from the chat, then 9d.
