@@ -19,6 +19,14 @@ python-dotenv>=1.0
 # requirements-web.txt). Listed here for completeness; it does not run on
 # Windows, so locally the app is served by `flask run` instead.
 gunicorn>=23.0; sys_platform != "win32"
+# A seat over MCP (clude_web.mcp, Phase 9): the MCP server SDK (2.x; the
+# in-memory client in tests/test_mcp.py comes with it), asgiref to put
+# Flask inside the combined ASGI app, and uvicorn to serve that app
+# locally (`python -m uvicorn "clude_web.mcp:combined_app" --factory`)
+# and, as gunicorn's worker, on Cloud Run.
+mcp>=2.0
+asgiref>=3.8
+uvicorn>=0.30
 # Optional, and only for looking at the web app: `scripts/clude_shots.py`
 # screenshots every screen and `tests/test_browser.py` drives the real
 # thing, both skipped without it. An SVG rasteriser is no substitute --

@@ -95,17 +95,27 @@ class SeatSpec:
         logbook are keyed by: a character's own name (seat-locked, so it
         equals `token`), ``"floor"`` or ``"random"`` for a bot, a human's
         account key, and empty for an open seat.
+    head : bool
+        Whether a human seat is shown its token's own character numbers
+        as a "head" (Phase 9, a chat seat over MCP): read-only, advisory,
+        fixed when the seat is taken. Only a human seat may have one -- a
+        character *is* its head, and a bot has none.
     """
 
     token: str
     kind: str
     label: str = ""
+    head: bool = False
 
     def __post_init__(self) -> None:
         if self.token not in SUSPECTS:
             raise ValueError(f"{self.token!r} is not a suspect")
         if self.kind not in SEAT_KINDS:
             raise ValueError(f"unknown seat kind {self.kind!r}; expected one of {SEAT_KINDS}")
+        if self.head and self.kind != "human":
+            raise ValueError(f"only a human seat takes a head, not a {self.kind} seat")
+        if self.head and self.token not in AGENT_SPECS:
+            raise ValueError(f"there is no character for {self.token} to be a head")
         if self.kind in ("character", "llm"):
             if self.token not in AGENT_SPECS:
                 raise ValueError(f"there is no character for {self.token}")
@@ -129,11 +139,16 @@ class SeatSpec:
         return self.kind in EXTERNAL_KINDS
 
     def to_dict(self) -> dict:
-        return {"token": self.token, "kind": self.kind, "label": self.label}
+        out = {"token": self.token, "kind": self.kind, "label": self.label}
+        if self.head:  # only when set, so every stored setup reads as before
+            out["head"] = True
+        return out
 
     @classmethod
     def from_dict(cls, data: dict) -> "SeatSpec":
-        return cls(str(data["token"]), str(data["kind"]), str(data.get("label", "")))
+        return cls(
+            str(data["token"]), str(data["kind"]), str(data.get("label", "")), bool(data.get("head", False))
+        )
 
 
 def _board_order(specs) -> tuple:
@@ -672,7 +687,8 @@ class TableGame:
             As `encode_answer` shapes it.
         by : str
             Who answered, for the entry: ``"human"``, ``"autopilot"``,
-            or ``"llm"``.
+            ``"llm"``, or ``"mcp"`` (a chat seat, Phase 9: a human seat
+            answered through the MCP server, with no audit attached).
         audit : dict or None
             An LLM seat's `Decision.to_dict()` for the entry (Phase 8.3a),
             which becomes the record's `llm_log` and rebuilds the

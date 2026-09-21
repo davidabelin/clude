@@ -1,8 +1,10 @@
 # Phase 9: a seat over MCP
 
 Planned 2026-09-20. Status: 9a (this plan and the renumbering) done;
-9b-9d not started. The "as implemented" section at the end is written
-as the work lands and wins over the plan above it where they differ.
+9b built 2026-09-21 with the code side of 9c; the rest of 9c (the
+deploy, the connector and the live game) and 9d not started. The "as
+implemented" section at the end is written as the work lands and wins
+over the plan above it where they differ.
 
 ## 1. Context
 
@@ -283,5 +285,86 @@ Phase 10's look.
 
 ## 8. As implemented
 
-Nothing yet beyond 9a (2026-09-20): the renumbering above, and this
-plan.
+**9a (2026-09-20):** the renumbering above, and this plan.
+
+**9b, and the code side of 9c (2026-09-21).** Built on the plan as
+written, from the two drafts; where it departs, the departure is here.
+
+- `clude_training/table.py`: `SeatSpec.head` (default False; only a
+  human seat whose token has a character may take one), written to a
+  setup only when set, so every stored setup and every golden reads as
+  before; `answer`'s `by` documents ``"mcp"``. Nothing else in the
+  driver changed.
+- `clude_web/tables.py`: `TableRegistry.answer(..., by="human")` passes
+  `by` through; `sit(..., head=False)`; `WebGame.fresh_belief(seat,
+  label)` factored out of `readings` and shared with the new
+  `WebGame.head_reading(seat)` -- method, `shape` (from `HEAD_SHAPES`),
+  turn, probabilities rounded to four places, and the method's `extra`
+  made JSON by `jsonable`; cached per event-log length like `readings`;
+  None without a head -- and `note` / `write_note` on the registry,
+  `document["notes"][seat]`, at most `MAX_NOTE` (8,000) characters, a
+  `_put` with no lock.
+- `clude_web/config.py`: `mcp_secret()` (`CLUDE_MCP_SECRET`, the
+  environment then `.env`) and `mcp_account()` (`CLUDE_MCP_ACCOUNT`,
+  default ``claude``).
+- `clude_web/mcp.py`: `build_server(registry, account)` returns the
+  server -- a factory over any registry rather than the draft's module
+  singleton, so a test builds one over a temp store and `combined_app`
+  one over the Flask app's own -- with the six tools as closures and
+  their docstrings the prompt; `seat_view` and `digest` are module
+  functions. The SDK installed is mcp 2.x, where the draft's `FastMCP`
+  is `MCPServer` (`mcp.server.mcpserver`). A `ToolError` is what the
+  model reads for "not seated", "no such table" and "not dealt yet"; a
+  `TableError` on an answer comes back as `error` in the view, on a
+  line or a note as `{"error": ...}`. `clude_turn` is a sync tool (the
+  SDK runs it in a worker thread) looping on `registry.work` with
+  `SLEEP_SECONDS` between idle units, and returns as soon as the game
+  is finished: it does not drain debriefs, which stay the browser's
+  `work`. `clude_sit` returns the listing entry and a message, since
+  there is no game to view before the deal. The digest counts the
+  dropped lines and names the suggestions nobody could disprove, read
+  from the events themselves rather than the line text. `over.replay`
+  is the path `/replay/web/N`, not a `url_for`.
+- `combined_app(settings=None, secret=None, account=None)`: a Starlette
+  app with `Mount("/mcp", <the SDK's streamable-HTTP app at
+  "/<secret>">)` and `Mount("/", <Flask>)`, the outer lifespan running
+  the SDK's session manager (a mounted app's own lifespan never runs).
+  Three choices the plan did not make, each for a reason found in the
+  code: the transport is **stateless with JSON responses**, so there is
+  no session to lose when the instance scales to zero and a long-poll
+  is an ordinary request; the SDK's localhost-only Host check is
+  switched off, since it would reject Cloud Run's hostname and the
+  secret is the guard; and the Flask bridge is asgiref's `WsgiToAsgi`
+  with its thread-sensitive lane turned off, because asgiref's default
+  runs every WSGI request on one thread one at a time, which would
+  undo what `--threads 8` bought. Without a secret the endpoint is not
+  mounted and the app is Flask under the bridge, so a deploy before
+  the secret exists still serves the game. A secret must be 16 to 128
+  URL-safe characters.
+- `Dockerfile`: `gunicorn -k uvicorn.workers.UvicornWorker --workers 1
+  --timeout 300 "clude_web.mcp:combined_app()"`; `requirements-web.txt`
+  and `requirements.txt` gain `mcp>=2.0`, `asgiref>=3.8` and
+  `uvicorn>=0.30`. `scripts/deploy.bat` is unchanged until the secret
+  exists in Secret Manager (9c; the commands are in `docs/web.md`, "A
+  seat over MCP").
+- `tests/test_mcp.py` (14 tests on the SDK's in-memory `Client` against
+  the server object, async under anyio): the listing and `mine`;
+  sitting where one cannot; a whole game through the tools with Mustard
+  and White as characters, every answer ``by="mcp"`` with no audit,
+  recorded under `claude` with ``kind="human"``; the digest; the stale
+  and the doubled answer; the view without `readings`, `tokens` or
+  another seat's hand; Peacock's head equal to a fresh agent's belief
+  live and on a cold rebuild, and the `SeatSpec` refusals; `head` null
+  without one; the note across a cold rebuild and never in an entry; a
+  line said and an empty one refused; the combined app (the lobby
+  behind the gate, a wrong secret a 404, an `initialize` under the
+  right one a 200 with Cloud Run's Host header), no secret no mount, a
+  bad secret refused, and three overlapping Flask requests on three
+  threads. `tests/test_deploy.py` pins the new command and packages.
+- The two draft files at the repo root are consumed and deleted.
+- Suite after: 454 passed, 16 skipped.
+
+Not built, as planned: OAuth, the shadow-agent head, a chat seat that
+makes or deals a table. Left for 9c: the secret in Secret Manager and
+on the service, a deploy, the connector at claude.ai, and one live game
+from the chat, costed and approved first.

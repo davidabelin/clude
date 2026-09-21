@@ -51,6 +51,30 @@ DEFAULT_MODEL = "claude-opus-5"
 """The model every web table uses, as the CLI's default; the same
 variable the live smoke test reads."""
 
+MCP_SECRET_ENV = "CLUDE_MCP_SECRET"
+"""The secret path segment the MCP endpoint is mounted under (Phase 9,
+`clude_web.mcp.combined_app`): ``/mcp/<secret>``. The mount sits
+outside the login gate, so the secret is the whole guard on it, the
+same trade the login makes (`docs/web.md`, "Convenience over secrecy").
+On Cloud Run it arrives from Secret Manager; locally the `.env`
+fallback serves. Without it the endpoint is not mounted at all."""
+
+MCP_ACCOUNT_ENV = "CLUDE_MCP_ACCOUNT"
+DEFAULT_MCP_ACCOUNT = "claude"
+"""The account the chat seat plays as: an ordinary one, made with
+``users add claude``. Its label in every record."""
+
+
+def mcp_secret():
+    """The MCP endpoint's secret path segment, or None: the environment
+    first, then `.env`."""
+    return os.environ.get(MCP_SECRET_ENV) or read_env_file(MCP_SECRET_ENV)
+
+
+def mcp_account() -> str:
+    """The account key the chat seat sits as."""
+    return (os.environ.get(MCP_ACCOUNT_ENV) or "").strip().lower() or DEFAULT_MCP_ACCOUNT
+
 
 def read_env_file(name: str, path=None):
     """The value of `name` in a ``KEY=value`` file, or None.

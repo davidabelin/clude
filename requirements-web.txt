@@ -4,8 +4,14 @@
 # anthropic SDK for the model seats at a table, which the service reaches
 # with the key Secret Manager hands it (docs/web.md, "Deploying").
 # requirements.txt is the developer's list and adds the test runner and
-# Playwright.
+# Playwright. Since Phase 9 the image also serves an MCP endpoint beside
+# the Flask app (clude_web.mcp.combined_app): mcp is the server SDK
+# (2.x, with Starlette), asgiref bridges Flask into the ASGI app, and
+# uvicorn is the worker gunicorn runs it under.
 flask>=3.1
 gunicorn>=23.0
 google-cloud-storage>=3.0
 anthropic>=1.5
+mcp>=2.0
+asgiref>=3.8
+uvicorn>=0.30

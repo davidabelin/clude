@@ -88,7 +88,7 @@ clude_agents/        AgentProtocol, the AgentSpec registry, one module per metho
 clude_llm/           the LLM wrapper: menus, personas, prompts, backends, LLMCharacter, the debrief
 clude_training/      self-play snapshots, the belief benchmark, trace, record replay, method memory, arena, sweeps
 clude_storage/       game records and logbooks; local-directory and Cloud Storage stores
-clude_web/           the Flask app: the login gate, accounts, the lobby, tables people play at, Watch and the replay
+clude_web/           the Flask app: the login gate, accounts, the lobby, tables people play at, Watch and the replay; and `mcp.py`, a seat a Claude in a chat window plays over MCP
 Dockerfile           the Cloud Run image (with requirements-web.txt, .gcloudignore, .dockerignore)
 scripts/             clude_cli.py, the maintainer CLI
 tests/               pytest suite

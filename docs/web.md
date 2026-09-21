@@ -471,7 +471,7 @@ $P = '--project=clude-game'
 
 | Piece | What it is |
 |---|---|
-| Service `clude` | The `Dockerfile`'s image: gunicorn, one worker, 8 threads, 300 s timeout; 1 vCPU, 1 GiB; 0 to 1 instances, so idle time is free and the in-memory Watch games and login rate limit are simply correct. |
+| Service `clude` | The `Dockerfile`'s image: gunicorn with its uvicorn worker serving the combined ASGI app (Flask and, with `CLUDE_MCP_SECRET`, the MCP endpoint; Phase 9), one worker, 300 s timeout; 1 vCPU, 1 GiB; 0 to 1 instances, so idle time is free and the in-memory tables and login rate limit are simply correct. Before Phase 9 it was gunicorn's threaded worker on the Flask app alone. |
 | `clude-run@clude-game` | The identity the service runs as. It holds **Storage Object Admin on `gs://clude-game-data`** and **Secret Accessor on `clude-flask-secret`**, and nothing else, so the most the internet-facing login page can ever expose is the game store. `clude-sa`, which is project owner, stays on Orbit. |
 | `clude-flask-secret` | The session secret, in Secret Manager, generated for the service and never the same as the local `.env` one. Handed to the app as `FLASK_SECRET_KEY`. |
 | `clude-anthropic-key` | The workspace-scoped Anthropic key, in Secret Manager since Phase 8.3a, handed to the app as `ANTHROPIC_API_KEY`; `clude-run` holds Secret Accessor on it. With it the lobby offers "on the model" seats; the spend is capped per table (`CLUDE_WEB_LLM_BUDGET`, $2 by default, the form may change it) and per UTC day (`CLUDE_WEB_LLM_DAILY_CAP`, $10), and the ledger is `spend/<date>.json` in the store. |
@@ -564,6 +564,81 @@ and so can be run again at any time (`docs/cli.md`):
 URL. The bucket's `llm/` prefix, the identity and the secret stay until
 removed by hand.
 
+## A seat over MCP (Phase 9)
+
+A Claude in a chat window at claude.ai can play one seat of a table
+itself, through an MCP server mounted beside the Flask app on the same
+`TableRegistry` (`docs/phase9-plan.md`; built 2026-09-21). The chat
+seat is an ordinary account in an ordinary human seat: it sits in an
+open seat, the person deals from the browser, and it answers the
+engine's decisions through six tools -- `clude_tables`, `clude_sit`,
+`clude_turn` (which holds for up to 25 s while the bots play, driving
+the same `work` the browser does), `clude_answer`, `clude_say` and
+`clude_note` (a free-text note of its own, kept on the table document
+and never an entry). Its answers are entered ``by="mcp"``, and the
+record shows it as a person under its account key, so its dossier
+accrues like anyone's. Optionally it takes its seat with a `head`: its
+token's own character numbers, as Watch's readings are built, in every
+view; off by default. The tool docstrings in `clude_web/mcp.py` are the
+only instructions the player gets.
+
+**The account.** Make it once, per store, as any account:
+
+```powershell
+& .venv\Scripts\python.exe scripts\clude_cli.py users add claude --uri gs://clude-game-data/llm
+```
+
+`CLUDE_MCP_ACCOUNT` names another account if wanted.
+
+**The guard.** The mount sits outside the login gate, and a claude.ai
+custom connector sends either an OAuth flow or nothing, never a static
+header, so the endpoint is a capability URL: `/mcp/<CLUDE_MCP_SECRET>`,
+with anything else under `/mcp` a 404 and the secret 16 to 128 URL-safe
+characters. That is the same trade "Convenience over secrecy" made for
+the login: the damage ceiling is the game store, and what a stranger
+with the URL could do is play Clue as `claude`. Without the variable the
+endpoint is simply not mounted and the app serves as before.
+
+**Serving.** `clude_web.mcp.combined_app()` is one ASGI app: Flask under
+`/` (asgiref's bridge, with its one-request-at-a-time lane turned off so
+Flask's requests still run in a thread pool) and the MCP endpoint under
+`/mcp/<secret>`, stateless with JSON responses. The `Dockerfile` runs it
+under gunicorn's uvicorn worker, one worker as before. Locally:
+
+```powershell
+$env:CLUDE_MCP_SECRET = 'a-local-secret-0123456789'
+& .venv\Scripts\python.exe -m uvicorn "clude_web.mcp:combined_app" --factory --port 5000
+```
+
+The lobby is then at <http://127.0.0.1:5000/> and the endpoint at
+`http://127.0.0.1:5000/mcp/a-local-secret-0123456789`; the plain
+`flask run` command above still serves everything but the endpoint.
+claude.ai reaches only a public URL, so the local endpoint is for the
+SDK's own client (`tests/test_mcp.py` shows the shape) and the deployed
+one is what a chat plays on.
+
+**Deploying with the endpoint (9c, not yet done).** The secret lives in
+Secret Manager beside the Flask secret and the key, made once:
+
+```powershell
+$s = -join ((48..57 + 97..122) | Get-Random -Count 32 | ForEach-Object { [char]$_ })
+[IO.File]::WriteAllText("$env:TEMP\clude-mcp.txt", $s)
+gcloud secrets create clude-mcp-secret --replication-policy=automatic --data-file="$env:TEMP\clude-mcp.txt" $A $P
+Remove-Item "$env:TEMP\clude-mcp.txt"
+gcloud secrets add-iam-policy-binding clude-mcp-secret --member=serviceAccount:clude-run@clude-game.iam.gserviceaccount.com --role=roles/secretmanager.secretAccessor $A $P
+```
+
+Then `CLUDE_MCP_SECRET=clude-mcp-secret:latest` joins the
+`--set-secrets` list in the deploy command and in `scripts\deploy.bat`,
+and the connector is added at claude.ai (Settings, Connectors, add a
+custom connector) with the URL
+`https://clude-648214345192.us-central1.run.app/mcp/<the secret>` and no
+authentication. A game then goes: make a table in the browser with one
+open seat (and model seats and "remember" if wanted); in the chat, ask
+Claude to sit; deal; Claude plays, `clude_say`ing as it goes; the
+finished game shows in the lobby and replays like any other, the chat
+seat labelled `claude`.
+
 ## Tests
 
 `tests/test_web.py` runs Flask's test client against a `LocalStore` in a
@@ -572,7 +647,9 @@ temp dir, with no network and no real store. `tests/test_web_watch.py` pins the 
 through the JSON routes, each reading only what its seat may; a bad
 answer leaves the game alive; a cold registry rebuilds a table at its
 pending decision; open seats, dealing, autopilot, reserved names and the
-memory toggle. `tests/test_browser.py` adds the table page in Chromium:
+memory toggle. `tests/test_mcp.py` plays a whole game through the MCP tools on the
+SDK's in-memory client, and checks the combined app's mount and guard
+("A seat over MCP"). `tests/test_browser.py` adds the table page in Chromium:
 the legal squares drawn where the server says, a click that plays the
 move, and the reveal rule holding in the log. `TESTING` makes the app sign
 its cookies with an ephemeral key, so a test never depends on the

@@ -46,12 +46,15 @@ def test_the_two_ignore_files_list_the_same_things():
 
 
 def test_the_image_installs_its_own_requirements_and_serves_the_factory():
+    """Since Phase 9 the image serves the combined ASGI app (Flask and
+    the MCP endpoint, one registry) under gunicorn's uvicorn worker."""
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
     assert "requirements-web.txt" in dockerfile
-    assert '"clude_web:create_app()"' in dockerfile
+    assert '"clude_web.mcp:combined_app()"' in dockerfile
+    assert "-k uvicorn.workers.UvicornWorker" in dockerfile
     assert "--workers 1" in dockerfile
     wanted = (ROOT / "requirements-web.txt").read_text(encoding="utf-8")
-    for package in ("flask", "gunicorn", "google-cloud-storage", "anthropic"):
+    for package in ("flask", "gunicorn", "google-cloud-storage", "anthropic", "mcp", "asgiref", "uvicorn"):
         assert package in wanted, f"{package} is not installed in the image"
 
 

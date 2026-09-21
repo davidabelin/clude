@@ -20,9 +20,14 @@ COPY . .
 RUN useradd --create-home --uid 10001 clude
 USER clude
 
-# One worker, so the in-memory Watch games and the login rate limit are
-# simply correct (and the service runs at most one instance); threads so
-# a long "play to the end" does not block every other request outright.
-# 300 s matches the service's request timeout.
-CMD exec gunicorn --bind ":${PORT:-8080}" --workers 1 --threads 8 --timeout 300 \
-    --access-logfile - "clude_web:create_app()"
+# One worker, so the in-memory tables and the login rate limit are
+# simply correct (and the service runs at most one instance). Since
+# Phase 9 the app is the combined ASGI app -- Flask under "/" and the MCP
+# endpoint under "/mcp/<secret>", one registry between them -- served by
+# uvicorn as gunicorn's worker; Flask's requests run in a thread pool
+# there (clude_web.mcp), so a long "play to the end" still does not
+# block every other request. 300 s matches the service's request
+# timeout. Without CLUDE_MCP_SECRET the endpoint is simply not mounted
+# and the app is the Flask app as before.
+CMD exec gunicorn --bind ":${PORT:-8080}" -k uvicorn.workers.UvicornWorker --workers 1 --timeout 300 \
+    --access-logfile - "clude_web.mcp:combined_app()"

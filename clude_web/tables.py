@@ -37,6 +37,13 @@ over the table's budget and the service's daily cap (`LLMConfig`), and
 past either the wrapper's fallback plays the headless character. Without
 a key (`LLMConfig` None) the lobby offers no model seats and nothing
 here can spend.
+
+**A chat seat (Phase 9).** `clude_web.mcp` seats a Claude in a chat
+window through this same registry: an ordinary account in an ordinary
+human seat, answering with ``by="mcp"``. What it adds here is small: a
+`head` on `sit` (the seat's own character numbers, `WebGame.head_reading`,
+built exactly as `readings` builds a bar) and a free-text note per seat
+on the document, never an entry, so a rebuild does not see it.
 """
 from __future__ import annotations
 
@@ -71,6 +78,41 @@ from dataclasses import dataclass
 MAX_LINE = 240
 """Characters a person may type in one line of chat (Phase 8.3b): it
 lives in records for ever and in every later prompt."""
+
+MAX_NOTE = 8000
+"""Characters a chat seat may keep in its note (Phase 9): a page of
+deductions, kept on the table document and read back every call."""
+
+HEAD_SHAPES = {
+    "Scarlett": "probabilities",
+    "Plum": "posterior",
+    "Peacock": "belief_plausibility",
+    "Mustard": "probabilities",
+    "Green": "ensemble",
+    "White": "probabilities",
+}
+"""How to read a head's `extra` (Phase 9): Plum's probabilities are an
+exact (or sampled) posterior with search diagnostics beside them,
+Peacock's come with belief and plausibility bounds per card, Green's
+with the arm his bandit chose; the rest carry the masked probabilities
+alone, or a method's own notes."""
+
+
+def jsonable(value):
+    """`value` with every tuple, set and numpy-ish scalar turned into
+    what `json` writes, and anything else made a string: a method's
+    `extra` is its own shape, and a head passes it on as it is."""
+    if isinstance(value, dict):
+        return {str(k): jsonable(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set, frozenset)):
+        return [jsonable(v) for v in value]
+    if isinstance(value, bool) or value is None or isinstance(value, (int, str)):
+        return value
+    if isinstance(value, float):
+        return round(value, 4)
+    if hasattr(value, "item"):  # a numpy scalar
+        return jsonable(value.item())
+    return str(value)
 
 
 def clean_line(text) -> str:
@@ -267,8 +309,48 @@ class WebGame(TableGame):
         self.reactions = chat.Reactions(self, lambda: seat_names(self))
         self._readings_at = -1
         self._readings: list = []
+        self._heads: dict = {}
 
     advance = TableGame.run
+
+    def fresh_belief(self, seat: int, label: str):
+        """What a fresh `label` agent believes from `seat`'s view: built,
+        reset with the game seed, shown the seat's observation through
+        the floor (`clude_constraints.observe`, the door the engine's own
+        bot sees through) and asked once. A pure function of the seat,
+        the seed and the view, so a rebuilt game reads exactly as the
+        live one did; never the agent actually playing, whose RNG a
+        reading would disturb."""
+        obs = clude_constraints.observe(self.state, seat)
+        reader = build_agent(label)
+        reader.reset(self.setup.seed)
+        return reader.select_action(obs)
+
+    def head_reading(self, seat: int) -> Optional[dict]:
+        """The seat's own character numbers, for a human seat taken with
+        a `head` (Phase 9): the token's method, its shape, the turn, the
+        masked probabilities and the method's own `extra` (Peacock's
+        belief and plausibility bounds, Green's arm, Plum's search
+        diagnostics), never flattened to a common vector. Cached per
+        event-log length like `readings`. None for a seat without a
+        head."""
+        spec = self.setup.seats[seat]
+        if not spec.head:
+            return None
+        n_events = len(self.events)
+        cached = self._heads.get(seat)
+        if cached is not None and cached[0] == n_events:
+            return cached[1]
+        belief = self.fresh_belief(seat, spec.token)
+        reading = {
+            "method": replay_data.seat_method(spec.token),
+            "shape": HEAD_SHAPES.get(spec.token, "probabilities"),
+            "turn": self.state.turn,
+            "probabilities": {card: round(float(p), 4) for card, p in belief.probabilities.items()},
+            "extra": jsonable(belief.extra),
+        }
+        self._heads[seat] = (n_events, reading)
+        return reading
 
     def turn_lines(self) -> list:
         """``(kind, text)`` for every event of the most recent turn, with
@@ -310,9 +392,7 @@ class WebGame(TableGame):
             obs = clude_constraints.observe(self.state, seat)
             probabilities = {}
             if label in AGENT_SPECS:
-                reader = build_agent(label)
-                reader.reset(self.setup.seed)
-                probabilities = reader.select_action(obs).probabilities
+                probabilities = self.fresh_belief(seat, label).probabilities
             groups = []
             placed = 0
             for name, cards in CATEGORIES:
@@ -928,11 +1008,12 @@ class TableRegistry:
             self.save(table_id, game)
         return line
 
-    def answer(self, table_id: str, game: WebGame, seat: int, seq: int, data) -> None:
+    def answer(self, table_id: str, game: WebGame, seat: int, seq: int, data, by: str = "human") -> None:
         """One seat's decision, sent in under the lock; a `TableError`
-        leaves the game as it was."""
+        leaves the game as it was. `by` is recorded in the entry: a
+        browser answers as ``"human"``, a chat seat as ``"mcp"``."""
         with game.lock:
-            game.answer(seat, seq, data)
+            game.answer(seat, seq, data, by=by)
             self._moved(table_id)
             self.save(table_id, game)
             if game.finished:
@@ -959,8 +1040,11 @@ class TableRegistry:
 
     # -- seats before the deal -----------------------------------------
 
-    def sit(self, table_id: str, me: str, token: str) -> dict:
-        """Take an open seat at a table waiting for people."""
+    def sit(self, table_id: str, me: str, token: str, head: bool = False) -> dict:
+        """Take an open seat at a table waiting for people. With `head`
+        (Phase 9, a chat seat) the seat is shown its token's own
+        character numbers all game; the arm is fixed here and recorded
+        in the setup."""
         document = self.document(table_id)
         if document is None or document.get("status") != "open":
             raise TableError("that table is not waiting for players")
@@ -971,7 +1055,10 @@ class TableRegistry:
             if spec.token == token:
                 if spec.kind != "open":
                     raise TableError(f"{token}'s seat is taken")
-                setup = setup.with_seat(seat, SeatSpec(token, "human", me))
+                try:
+                    setup = setup.with_seat(seat, SeatSpec(token, "human", me, bool(head)))
+                except ValueError as exc:
+                    raise TableError(str(exc)) from None
                 break
         else:
             raise TableError(f"there is no {token} seat at this table")
@@ -1005,6 +1092,35 @@ class TableRegistry:
         game = self._deal(document, setup)
         self._put(document)
         return game
+
+    # -- notes (Phase 9) -------------------------------------------------
+
+    def note(self, table_id: str, seat: int) -> str:
+        """The seat's free-text note: what a chat seat wrote itself to
+        outlive its conversation. Empty when nothing was written."""
+        document = self.document(table_id) or {}
+        return str((document.get("notes") or {}).get(str(seat), ""))
+
+    def write_note(self, table_id: str, seat: int, text: str) -> str:
+        """Replace the seat's note wholesale, at most `MAX_NOTE`
+        characters. Kept on the document and never as an entry, so a
+        rebuild does not replay it and the engine never reads it; no
+        lock, since it touches no game.
+
+        Raises
+        ------
+        TableError
+            No such table, or a note too long.
+        """
+        document = self.document(table_id)
+        if document is None:
+            raise TableError("no such table")
+        text = "" if text is None else str(text)
+        if len(text) > MAX_NOTE:
+            raise TableError(f"A note is at most {MAX_NOTE} characters; that one is {len(text)}.")
+        document.setdefault("notes", {})[str(seat)] = text
+        self._put(document)
+        return text
 
     # -- listing ---------------------------------------------------------
 

@@ -24,7 +24,7 @@ clude/
   clude_llm/           # Phase 6: menus, personas, LLM backends, LLMCharacter; Phase 7: the debrief (logbook.py)
   clude_training/      # self-play snapshots, belief benchmark, trace, arena, sweeps; Phase 7: replay.py, memory.py; Phase 8.2: table.py
   clude_storage/       # game records and logbooks; local and Cloud Storage stores
-  clude_web/           # Flask app: login, lobby, replay, Watch, tables people play at (8.1-8.2; docs/web.md)
+  clude_web/           # Flask app: login, lobby, replay, Watch, tables people play at (8.1-8.2; docs/web.md); mcp.py, a seat over MCP beside it (Phase 9)
   scripts/             # clude_cli.py
   tests/
   docs/

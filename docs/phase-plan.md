@@ -18,7 +18,7 @@ to the next phase.
 | 8.1 | 8.1a a basic UX scaffold as a local Flask app (login, lobby, replay, watching a headless game); 8.1b the same app on Cloud Run | done: 8.1a 2026-09-17, 8.1b deployed 2026-09-18 -- `docs/phase8.1-plan.md`, `docs/web.md` |
 | 8.2 | Human players: human seats beside the cludebots, identity by login name | done: built 2026-09-18 (the table driver and `play --human`, 8.2a; the table on the web with open seats, autopilot, rebuild and "characters remember", 8.2b-c), deployed and live-checked 2026-09-19 (8.2d) -- `docs/phase8-plan.md`, `docs/web.md` |
 | 8.3 | The rest of chat: the model on the web under a spend cap, human chat, off-turn talk with pacing, debriefs after web games | done: built 2026-09-19 on fake backends (8.3a-c), the key deployed and a live table played the same day (two model seats, chat, "remember"; $0.34, no fallbacks); 8.3d closed Phase 8 on 2026-09-19 -- `docs/phase8-plan.md` 12, `docs/web.md` |
-| 9 | A seat over MCP: a Claude in a chat window plays one seat of a live table through an MCP server on the same registry the screens use, optionally with its character's own numbers as a "head" | in progress: 9a (the plan and the renumbering) done 2026-09-20; 9b (the driver and registry changes, `clude_web/mcp.py` and its tests, on fake backends), 9c (serving, the deploy, the connector and one live game) and 9d (the close) not started -- `docs/phase9-plan.md` |
+| 9 | A seat over MCP: a Claude in a chat window plays one seat of a live table through an MCP server on the same registry the screens use, optionally with its character's own numbers as a "head" | in progress: 9a (the plan and the renumbering) done 2026-09-20; 9b built 2026-09-21 (`SeatSpec.head`, `answer(by=)`, `head_reading`, the note, `clude_web/mcp.py` with `build_server` and `combined_app`, the Dockerfile command, 14 tests on the SDK's in-memory client); 9c's deploy, connector and one live game, and 9d (the close), not started -- `docs/phase9-plan.md` |
 | 10 | In-depth UX, "engraved, not brass-plated": the token layer and self-hosted fonts, play blind and the replay omniscient, Record and Talk as two panels, the focus ladder that chooses the stage, the decorated board and logo, sound effects | planned: proposed 2026-09-20, David's decisions D1-D4 and D6 recorded 2026-09-21 (D5, the logo, waits on the 10a alternates); 10a-10g not started -- `docs/phase10-plan.md` |
 | 11 | Tweak, polish, release: clean-up and close, then release to family and friends as version 1.0.0, planned in versions from then on | not started |
 
@@ -426,8 +426,9 @@ a game with one is indistinguishable in the store from a game without.
   table, `CLAUDE.md`, `docs/phase8-plan.md`, `docs/phase8.1-plan.md`,
   `docs/web.md` and one comment in `clude_web/board_svg.py`
   renumbered; the plan written.
-- **9b, the server on fake backends.** `clude_web/mcp.py`: a
-  `FastMCP` named `clude` with six tools whose docstrings are the only
+- **9b, the server on fake backends (built 2026-09-21; the plan's
+  "as implemented" has the departures).** `clude_web/mcp.py`: an
+  `MCPServer` (mcp 2.x's name for `FastMCP`) named `clude` with six tools whose docstrings are the only
   instructions the player gets -- `clude_tables`, `clude_sit`,
   `clude_turn` (long-polls up to 25 s, driving `work` until the
   decision is this seat's), `clude_answer` (guarded by `seq`, a
@@ -444,7 +445,8 @@ a game with one is indistinguishable in the store from a game without.
   client: a whole game through the tools, stale and doubled answers,
   the view never carrying `readings` or another hand, the head equal
   to a fresh agent's belief, the note surviving a cold rebuild.
-- **9c, serving and one live game.** `combined_app`: a Starlette app
+- **9c, serving and one live game (the code built with 9b, the
+  rest not started).** `combined_app`: a Starlette app
   with `/mcp/<CLUDE_MCP_SECRET>` (a capability URL, the secret in
   Secret Manager) mounted on the MCP server's streamable HTTP app and
   `/` on the Flask app under `WsgiToAsgi`; the Dockerfile's command
