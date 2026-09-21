@@ -18,8 +18,9 @@ to the next phase.
 | 8.1 | 8.1a a basic UX scaffold as a local Flask app (login, lobby, replay, watching a headless game); 8.1b the same app on Cloud Run | done: 8.1a 2026-09-17, 8.1b deployed 2026-09-18 -- `docs/phase8.1-plan.md`, `docs/web.md` |
 | 8.2 | Human players: human seats beside the cludebots, identity by login name | done: built 2026-09-18 (the table driver and `play --human`, 8.2a; the table on the web with open seats, autopilot, rebuild and "characters remember", 8.2b-c), deployed and live-checked 2026-09-19 (8.2d) -- `docs/phase8-plan.md`, `docs/web.md` |
 | 8.3 | The rest of chat: the model on the web under a spend cap, human chat, off-turn talk with pacing, debriefs after web games | done: built 2026-09-19 on fake backends (8.3a-c), the key deployed and a live table played the same day (two model seats, chat, "remember"; $0.34, no fallbacks); 8.3d closed Phase 8 on 2026-09-19 -- `docs/phase8-plan.md` 12, `docs/web.md` |
-| 9 | In-depth UX: the decorated board and logo, typography, motion, the six-seat layouts, the case-file styling | not started |
-| 10 | Clean-up and close; then release to family and friends as version 1.0.0, planned in versions from then on | not started |
+| 9 | A seat over MCP: a Claude in a chat window plays one seat of a live table through an MCP server on the same registry the screens use, optionally with its character's own numbers as a "head" | planned 2026-09-20 -- `docs/phase9-plan.md` |
+| 10 | In-depth UX: the decorated board and logo, typography, motion, the six-seat layouts, the case-file styling | not started |
+| 11 | Tweak, polish, release: clean-up and close, then release to family and friends as version 1.0.0, planned in versions from then on | not started |
 
 Design work on aesthetics/UX was meant to run in parallel with the
 model phases (1-4). It did not, and became its own pass between Phase 7
@@ -35,10 +36,19 @@ became Phase 8.0 (its stages 8.0.0-8.0.3). Phase 8, which had been
 Cloud Run), 8.2 (human players) and 8.3 (chat): human players now come
 before chat, since chat's hard parts are about people at the table and
 bot table talk already exists headless. The UX pass splits into 8.1a's
-scaffold and Phase 9's in-depth work. Phase 10 closes development; the
+scaffold and Phase 10's in-depth work. Phase 11 closes development; the
 release after it is version 1.0.0, to family and friends (a public
 release would first need the IP scrub in `CLAUDE.md`), and planning
 continues in versions rather than phases.
+
+On 2026-09-20 David renumbered once more. After a conversation with a
+claude.ai chatbot about the project he decided to let it play a seat at
+the table itself, from the chat, and chose an MCP server over plain API
+endpoints. That is the new Phase 9; the in-depth UX became Phase 10 and
+the clean-up and release Phase 11. Every earlier doc that named those
+two phases was renumbered the same day (this table, `CLAUDE.md`,
+`docs/phase8-plan.md`, `docs/phase8.1-plan.md`, `docs/web.md`, one
+comment in `clude_web/board_svg.py`).
 
 ## Legacy code disposition
 

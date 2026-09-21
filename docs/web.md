@@ -134,9 +134,9 @@ Alongside it:
 | `clude_web/static/table.js` | The table screen: polls, fires bot work, draws the decision and posts the answer; writes only text into the page. |
 
 The stylesheet is plain on purpose. Typography, ornament, the decorated
-board and its logo, and motion are Phase 9; what is there now is the colour
+board and its logo, and motion are Phase 10; what is there now is the colour
 system those screens will inherit, declared once for light and once for
-dark, so Phase 9 restyles the app by editing that block rather than hunting
+dark, so Phase 10 restyles the app by editing that block rather than hunting
 through templates.
 
 ## The board and the replay data
@@ -146,7 +146,7 @@ string, generated from `clude_core.board` and nothing else -- the rooms,
 corridor, cellar, 17 doors and six start squares all come from the same
 map the engine plays, so the drawing cannot drift from the rules. It sets
 no colour at all: every shape carries a class and the stylesheet decides
-how it looks, which is what lets Phase 9 replace the look without touching
+how it looks, which is what lets Phase 10 replace the look without touching
 the generator. A test fails on any class with no rule.
 
 `replay_data` is split by cost:

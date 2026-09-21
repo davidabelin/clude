@@ -36,7 +36,9 @@ logbook entry. **Phase 8 closed 2026-09-19** (`docs/phase8-plan.md` 12,
 "8.3d"): the live table cost $0.34 with no fallbacks, and the cold
 rebuild came back in 0.1 s for a short table. One loose end: the
 table's two debriefs drain on the next deploy (a `table.js` fix, below).
-Next is Phase 9. Suite:
+**Renumbered 2026-09-20:** Phase 9 is now the seat over MCP (planned
+in `docs/phase9-plan.md`, 9a done; 9b, the implementation, next);
+in-depth UX is Phase 10 and clean-up and release Phase 11. Suite:
 440 passed, 16 skipped (the live-credential and browser tests), about
 three minutes with `-n auto`; the browser tests run under
 `CLUDE_WEB_BROWSER=1`.
@@ -50,8 +52,9 @@ three minutes with `-n auto`; the browser tests run under
 | 8.1 | 8.1a a basic UX scaffold as a local Flask app; 8.1b the same app on Cloud Run behind an app login | done: 8.1a built 2026-09-17 (steps 1-5: the engine seam, the login and accounts, the board and replay data, the replay scrubber, the lobby and Watch); 8.1b deployed 2026-09-18 (steps 6-9: the container, `store copy`, the service running as `clude-run`) -- `docs/phase8.1-plan.md`, `docs/web.md` |
 | 8.2 | Human players | done: 8.2a-c built 2026-09-18 (the table driver and `play --human`; the table on the web with open seats, autopilot, cold rebuild and "characters remember"); 8.2d deployed and live-checked 2026-09-19, the cold rebuild 0.1 s on a 3-turn table (`docs/phase8-plan.md` 12, `docs/web.md`) |
 | 8.3 | The rest of chat: the model on the web under a spend cap, human chat, off-turn talk with pacing, debriefs after web games | done: 8.3a-c built 2026-09-19 on fake backends, the key deployed and one live table played the same day (two model seats, chat, "remember"; $0.34, no fallbacks); 8.3d closed Phase 8 (`docs/phase8-plan.md` 12) |
-| 9 | In-depth UX | not started |
-| 10 | Clean-up and close; then version 1.0.0, released to family and friends, and planning in versions, not phases | not started |
+| 9 | A seat over MCP: a Claude in a chat window (claude.ai) plays one seat of a live table through an MCP server mounted beside the Flask app, on the same `TableRegistry`; optionally with its character's own numbers as a "head" | 9a (the plan and this renumbering) done 2026-09-20; 9b implementation next -- `docs/phase9-plan.md` |
+| 10 | In-depth UX | not started (was Phase 9 until 2026-09-20) |
+| 11 | Tweak, polish, release: clean-up and close, then version 1.0.0, released to family and friends, and planning in versions, not phases | not started (was Phase 10) |
 
 Where things stand:
 
@@ -265,10 +268,22 @@ it; `docs/phase-plan.md` has the disposition of every file.
 - **The road to 1.0.0 (2026-09-16).** The re-measurement is Phase 8.0
   (its stages 8.0.0-8.0.3); 8.1a is a basic UX scaffold as a local
   Flask app and 8.1b the same app on Cloud Run; 8.2 human players; 8.3
-  the rest of chat; Phase 9 in-depth UX; Phase 10 clean-up and close.
+  the rest of chat; then (as renumbered below) Phase 9 the seat over
+  MCP, Phase 10 in-depth UX, Phase 11 clean-up and close.
   Then clude is released as version 1.0.0 -- to family and friends,
   which is not the public release the IP decision above guards -- and
   planned in versions, not phases.
+- **A Claude at the table over MCP; renumbered (2026-09-20).** After a
+  conversation about the project with a chatbot at claude.ai, David
+  decided to let it play a seat itself during a chat there. API
+  endpoints were considered first; an MCP server was judged the better
+  fit. That work is Phase 9; the old Phase 9 (in-depth UX) is Phase 10
+  and the old Phase 10 (tweak, polish, release) is Phase 11. It is to
+  be built with minimal disruption to the existing code: the chat seat
+  is an ordinary account in an ordinary human seat, answering through
+  the same `TableRegistry` the browser uses. David's draft (a
+  `clude_mcp.py` and a `webgame_reading.py`, untracked at the repo
+  root) is the starting point; the plan is `docs/phase9-plan.md`.
 - **8.0 and 8.1 decisions (2026-09-16).** 8.0.2a and 8.0.2b approved at
   $21-35. 8.0.3: reset all four logbooks (Plum's entries and Green's
   posteriors too), keeping a copy of the ring-era ones. 8.1: an app
@@ -408,7 +423,12 @@ Suggestions to raise, not decisions to implement.
 
 ## Open questions (ask, don't assume)
 
-None outstanding as of 2026-09-19. Phase 8's assumptions stood through
+Phase 9's, in `docs/phase9-plan.md` section 6: how the MCP endpoint is
+guarded on the public URL (a secret path is what I will do unless told
+otherwise), what the chat seat's account is called (`claude`), whether
+the head is a fresh reading or a shadow agent (fresh, as `readings`
+does), and the serving change (uvicorn under gunicorn). Phase 8 left
+none: its assumptions stood through
 its close (`docs/phase8-plan.md` 9): the floor bot as the autopilot
 stand-in, 8.3's budgets ($2 a table, $10 a day), and no
 `--min-instances 1` (the cold rebuild is accepted and measured).
@@ -531,6 +551,9 @@ Phase 8 decisions above.
   disposition, scope of each built phase.
 - `docs/phase5-plan.md`, `docs/phase6-plan.md`, `docs/phase7-plan.md`
   -- plan, David's decisions, and "as implemented".
+- `docs/phase9-plan.md` -- Phase 9, a seat over MCP: what the code
+  dictates, the design, sub-phases 9a-9d, David's decisions, open
+  questions.
 - `docs/strategy-glossary.md` -- each method in plain language; the
   benchmark, dial sweeps, tuned presets, and the Phase 6 measurements.
 - `docs/llm-wrapper.md` -- how a model pilots a character; credentials;

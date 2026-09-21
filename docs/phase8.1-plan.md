@@ -11,8 +11,9 @@ Phases 1-7 built the game headless: the engine, six belief methods,
 personalities, the LLM wrapper and logbooks, all driven from
 `scripts/clude_cli.py`. Phase 8.0 re-measures the glossary on the
 Classic board. Phase 8.1 puts the first screens in front of the game;
-8.2 adds human players, 8.3 the rest of chat, Phase 9 the in-depth UX
-work, Phase 10 the clean-up, and then clude is released to family and
+8.2 adds human players, 8.3 the rest of chat, Phase 9 (added
+2026-09-20) a seat over MCP, Phase 10 the in-depth UX work, Phase 11
+the clean-up, and then clude is released to family and
 friends as version 1.0.0 and planned in versions from then on.
 
 8.1 has two halves (David, 2026-09-16):
@@ -23,7 +24,7 @@ friends as version 1.0.0 and planned in versions from then on.
 
 "Scaffold" means the screens exist, work and read the real data, and
 are plain. Typography, ornament, the decorated board with its logo,
-motion and the six-seat layout polish are Phase 9.
+motion and the six-seat layout polish are Phase 10.
 
 ## 2. What the code dictates
 
@@ -325,7 +326,7 @@ asked:
 
 Human seats (8.2), though the seam is built for them; off-turn chat
 (8.3); LLM seats on the web; the decorated board, logo, typography and
-motion (Phase 9); fixing trace fidelity for the learning methods; any
+motion (Phase 10); fixing trace fidelity for the learning methods; any
 change to a method, a dial or `movement_scores`.
 
 ## 8. As implemented
@@ -506,7 +507,7 @@ against the board rather than against a stored copy of itself.
   also walled off.
 - No colour is set anywhere in the module. Every shape carries a class
   and `static/style.css` colours it in both themes, which is what lets
-  Phase 9 restyle the board without touching the generator. A test walks
+  Phase 10 restyle the board without touching the generator. A test walks
   the generated markup and fails on any class with no rule.
 - Tokens sharing a room are fanned out rather than stacked; a room's
   centre is the mean of its cells, and a test checks that point lands
@@ -643,7 +644,7 @@ tests that need credentials.
    are countable, as they are on the real board.
 2. **The cellar was a near-black slab** dominating the middle of the
    board. It is now a muted block carrying the wordmark, which is where
-   Phase 9's logo goes.
+   Phase 10's logo goes.
 3. **Room labels sat under the tokens** that gather in the middle of a
    room -- "Dining" and "Lounge" were both unreadable. Labels now anchor
    above the centre (`label_anchor`), with a halo behind them as well.
@@ -667,7 +668,7 @@ somewhere the step line contradicted, while the browser test read the
 right coordinates. Both were true: a CSS `transition` on `cx`/`cy`,
 added in passing, animates the *paint* while the attribute already
 holds the new value, so the screenshot caught tokens mid-flight. The
-transition is gone -- motion is Phase 9 (section 1) and it was never in
+transition is gone -- motion is Phase 10 (section 1) and it was never in
 scope -- and `clude_shots.py` waits before each shot regardless.
 
 `tests/test_browser.py` adds 9 tests that markup cannot reach: every
@@ -700,7 +701,7 @@ seat to open it". So a seat's block on Watch is cards placed (as a count
 and as filled cells per category, which name no card) and how sure its
 own method is of its best guess in each category. The hidden-hands rule
 is the stronger requirement, so it won; "tap a seat to open it" is
-deferred to Phase 9, where it would need its own answer to the same leak.
+deferred to Phase 10, where it would need its own answer to the same leak.
 
 A refutation on Watch reads "Scarlett disproved it", never the card
 shown -- all anyone but the two seats involved learns at a real table.

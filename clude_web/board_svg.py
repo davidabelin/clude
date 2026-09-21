@@ -7,7 +7,7 @@ mistake worth designing out, since a replay showing a token somewhere the
 rules would not allow is worse than no picture at all.
 
 No colour is set here either: every shape carries a class and
-`static/style.css` colours it, which is what lets Phase 9 restyle the
+`static/style.css` colours it, which is what lets Phase 10 restyle the
 board without touching this module (`docs/phase8.1-plan.md` 1).
 
 Imports no Flask, so it can be tested and rendered on its own.
@@ -215,7 +215,7 @@ def board_svg(tokens=None, *, title="The board") -> str:
         cols = [c.col for c in board.CELLAR]
         cx = (sum(cols) / len(cols) + 0.5) * CELL
         cy = (sum(rows) / len(rows) + 0.5) * CELL
-        # The middle of the board carries a logo in Phase 9; until then
+        # The middle of the board carries a logo in Phase 10; until then
         # the wordmark keeps the cellar from reading as a hole.
         out.append(
             f'<text class="board-mark" x="{cx}" y="{cy}" '

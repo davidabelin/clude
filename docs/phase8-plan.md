@@ -37,7 +37,7 @@ question. "Finish Phase 8" therefore means:
   no key on purpose), under a spend cap. David, 2026-09-18: after 8.2,
   not inside it.
 
-Phase 9 (in-depth UX) and Phase 10 (clean-up, then 1.0.0) follow, so
+Phase 10 (in-depth UX) and Phase 11 (clean-up, then 1.0.0) follow, so
 everything here is built plain, as 8.1 was: the screens work and read the
 real game; typography, ornament, motion and the decorated board wait.
 
@@ -577,7 +577,7 @@ re-recorded ($0.26), and the open question removed from `CLAUDE.md`,
 Taken by David on 2026-09-18:
 
 1. **8.0.4 first, the scoring change measured headless.** Not the paid
-   ladders, not Phase 10.
+   ladders, not Phase 11.
 2. **The model comes onto the web in 8.3a**, after human seats; 8.2's
    humans play the headless characters.
 3. **A seated human sees the floor's notepad and Watch's compact bars
@@ -599,14 +599,14 @@ Still open, non-blocking, with what I will do unless told otherwise:
 Login name as identity, the lower-cased key as the label and the typed
 name on screen; no sign-up page; a human writes no logbook entries of
 their own (dossiers are written *about* them); spectators see Watch's
-view; the play screen is plain (Phase 9 dresses it); no websockets and no
+view; the play screen is plain (Phase 10 dresses it); no websockets and no
 background threads; one web run, `web`; the leash and chattiness presets
 stand; no edit to `rules.md` or the personas; `RECORD_VERSION` stays 3;
 nothing new in the Google Cloud project without a yes.
 
 ## 11. Out of scope
 
-Phase 9's look (typography, the decorated board and logo, motion, the
+Phase 10's look (typography, the decorated board and logo, motion, the
 six-seat layouts, "tap a seat to open it"); a manual notepad the human
 ticks by hand; LLM seats in the arena or CLI beyond what exists; any
 change to a method, a dial or a preset beyond 8.0.4; a cached trained
@@ -881,5 +881,6 @@ hence under `-n auto` load); it now forces a reaction and asserts on it.
 
 Docs closed: `CLAUDE.md` (status, spend, the suite at 440 passed and 16
 skipped), `docs/phase-plan.md`, `docs/web.md` ("Deploying" gains the
-live numbers), `README.md`, and this section. Phase 8 is closed; Phase 9
-(in-depth UX) is next.
+live numbers), `README.md`, and this section. Phase 8 is closed. What came next was
+renumbered on 2026-09-20: Phase 9 is now the seat over MCP
+(`docs/phase9-plan.md`), and the in-depth UX is Phase 10.
