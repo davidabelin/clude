@@ -18,8 +18,8 @@ to the next phase.
 | 8.1 | 8.1a a basic UX scaffold as a local Flask app (login, lobby, replay, watching a headless game); 8.1b the same app on Cloud Run | done: 8.1a 2026-09-17, 8.1b deployed 2026-09-18 -- `docs/phase8.1-plan.md`, `docs/web.md` |
 | 8.2 | Human players: human seats beside the cludebots, identity by login name | done: built 2026-09-18 (the table driver and `play --human`, 8.2a; the table on the web with open seats, autopilot, rebuild and "characters remember", 8.2b-c), deployed and live-checked 2026-09-19 (8.2d) -- `docs/phase8-plan.md`, `docs/web.md` |
 | 8.3 | The rest of chat: the model on the web under a spend cap, human chat, off-turn talk with pacing, debriefs after web games | done: built 2026-09-19 on fake backends (8.3a-c), the key deployed and a live table played the same day (two model seats, chat, "remember"; $0.34, no fallbacks); 8.3d closed Phase 8 on 2026-09-19 -- `docs/phase8-plan.md` 12, `docs/web.md` |
-| 9 | A seat over MCP: a Claude in a chat window plays one seat of a live table through an MCP server on the same registry the screens use, optionally with its character's own numbers as a "head" | planned 2026-09-20 -- `docs/phase9-plan.md` |
-| 10 | In-depth UX: the decorated board and logo, typography, motion, the six-seat layouts, the case-file styling | not started |
+| 9 | A seat over MCP: a Claude in a chat window plays one seat of a live table through an MCP server on the same registry the screens use, optionally with its character's own numbers as a "head" | in progress: 9a (the plan and the renumbering) done 2026-09-20; 9b (the driver and registry changes, `clude_web/mcp.py` and its tests, on fake backends), 9c (serving, the deploy, the connector and one live game) and 9d (the close) not started -- `docs/phase9-plan.md` |
+| 10 | In-depth UX, "engraved, not brass-plated": the token layer and self-hosted fonts, play blind and the replay omniscient, Record and Talk as two panels, the focus ladder that chooses the stage, the decorated board and logo, sound effects | planned: proposed 2026-09-20, David's decisions D1-D4 and D6 recorded 2026-09-21 (D5, the logo, waits on the 10a alternates); 10a-10g not started -- `docs/phase10-plan.md` |
 | 11 | Tweak, polish, release: clean-up and close, then release to family and friends as version 1.0.0, planned in versions from then on | not started |
 
 Design work on aesthetics/UX was meant to run in parallel with the
@@ -49,6 +49,20 @@ the clean-up and release Phase 11. Every earlier doc that named those
 two phases was renumbered the same day (this table, `CLAUDE.md`,
 `docs/phase8-plan.md`, `docs/phase8.1-plan.md`, `docs/web.md`, one
 comment in `clude_web/board_svg.py`).
+
+Phase 10 was planned before Phase 9 was built, on 2026-09-20, from
+David's brief in three rules: what is most interesting is what is most
+visible, so the table screen has one stage and one rail and a `focus`
+computed server-side chooses what holds the stage; play is blind and the
+replay omniscient, so the seat bars come off the table during a human
+game (Watch and the replay keep them) and a character's method is hidden
+during play; and table talk and the record are two panels, never one.
+David answered on 2026-09-21: Watch keeps the bars, the bars come off
+play, methods are hidden during play, Bodoni for the wordmark and
+Playfair for captions, and gaslight dark is the default theme; the logo
+waits until he sees the three alternates drawn in 10a. Phase 10 is paint
+and layout only: no change to the engine, the methods, the dials or the
+prompts, and no build step (`docs/phase10-plan.md`).
 
 ## Legacy code disposition
 
@@ -314,6 +328,207 @@ chat, any UI, human seats, any change to `movement_scores` or the
 presets, any change to a method's core algorithm beyond the memory
 seams, the `memory` sweep itself, and any measurement run at ladder
 scale.
+
+## Phase 8 scope
+
+Planned in three documents -- `docs/phase8.0-plan.md` (the
+re-measurement), `docs/phase8.1-plan.md` (the web scaffold and Cloud
+Run) and `docs/phase8-plan.md` (8.0.4, human players and chat, with
+David's four decisions and the assumptions that stood) -- and built
+between 2026-09-15 and 2026-09-19; every measurement is in
+`docs/strategy-glossary.md` and the operating manual is `docs/web.md`.
+
+- **8.0, re-measurement on the Classic board (2026-09-15 to
+  2026-09-18).** 8.0.0-8.0.1: every headless glossary number re-run on
+  the grid, the presets retuned (Scarlett's `accuse_threshold` 0.3,
+  Plum's `curiosity` 0.5 and sample budget 10,000) and the confirmation
+  arena run. 8.0.2a-b, the two paid runs ($14.24 against a $21-35
+  quote, no fallbacks): the twin arena reproduced the ring's findings
+  in direction, and Plum alone on the model showed the parking alive as
+  a passage loop the leash hides. 8.0.3: all four logbooks reset (the
+  ring-era copy kept as `data/llm/logbooks-ring`) and Mustard's and
+  White's method memory rebuilt from grid records only. 8.0.4, the
+  landing rule (`features._landing_proximity`): a placed room is a
+  destination only when nobody else can refute with it, otherwise a
+  place on the way; measured as three paired arenas, games shorter on
+  every table, exact repeats down two thirds or more, win rates within
+  noise; goldens re-captured, fixtures re-recorded ($0.22). 2c and 2d
+  were not run.
+- **8.1a, the scaffold (2026-09-17).** `clude_web` as a local Flask
+  app in five steps: the engine seam (`game_steps`, a game as a
+  generator the web can drive a turn at a time); the skeleton with
+  `create_app`, `config`, `auth` (the login gate, CSRF, a per-name rate
+  limit) and `users` (accounts as store documents, the `users` CLI);
+  `board_svg` (the grid drawn colourless from `clude_core.board`) and
+  `replay_data` (event lines, board frames, the cached belief trace);
+  the replay scrubber (Direction A); the lobby and Watch (Direction D's
+  order). Step 4 was amended after the first screenshots found three
+  bugs the suite could not see; `scripts/clude_shots.py` dates from
+  then.
+- **8.1b, Cloud Run (2026-09-18).** A `Dockerfile` on
+  `python:3.14-slim` under gunicorn, `requirements-web.txt`, the ignore
+  files keeping the key, `.env` and `data/` out (`tests/test_deploy.py`);
+  `ProxyFix` only under HTTPS; `clude_storage.mirror` and `store copy`
+  (1,371 documents in 24 s); the service running as the narrow
+  `clude-run`, with the one-time changes made by David in the Console;
+  the lobby's parallel read (3.5 s to 0.6 s). Live at
+  <https://clude-648214345192.us-central1.run.app>.
+- **8.2, human players (2026-09-18, deployed 2026-09-19).** 8.2a:
+  `clude_training.table` (`SeatSpec`, `TableSetup`, the answer codec,
+  `TableGame` with an entry log that rebuilds a paused game exactly),
+  `engine.check_answer`, `arena.headless_table` building through it so
+  `play`, Watch and a table with people are one path, and `play
+  --human` from the terminal. 8.2b-c: `clude_web.tables`, a table
+  document per game, polling and one unit of bot work per request,
+  open seats, autopilot, the reveal rule per viewer, the floor's
+  notepad and Watch's bars for the person, "characters remember" with
+  a memory snapshot, `RESERVED_NAMES`; Watch reduced to a shim over
+  the one registry. 8.2d: the deploy, run by David; a four-seat table
+  played in the browser, the scripted live check (poll median 94 ms)
+  and a cold rebuild resumed in 0.1 s; `scripts/deploy.bat` and
+  `scripts/live_check.bat`.
+- **8.3, the rest of chat (2026-09-19).** 8.3a: an `llm` seat on the
+  web, external to the engine like a person, one wrapper call per
+  `work`, every answer stored with its audit and the lines it said
+  (`Speaker`, the engine's `speakers` hook) so a rebuild never calls
+  the model, `MeteredBackend` over a daily `Ledger` under a $2 table
+  budget and a $10 daily cap, `LLMConfig` from `ANTHROPIC_API_KEY`.
+  8.3b: `/say` (240 characters, never read by the engine),
+  `LLMCharacter.react`, `clude_web.chat.Reactions` (joining at
+  `chattiness`, squared for a reply to a reply, two queued at most,
+  served one per `work` 2-8 s later, bot turns held meanwhile). 8.3c:
+  a remembering table attaches each model seat's logbook and wraps up
+  with one debrief per `work`, driven by whoever has the table open.
+  8.3d: the key deployed from Secret Manager and one live table played
+  by David (58 turns, 19 model calls, 0 fallbacks, 28 off-turn lines,
+  $0.34); two fixes from the close-out pass, a served reaction lost on
+  rebuild and `table.js` never working a finished table. Suite at 440
+  passed, 16 skipped.
+
+Explicitly out of scope for Phase 8, and still not done: Phase 10's
+look; a manual notepad; LLM seats in the arena or CLI beyond what
+exists; any change to a method, a dial or a preset beyond 8.0.4; a
+cached trained tree for Mustard; a public release and the IP scrub.
+
+## Phase 9 scope
+
+Planned in `docs/phase9-plan.md` (David's three decisions of
+2026-09-20 are recorded there; its five open questions in section 6
+are asked, not assumed) and to be built in four sub-phases, each noted
+here as it lands. The starting point is David's draft from the
+claude.ai conversation, `clude_mcp.py` and `webgame_reading.py`, which
+9b consumes and deletes. The governing constraint is minimal
+disruption: the chat seat is an ordinary account in an ordinary human
+seat, answering through the same `TableRegistry` the browser uses, and
+a game with one is indistinguishable in the store from a game without.
+
+- **9a, the plan and the renumbering (done 2026-09-20).** This
+  table, `CLAUDE.md`, `docs/phase8-plan.md`, `docs/phase8.1-plan.md`,
+  `docs/web.md` and one comment in `clude_web/board_svg.py`
+  renumbered; the plan written.
+- **9b, the server on fake backends.** `clude_web/mcp.py`: a
+  `FastMCP` named `clude` with six tools whose docstrings are the only
+  instructions the player gets -- `clude_tables`, `clude_sit`,
+  `clude_turn` (long-polls up to 25 s, driving `work` until the
+  decision is this seat's), `clude_answer` (guarded by `seq`, a
+  `TableError` returned as a message), `clude_say` and `clude_note`.
+  Every call returns a view that fully reconstitutes a forgetful
+  player: `view_payload` from the seat with `readings` and `tokens`
+  dropped, the event lines capped at 60 with the rest folded into a
+  digest, plus the seat's note and its optional `head` (its own
+  character's fresh numbers, as `readings` builds them). Driver and
+  registry changes: `SeatSpec.head`, `answer(by="mcp")`,
+  `WebGame.head_reading`, a `notes` dict on the document. Nothing in
+  the engine, the agents, the store schema or the record changes;
+  `RECORD_VERSION` stays 3. `tests/test_mcp.py` on the SDK's in-memory
+  client: a whole game through the tools, stale and doubled answers,
+  the view never carrying `readings` or another hand, the head equal
+  to a fresh agent's belief, the note surviving a cold rebuild.
+- **9c, serving and one live game.** `combined_app`: a Starlette app
+  with `/mcp/<CLUDE_MCP_SECRET>` (a capability URL, the secret in
+  Secret Manager) mounted on the MCP server's streamable HTTP app and
+  `/` on the Flask app under `WsgiToAsgi`; the Dockerfile's command
+  becomes gunicorn's uvicorn worker; `mcp`, `asgiref` and `uvicorn`
+  join `requirements-web.txt`. Then a deploy, the connector added at
+  claude.ai, and one live game from the chat, costed and approved
+  first.
+- **9d, the close.** Docs, the live numbers, "as implemented" in the
+  plan, `CLAUDE.md`, this table, `docs/web.md`.
+
+Explicitly out of scope for Phase 9: a chat seat making or dealing a
+table (the person does, in the browser); a chat seat in the arena or
+the CLI; a chat seat that is also a model seat; OAuth; websockets; the
+draft's shadow-agent head; any change to a method, a dial, a preset, a
+persona or `rules.md`; Phase 10's look.
+
+## Phase 10 scope
+
+Planned in `docs/phase10-plan.md` -- proposed 2026-09-20 from David's
+brief, his answers to D1-D4 and D6 recorded 2026-09-21, D5 (the logo)
+open until he sees the alternates -- and to be built in seven
+sub-phases, each noted here as it lands. The brief is three rules:
+**the loudest thing is the biggest thing** (the table screen has one
+stage and one rail, and a `focus` computed server-side in
+`view_payload` -- `show`, `end`, `move`, `decide`, `beat`, `talk`,
+`board`, highest first -- chooses what holds the stage; the stage never
+changes under the viewer's hand, and the rail always shows what it is
+holding back); **play is blind, the replay omniscient** (the seat bars
+come off the table during a human game and a character's method is
+hidden during play; Watch and the replay keep both); and **talk and
+record are two panels, never one** (every `RemarkEvent` as a balloon,
+every other event as case-file narration from this seat's view). The
+direction is "engraved, not brass-plated": steampunk's materials and
+mechanisms (ink on laid paper, brass as a hairline, instruments not
+widgets, a didone display face) and the graphic novel's grammar (panel
+cuts, screentone for what gradients would do, caption boxes, balloons
+with tails, one impact frame per game, on the accusation); gears,
+brass fills, sepia, blur and more than four faces refused. Phase 10 is
+also the first half of the IP scrub: the look stops being Hasbro's
+while the names stay.
+
+- **10a, artboards.** `docs/ux/table/` and `docs/ux/logo/` at 390 x
+  844 as `docs/ux/replay/` was done: the table in all seven focus
+  states, the replay, the lobby, three logo alternates. David settles
+  D5 here.
+- **10b, the token layer.** `:root` rewritten with gaslight dark as
+  the default (D6) and the case-file light theme on a stated
+  preference; the six suspect colours unchanged, each gaining an ink
+  twin; four faces self-hosted as woff2 (Bodoni Moda for the wordmark
+  and Playfair Display for captions, D4; Inter and IBM Plex Mono
+  kept); spacing, a 2 px radius, the printed shadow, the duration and
+  easing tokens; the motion kill switch `body[data-motion="off"]`
+  wired into `clude_shots.py` and `tests/test_browser.py`, with a test
+  that no duration lives outside `:root`.
+- **10c, play blind.** `readings` out of a human table's payload (a
+  test asserts the key is absent, not merely unrendered), methods
+  hidden during play and named in the replay and on the setup form
+  (D3), the seat rail rebuilt on public facts, the notepad and hand
+  restyled.
+- **10d, two panels.** Record and Talk split, balloons with the
+  speaker's colour on the tail, the 240-character box with its
+  counter, turn numbers in the margin in the gauge face.
+- **10e, the focus ladder.** `focus` in `view_payload`, `data-focus`
+  on the table, one grid per state at three breakpoints (phone first,
+  the thumb owning the bottom third), the beat caption, the panel cut;
+  the ladder unit-tested in Python and a browser test walking all
+  seven states.
+- **10f, the board and the logo.** `board_svg` gains shapes and no
+  paint: four floor patterns as `<pattern>` defs coloured by the
+  stylesheet, double-rule walls, threshold plates with rivets, the
+  logo in the cellar, token initials and ink rings, lit destinations as
+  an overlay at server coordinates; the no-colour and token-position
+  tests still pass.
+- **10g, sound effects.** Short cues for a turn ready, a move, a
+  refutation and an accusation, in play, Watch and replay; muted until
+  enabled, one cue per event, never a cue for anything the viewer
+  cannot see; `static/sounds/` and `static/sound.js`. No music.
+
+Explicitly out of scope for Phase 10: any change to the engine, the
+six methods, the dials or the prompts (Phase 10 is paint and layout);
+translation, though nothing may block it; a native app, a service
+worker or offline play; music; the IP scrub proper (renaming the
+characters and rooms is Phase 11's question); anything that needs a
+build step.
 
 ## Open questions
 
