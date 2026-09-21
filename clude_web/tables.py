@@ -1041,7 +1041,9 @@ class TableRegistry:
 
     def set_autopilot(self, table_id: str, game: WebGame, seat: int, on: bool) -> dict:
         """Hand `seat` to the stand-in, or take it back. With it on and
-        the game stopped on that seat, the stand-in answers at once."""
+        the game stopped on that seat, the stand-in answers at once,
+        every decision of that seat's until the turn passes on, so the
+        seat never shows a decision again until it is taken back."""
         document = self.document(table_id)
         if document is None:
             raise TableError("no such table")
@@ -1050,8 +1052,11 @@ class TableRegistry:
         self._put(document)
         if on:
             with game.lock:
-                if game.pending is not None and game.pending.seat == seat and not game.finished:
+                played = False
+                while game.pending is not None and game.pending.seat == seat and not game.finished:
                     game.autopilot()
+                    played = True
+                if played:
                     self._moved(table_id)
                     self.save(table_id, game)
                     if game.finished:

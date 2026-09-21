@@ -140,19 +140,24 @@ maintainer), and the registry taken from the Flask app so there is one.
 |---|---|---|
 | `clude_tables()` | Lists the tables the account could join or holds a seat at: id, status, turns, seats, open seats, `mine`. | `in_progress`, `viewer_seat` |
 | `clude_sit(table_id, token, head=False)` | Takes an open seat as `token`; fixes the arm for the game. Returns the view. | `sit`, then the view |
-| `clude_turn(table_id)` | Long-polls up to `POLL_SECONDS` (25): drives `work` until the decision is this seat's, the game ends, or time is up. Returns the view. | `game`, `work` |
-| `clude_answer(table_id, seq, answer)` | One decision, refused if `seq` is stale; a `TableError` comes back as `error` in the view rather than an exception, so the player reads it and calls `turn` again. | `answer(..., by="mcp")` |
+| `clude_turn(table_id, since=0)` | Long-polls up to `POLL_SECONDS` (25): drives `work` until the decision is this seat's, the game ends, or time is up. Returns the view from `since`. | `game`, `work` |
+| `clude_answer(table_id, seq, answer, accuse=None, since=0, wait=True)` | One decision, refused if `seq` is stale; a `TableError` comes back as `error` in the view rather than an exception, so the player reads it and calls `turn` again. `accuse` (false, or a triple) answers the accusation question that follows directly, in the same call; with `wait` the call then long-polls like `clude_turn`. (Both added after the first live game; 8.) | `answer(..., by="mcp")`, `work` |
 | `clude_say(table_id, text)` | A line at the table, in the open. | `say` |
 | `clude_note(table_id, text=None)` | Reads or wholly replaces the seat's free-text note. | the document |
+| `clude_autopilot(table_id, on=True)` | Hands the seat to the floor bot, or takes it back: for a conversation about to run out. (Added after the first live game; 8.) | `set_autopilot` |
 
-The view (`_view`) is `tables.view_payload` from the seat, then
-trimmed: `readings` and `tokens` dropped (every seat's bars are Watch's
-and a player's business is its own), the event lines capped at
+The view (`seat_view`) is `tables.view_payload` from the seat, then
+reshaped for a reader that pays for every token (the shape below is
+the one the first live game led to; the plan's was the screen's
+payload lightly trimmed): `readings` and `tokens` dropped (every seat's
+bars are Watch's and a player's business is its own), one string per
+seat and per event, the events cut at a `since` cursor and capped at
 `MAX_EVENTS` (60) with the rest folded into a `digest` (counts and the
-last few unrefuted suggestions), plus `seat`, `note` and `head`. `head`
-is ``null`` when the seat has none, and the docstrings say so, because
-a seat that cannot tell which arm it is in narrates confidence it does
-not have.
+last few unrefuted suggestions), the notepad one line per card in names
+(`compact_notepad`, with the floor's `one_of` facts and its `solution`),
+`note` only with ``since=0``, plus `head`. `head` is ``null`` when the
+seat has none, and the docstrings say so, because a seat that cannot
+tell which arm it is in narrates confidence it does not have.
 
 Errors a player can act on are messages, not stack traces: not seated
 ("use clude_tables to find one with an open seat"), a stale `seq`, a
@@ -393,3 +398,71 @@ opens). Timings on that resumed game: poll median 112 ms, answer
 sample, about a quarter slower, worth watching rather than acting on.
 The throwaway accounts were removed. Left: the connector at claude.ai
 and one live game from the chat, then 9d.
+
+**9c, the first live game from the chat (2026-09-21).** The connector
+was added at claude.ai and an Opus there played Plum at table
+`8de30daff8` through the tools: it sat, waited for the deal, played 30
+turns, wrote its deductions to its note, and stopped on purpose with
+the chat nearly full and the table waiting on it. Its report is the
+finding of the test: every call came back with about 9,000 tokens (the
+whole notepad as 21 objects with seat numbers, every event line, every
+seat, the note) and a turn took two to four calls, so the conversation
+would have run out around turn 30 to 40 of a 60-turn game. It also
+asked for autopilot, which the browser has and the tools did not, and
+raised the notepad not recording a pass (Peacock unable to disprove a
+Knife) or a disjunction (Green holds Plum or the Wrench). Fixed the
+same day, on the fake backends, in `clude_web/mcp.py` alone plus one
+registry change:
+
+- **The view is compact.** `seat_view(registry, table_id, game, seat,
+  since=0)`: one string per seat (``"Plum: claude (you)"``, ``", on
+  autopilot"``, ``", out (accused wrongly)"``), one string per event
+  (``"12 (turn 5) Mustard moves to Hall."``), `waiting` a sentence, the
+  movement options without the screen's coordinates, and everything the
+  screen needs and a player does not (`llm`, `debriefs`, `work`,
+  `chatter`, `offer_autopilot`, `remember`, `wrapping_up`) left out.
+- **`since`** on `clude_turn` and `clude_answer`: the events from that
+  index on (the `n_events` of the last view), the digest folding only
+  what is cut between it and the `MAX_EVENTS` cap; and `note` comes
+  only with ``since=0``, the call a fresh conversation makes, since a
+  note of 8,000 characters in every view was the other half of the
+  cost. Measured on a 6-seat table at turn 35 with a 2,000-character
+  note (`json.dumps` length over four): the old view about 2,700
+  tokens, the new since-0 view about 1,700, the new view from a cursor
+  six events back about 430.
+- **The notepad** is `compact_notepad`: per card the proven holder
+  (``me``, a token, ``envelope``) or the holders still possible joined
+  with "or", in names rather than seat numbers; `one_of`, the floor's
+  open or-constraints ("Green holds at least one of: Plum, Wrench"),
+  which `tables.notepad` never carried; and `solution` once all three
+  are proven. The pass was never missing: `propagate` strikes every
+  skipped seat from the three cards, and a test now pins that the
+  compact lines show it. What Opus saw was the seat-number rows, and
+  the disjunction, which the browser's rows do leave out.
+- **`accuse`** on `clude_answer`: ``false`` passes the accusation
+  question that follows this answer directly, a triple makes it, in the
+  same call; checked before anything is applied (``true`` or a
+  malformed triple refuses the whole call); given with a move into a
+  room, where the suggestion question comes first, it is set aside and
+  `notice` says so. And **`wait`** (default on): after answering, the
+  call long-polls exactly as `clude_turn` does, so `pending` is usually
+  set when it returns. A turn is then two calls (the move; the
+  suggestion with the accusation folded in) rather than four, and
+  `clude_turn` is for the first decision and for a call that came back
+  with nothing pending.
+- **`clude_autopilot(table_id, on=True)`** calls the registry's
+  `set_autopilot`, which now drains every decision of the seat's in a
+  row (it answered one and left the next to the following `work`);
+  `clude_tables` shows `my_autopilot`. While on, `clude_turn` only
+  watches.
+- `tests/test_mcp.py`: 21 tests (from 14): the whole game now played
+  the way a player would (`clude_turn` once, then `clude_answer`
+  waiting), the view's shape, `since` and the note, an answer that
+  waits, `accuse` folded through a whole game with no accusation ever
+  put as a decision of its own, `accuse` too early or malformed, the
+  pass and the `one_of` facts against the browser's rows, and the
+  autopilot handover and return.
+
+Not changed: the driver, the engine, the record, the browser's
+notepad. The live game at `8de30daff8` waits on Plum and resumes in a
+new chat once this is deployed.

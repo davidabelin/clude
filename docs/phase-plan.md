@@ -18,7 +18,7 @@ to the next phase.
 | 8.1 | 8.1a a basic UX scaffold as a local Flask app (login, lobby, replay, watching a headless game); 8.1b the same app on Cloud Run | done: 8.1a 2026-09-17, 8.1b deployed 2026-09-18 -- `docs/phase8.1-plan.md`, `docs/web.md` |
 | 8.2 | Human players: human seats beside the cludebots, identity by login name | done: built 2026-09-18 (the table driver and `play --human`, 8.2a; the table on the web with open seats, autopilot, rebuild and "characters remember", 8.2b-c), deployed and live-checked 2026-09-19 (8.2d) -- `docs/phase8-plan.md`, `docs/web.md` |
 | 8.3 | The rest of chat: the model on the web under a spend cap, human chat, off-turn talk with pacing, debriefs after web games | done: built 2026-09-19 on fake backends (8.3a-c), the key deployed and a live table played the same day (two model seats, chat, "remember"; $0.34, no fallbacks); 8.3d closed Phase 8 on 2026-09-19 -- `docs/phase8-plan.md` 12, `docs/web.md` |
-| 9 | A seat over MCP: a Claude in a chat window plays one seat of a live table through an MCP server on the same registry the screens use, optionally with its character's own numbers as a "head" | in progress: 9a (the plan and the renumbering) done 2026-09-20; 9b built 2026-09-21 (`SeatSpec.head`, `answer(by=)`, `head_reading`, the note, `clude_web/mcp.py` with `build_server` and `combined_app`, the Dockerfile command, 14 tests on the SDK's in-memory client); 9c deployed the same day (the secret, the `claude` account, revision 6, probed and live-checked); the connector at claude.ai, one live game from the chat, and 9d (the close) not started -- `docs/phase9-plan.md` |
+| 9 | A seat over MCP: a Claude in a chat window plays one seat of a live table through an MCP server on the same registry the screens use, optionally with its character's own numbers as a "head" | in progress: 9a (the plan and the renumbering) done 2026-09-20; 9b built 2026-09-21 (`SeatSpec.head`, `answer(by=)`, `head_reading`, the note, `clude_web/mcp.py` with `build_server` and `combined_app`, the Dockerfile command, 14 tests on the SDK's in-memory client); 9c deployed the same day (the secret, the `claude` account, revision 6, probed and live-checked), the connector added and the first live game played from the chat that evening, which found the views too big for a chat's context and led to the compact `since` view, `accuse` and `wait` on the answer, and `clude_autopilot` (21 tests; to deploy); 9d (the close) not started -- `docs/phase9-plan.md` |
 | 10 | In-depth UX, "engraved, not brass-plated": the token layer and self-hosted fonts, play blind and the replay omniscient, Record and Talk as two panels, the focus ladder that chooses the stage, the decorated board and logo, sound effects | planned: proposed 2026-09-20, David's decisions D1-D4 and D6 recorded 2026-09-21 (D5, the logo, waits on the 10a alternates); 10a-10g not started -- `docs/phase10-plan.md` |
 | 11 | Tweak, polish, release: clean-up and close, then release to family and friends as version 1.0.0, planned in versions from then on | not started |
 
@@ -445,15 +445,23 @@ a game with one is indistinguishable in the store from a game without.
   client: a whole game through the tools, stale and doubled answers,
   the view never carrying `readings` or another hand, the head equal
   to a fresh agent's belief, the note surviving a cold rebuild.
-- **9c, serving and one live game (built and deployed 2026-09-21;
-  the connector and the live game not yet).** `combined_app`: a Starlette app
+- **9c, serving and one live game (built, deployed and played
+  2026-09-21).** `combined_app`: a Starlette app
   with `/mcp/<CLUDE_MCP_SECRET>` (a capability URL, the secret in
   Secret Manager) mounted on the MCP server's streamable HTTP app and
   `/` on the Flask app under `WsgiToAsgi`; the Dockerfile's command
   becomes gunicorn's uvicorn worker; `mcp`, `asgiref` and `uvicorn`
-  join `requirements-web.txt`. Then a deploy, the connector added at
-  claude.ai, and one live game from the chat, costed and approved
-  first.
+  join `requirements-web.txt`. Then the deploy (revision 6), the
+  connector at claude.ai, and the first live game from the chat: an
+  Opus played Plum for 30 turns and stopped with its chat nearly full,
+  since every view cost about 9,000 tokens and a turn two to four
+  calls. So the view became compact and cut at a `since` cursor (one
+  string per seat, per event and per card, the note only with since
+  0), `clude_answer` gained `accuse` (the accusation folded into the
+  answer before it) and `wait` (it holds for the next decision, so a
+  turn is two calls), and a seventh tool, `clude_autopilot`, hands the
+  seat to the floor bot. 21 tests; the plan's section 8 has the
+  measurements. To deploy, then the game resumes.
 - **9d, the close.** Docs, the live numbers, "as implemented" in the
   plan, `CLAUDE.md`, this table, `docs/web.md`.
 

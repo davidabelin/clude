@@ -41,9 +41,15 @@ in `docs/phase9-plan.md`, 9a done; **9b built 2026-09-21** on fake
 backends together with the serving code: `clude_web/mcp.py`, the
 head, the note, the combined ASGI app and the Dockerfile command;
 **9c deployed the same day**: the secret, the `claude` account,
-revision 6 probed and live-checked, `docs/phase9-plan.md` 8; the
-connector at claude.ai and one live game from the chat next); in-depth UX is
-Phase 10 and clean-up and release Phase 11. Suite: 454 passed, 16 skipped (the
+revision 6 probed and live-checked, `docs/phase9-plan.md` 8; **the
+first live game from the chat the same evening**: an Opus at claude.ai
+played Plum at table `8de30daff8` for 30 turns and stopped with its
+chat nearly full, every view about 9,000 tokens and a turn two to four
+calls, so the view was made compact and cut at a `since` cursor,
+`clude_answer` gained `accuse` and `wait`, and `clude_autopilot` is
+the seventh tool -- built on fake backends, 21 MCP tests, **to
+deploy**, after which that game resumes in a new chat); in-depth UX is
+Phase 10 and clean-up and release Phase 11. Suite: 464 passed, 17 skipped (the
 live-credential and browser tests), about three minutes with
 `-n auto`; the browser tests run under `CLUDE_WEB_BROWSER=1`.
 
@@ -56,7 +62,7 @@ live-credential and browser tests), about three minutes with
 | 8.1 | 8.1a a basic UX scaffold as a local Flask app; 8.1b the same app on Cloud Run behind an app login | done: 8.1a built 2026-09-17 (steps 1-5: the engine seam, the login and accounts, the board and replay data, the replay scrubber, the lobby and Watch); 8.1b deployed 2026-09-18 (steps 6-9: the container, `store copy`, the service running as `clude-run`) -- `docs/phase8.1-plan.md`, `docs/web.md` |
 | 8.2 | Human players | done: 8.2a-c built 2026-09-18 (the table driver and `play --human`; the table on the web with open seats, autopilot, cold rebuild and "characters remember"); 8.2d deployed and live-checked 2026-09-19, the cold rebuild 0.1 s on a 3-turn table (`docs/phase8-plan.md` 12, `docs/web.md`) |
 | 8.3 | The rest of chat: the model on the web under a spend cap, human chat, off-turn talk with pacing, debriefs after web games | done: 8.3a-c built 2026-09-19 on fake backends, the key deployed and one live table played the same day (two model seats, chat, "remember"; $0.34, no fallbacks); 8.3d closed Phase 8 (`docs/phase8-plan.md` 12) |
-| 9 | A seat over MCP: a Claude in a chat window (claude.ai) plays one seat of a live table through an MCP server mounted beside the Flask app, on the same `TableRegistry`; optionally with its character's own numbers as a "head" | 9a (the plan and this renumbering) done 2026-09-20; 9b built 2026-09-21 (`clude_web/mcp.py`: `build_server` over any registry and `combined_app`, the one ASGI app the container now serves; `SeatSpec.head`, `answer(by="mcp")`, `WebGame.head_reading`, the seat's note; 14 tests on the SDK's in-memory client); 9c deployed 2026-09-21 (`clude-mcp-secret`, the `claude` account on the bucket, revision 6; the endpoint probed and a resumed live-check game played to the end); the connector at claude.ai and one live game from the chat next -- `docs/phase9-plan.md` 8 |
+| 9 | A seat over MCP: a Claude in a chat window (claude.ai) plays one seat of a live table through an MCP server mounted beside the Flask app, on the same `TableRegistry`; optionally with its character's own numbers as a "head" | 9a (the plan and this renumbering) done 2026-09-20; 9b built 2026-09-21 (`clude_web/mcp.py`: `build_server` over any registry and `combined_app`, the one ASGI app the container now serves; `SeatSpec.head`, `answer(by="mcp")`, `WebGame.head_reading`, the seat's note); 9c deployed 2026-09-21 (`clude-mcp-secret`, the `claude` account on the bucket, revision 6; the endpoint probed and a resumed live-check game played to the end), the connector added and the first live game played from the chat that evening (Plum, 30 turns, stopped with the chat full), which led to the compact `since` view, `accuse` and `wait` on `clude_answer` and the seventh tool `clude_autopilot` (21 tests, to deploy); then 9d -- `docs/phase9-plan.md` 8 |
 | 10 | In-depth UX | not started (was Phase 9 until 2026-09-20) |
 | 11 | Tweak, polish, release: clean-up and close, then version 1.0.0, released to family and friends, and planning in versions, not phases | not started (was Phase 10) |
 
@@ -376,10 +382,11 @@ Built; the detail is in `docs/architecture.md`.
   registry that stores, drives and rebuilds every game, the seat form,
   the view of a game from one seat, the model seats and their metering),
   `chat` (off-turn talk: the reaction queue and its pacing), `watch`
-  (Watch as a table with nobody human at it), `mcp` (Phase 9: the six
+  (Watch as a table with nobody human at it), `mcp` (Phase 9: the seven
   tools a Claude in a chat window plays a seat through, built by
-  `build_server` over any registry, and `combined_app`, Flask and the
-  endpoint in one ASGI app under a secret path), `views`, templates,
+  `build_server` over any registry, the compact `seat_view` it reads,
+  and `combined_app`, Flask and the endpoint in one ASGI app under a
+  secret path), `views`, templates,
   one stylesheet, `replay.js` and `table.js`.
   Imports every other package; nothing imports it (`docs/web.md`).
   `clude_training.arena.headless_table` is the table `play` seats, shared

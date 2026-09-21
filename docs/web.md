@@ -601,13 +601,19 @@ itself, through an MCP server mounted beside the Flask app on the same
 `TableRegistry` (`docs/phase9-plan.md`; built 2026-09-21). The chat
 seat is an ordinary account in an ordinary human seat: it sits in an
 open seat, the person deals from the browser, and it answers the
-engine's decisions through six tools -- `clude_tables`, `clude_sit`,
+engine's decisions through seven tools -- `clude_tables`, `clude_sit`,
 `clude_turn` (which holds for up to 25 s while the bots play, driving
-the same `work` the browser does), `clude_answer`, `clude_say` and
-`clude_note` (a free-text note of its own, kept on the table document
-and never an entry). Its answers are entered ``by="mcp"``, and the
-record shows it as a person under its account key, so its dossier
-accrues like anyone's. Optionally it takes its seat with a `head`: its
+the same `work` the browser does), `clude_answer` (which answers, folds
+in the accusation that follows if told to, then holds the same way for
+the next decision), `clude_say`, `clude_note` (a free-text note of its
+own, kept on the table document and never an entry) and
+`clude_autopilot` (the seat handed to the floor bot when a chat must
+end). Every view is cut at a `since` cursor and kept compact -- one
+line per seat, per event and per card -- because a chat pays for every
+token it reads: the first live game (2026-09-21) ran out of room at
+turn 30 on views of about 9,000 tokens (`docs/phase9-plan.md` 8). Its
+answers are entered ``by="mcp"``, and the record shows it as a person
+under its account key, so its dossier accrues like anyone's. Optionally it takes its seat with a `head`: its
 token's own character numbers, as Watch's readings are built, in every
 view; off by default. The tool docstrings in `clude_web/mcp.py` are the
 only instructions the player gets.

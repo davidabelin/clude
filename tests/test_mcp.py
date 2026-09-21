@@ -4,11 +4,16 @@ model.
 
 Pinned here: that the chat seat is an ordinary account in an ordinary
 human seat, answering through the same registry the browser uses; that
-a whole game plays through the six tools with the characters driven by
-`clude_turn`, every answer entered ``by="mcp"`` and the record saved
-like any other; that a stale `seq` is refused and reported and a
-doubled answer applied once; that the view never carries `readings` or
-another seat's hand; that `head` is null without a head and the
+a whole game plays through the tools with the characters driven by
+`clude_turn` and `clude_answer`, every answer entered ``by="mcp"`` and
+the record saved like any other; that a stale `seq` is refused and
+reported and a doubled answer applied once; that the view is compact
+(`since` cuts the events, the note comes only with since 0, one line
+per seat and per card) and never carries `readings` or another seat's
+hand; that `accuse` folds the accusation into the answer before it and
+is refused or set aside when it cannot apply; that `clude_autopilot`
+hands the seat to the stand-in; that the notepad records a pass and
+the floor's "one of" facts; that `head` is null without a head and the
 method's own shape with one, equal to a fresh agent's belief on a
 rebuilt game as on the live one; that the note survives a cold rebuild
 and never becomes an entry; and that the combined ASGI app serves the
@@ -25,6 +30,7 @@ from mcp.types import LATEST_PROTOCOL_VERSION
 
 import clude_constraints
 from clude_agents import build_agent
+from clude_core.domain import ROOMS, skipped_players
 from clude_storage import GameRecord, open_store
 from clude_training.table import SeatSpec, TableSetup
 from clude_web import create_app, mcp, tables, users
@@ -104,27 +110,34 @@ def simple_answer(pending: dict):
     return {"card": pending["candidates"][0]}
 
 
-async def play_out(client, table_id, max_steps=3000, on_view=None):
-    """Drive a table to its end through the tools: `clude_turn` until a
-    decision is ours or the game ends, `clude_answer` to answer it."""
+async def play_out(client, table_id, max_steps=3000, on_view=None, fold_accusation=False, since=False):
+    """Drive a table to its end through the tools as a player would:
+    `clude_turn` once, then `clude_answer` (which waits for the next
+    decision) until the game ends, `clude_turn` again only when an
+    answer came back with nothing pending. With `fold_accusation`, the
+    accusation is passed in the same call as the answer it follows;
+    with `since`, every call passes the last `n_events` seen."""
+    cursor = 0
+    view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id, "since": cursor}))
     for _ in range(max_steps):
-        view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
         if on_view is not None:
             on_view(view)
+        if since:
+            cursor = view["n_events"]
         if view["finished"]:
             return view
         pending = view["pending"]
-        assert pending is not None, "clude_turn came back with nothing to do and the game not over"
-        view = unwrap(
-            await client.call_tool(
-                "clude_answer", {"table_id": table_id, "seq": pending["seq"], "answer": simple_answer(pending)}
-            )
-        )
+        if pending is None:
+            view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id, "since": cursor}))
+            continue
+        args = {"table_id": table_id, "seq": pending["seq"], "answer": simple_answer(pending), "since": cursor}
+        if fold_accusation and (
+            pending["kind"] == "suggestion"
+            or (pending["kind"] == "movement" and args["answer"]["to"] not in ROOMS)
+        ):
+            args["accuse"] = False
+        view = unwrap(await client.call_tool("clude_answer", args))
         assert "error" not in view, view["error"]
-        if on_view is not None:
-            on_view(view)
-        if view["finished"]:
-            return view
     raise AssertionError("the game did not end")
 
 
@@ -150,6 +163,7 @@ async def test_tables_lists_an_open_table_and_mine_flips_after_sitting(server, r
         [table] = unwrap(await client.call_tool("clude_tables", {}))["tables"]
         assert table["mine"] is True and table["open_seats"] == []
         assert table["seats"][0] == {"seat": 0, "token": "Scarlett", "kind": "human", "label": CLAUDE, "head": False}
+        assert table["my_autopilot"] is False
 
     # The seat is an ordinary human seat in the stored setup.
     setup = TableSetup.from_dict(registry.document(table_id)["setup"])
@@ -181,16 +195,25 @@ async def test_a_whole_game_plays_through_the_tools(server, registry, store):
         registry.deal(table_id)
 
         seen_hands = set()
+        kinds = []
 
         def check(view):
             assert "readings" not in view and "tokens" not in view
-            assert view["seat"] == 0 and view["me"]["seat"] == 0
+            assert view["me"]["seat"] == 0 and view["me"]["token"] == "Scarlett"
             assert view["head"] is None
-            assert set(view) >= {"events", "digest", "notepad", "note", "seats", "pending", "finished"}
+            assert set(view) >= {"events", "digest", "notepad", "note", "seats", "pending", "finished", "n_events"}
+            assert view["seats"][0] == f"Scarlett: {CLAUDE} (you)" and view["seats"][1] == "Mustard: character"
+            assert all(isinstance(line, str) for line in view["events"])
+            assert set(view["notepad"]) == {"suspects", "weapons", "rooms", "one_of", "solution"}
             seen_hands.add(tuple(view["me"]["hand"]))
             assert len(view["events"]) <= mcp.MAX_EVENTS
+            if view["pending"] is not None:
+                kinds.append(view["pending"]["kind"])
+                if view["pending"]["kind"] == "movement":
+                    assert all(set(o) == {"move", "to", "room"} for o in view["pending"]["options"])
 
         final = await play_out(client, table_id, on_view=check)
+    assert "accusation" in kinds, "the accusation question never came as a decision of its own"
 
     assert final["finished"] and final["over"] is not None
     assert len(seen_hands) == 1, "the hand changed under the seat"
@@ -217,6 +240,7 @@ async def test_the_digest_folds_the_lines_that_fell_off_the_front(server, regist
         await play_out(client, table_id, on_view=lambda view: digests.append(view["digest"]))
     assert digests[0] == ""
     assert any("suggestions" in d for d in digests), "no suggestion was ever folded into the digest"
+    assert any("nobody could disprove" in d for d in digests), "no undisproved suggestion was ever named"
     assert all(d == "" or d.endswith(".") for d in digests)
     last = digests[-1]
     assert "earlier lines" in last and "are not shown" in last
@@ -269,18 +293,219 @@ async def test_the_view_shows_only_this_seats_hand_and_no_readings(server, regis
         view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
     assert "readings" not in view and "tokens" not in view
     assert sorted(view["me"]["hand"]) == sorted(game.state.hands[0])
-    text = json.dumps(view)
-    for card in game.state.hands[3]:  # Ann's hand, Peacock's seat
-        assert f'"{card}"' not in text or card in game.state.hands[0] or _named_in_public(card, view)
-    assert view["seats"][3]["label"] == ANN and view["seats"][3]["me"] is False
+    lines = card_lines(view["notepad"])
+    obs = clude_constraints.observe(game.state, 0)
+    for card in game.state.hands[3]:  # Ann's hand, Peacock's seat: named as hers only if the floor proved it
+        assert (lines[card] == "Peacock") == (obs.mask.holder_of(card) == 3)
+    for card in game.state.hands[0]:
+        assert lines[card] == "me"
+    assert view["seats"][3] == f"Peacock: {ANN}"
+    assert view["seats"][0] == f"Scarlett: {CLAUDE} (you)"
 
 
-def _named_in_public(card: str, view: dict) -> bool:
-    """A card may be named in an event line (a suggestion names three)
-    or on the notepad as a card whose holder is unknown; never as a
-    card another seat is known to hold, unless the floor proved it."""
-    rows = {row["card"]: row for row in view["notepad"]}
-    return card in rows and rows[card]["holder"] != 0
+def card_lines(pad: dict) -> dict:
+    """Every card's line on a compact notepad, category flattened."""
+    return {card: line for category in ("suspects", "weapons", "rooms") for card, line in pad[category].items()}
+
+
+async def test_since_cuts_the_events_and_the_note_comes_only_with_zero(server, registry):
+    table_id = open_table(registry)
+    async with Client(server) as client:
+        unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
+        unwrap(await client.call_tool("clude_note", {"table_id": table_id, "text": "White has the Rope."}))
+        registry.deal(table_id)
+        first = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
+        assert first["note"] == "White has the Rope."
+        assert first["events"] == [] and first["n_events"] == 0  # Scarlett moves first: nothing has happened
+        pending = first["pending"]
+        first = unwrap(
+            await client.call_tool(
+                "clude_answer", {"table_id": table_id, "seq": pending["seq"], "answer": simple_answer(pending)}
+            )
+        )
+        assert first["note"] == "White has the Rope."
+        assert first["events"] and first["events"][0].startswith(f"0 (turn 1) Scarlett ({CLAUDE}) moves")
+        cursor = first["n_events"]
+        pending = first["pending"]
+        later = unwrap(
+            await client.call_tool(
+                "clude_answer",
+                {"table_id": table_id, "seq": pending["seq"], "answer": simple_answer(pending), "since": cursor},
+            )
+        )
+        assert "note" not in later
+        assert later["n_events"] > cursor
+        assert later["events"] and later["events"][0].startswith(f"{cursor} (turn ")
+        assert len(later["events"]) == later["n_events"] - cursor
+        assert later["digest"] == ""
+        same = unwrap(await client.call_tool("clude_turn", {"table_id": table_id, "since": later["n_events"]}))
+        assert same["events"] == [] and "note" not in same
+
+
+# --- fewer calls: accuse folded in, and an answer that waits ---------------------
+
+
+async def test_an_answer_waits_for_the_next_decision(server, registry):
+    table_id = open_table(registry)
+    async with Client(server) as client:
+        unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
+        registry.deal(table_id)
+        view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
+        pending = view["pending"]
+        assert pending["kind"] == "movement"
+        view = unwrap(
+            await client.call_tool(
+                "clude_answer", {"table_id": table_id, "seq": pending["seq"], "answer": simple_answer(pending)}
+            )
+        )
+        # The turn went on to the next question, ours again, without a clude_turn.
+        assert view["pending"] is not None and view["pending"]["seq"] > pending["seq"]
+        assert view["pending"]["kind"] in ("suggestion", "accusation")
+        pending = view["pending"]
+        answer = simple_answer(pending)
+        # Answer through to the end of the turn without waiting: the bots have not played.
+        while pending is not None and pending["kind"] != "movement":
+            view = unwrap(
+                await client.call_tool(
+                    "clude_answer", {"table_id": table_id, "seq": pending["seq"], "answer": answer, "wait": False}
+                )
+            )
+            pending = view["pending"]
+            answer = None if pending is None else simple_answer(pending)
+        assert pending is None
+        assert registry.game(table_id).pending is None
+
+
+async def test_accuse_folds_the_accusation_into_the_answer_before_it(server, registry):
+    table_id = open_table(registry)
+    async with Client(server) as client:
+        unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
+        registry.deal(table_id)
+        kinds = []
+        final = await play_out(
+            client, table_id, fold_accusation=True, since=True,
+            on_view=lambda v: kinds.append(v["pending"]["kind"]) if v["pending"] else None,
+        )
+    assert final["finished"]
+    assert "accusation" not in kinds, "an accusation question was still put as a decision of its own"
+    game = registry.game(table_id)
+    passed = [e for e in game.entries if e.get("kind") == "answer" and e["seat"] == 0 and e["decision"] == "accusation"]
+    assert passed and all(e["by"] == "mcp" and e["data"] is None for e in passed)
+
+
+async def test_accuse_given_too_early_or_malformed_is_set_aside_or_refused(server, registry):
+    table_id = open_table(registry)
+    async with Client(server) as client:
+        unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
+        registry.deal(table_id)
+        view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
+        pending = view["pending"]
+        assert pending["kind"] == "movement"
+        before = len(registry.game(table_id).entries)
+
+        bad = unwrap(
+            await client.call_tool(
+                "clude_answer",
+                {"table_id": table_id, "seq": pending["seq"], "answer": simple_answer(pending), "accuse": True},
+            )
+        )
+        assert "error" in bad and "accuse" in bad["error"]
+        assert len(registry.game(table_id).entries) == before, "a refused accuse applied the move anyway"
+        bad = unwrap(
+            await client.call_tool(
+                "clude_answer",
+                {"table_id": table_id, "seq": pending["seq"], "answer": simple_answer(pending),
+                 "accuse": {"suspect": "Nobody", "weapon": "Rope", "room": "Hall"}},
+            )
+        )
+        assert "error" in bad and len(registry.game(table_id).entries) == before
+
+        # A move into a room: the suggestion question comes first, so accuse waits.
+        into_room = next((o for o in pending["options"] if o["room"]), None)
+        if into_room is not None:
+            view = unwrap(
+                await client.call_tool(
+                    "clude_answer",
+                    {"table_id": table_id, "seq": pending["seq"], "answer": {"move": into_room["move"], "to": into_room["to"]},
+                     "accuse": False},
+                )
+            )
+            assert "error" not in view
+            assert view["pending"]["kind"] == "suggestion"
+            assert "notice" in view and "not applied" in view["notice"]
+
+
+async def test_the_notepad_records_a_pass_and_the_one_of_facts(server, registry):
+    """A seat asked to disprove who could not is struck from the three
+    cards, and a seat who disproved without showing us the card holds
+    one of what it could still hold: both on the compact notepad, which
+    says what the browser's rows say, names for seat numbers."""
+    table_id = open_table(registry, extra=(SeatSpec("Peacock", "character", "Peacock"),))
+    async with Client(server) as client:
+        unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
+        game = registry.deal(table_id)
+        view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
+        for _ in range(40):  # well into the game, so there are passes and disproofs to check
+            if view["finished"] or view["pending"] is None:
+                break
+            pending = view["pending"]
+            view = unwrap(
+                await client.call_tool(
+                    "clude_answer", {"table_id": table_id, "seq": pending["seq"], "answer": simple_answer(pending)}
+                )
+            )
+    pad = view["notepad"]
+    lines = card_lines(pad)
+    obs = clude_constraints.observe(game.state, 0)
+    passes = 0
+    for s in obs.suggestion_log:
+        for skipped in skipped_players(game.setup.n_players, s.suggester, s.refuter):
+            passes += 1
+            for card in s.cards():
+                assert game.suspects[skipped] not in lines[card], (card, lines[card])
+    assert passes, "nobody ever passed on a suggestion"
+    assert pad["one_of"] == [
+        f"{game.suspects[holder]} holds at least one of: {', '.join(sorted(cards))}"
+        for cards, holder in obs.mask.or_constraints
+    ]
+    assert pad["solution"] is None or len(pad["solution"]) == 3
+    for row in tables.notepad(game, 0):
+        if row["holder"] is not None:
+            expected = "envelope" if row["holder"] == "envelope" else ("me" if row["holder"] == 0 else game.suspects[row["holder"]])
+            assert lines[row["card"]] == expected
+        else:
+            names = [("me" if seat == 0 else game.suspects[seat]) for seat in row["possible"]] + (["envelope"] if row["envelope"] else [])
+            assert lines[row["card"]] == ", ".join(names[:-1]) + " or " + names[-1]
+
+
+# --- autopilot ----------------------------------------------------------------------
+
+
+async def test_autopilot_hands_the_seat_to_the_stand_in_and_back(server, registry):
+    table_id = open_table(registry)
+    async with Client(server) as client:
+        unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
+        registry.deal(table_id)
+        view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
+        assert view["pending"] is not None and view["me"]["autopilot"] is False
+        on = unwrap(await client.call_tool("clude_autopilot", {"table_id": table_id}))
+        assert on["autopilot"] is True and "floor bot" in on["message"]
+        [table] = unwrap(await client.call_tool("clude_tables", {}))["tables"]
+        assert table["my_autopilot"] is True
+        # The stand-in answered the decision that was ours, and plays on.
+        game = registry.game(table_id)
+        assert game.pending is None or game.pending.seat != 0
+        view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
+        assert view["me"]["autopilot"] is True
+        assert view["seats"][0].endswith("(you), on autopilot")
+        assert view["pending"] is None
+        off = unwrap(await client.call_tool("clude_autopilot", {"table_id": table_id, "on": False}))
+        assert off["autopilot"] is False and "clude_turn" in off["message"]
+        view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
+        assert view["finished"] or view["pending"] is not None
+    game = registry.game(table_id)
+    stood_in = [e for e in game.entries if e.get("kind") == "answer" and e["seat"] == 0 and e["by"] == "autopilot"]
+    assert stood_in
 
 
 # --- the head ---------------------------------------------------------------------
@@ -379,8 +604,8 @@ async def test_a_line_is_said_at_the_table_and_an_empty_one_refused(server, regi
         refused = unwrap(await client.call_tool("clude_say", {"table_id": table_id, "text": "   "}))
         assert "error" in refused
         view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
-    remarks = [line for line in view["events"] if line["kind"] == "remark"]
-    assert remarks and "I have nothing to hide." in remarks[-1]["text"]
+    remarks = [line for line in view["events"] if "I have nothing to hide." in line]
+    assert remarks and remarks[-1].split(" ", 1)[0].isdigit()
     game = registry.game(table_id)
     assert any(e.get("kind") == "chat" and e["seat"] == 0 for e in game.entries)
 

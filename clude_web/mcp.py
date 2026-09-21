@@ -1,7 +1,7 @@
 """A seat at a clude table, over MCP (Phase 9, docs/phase9-plan.md).
 
-A Claude in a chat window plays one seat of a live game through the six
-tools here. Nothing in this module is a new game: every call goes
+A Claude in a chat window plays one seat of a live game through the
+seven tools here. Nothing in this module is a new game: every call goes
 through the same `TableRegistry` the web screens use, so the chat seat
 is an ordinary account (`config.mcp_account`, ``claude``) in an ordinary
 human seat, answering the engine's `DecisionRequest`s from outside it
@@ -12,15 +12,20 @@ the store from a game without -- except that its answers are entered
 Three things about a chat player shape the design:
 
 - **Forgetful.** A new conversation knows nothing, and an old one may
-  have lost its early turns. So every call returns a view that fully
-  reconstitutes the player -- hand, position, notepad, the recent log,
-  a digest of what fell off its front, the seat's own note, and the
-  decision on the table. No client-side state, ever.
+  have lost its early turns. So a call with ``since=0`` returns a view
+  that fully reconstitutes the player -- hand, position, notepad, the
+  recent log, a digest of what fell off its front, the seat's own note,
+  and the decision on the table. No client-side state, ever.
 - **Slow and expensive.** A tool call costs the model a round trip and
-  the person a spinner, so `clude_turn` long-polls: it drives the bot
-  seats itself (`TableRegistry.work`, one unit a second, exactly as
-  `table.js` does from a browser) and comes back with the seat's own
-  decision, the end of the game, or a timeout. One call per decision.
+  the person a spinner, and every token of the reply is context the
+  conversation never gets back: the first live game (2026-09-21) ran
+  out of room at turn 30 on 9,000-token views. So the view is compact
+  -- one line per event and per card, names not seat numbers -- and
+  cut at a `since` cursor so a call returns only what is new; and
+  `clude_turn` long-polls (it drives the bot seats itself, one unit a
+  second, exactly as `table.js` does from a browser) and `clude_answer`
+  does the same after answering, so a turn is usually two calls, not
+  four: the move, then the suggestion with the accusation folded in.
 - **Prone to retrying.** `clude_answer` is guarded by `seq`, which
   `TableGame.answer` refuses when stale, so a doubled submission is
   refused rather than applied twice.
@@ -50,16 +55,18 @@ from __future__ import annotations
 
 import re
 import time
-from typing import Optional
+from typing import Optional, Union
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
+import clude_constraints
+from clude_core.domain import ROOMS, SUSPECTS, WEAPONS
 from clude_training.table import TableError, TableSetup
 
 from . import config, tables
 
-__all__ = ["build_server", "combined_app", "seat_view", "digest"]
+__all__ = ["build_server", "combined_app", "seat_view", "digest", "compact_notepad"]
 
 POLL_SECONDS = 25.0
 """How long `clude_turn` holds the connection: under the client's own
@@ -79,10 +86,13 @@ a mix of people and six characters, each running its own probability \
 method. Through these tools you sit at a table as one of the suspects and \
 play a seat yourself, reasoning from the log and your hand. The usual \
 round: clude_tables to find a table with an open seat, clude_sit to take \
-it, then clude_turn (which waits for your decision) and clude_answer, \
-over and over, with clude_say for table talk and clude_note for what you \
-want to remember. Every call returns everything you need to know; nothing \
-has to be remembered between calls.\
+it, then clude_turn once (it waits for your first decision) and after \
+that clude_answer over and over, since each answer waits for your next \
+decision; clude_say for table talk, clude_note for what you want to \
+remember, clude_autopilot to hand your seat to the floor bot when you \
+must leave. Pass `since` (the last `n_events` you saw) to every turn and \
+answer so only new events come back; a call with since 0 returns \
+everything, so nothing has to be remembered between calls.\
 """
 
 
@@ -115,27 +125,121 @@ def digest(game, dropped: list) -> str:
     return ". ".join(parts) + "."
 
 
-def seat_view(registry: tables.TableRegistry, table_id: str, game: tables.WebGame, seat: int) -> dict:
-    """One self-contained picture of the table from `seat`: the screen's
-    `view_payload` from that seat, trimmed twice over. `readings` and
-    `tokens` are dropped -- every seat's bars are Watch's business, and
-    a player's is its own -- the event lines are capped at `MAX_EVENTS`
-    with the rest folded into `digest`, and the seat's `note` and its
-    `head` (None without one, and the tools say so) are added."""
+def compact_notepad(game, seat: int) -> dict:
+    """The deduction floor from `seat`, one short line per card, in
+    names rather than seat numbers: the proven holder (``me``, a token,
+    or ``envelope``), or else every holder still possible joined with
+    "or". `one_of` carries the floor's open disjunctions -- a seat that
+    disproved a suggestion holds at least one of the cards it could
+    still hold -- which the browser's notepad leaves out, and `solution`
+    the envelope once all three are proven. A seat that could not
+    disprove a suggestion is already gone from those cards' lines: that
+    is the floor's first rule."""
+    obs = clude_constraints.observe(game.state, seat)
+    mask = obs.mask
+
+    def name(holder) -> str:
+        if holder == clude_constraints.ENVELOPE:
+            return "envelope"
+        return "me" if holder == seat else game.suspects[holder]
+
+    def line(card: str) -> str:
+        holder = mask.holder_of(card)
+        if holder is not None:
+            return name(holder)
+        possible = [name(h) for h in range(game.setup.n_players) if mask.is_possible(card, h)]
+        if mask.is_possible(card, clude_constraints.ENVELOPE):
+            possible.append("envelope")
+        if len(possible) <= 1:
+            return possible[0] if possible else "nobody?"
+        return ", ".join(possible[:-1]) + " or " + possible[-1]
+
+    pad = {category: {card: line(card) for card in cards} for category, cards in tables.CATEGORIES}
+    pad["one_of"] = [
+        f"{name(holder)} holds at least one of: {', '.join(sorted(cards))}"
+        for cards, holder in mask.or_constraints
+    ]
+    solution = mask.solution()
+    pad["solution"] = None if solution is None else list(solution)
+    return pad
+
+
+def seat_view(
+    registry: tables.TableRegistry, table_id: str, game: tables.WebGame, seat: int, since: int = 0
+) -> dict:
+    """One picture of the table from `seat`, as small as it can be and
+    still complete: the screen's `view_payload` from that seat, then
+    reshaped. Every seat is one line; every event since `since` is one
+    line (capped at `MAX_EVENTS` from the end, the rest folded into
+    `digest`); `waiting` is a sentence; the movement options lose their
+    screen coordinates; the notepad is `compact_notepad`; and `note`
+    comes only with ``since=0``, the call a fresh conversation makes,
+    since a seat that has read it once carries it. `head` is None
+    without one, and the tools say so. What the screen needs and a
+    player does not -- `readings`, `tokens`, the spend, the debriefs,
+    the work flags -- is left out."""
     document = registry.document(table_id) or {"id": table_id}
     view = tables.view_payload(
-        game, document, seat, replay_url=_replay_path(document), waiting_for=registry.waiting_for(table_id, game)
+        game,
+        document,
+        seat,
+        since=max(0, int(since or 0)),
+        replay_url=_replay_path(document),
+        waiting_for=registry.waiting_for(table_id, game),
     )
-    for noise in ("readings", "tokens"):
-        view.pop(noise, None)
     lines = view.get("events") or []
     dropped = lines[:-MAX_EVENTS] if len(lines) > MAX_EVENTS else []
-    view["events"] = lines[-MAX_EVENTS:]
-    view["digest"] = digest(game, dropped)
-    view["seat"] = seat
-    view["note"] = registry.note(table_id, seat)
-    view["head"] = game.head_reading(seat)
-    return view
+    kept = lines[-MAX_EVENTS:]
+
+    pending = view.get("pending")
+    if pending is not None and pending.get("kind") == "movement":
+        pending = dict(pending)
+        pending["options"] = [
+            {key: option[key] for key in ("move", "to", "room")} for option in pending["options"]
+        ]
+
+    waiting = view.get("waiting")
+    if waiting is not None:
+        what = {"movement": "move", "suggestion": "suggest", "accusation": "decide whether to accuse"}.get(
+            waiting["kind"], "show a card"
+        )
+        waiting = f"Waiting for {waiting['name']} to {what}" + (
+            f" ({waiting['seconds']:.0f} s so far)" if waiting["seconds"] >= 1 else ""
+        ) + (", on autopilot." if waiting["autopilot"] else ".")
+
+    seats = []
+    for spec in view["seats"]:
+        what = spec["kind"] if spec["kind"] != "human" else spec["label"]
+        line = f"{spec['token']}: {what}"
+        if spec["me"]:
+            line += " (you)"
+        if spec["autopilot"]:
+            line += ", on autopilot"
+        if not spec["active"]:
+            line += ", out (accused wrongly)"
+        seats.append(line)
+
+    out = {
+        "table_id": view.get("id"),
+        "status": view["status"],
+        "turns": view["turns"],
+        "finished": view["finished"],
+        "broken": view["broken"],
+        "seq": view["seq"],
+        "n_events": view["n_events"],
+        "seats": seats,
+        "digest": digest(game, dropped),
+        "events": [f"{line['i']} (turn {line['turn']}) {line['text']}" for line in kept],
+        "pending": pending,
+        "waiting": waiting,
+        "me": view["me"],
+        "notepad": compact_notepad(game, seat),
+        "head": game.head_reading(seat),
+        "over": view["over"],
+    }
+    if since <= 0:
+        out["note"] = registry.note(table_id, seat)
+    return out
 
 
 def _replay_path(document: dict) -> Optional[str]:
@@ -149,6 +253,7 @@ def _listing(document: dict, account: str) -> dict:
     """One table as `clude_tables` lists it."""
     setup = TableSetup.from_dict(document["setup"])
     mine = tables.viewer_seat(setup, account)
+    autopilot = document.get("autopilot") or {}
     return {
         "table_id": document["id"],
         "status": document.get("status", "playing"),
@@ -160,7 +265,26 @@ def _listing(document: dict, account: str) -> dict:
         "open_seats": [setup.seats[seat].token for seat in setup.open_seats],
         "mine": mine is not None,
         "my_token": None if mine is None else setup.seats[mine].token,
+        "my_autopilot": mine is not None and bool(autopilot.get(str(mine))),
     }
+
+
+def _check_accuse(accuse) -> None:
+    """`accuse` as `clude_answer` takes it: None, False, or a triple in
+    the accusation's own shape. Checked before anything is applied, so
+    a malformed one refuses the whole call rather than half of it."""
+    if accuse is None or accuse is False:
+        return
+    if accuse is True:
+        raise TableError("accuse is false (to pass) or {suspect, weapon, room} (to accuse), never true")
+    if not isinstance(accuse, dict):
+        raise TableError("accuse is false (to pass) or {suspect, weapon, room} (to accuse)")
+    try:
+        triple = (str(accuse["suspect"]), str(accuse["weapon"]), str(accuse["room"]))
+    except (KeyError, TypeError):
+        raise TableError("an accusation names a suspect, a weapon and a room") from None
+    if triple[0] not in SUSPECTS or triple[1] not in WEAPONS or triple[2] not in ROOMS:
+        raise TableError("an accusation names a suspect, a weapon and a room")
 
 
 # --- the server ---------------------------------------------------------------
@@ -212,6 +336,21 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
             raise ToolError(f"Table {table_id} cannot be played right now.")
         return game, seat
 
+    def ours(game, seat: int) -> bool:
+        pending = game.pending
+        return pending is not None and pending.seat == seat
+
+    def await_turn(table_id: str, game, seat: int) -> None:
+        """Drive the bots until the decision is this seat's, the game
+        ends, or `POLL_SECONDS` pass."""
+        deadline = time.monotonic() + POLL_SECONDS
+        while not (game.finished or game.broken or ours(game, seat)):
+            if time.monotonic() >= deadline:
+                break
+            did = registry.work(table_id, game)
+            if did in ("waiting", "busy", "nothing"):
+                time.sleep(SLEEP_SECONDS)
+
     @server.tool()
     def clude_tables() -> dict:
         """List the clude tables you could join or are already sitting at.
@@ -223,7 +362,8 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
 
         Returns each table's id, its status (open: waiting for players;
         playing; finished), its seats, which seats are open, and whether
-        you already hold one (`mine`, with `my_token`).
+        you already hold one (`mine`, with `my_token`, and `my_autopilot`
+        if you handed it to the floor bot).
         """
         listing = [_listing(document, account) for document in registry.in_progress()]
         return {"tables": listing, "you": account}
@@ -265,7 +405,7 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         return out
 
     @server.tool()
-    def clude_turn(table_id: str) -> dict:
+    def clude_turn(table_id: str, since: int = 0) -> dict:
         """Wait for your turn, then return the decision waiting for you.
 
         This call holds for up to half a minute while the other seats
@@ -275,44 +415,46 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         - `pending` set: a decision is yours. Answer it with clude_answer,
           passing back the `seq` you were given here.
         - `pending` null and `finished` false: the table is still moving
-          (another person may be thinking). Say something with clude_say
-          if you like, then call this again.
+          (another person may be thinking, or you are on autopilot). Say
+          something with clude_say if you like, then call this again.
         - `finished` true: the game is over; `over` holds the solution
           and who won.
 
-        What comes back is everything you need and nothing you have to
-        remember: `me` is your seat, token and hand; `seats` who is at
-        the table; `events` the recent log (`digest` summarises what fell
-        off its front); `notepad` the deduction sheet filled in for you
-        from what is logically certain (for every card, who is proven to
-        hold it, or which seats still might, and whether it could still
-        be in the envelope); `note` whatever you last wrote with
-        clude_note. `head` is null if you are playing clueless, and
-        otherwise carries your character's own numbers for this
-        position -- advisory, not an instruction.
+        `since`: pass the `n_events` of the last view you saw and only
+        the events after it come back; leave it at 0 in a fresh
+        conversation and the whole picture does: `me` (your seat, token
+        and hand), `seats` (who is at the table), `events` (the log,
+        each line numbered; `digest` summarises anything cut from its
+        front) and `note` (whatever you last wrote with clude_note; it
+        comes only with since 0, so read it then). `notepad` always
+        comes: the deduction sheet filled in for you from what is
+        logically certain -- for every card, who is proven to hold it, or
+        who still might (`envelope` included), plus `one_of`, the facts
+        of the form "X holds at least one of these", and `solution` once
+        the sheet has proven all three. A seat that could not disprove a
+        suggestion is already struck from those three cards. `head` is
+        null if you are playing clueless, and otherwise carries your
+        character's own numbers for this position -- advisory, not an
+        instruction.
 
         Every decision arrives with its legal answers already
         enumerated, so you never have to work out what the board allows,
         only which of the listed options you want.
         """
         game, seat = live(table_id)
-        deadline = time.monotonic() + POLL_SECONDS
-        while True:
-            if game.finished or game.broken:
-                break
-            pending = game.pending
-            if pending is not None and pending.seat == seat:
-                break
-            if time.monotonic() >= deadline:
-                break
-            did = registry.work(table_id, game)
-            if did in ("waiting", "busy", "nothing"):
-                time.sleep(SLEEP_SECONDS)
-        return seat_view(registry, table_id, game, seat)
+        await_turn(table_id, game, seat)
+        return seat_view(registry, table_id, game, seat, since=since)
 
     @server.tool()
-    def clude_answer(table_id: str, seq: int, answer: Optional[dict] = None) -> dict:
-        """Answer the decision clude_turn gave you, and see what follows.
+    def clude_answer(
+        table_id: str,
+        seq: int,
+        answer: Optional[dict] = None,
+        accuse: Optional[Union[bool, dict]] = None,
+        since: int = 0,
+        wait: bool = True,
+    ) -> dict:
+        """Answer the decision you were given, then wait for your next one.
 
         `seq` must be the one from that decision: if the table has moved
         on, this is refused (the view comes back with `error`) rather
@@ -336,17 +478,45 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
           You must show one when you can, and only the suggester sees
           which.
 
-        Returns the table as it stands after your answer; the next
-        decision may already be yours (`pending`), or call clude_turn.
+        Every turn ends with the accusation question. `accuse` answers
+        it in the same call and saves a round trip: false passes it,
+        `{"suspect", "weapon", "room"}` accuses. Give it with the answer
+        the question follows directly -- your suggestion (or a null
+        suggestion), or a move that ends in the corridor. A move into a
+        room is followed by the suggestion question first, so give
+        `accuse` with the suggestion instead; given too early it is not
+        applied and `notice` says so. Left out, the accusation arrives
+        as a decision of its own.
+
+        With `wait` (the default) the call then holds like clude_turn
+        until your next decision is ready, so `pending` is usually set
+        when it returns and you need not call clude_turn at all. Pass
+        `since` as in clude_turn so only new events come back.
         """
         game, seat = live(table_id)
+        notice = None
         try:
+            _check_accuse(accuse)
             registry.answer(table_id, game, seat, int(seq), answer, by="mcp")
+            if accuse is not None:
+                pending = game.pending
+                if ours(game, seat) and pending.kind == "accusation":
+                    registry.answer(table_id, game, seat, game.seq, None if accuse is False else accuse, by="mcp")
+                else:
+                    notice = (
+                        "accuse was not applied: the accusation question does not follow this answer directly. "
+                        "Give it again with the answer it follows (your suggestion)."
+                    )
         except TableError as exc:
-            view = seat_view(registry, table_id, game, seat)
+            view = seat_view(registry, table_id, game, seat, since=since)
             view["error"] = str(exc)
             return view
-        return seat_view(registry, table_id, game, seat)
+        if wait:
+            await_turn(table_id, game, seat)
+        view = seat_view(registry, table_id, game, seat, since=since)
+        if notice:
+            view["notice"] = notice
+        return view
 
     @server.tool()
     def clude_say(table_id: str, text: str) -> dict:
@@ -357,7 +527,7 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         talk, not analysis, and bluffing about your own cards is part of
         the game. The formal disproof of a suggestion is never table
         talk; the engine checks that against the hands. Returns nothing
-        you need; carry on with clude_turn.
+        you need; carry on with clude_turn or clude_answer.
         """
         game, seat = live(table_id)
         try:
@@ -379,7 +549,8 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         the log already says: which cards you have seen and from whom,
         which suggestions went undisproved, what you have ruled out, what
         you told the table. A later call, in a later conversation, will
-        have nothing else of yours.
+        have nothing else of yours. Keep it short: it comes back whole
+        with every since-0 view.
         """
         _document, seat = seated(table_id)
         if text is None:
@@ -388,6 +559,33 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
             return {"note": registry.write_note(table_id, seat, text)}
         except TableError as exc:
             return {"error": str(exc), "note": registry.note(table_id, seat)}
+
+    @server.tool()
+    def clude_autopilot(table_id: str, on: bool = True) -> dict:
+        """Hand your seat to the floor bot, or take it back.
+
+        Use it when you must leave a game unfinished -- this conversation
+        is nearly full, or you have been asked to stop -- so the table
+        does not wait on you. While `on`, the floor bot answers every
+        decision of yours: it plays only what is logically certain, so it
+        will not win for you, but it never stalls the table, and your
+        note stays yours. Write the note first. Pass `on` false to take
+        the seat back; then call clude_turn.
+        """
+        game, seat = live(table_id)
+        try:
+            document = registry.set_autopilot(table_id, game, seat, bool(on))
+        except TableError as exc:
+            return {"error": str(exc)}
+        state = bool((document.get("autopilot") or {}).get(str(seat)))
+        return {
+            "autopilot": state,
+            "message": (
+                f"The floor bot plays your seat at table {table_id} until you call clude_autopilot with on false."
+                if state
+                else f"Your seat at table {table_id} is yours again; call clude_turn."
+            ),
+        }
 
     return server
 
