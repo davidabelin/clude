@@ -22,6 +22,7 @@ from clude_core.events import RemarkEvent
 from clude_llm import LLMResult
 from clude_llm.metered import Ledger
 from clude_storage import GameRecord, open_store
+from clude_training.table import SeatSpec
 from clude_web import create_app, tables, users
 from tests.test_web_tables import ANN, PASSWORD, csrf, login, new_table, play_out, poll, work
 
@@ -134,6 +135,35 @@ def test_seat_labels_and_llm_memory_depth_are_saved_and_restored(tmp_path, store
     for invalid in ("oops", "nan", "inf", "-0.1", "1.1"):
         bad = ann.post("/tables", data=dict(fields, **{"memory-Plum": invalid}))
         assert bad.status_code == 400 and "memory" in bad.get_data(as_text=True)
+
+
+def test_the_memory_slider_starts_at_the_whole_logbook(tmp_path, store):
+    """Phase 9e (David, 2026-09-22): a new LLM seat starts at depth 1 --
+    the head, the whole index and every entry in full -- where it used to
+    start at 0, the condensed head. The block is one cached system block
+    for the length of a game, so the depth is paid for once and read at a
+    tenth of the price on every call after.
+
+    `SeatSpec.memory` still defaults to 0: that is the driver's and the
+    CLI's default, and only the lobby form moved.
+    """
+    app = make_app(tmp_path, store)
+    ann = login(app, ANN)
+    page = ann.get("/").get_data(as_text=True)
+    slider = page.split('id="memory-Plum"')[1].split(">", 1)[0]
+    assert 'value="1"' in slider, slider
+
+    # The form takes it, and a seat made without the field agrees.
+    fields = {"csrf": csrf(ann), "seed": str(SEED)}
+    fields.update({f"seat-{t}": v for t, v in SEATS.items()})
+    response = ann.post("/tables", data=fields)
+    assert response.status_code == 302
+    table_id = response.headers["Location"].rstrip("/").split("/")[-1]
+    game = app.extensions["tables"].game(table_id)
+    plum = game.suspects.index("Plum")
+    assert game.wrappers[plum].profile.memory == 1.0
+
+    assert SeatSpec("Plum", "llm", "Plum").memory == 0.0, "the driver's default moved too"
 
 
 def _play(app, ann, factory):

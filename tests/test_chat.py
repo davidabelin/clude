@@ -180,6 +180,34 @@ def test_a_queued_reaction_is_dropped_once_the_turn_moves_on(clock):
     assert game.reactions.due() is None and not game.reactions.pending
 
 
+def test_a_seat_whose_budget_is_spent_is_never_queued_to_speak(clock):
+    """Phase 9e. A refusing backend can never produce a line: `react`
+    needs a call, gets an error result and returns None. Queueing the
+    seat anyway held every bot turn for the reaction's two to eight
+    seconds and then served nothing, so a table whose budget ran out
+    both crawled and went quiet -- `work` kept answering "waiting" while
+    `reactions.pending` stayed true and the turn could not move on.
+
+    Measured on the spent-budget table in `tests/test_web_llm.py`: the
+    game could not reach its end in 1,500 requests before this, and
+    finishes in 148 with no waiting step at all after.
+    """
+    talkers = {1: Talker("Plum here."), 2: Talker("White here."), 3: Talker("Green here.")}
+    game = _model_table(talkers)
+    game.run(1)
+    game.reactions.scan()
+
+    # Plum's budget is spent; White's and Green's are not.
+    talkers[1].last_refusal = "budget: this table's $2.00 is spent"
+
+    game.remark(0, "Who has the Rope?", "chat")
+    game.reactions.scan()
+    queued = [r.seat for r in game.reactions.queue]
+    assert 1 not in queued, "a seat that cannot speak was queued to speak"
+    assert queued, "the seats that can still speak were queued"
+    assert all(chat.refusing(game.wrappers[seat]) is False for seat in queued)
+
+
 def test_the_suggestion_and_the_accusation_open_the_floor(clock):
     talkers = {1: Talker(), 2: Talker(), 3: Talker()}
     game = _model_table(talkers)

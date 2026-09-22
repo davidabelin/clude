@@ -236,6 +236,41 @@ def test_a_seated_player_gets_no_deduction_bars_and_a_spectator_does(ann, cat):
     assert "how many of the 21 cards it has placed" in cat.get(f"/tables/{table_id}").get_data(as_text=True)
 
 
+def test_the_spectator_gallery_shows_who_is_watching_and_only_then(app, ann, bob, cat):
+    """Phase 9e. Anyone signed in who holds no seat can watch a live
+    table and can do nothing at it; the people playing are told who is
+    there, and told nothing when nobody is."""
+    table_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
+
+    assert poll(ann, table_id)["watching"] == [], "a gallery with nobody in it"
+
+    # Bob opens the table. He holds no seat, so he is a spectator.
+    assert bob.get(f"/tables/{table_id}").status_code == 200
+    assert poll(ann, table_id)["watching"] == [BOB]
+
+    poll(cat, table_id)
+    assert sorted(poll(ann, table_id)["watching"]) == sorted([BOB, CAT])
+
+    # A spectator can say nothing and do nothing.
+    assert bob.post(f"/tables/{table_id}/say",
+                    data={"csrf": csrf(bob), "text": "Mustard has the Rope"}).status_code == 403
+    assert bob.post(f"/tables/{table_id}/answer",
+                    data={"csrf": csrf(bob), "seq": "0", "data": "null"}).status_code == 403
+    assert bob.post(f"/tables/{table_id}/autopilot",
+                    data={"csrf": csrf(bob), "on": "1"}).status_code == 403
+
+    # A spectator is not shown the gallery, and the seated player is not in it.
+    assert poll(bob, table_id)["watching"] == []
+    assert ANN not in poll(ann, table_id)["watching"], "a seated player is not a spectator"
+
+    # They stop asking, and the gallery empties by itself.
+    registry = app.extensions["tables"]
+    registry._watchers[table_id] = {
+        name: at - tables.WATCHING_FOR - 1 for name, at in registry._watchers[table_id].items()
+    }
+    assert poll(ann, table_id)["watching"] == []
+
+
 def test_events_say_whether_a_line_was_talk_and_moves_carry_room_distances(app, ann):
     """Phase 9d. `about` tells chat from narration, so the screen can put
     table talk in its own panel; `distances` says, for each move on

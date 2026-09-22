@@ -91,8 +91,8 @@
       </div>
       {% endif %}
 
-      <div class="panel talk-panel">
-        <h2>Table Talk</h2>
+      <details class="panel talk-panel" open>
+        <summary><h2>Table Talk</h2></summary>
         <ol class="talk" id="talk"></ol>
         {% if viewer is not none %}
         <form id="say-form" class="say" autocomplete="off">
@@ -100,12 +100,14 @@
           <button type="submit" class="quiet">Say</button>
         </form>
         {% endif %}
-      </div>
+      </details>
 
-      <div class="panel log-panel">
-        <h2>The game so far</h2>
+      <details class="panel log-panel" open>
+        <summary><h2>The game so far</h2></summary>
         <ol class="log" id="log"></ol>
-      </div>
+      </details>
+
+      {% if viewer is not none %}<p class="note watching" id="watching" hidden></p>{% endif %}
 
       <div class="seats-compact" id="seats"></div>
 

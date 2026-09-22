@@ -54,7 +54,7 @@
         <input id="table-budget" name="budget" inputmode="decimal" value="{{ budget or ('%.2f'|format(llm.budget)) }}" autocomplete="off">
         {% endif %}
       </div>
-      <p class="note" id="memory-help">Remembering starts on. LLM characters read and write their logbooks; Mustard, White and Green also retain method memory in either mode. For LLM memory depth, 0 keeps standing instructions and opponent notes, 0.5 adds summaries, and 1 includes every entry in full.</p>
+      <p class="note" id="memory-help">Remembering starts on. LLM characters read and write their logbooks; Mustard, White and Green also retain method memory in either mode. LLM memory depth starts at 1, the whole logbook: 0 keeps standing instructions and opponent notes, 0.5 adds summaries, and 1 includes every entry in full.</p>
       <button type="submit">Deal</button>
     </form>
   </section>

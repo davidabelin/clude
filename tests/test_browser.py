@@ -455,6 +455,28 @@ def test_table_talk_and_the_game_log_are_separate_panels(page):
     assert page.locator("#log li.kind-remark").count() == 0, "a remark landed in the game log"
 
 
+def test_the_two_log_panels_collapse_and_reopen(page):
+    """Phase 9e: "The game so far" and "Table Talk" fold away, so a long
+    game need not push everything else off the screen. Both start open."""
+    _deal_table(page, {"Scarlett": "me", "Mustard": "character", "White": "character",
+                       "Green": "empty", "Peacock": "empty", "Plum": "empty"})
+    page.wait_for_selector("details.log-panel", timeout=20000)
+    for panel, body in (("details.log-panel", "#log"), ("details.talk-panel", "#talk")):
+        assert page.locator(panel).get_attribute("open") is not None, panel
+        assert page.locator(body).is_visible()
+        page.locator(panel + " > summary").click()
+        assert page.locator(panel).get_attribute("open") is None, panel
+        assert page.locator(body).is_hidden()
+        page.locator(panel + " > summary").click()
+        assert page.locator(body).is_visible()
+
+    # The say box folds away with Table Talk and comes back with it.
+    page.locator("details.talk-panel > summary").click()
+    assert page.locator("#say-text").is_hidden()
+    page.locator("details.talk-panel > summary").click()
+    assert page.locator("#say-text").is_visible()
+
+
 def test_the_table_page_never_names_a_card_shown_between_others(page):
     """Play a few turns on autopilot: the log a person sees names a shown
     card only when they were the suggester or the refuter."""

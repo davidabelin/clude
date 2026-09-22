@@ -31,6 +31,7 @@
   var autopilotButton = document.getElementById("autopilot");
   var log = document.getElementById("log");
   var talk = document.getElementById("talk");
+  var watchingBox = document.getElementById("watching");
   var accusePanel = document.getElementById("accuse-panel");
   var accuseToggle = document.getElementById("accuse-toggle");
   var accuseBody = document.getElementById("accuse-body");
@@ -476,6 +477,17 @@
     });
   }
 
+  /* Who is watching without a seat. The line is absent unless somebody
+     is there, so an empty gallery says nothing at all. */
+  function renderWatching(payload) {
+    if (!watchingBox) return;
+    var names = payload.watching || [];
+    watchingBox.hidden = !names.length;
+    if (!names.length) return;
+    watchingBox.textContent = (names.length === 1 ? "Watching: " : "Watching (" + names.length + "): ")
+      + names.join(", ");
+  }
+
   function renderSeats(payload) {
     if (!seatsBox) return;
     while (seatsBox.firstChild) seatsBox.removeChild(seatsBox.firstChild);
@@ -575,6 +587,7 @@
     renderDecision(payload.pending);
     renderAccuse(payload.pending);
     renderHand(payload.me);
+    renderWatching(payload);
     renderSeats(payload);
     renderNotepad(payload);
     if (payload.over && payload.over.replay && !payload.pending) {
@@ -637,6 +650,14 @@
 
   document.addEventListener("visibilitychange", function () {
     if (!document.hidden) schedule(200);
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll("details.panel"), function (panel) {
+    panel.addEventListener("toggle", function () {
+      if (!panel.open) return;
+      var list = panel.querySelector("ol");
+      if (list) list.scrollTop = list.scrollHeight;
+    });
   });
 
   buildAccuse();

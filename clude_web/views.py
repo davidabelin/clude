@@ -159,7 +159,7 @@ def _lobby(error=None, form=None, status=200, table_error=None, table_form=None)
             "token": token,
             "method": replay_data.seat_method(token),
             "value": table_form.get(f"seat-{token}", DEFAULT_SEATS.get(token, "empty")),
-            "memory": table_form.get(f"memory-{token}", "0"),
+            "memory": table_form.get(f"memory-{token}", tables.DEFAULT_MEMORY),
         }
         for token in SUSPECTS
     ]
@@ -270,9 +270,14 @@ def _replay_url(document: dict):
 
 
 def _payload(table_id: str, game, since: int = 0) -> dict:
+    """The viewer's view. Asking for one while holding no seat is what
+    puts someone in the spectator gallery, so every route that builds a
+    view keeps the gallery current without a heartbeat of its own."""
     registry = _registry()
     document = registry.document(table_id) or {"id": table_id}
     viewer = tables.viewer_seat(game.setup, _me())
+    if viewer is None:
+        registry.seen_watching(table_id, _me())
     return tables.view_payload(
         game,
         document,
@@ -280,6 +285,7 @@ def _payload(table_id: str, game, since: int = 0) -> dict:
         since=since,
         replay_url=_replay_url(document),
         waiting_for=registry.waiting_for(table_id, game),
+        watching=registry.watching(table_id),
     )
 
 

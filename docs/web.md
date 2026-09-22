@@ -256,7 +256,24 @@ accusing still goes behind a confirm (David, 2026-09-22).
 remark, whether a person's line, a character's aside on its turn or a
 model seat's off-turn reaction. "The game so far" keeps the moves,
 suggestions and accusations. A person's line is upright, a character's
-italic.
+italic. Both panels fold away -- click the heading -- and both start
+open; the state is not remembered between page loads.
+
+**Spectators.** Anyone signed in who opens a table they hold no seat at
+is watching it: they see the board, the log and Table Talk in real time,
+and the answer, say and autopilot routes all refuse them with a 403.
+Asking for a view of a table you do not sit at is what puts you in its
+gallery, for `WATCHING_FOR` (45 seconds, which outlasts a hidden tab's
+slower poll), so closing the tab drops you within a poll or two. The
+people *playing* see a line naming who is there, and no line at all when
+nobody is; a spectator is not shown the gallery. Presence is kept in the
+registry's memory rather than on the table document -- a poll arrives
+every few seconds from every open page, and writing the store that often
+would churn it for something true only for the next few seconds. A
+restarted process forgets who was watching and learns it again on their
+next poll. Watching needs an account (David, 2026-09-22): the table id
+is not a capability URL, and the MCP endpoint remains the only route
+outside the login gate.
 
 **The notes** are the deduction floor from your seat: for every card,
 who is proven to hold it and which holders are still possible. Every
@@ -273,12 +290,19 @@ screen -- still sees Watch's compact bar for each seat: cards placed and
 how sure its method is per category (David, 2026-09-18), with a human
 seat showing what its floor has placed and no confidence.
 
-Note what those bars never were: an opponent's hand. `readings()` counts,
-from that seat's own view, how many of the 21 cards it has proven a
-holder for. Nothing in the payload has ever exposed what anybody holds --
-and in the real game the card backs are identical, the three stacks
-being separated only to build the envelope before the remaining 18 are
-shuffled together and dealt.
+**What the bars give away, and to whom.** `readings()` counts, from a
+seat's own view, how many of the 21 cards it has proven a holder for.
+At the deal the only thing a seat has proven is its own hand, so early
+on the three numbers *are* that seat's hand composition by category.
+Measured on seed 7 with six seats: for turns 0 to 9 all six seats' bars
+read exactly as their hands, 5 of 6 by turn 12, 3 by turn 18, none by
+turn 21. That is why a seated player no longer gets them. A spectator
+and the Watch screen still do, knowingly (David, 2026-09-22): a
+spectator telling a player what is in the bars is a social problem, not
+a software one. The real game gives away nothing of the sort -- the
+card backs are identical, the three stacks being separated only to
+build the envelope before the remaining 18 are shuffled together and
+dealt.
 
 **What each viewer sees.** The card shown at a refutation is named only
 to the suggester and the refuter, which is `ClueObservation.for_player`'s

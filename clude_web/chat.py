@@ -58,6 +58,20 @@ def joins(rng, probability: float) -> bool:
     return rng.random() < probability
 
 
+def refusing(wrapper) -> bool:
+    """Whether this seat's backend turned its last call away -- the
+    table's model budget or the day's cap being spent.
+
+    Such a seat can no longer say anything: `LLMCharacter.react` needs a
+    call and gets an error result, so it returns None. Queueing it
+    anyway used to hold every bot turn for the reaction's two to eight
+    seconds and then serve nothing, so a table whose budget ran out
+    crawled and went quiet at the same time (Phase 9e). It still plays
+    on with its own headless method; it just no longer talks.
+    """
+    return bool(getattr(getattr(wrapper, "backend", None), "last_refusal", None))
+
+
 @dataclass
 class Reaction:
     seat: int
@@ -106,6 +120,8 @@ class Reactions:
         queued = []
         for seat, wrapper in sorted(game.wrappers.items()):
             if seat == actor or any(r.seat == seat for r in self.queue):
+                continue
+            if refusing(wrapper):
                 continue
             if len(self.queue) + len(queued) >= MAX_QUEUED:
                 break
@@ -176,4 +192,4 @@ class Reactions:
         return text
 
 
-__all__ = ["DELAY", "MAX_QUEUED", "PER_GAME", "PER_TURN", "REACTION", "Reaction", "Reactions"]
+__all__ = ["DELAY", "MAX_QUEUED", "PER_GAME", "PER_TURN", "REACTION", "Reaction", "Reactions", "refusing"]

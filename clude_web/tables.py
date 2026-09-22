@@ -171,6 +171,20 @@ AUTOPILOT_AFTER = 180.0
 it to the stand-in (and before anyone seated may do so by hand). Ten
 minutes until 2026-09-21; three on David's word."""
 
+DEFAULT_MEMORY = "1"
+"""Where a new LLM seat's memory-depth slider starts on the lobby form:
+the whole logbook, every entry in full (David, 2026-09-22; it was 0, the
+condensed head, from Phase 7). The block is cached for the length of a
+game, so the depth costs one write and a tenth of the price on every
+call after. `SeatSpec.memory` still defaults to 0 for the CLI and the
+driver, and a saved table keeps whatever it was made with."""
+
+WATCHING_FOR = 45.0
+"""Seconds a spectator stays in the gallery after their last view of the
+table. A table page polls every 4 s, or every 15 s with the tab hidden,
+so this outlasts a hidden tab and drops a closed one within a poll or
+two."""
+
 CATEGORIES = (("suspects", SUSPECTS), ("weapons", WEAPONS), ("rooms", ROOMS))
 
 _SAVE_LOCK = threading.Lock()
@@ -238,7 +252,7 @@ def parse_table_form(form, me: str, llm: Optional[LLMConfig] = None) -> TableSet
             if llm is None:
                 raise ValueError("LLM seats are not available here: the service has no key.")
             try:
-                memory = float(form.get(f"memory-{token}", "0") or "0")
+                memory = float(form.get(f"memory-{token}", DEFAULT_MEMORY) or DEFAULT_MEMORY)
             except (TypeError, ValueError):
                 raise ValueError(f"{token}'s memory must be a number from 0 to 1.") from None
             seats.append(SeatSpec(token, "llm", token, memory=memory))
@@ -474,6 +488,7 @@ def view_payload(
     since: int = 0,
     replay_url: Optional[str] = None,
     waiting_for: float = 0.0,
+    watching: Optional[list] = None,
 ) -> dict:
     """Everything the table screen needs, from `viewer`'s seat, as one
     JSON-ready object: the seats, the tokens' points on the board, the
@@ -636,6 +651,10 @@ def view_payload(
         # (David, 2026-09-22). Skipping them also spares a fresh belief
         # per poll, which for Plum is most of a second.
         "readings": None if viewer is not None else game.readings(),
+        # Who is watching without a seat, for the people playing. Empty
+        # unless somebody is there, so the gallery is absent from the
+        # screen rather than sitting there saying nobody (Phase 9e).
+        "watching": list(watching or []) if viewer is not None else [],
         "over": over,
         "remember": game.setup.remember,
     }
@@ -690,6 +709,35 @@ class TableRegistry:
         self._building: dict = {}
         self._last_work: dict = {}
         self._pending_since: dict = {}
+        self._watchers: dict = {}
+
+    # -- the spectator gallery ------------------------------------------
+
+    def seen_watching(self, table_id: str, account: str) -> None:
+        """Note that `account` is watching this table, having just asked
+        it for a view while holding no seat (Phase 9e).
+
+        Presence is kept in memory rather than on the document: a poll
+        arrives every few seconds from every open page, and writing the
+        store that often would churn it for something that is true only
+        for the next few seconds anyway. A restarted process forgets who
+        was watching and learns it again on their next poll.
+        """
+        if not account:
+            return
+        self._watchers.setdefault(table_id, {})[account] = time.monotonic()
+
+    def watching(self, table_id: str) -> list:
+        """Who is watching this table and is not sitting at it, most
+        recently seen last, dropping anyone whose page has stopped
+        asking. A closed tab therefore leaves the gallery by itself."""
+        seen = self._watchers.get(table_id)
+        if not seen:
+            return []
+        now = time.monotonic()
+        live = {name: at for name, at in seen.items() if now - at < WATCHING_FOR}
+        self._watchers[table_id] = live
+        return [name for name, _ in sorted(live.items(), key=lambda item: (item[1], item[0]))]
 
     def _backend_factory(self, document: dict):
         """``seat -> MeteredBackend`` for a table with model seats, or None

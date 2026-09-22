@@ -92,7 +92,10 @@ standing.
 
 ## The `memory` dial: what a character reads back
 
-`memory` is a `Profile` dial in [0, 1], default 0. Before each game the
+`memory` is a `Profile` dial in [0, 1]. `SeatSpec.memory` defaults to 0
+for the driver and the CLI; a new LLM seat on the **lobby form starts at
+1**, the whole logbook (David, 2026-09-22; it started at 0 from Phase 7).
+Before each game the
 wrapper renders one block from the head and entries (`render_memory`):
 
 | `memory` | the character reads |

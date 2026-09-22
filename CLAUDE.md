@@ -66,10 +66,22 @@ budget is announced** to the chat seat; and on the table screen an
 **Accuse panel** of its own, **Table Talk** split from the narration,
 the **Suggest dropdowns stop resetting**, and **no deduction bars for a
 seated player** (a plain roster instead; spectators and Watch keep
-them). In-depth UX is
-Phase 10 and clean-up and release Phase 11. Suite: 474 passed, 20 skipped (the
+them, knowingly: early in a game those bars *are* each seat's hand
+composition by category, which David caught and I had wrongly denied).
+Then **Phase 9e the same day**, also to deploy: a **spectator gallery**
+(signed-in watchers of a live table, shown to the people playing only
+when somebody is there, presence kept in memory for 45 s), the **LLM
+memory slider starting at 1.0** rather than 0 (the lobby form only;
+`SeatSpec.memory` still defaults to 0), **"The game so far" and "Table
+Talk" folding away**, and a real bug that turning the memory default up
+exposed: **a seat whose model budget is spent is no longer queued to
+speak**, since it can never produce a line and queueing it held every
+bot turn for two to eight seconds and then served nothing -- that table
+could not finish in 1,500 requests before and finishes in 148 now.
+In-depth UX is
+Phase 10 and clean-up and release Phase 11. Suite: 477 passed, 21 skipped (the
 live-credential and browser tests), about three minutes with
-`-n auto`; the browser tests run under `CLUDE_WEB_BROWSER=1` (492
+`-n auto`; the browser tests run under `CLUDE_WEB_BROWSER=1` (496
 passed, 2 skipped).
 
 **The road from here** (David renumbered it on 2026-09-16;
@@ -98,7 +110,7 @@ Where things stand:
   the LLM option is visible but disabled. Saved tables keep their memory
   choice; legacy setups missing the flag restore False. CLI logbooks
   remain explicit with `--logbook`. Working guide: `docs/web.md`.
-  Validation: 492 passed, 2 live-credential tests skipped with browser
+  Validation: 496 passed, 2 live-credential tests skipped with browser
   tests enabled; the lobby also passes a 390 px overflow check.
 
 - **The board (2026-09-15).** The engine plays the Classic 24 x 25 grid

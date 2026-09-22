@@ -589,18 +589,34 @@ the log -- they just no longer move the number an answer must match.
    rule that had never matched anything because `describe_event` dropped
    `about`.
 9. **No deduction bars for a seated player** (`tables.py`, `table.js`,
-   `table.html`). David's call on the fourth report. The real game does
-   not mark card backs by category -- the three stacks are separated
-   only to build the envelope, then the remaining 18 are shuffled
-   together and dealt -- but the bars were never hand composition:
-   `readings()` counts, from that seat's own view, how many of the 21
-   cards it has proven a holder for, and nothing in the payload has ever
-   exposed a hand. They are dropped for a seated viewer anyway, since no
-   real player can see how close an opponent is; `renderSeats` draws a
-   plain roster instead, and the footnote explaining the bars goes with
-   them. A spectator and Watch keep them. `view_payload` sends
+   `table.html`). David's call on the fourth report, and he was right
+   about the reason where I was wrong. I argued the bars were only
+   deduction progress and that nothing in the payload had ever exposed
+   a hand. Measured (seed 7, six seats), that is false: a seat begins
+   having proven exactly one thing, its own hand, so `placed` per
+   category *is* that seat's hand composition, for every seat, until
+   other deductions dilute it --
+
+   | turns | seats whose bars read exactly as their hand composition |
+   |---|---|
+   | 0-9 | 6 of 6 |
+   | 12 | 5 |
+   | 15 | 4 |
+   | 18 | 3 |
+   | 21 on | 0 |
+
+   The real game does not mark card backs by category either: the three
+   stacks are separated only to build the envelope, then the remaining
+   18 are shuffled together and dealt, and the backs are identical. So
+   dropping the bars for a seated player closes a real leak over roughly
+   the first quarter of a game, not merely a fairness nicety.
+   `renderSeats` draws a plain roster instead and the footnote
+   explaining the bars goes with them; `view_payload` sends
    `readings: None` to a seated viewer, which also spares a fresh belief
-   per poll -- most of a second for Plum.
+   per poll -- most of a second for Plum. **A spectator and Watch still
+   see the bars, and so still see that much** (David, 2026-09-22: a
+   spectator whispering hands to a player is a social problem, not a
+   software one).
 
 Tests: 492 passed, 2 skipped (the live-credential ones) with browser
 tests enabled; 474 and 20 skipped without. Ten new tests --
@@ -613,3 +629,60 @@ longer has bars, and the placeholder lines being numbered "1.".
 
 **Not deployed.** This stacks on the 9b/9c follow-up work already marked
 "to deploy", so one deploy covers both.
+
+### Phase 9e: spectators, the memory default, folding logs (2026-09-22)
+
+David's follow-ups to the eight fixes above, plus one bug they turned up.
+
+1. **The spectator gallery.** Anyone signed in who holds no seat can
+   already open a live table and watch, and already cannot act -- the
+   answer, say and autopilot routes have returned 403 to a seatless
+   viewer since 8.2. What was missing was presence. `TableRegistry`
+   gains `seen_watching` and `watching`: asking for a view of a table
+   you do not sit at puts you in its gallery for `WATCHING_FOR` (45 s,
+   outlasting a hidden tab's 15 s poll), so a closed tab leaves by
+   itself. It is kept in memory, not on the document -- a poll arrives
+   every few seconds from every open page and writing the store that
+   often would churn it for something true only for the next few
+   seconds; a restarted process forgets and relearns on the next poll.
+   `view_payload` carries `watching` to a seated viewer only, and the
+   screen shows the line only when somebody is there.
+   **Signed-in accounts only** (David, 2026-09-22): the table id does
+   not become a capability URL, and every route stays behind the gate
+   but the MCP endpoint.
+2. **The bars, corrected.** David was right and the note in item 9 above
+   was wrong; it now carries the measurement. **Spectators and Watch
+   keep the bars knowingly** (David, 2026-09-22): a spectator telling a
+   player what is in them is a social problem, not a software one.
+3. **The memory slider starts at 1.0**, the whole logbook, where it
+   started at 0, the condensed head (`tables.DEFAULT_MEMORY`). Only the
+   lobby form moved: `SeatSpec.memory` still defaults to 0 for the
+   driver and the CLI, and a saved table keeps what it was made with.
+   The memory block is a cached system block stable for a whole game, so
+   the depth is written once and read at a tenth of the price on every
+   call after; the cost grows with the logbook, which is worth watching
+   as entries accumulate.
+4. **"The game so far" and "Table Talk" fold away**, as `<details>`
+   panels open by default, the heading being the handle. A list appended
+   to while its panel was shut scrolls to the bottom when it reopens.
+   The collapsed state is not remembered between page loads; nobody
+   asked for that.
+5. **A seat whose budget is spent is no longer queued to speak**
+   (`clude_web/chat.py`, `refusing`). Turning the memory default up made
+   `test_a_spent_budget_lets_the_character_play_on` hang, which was not
+   the memory change's fault but a real defect it exposed: a refusing
+   backend can never produce a line, since `react` needs a call and gets
+   an error result, but `Reactions.opportunity` queued the seat anyway
+   and `work` then answered "waiting" for the reaction's two to eight
+   seconds before serving nothing. A table whose budget ran out both
+   crawled and went quiet. Measured on that table: it could not reach
+   its end in 1,500 requests before, and finishes in 148 with no waiting
+   step at all after. This is very likely part of what the chat seat was
+   describing in its fourth report.
+
+Tests: 496 passed, 2 skipped with browser tests enabled (477 and 21
+without). Three new --
+the gallery (`tests/test_web_tables.py`), the refusing seat
+(`tests/test_chat.py`), the slider default (`tests/test_web_llm.py`) --
+and a browser test for the folding panels; the chat fix was checked to
+fail with it reverted.
