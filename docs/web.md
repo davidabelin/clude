@@ -273,8 +273,8 @@ reads from a `<meta>` tag; a JSON body would fail the check on purpose.
 stand-in -- the plain characterless player, so a seat on autopilot never
 impersonates a character -- and "Take my seat back" takes it back. Anyone
 seated may hand a seat to the stand-in once it has kept the table
-waiting ten minutes, and since 2026-09-21 nobody has to: the next unit
-of `work` after those ten minutes (`AUTOPILOT_AFTER`) hands the seat
+waiting three minutes, and since 2026-09-21 nobody has to: the next unit
+of `work` after those three minutes (`AUTOPILOT_AFTER`, 180 s; ten until 2026-09-21) hands the seat
 over itself, flag and all, so a person who left never stalls a table;
 they take it back with the button when they return. A person put out
 by a wrong accusation is answered by the stand-in from then on -- all
@@ -631,7 +631,7 @@ the floor's numbers (the notepad) and nothing else: a chat player is
 its own head (David, 2026-09-21; the first deploy's optional `head`, a
 character's numbers beside the seat, is gone). The tool docstrings in
 `clude_web/mcp.py` are the only instructions the player gets. A chat
-seat that keeps the table waiting ten minutes is handed to the floor
+seat that keeps the table waiting three minutes is handed to the floor
 bot like any human seat, and an ended table tells it so.
 
 **The account.** Make it once, per store, as any account:

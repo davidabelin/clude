@@ -530,7 +530,7 @@ def table_autopilot(table_id):
         waited = registry.waiting_for(table_id, game)
         stuck = game.pending is not None and game.pending.seat == seat
         if not (on and stuck and waited >= tables.AUTOPILOT_AFTER):
-            return jsonify({"error": "Only the seat's owner can do that, until it has kept the table waiting ten minutes."}), 403
+            return jsonify({"error": "Only the seat's owner can do that, until it has kept the table waiting three minutes."}), 403
     if not (0 <= seat < game.setup.n_players) or game.kinds[seat] != "human":
         return jsonify({"error": "No such seat."}), 400
     try:

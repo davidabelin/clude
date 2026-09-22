@@ -166,9 +166,10 @@ WORK_INTERVAL = 1.5
 """Seconds between two bot turns played by `work`: the table's beat, so
 a run of bot turns reads at a human pace rather than as one lump."""
 
-AUTOPILOT_AFTER = 600.0
-"""Seconds a seat may keep the table waiting before anyone seated may
-hand it to the stand-in."""
+AUTOPILOT_AFTER = 180.0
+"""Seconds a human seat may keep the table waiting before `work` hands
+it to the stand-in (and before anyone seated may do so by hand). Ten
+minutes until 2026-09-21; three on David's word."""
 
 CATEGORIES = (("suspects", SUSPECTS), ("weapons", WEAPONS), ("rooms", ROOMS))
 

@@ -419,7 +419,7 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         the sheet has proven all three. A seat that could not disprove a
         suggestion is already struck from those three cards.
 
-        If you keep the table waiting ten minutes, the floor bot takes
+        If you keep the table waiting three minutes, the floor bot takes
         your seat (as if you had called clude_autopilot); take it back
         with clude_autopilot on false. If the table was ended by whoever
         made it, this call says so.
@@ -558,7 +558,7 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         will not win for you, but it never stalls the table, and your
         note stays yours. Write the note first. Pass `on` false to take
         the seat back; then call clude_turn. A seat that keeps the table
-        waiting ten minutes is handed over this way without asking.
+        waiting three minutes is handed over this way without asking.
         """
         game, seat = live(table_id)
         try:

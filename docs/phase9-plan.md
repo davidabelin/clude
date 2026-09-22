@@ -489,7 +489,7 @@ Four decisions of David's after the first live game, built at once:
    for one, and `clude_turn` says "was ended".
 3. **A player who stops responding.** Two rules in `work`, whoever
    drives it: a human seat that has kept the table waiting
-   `AUTOPILOT_AFTER` (600 s) is handed to the stand-in, its flag set as
+   `AUTOPILOT_AFTER` (180 s) is handed to the stand-in, its flag set as
    if the button had been pressed (so "Take my seat back" undoes it);
    and a human seat that is out (a wrong accusation) is the stand-in's
    without any flag, since all it has left is cards to show. A chat

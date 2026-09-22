@@ -51,7 +51,7 @@ the seventh tool; then David's four calls the same day: **no head**
 (a chat player is its own; `SeatSpec.head` and `head_reading` are
 gone), **tables can be ended** (`TableRegistry.abandon`, an "End
 table" button, `clude_cli.py tables abandon`), **a human seat that
-stalls ten minutes or is out goes to the stand-in** without asking,
+stalls three minutes or is out goes to the stand-in** without asking,
 and **no deal until every open seat is taken** -- all built on fake
 backends, **to deploy**; the `8de30daff8` game has since finished, turn 47, `web/12`);
 in-depth UX is
@@ -354,7 +354,7 @@ it; `docs/phase-plan.md` has the disposition of every file.
 - **Tables end, seats time out, the deal waits (2026-09-21).** Anyone
   seated or the starter can end a table for good ("End table";
   `tables abandon` on the CLI); a human seat that keeps the table
-  waiting ten minutes goes to the floor bot without asking, and a
+  waiting three minutes goes to the floor bot without asking, and a
   seat that is out is answered by it; a table is not dealt until every
   open seat is taken, since an open seat is reserved for someone.
 - **Commit messages are printed in the reply, never written into
