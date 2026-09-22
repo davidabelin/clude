@@ -218,9 +218,9 @@ be shown on the screen rather than hidden.
 `docs/phase8-plan.md` 3.2-3.5). It is Watch's layout -- the board on the
 left, a column on the right, stacked on a phone -- plus the person's own
 panel: a status line ("Your move.", "Waiting for Mustard to suggest.",
-"Mustard named cards you hold. Show one."), the decision, their hand,
-the log of the game as their seat saw it, every seat's compact bar, and
-their notes.
+"Mustard named cards you hold. Show one."), the decision, the Accuse
+panel, their hand, Table Talk, the log of the game as their seat saw it,
+who else is at the table, and their notes.
 
 **The decision** is one form at a time, from the request the game is
 stopped on. A move shows the legal destinations both as highlighted
@@ -229,25 +229,62 @@ squares and rooms on the board, at coordinates the server works out from
 does), and as a list of buttons -- "Enter the Lounge", "Corridor, row 9,
 column 7", "Stay where you are", "Secret passage to the Study". A
 suggestion is two selects, the room fixed, and "Suggest" or "No
-suggestion"; an accusation three selects behind a confirm, or "Pass"; a
-card to show, when another seat's suggestion names cards you hold, one
+suggestion"; an accusation shows "Pass" and points at the Accuse panel;
+a card to show, when another seat's suggestion names cards you hold, one
 button per card, on someone else's turn. What you see is the engine's own
-list of legal options, the same list a character scores.
+list of legal options, the same list a character scores. Each move also
+carries `distances` -- every room and how many steps away it would leave
+you, from `board.room_distances` -- as the button's and the board
+target's tooltip.
+
+The panel is rebuilt only when the decision itself changes, keyed on its
+kind and `seq`. That matters because `seq` counts answers rather than
+entries (Phase 9d): table talk, bot work and other people's moves do not
+move it, so a poll landing while you are choosing leaves your dropdowns
+alone. Before that fix a queued chat line put the table on a 1.5-second
+poll and reset the Suggest selects under the player.
+
+**Accuse** is its own panel, always there, shut, one red word. Opening it
+shows the three selects, the Accuse button and Close. The selects are
+built once when the page loads and nothing ever rebuilds them, so an
+accusation you set up early is still set up later. Under the rules you
+may only accuse at the accusation question, so the button is disabled
+until that decision is yours -- the panel takes a red border then -- and
+accusing still goes behind a confirm (David, 2026-09-22).
+
+**Table Talk** is the panel above the log, with the say box: every
+remark, whether a person's line, a character's aside on its turn or a
+model seat's off-turn reaction. "The game so far" keeps the moves,
+suggestions and accusations. A person's line is upright, a character's
+italic.
 
 **The notes** are the deduction floor from your seat: for every card,
 who is proven to hold it and which holders are still possible. Every
 cludebot gets the same sheet, so the person does too (David, 2026-09-18).
 
-**The other seats** show Watch's compact bar each -- cards placed and
-how sure its method is per category (David, 2026-09-18) -- and whether
-it is out. A human seat's bar shows what its floor has placed and no
-confidence.
+**The other seats**, to someone *playing*, are a plain roster: the
+token, who holds it (a name, `(LLM)`, `(headless)`, `floorbot`), and
+whether it is out or on autopilot. No deduction bars. At a real table
+nobody can see how close another player is to solving it, so a seated
+viewer gets `readings: null` (David, 2026-09-22, after game
+`7075f3ae29`); it also spares a fresh belief per poll, most of a second
+for Plum. Someone *watching* -- a spectator at a table, or the Watch
+screen -- still sees Watch's compact bar for each seat: cards placed and
+how sure its method is per category (David, 2026-09-18), with a human
+seat showing what its floor has placed and no confidence.
+
+Note what those bars never were: an opponent's hand. `readings()` counts,
+from that seat's own view, how many of the 21 cards it has proven a
+holder for. Nothing in the payload has ever exposed what anybody holds --
+and in the real game the card backs are identical, the three stacks
+being separated only to build the envelope before the remaining 18 are
+shuffled together and dealt.
 
 **What each viewer sees.** The card shown at a refutation is named only
 to the suggester and the refuter, which is `ClueObservation.for_player`'s
 rule; everyone else reads "Mustard disproved it". A spectator -- anyone
-signed in who holds no seat -- sees the board, the log and the bars and
-nothing else: no hand, no notes, no decision. A person whose token a
+signed in who holds no seat -- sees the board, the log, Table Talk and
+the bars and nothing else: no hand, no notes, no decision, no say box. A person whose token a
 suggestion dragged into a room is told so, since the drag has no event of
 its own, and may stay and suggest there on their turn, as the rules
 allow.
@@ -633,6 +670,32 @@ character's numbers beside the seat, is gone). The tool docstrings in
 `clude_web/mcp.py` are the only instructions the player gets. A chat
 seat that keeps the table waiting three minutes is handed to the floor
 bot like any human seat, and an ended table tells it so.
+
+**What the second live game changed** (game `7075f3ae29`, 2026-09-22;
+`docs/phase9-plan.md` 8, "Eight fixes"). Four things the chat seat
+reported, all fixed:
+
+- *Table talk no longer stales a pending decision.* `seq` counted entries
+  and a remark is an entry, so anyone speaking -- including the seat
+  itself -- invalidated the answer it was composing. It counts answers
+  now.
+- *`accuse` folded into a suggestion lands.* It used to be tested against
+  whatever was pending the instant the answer arrived, which after a
+  suggestion is usually somebody else's card to show; `clude_answer`
+  now waits for the seat's own next decision and answers the accusation
+  there.
+- *The board goes out once.* `clude_sit` and any `since=0` view carry
+  `board`: the 25 x 24 picture and a legend for reading it, about 1,200
+  characters, never repeated on a turn. `me.at` says where the seat's
+  own token stands.
+- *Every movement option carries `distances`*, each room and how many
+  steps away it would leave you, so the seat need not walk the board in
+  its head.
+- *A spent budget is announced.* The view gains a `models` line when the
+  table's model budget is gone. The characters play on with their own
+  headless methods -- not the floor bot, which is only ever the autopilot
+  stand-in -- but they also stop talking, which from the seat looked
+  like the table had gone mechanical for no reason.
 
 **The account.** Make it once, per store, as any account:
 

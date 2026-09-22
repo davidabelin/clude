@@ -54,10 +54,23 @@ table" button, `clude_cli.py tables abandon`), **a human seat that
 stalls three minutes or is out goes to the stand-in** without asking,
 and **no deal until every open seat is taken** -- all built on fake
 backends, **to deploy**; the `8de30daff8` game has since finished, turn 47, `web/12`);
-in-depth UX is
-Phase 10 and clean-up and release Phase 11. Suite: 467 passed, 17 skipped (the
+then **eight fixes after game `7075f3ae29` on 2026-09-22**, the second
+live game from the chat, also **to deploy** (`docs/phase9-plan.md` 8,
+"Eight fixes"): `seq` counts answers, not entries, so **table talk no
+longer stales a waiting decision** (which was the chat seat's "out of
+date" *and* half of the browser's resetting dropdowns); **`accuse`
+folded into a suggestion now lands** even when a card is shown in
+between; the **board picture and legend go out once** (`clude_sit` and
+any `since=0` view) and every move carries **`distances`**; a **spent
+budget is announced** to the chat seat; and on the table screen an
+**Accuse panel** of its own, **Table Talk** split from the narration,
+the **Suggest dropdowns stop resetting**, and **no deduction bars for a
+seated player** (a plain roster instead; spectators and Watch keep
+them). In-depth UX is
+Phase 10 and clean-up and release Phase 11. Suite: 474 passed, 20 skipped (the
 live-credential and browser tests), about three minutes with
-`-n auto`; the browser tests run under `CLUDE_WEB_BROWSER=1`.
+`-n auto`; the browser tests run under `CLUDE_WEB_BROWSER=1` (492
+passed, 2 skipped).
 
 **The road from here** (David renumbered it on 2026-09-16;
 `docs/phase-plan.md` has the table):
@@ -85,7 +98,7 @@ Where things stand:
   the LLM option is visible but disabled. Saved tables keep their memory
   choice; legacy setups missing the flag restore False. CLI logbooks
   remain explicit with `--logbook`. Working guide: `docs/web.md`.
-  Validation: 472 passed, 2 live-credential tests skipped with browser
+  Validation: 492 passed, 2 live-credential tests skipped with browser
   tests enabled; the lobby also passes a 390 px overflow check.
 
 - **The board (2026-09-15).** The engine plays the Classic 24 x 25 grid

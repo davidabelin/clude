@@ -368,6 +368,93 @@ def test_clicking_a_target_plays_the_move(page):
     assert page.locator(".board-target").count() == 0 or page.inner_text("#status") != "Your move."
 
 
+def test_a_render_mid_choice_leaves_the_decision_panel_alone(page):
+    """Phase 9d, David's high-priority report: "the Suggest selection
+    drop-downs revert back to default too quickly".
+
+    `render` ran `renderDecision` on every poll, and `renderDecision` tore
+    the panel down and rebuilt it, so anything half-chosen went back to
+    the first option -- every 1.5 seconds while the characters had chat
+    queued. The panel is now keyed on the decision itself, and `seq`
+    counts answers rather than entries so table talk does not move it.
+    Saying something forces a render, which is the cheapest way to make
+    the old code rebuild.
+    """
+    _deal_table(page, {"Scarlett": "me", "Mustard": "character", "White": "character",
+                       "Green": "empty", "Peacock": "empty", "Plum": "empty"})
+    page.wait_for_selector(".decision .options button", timeout=20000)
+    page.eval_on_selector(".decision .options button", "b => b.dataset.mark = 'kept'")
+
+    page.fill("#say-text", "Nobody move.")
+    page.click("#say-form button[type=submit]")
+    page.wait_for_function(
+        "() => document.querySelectorAll('#talk li:not(.placeholder)').length >= 1", timeout=20000
+    )
+
+    assert page.locator(".decision .options button[data-mark=kept]").count() == 1, (
+        "the decision panel was rebuilt under the player"
+    )
+
+
+def test_the_accuse_panel_opens_closes_and_keeps_what_was_picked(page):
+    """Phase 9d. Accuse is its own panel, shut by default, and its three
+    dropdowns are built once and never rebuilt -- so an accusation set up
+    on turn 3 is still there on turn 9. Under the rules you may only
+    accuse at the accusation question, so the button is disabled until
+    then.
+    """
+    _deal_table(page, {"Scarlett": "me", "Mustard": "character", "White": "character",
+                       "Green": "empty", "Peacock": "empty", "Plum": "empty"})
+    page.wait_for_selector("#accuse-toggle", timeout=20000)
+    assert page.inner_text("#accuse-toggle").strip().startswith("Accuse")
+    assert page.locator("#accuse-body").is_hidden()
+
+    page.click("#accuse-toggle")
+    assert page.locator("#accuse-body").is_visible()
+    assert page.locator("#accuse-body .field select").count() == 3
+    accuse = page.locator("#accuse-body button.warn")
+    assert accuse.is_disabled(), "accusing was offered outside the accusation question"
+    assert "end of your turn" in page.inner_text("#accuse-hint")
+
+    page.select_option("#accuse-body select[name=suspect]", "Plum")
+    page.select_option("#accuse-body select[name=weapon]", "Rope")
+    page.select_option("#accuse-body select[name=room]", "Library")
+
+    page.fill("#say-text", "Thinking about it.")
+    page.click("#say-form button[type=submit]")
+    page.wait_for_function(
+        "() => document.querySelectorAll('#talk li:not(.placeholder)').length >= 1", timeout=20000
+    )
+    assert page.input_value("#accuse-body select[name=suspect]") == "Plum"
+    assert page.input_value("#accuse-body select[name=room]") == "Library"
+
+    page.click("#accuse-body button.quiet")
+    assert page.locator("#accuse-body").is_hidden()
+
+
+def test_table_talk_and_the_game_log_are_separate_panels(page):
+    """Phase 9d: chat goes to Table Talk, the narration stays in "The
+    game so far"."""
+    _deal_table(page, {"Scarlett": "me", "Mustard": "character", "White": "character",
+                       "Green": "empty", "Peacock": "empty", "Plum": "empty"})
+    page.wait_for_selector("#talk", timeout=20000)
+    page.fill("#say-text", "Anyone been in the Study?")
+    page.click("#say-form button[type=submit]")
+    page.wait_for_function(
+        "() => document.querySelectorAll('#talk li:not(.placeholder)').length >= 1", timeout=20000
+    )
+    said = page.locator("#talk li").all_inner_texts()
+    assert any("Anyone been in the Study?" in line for line in said)
+    assert not any("Anyone been in the Study?" in line for line in page.locator("#log li").all_inner_texts())
+    assert page.locator("#talk li.kind-remark.about-chat").count() >= 1
+
+    page.locator(".board-target").first.click()
+    page.wait_for_function(
+        "() => document.querySelectorAll('#log li:not(.placeholder)').length >= 1", timeout=20000
+    )
+    assert page.locator("#log li.kind-remark").count() == 0, "a remark landed in the game log"
+
+
 def test_the_table_page_never_names_a_card_shown_between_others(page):
     """Play a few turns on autopilot: the log a person sees names a shown
     card only when they were the suggester or the refuter."""

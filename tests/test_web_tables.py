@@ -217,6 +217,56 @@ def test_a_spectator_sees_no_hand_and_no_notepad(ann, cat):
     assert "spectating" in page
 
 
+def test_a_seated_player_gets_no_deduction_bars_and_a_spectator_does(ann, cat):
+    """Phase 9d (David, 2026-09-22). At a real table nobody can see how
+    close another player is to solving it, so a seated viewer gets no
+    readings -- only who is at the table. Someone watching still does:
+    the bars are what Watch is for. Skipping them also spares a fresh
+    belief per poll.
+    """
+    table_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
+    assert poll(ann, table_id)["readings"] is None
+    watching = poll(cat, table_id)
+    assert watching["readings"] is not None
+    assert [r["seat"] for r in watching["readings"]] == [0, 1, 2]
+    assert all("groups" in r for r in watching["readings"])
+
+    page = ann.get(f"/tables/{table_id}").get_data(as_text=True)
+    assert "how many of the 21 cards it has placed" not in page
+    assert "how many of the 21 cards it has placed" in cat.get(f"/tables/{table_id}").get_data(as_text=True)
+
+
+def test_events_say_whether_a_line_was_talk_and_moves_carry_room_distances(app, ann):
+    """Phase 9d. `about` tells chat from narration, so the screen can put
+    table talk in its own panel; `distances` says, for each move on
+    offer, how far every room would then be -- what the chat seat asked
+    for and what a tooltip gives a person.
+    """
+    table_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
+    game = app.extensions["tables"].game(table_id)
+    game.remark(0, "Anyone been in the Study?", "chat")
+
+    payload = poll(ann, table_id)
+    talk = [e for e in payload["events"] if e["kind"] == "remark"]
+    assert talk and talk[-1]["about"] == "chat"
+    assert all("about" in e for e in payload["events"])
+    assert all(e["about"] is None for e in payload["events"] if e["kind"] == "move")
+
+    while payload["pending"] is None and not payload["finished"]:
+        payload = work(ann, table_id)
+    pending = payload["pending"]
+    assert pending["kind"] == "movement"
+    for option in pending["options"]:
+        assert option["distances"], option
+        if option["room"]:
+            assert option["distances"].startswith("in the " + option["room"])
+        else:
+            # A corridor square: every room, nearest first.
+            steps = [int(part.rsplit(" ", 1)[1]) for part in option["distances"].split(", ")]
+            assert steps == sorted(steps) and len(steps) == 9
+    assert payload["me"]["at"] is not None
+
+
 # --- playing ----------------------------------------------------------------
 
 

@@ -57,12 +57,13 @@ from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
 import clude_constraints
+from clude_core import board
 from clude_core.domain import ROOMS, SUSPECTS, WEAPONS
 from clude_training.table import TableError, TableSetup
 
 from . import config, tables
 
-__all__ = ["build_server", "combined_app", "seat_view", "digest", "compact_notepad"]
+__all__ = ["build_server", "combined_app", "seat_view", "digest", "compact_notepad", "BOARD_PICTURE"]
 
 POLL_SECONDS = 25.0
 """How long `clude_turn` holds the connection: under the client's own
@@ -75,6 +76,12 @@ drive the same work and neither starves the other."""
 
 MAX_EVENTS = 60
 """Event lines kept verbatim in a view; older ones become the digest."""
+
+BOARD_PICTURE = board.BOARD_MAP + "\n" + board.BOARD_LEGEND
+"""The board as the chat seat is shown it: the 25 x 24 picture and the
+words for reading it (Phase 9d). About 1,400 characters, so it goes out
+once -- with `clude_sit`, and with the `since=0` view a fresh
+conversation makes -- and never on a turn."""
 
 INSTRUCTIONS = """\
 clude is a game of Clue (the classic board game) played at a web table by \
@@ -190,7 +197,8 @@ def seat_view(
     if pending is not None and pending.get("kind") == "movement":
         pending = dict(pending)
         pending["options"] = [
-            {key: option[key] for key in ("move", "to", "room")} for option in pending["options"]
+            {key: option[key] for key in ("move", "to", "room", "distances")}
+            for option in pending["options"]
         ]
 
     waiting = view.get("waiting")
@@ -231,8 +239,18 @@ def seat_view(
         "notepad": compact_notepad(game, seat),
         "over": view["over"],
     }
+    refusals = [
+        getattr(getattr(wrapper, "backend", None), "last_refusal", None)
+        for wrapper in game.wrappers.values()
+    ]
+    if any(refusals):
+        out["models"] = (
+            "The table's model budget is spent. The characters are playing on with their own "
+            "methods and have stopped talking; nothing else about the game changes."
+        )
     if since <= 0:
         out["note"] = registry.note(table_id, seat)
+        out["board"] = BOARD_PICTURE
     return out
 
 
@@ -377,12 +395,21 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         You play from the log, your hand and the notepad -- the deduction
         sheet the floor fills in with what is logically certain. No
         character method plays for you or advises you: you are the head.
+
+        `board` comes back with this call: the board as a picture, one
+        character per square, with a legend for reading it. It is the
+        same board all game, so keep it and it will not be sent again
+        (a fresh conversation gets it from the first clude_turn it
+        makes with since 0). You never have to walk it yourself -- every
+        move is enumerated for you -- but it is what the rooms, doors
+        and corridors look like.
         """
         try:
             document = registry.sit(table_id, account, (token or "").strip().title())
         except TableError as exc:
             raise ToolError(str(exc)) from None
         out = _listing(document, account)
+        out["board"] = BOARD_PICTURE
         out["message"] = (
             f"You are seated as {out['my_token']} at table {table_id}. The game starts when the table is "
             "dealt from the browser; then call clude_turn."
@@ -408,10 +435,12 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         `since`: pass the `n_events` of the last view you saw and only
         the events after it come back; leave it at 0 in a fresh
         conversation and the whole picture does: `me` (your seat, token
-        and hand), `seats` (who is at the table), `events` (the log,
-        each line numbered; `digest` summarises anything cut from its
-        front) and `note` (whatever you last wrote with clude_note; it
-        comes only with since 0, so read it then). `notepad` always
+        and hand, and `at`, where your token stands), `seats` (who is at
+        the table), `events` (the log, each line numbered; `digest`
+        summarises anything cut from its front), `board` (the board
+        picture and its legend) and `note` (whatever you last wrote with
+        clude_note). The last two come only with since 0, so read them
+        then. `notepad` always
         comes: the deduction sheet filled in for you from what is
         logically certain -- for every card, who is proven to hold it, or
         who still might (`envelope` included), plus `one_of`, the facts
@@ -424,9 +453,12 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         with clude_autopilot on false. If the table was ended by whoever
         made it, this call says so.
 
-        Every decision arrives with its legal answers already
-        enumerated, so you never have to work out what the board allows,
-        only which of the listed options you want.
+        A movement decision arrives with its legal moves already
+        enumerated, each with the `room` it leads to and `distances`,
+        every room and how many steps away it would leave you -- so you
+        never have to work out what the board allows or do the
+        pathfinding yourself. A suggestion names the `room` you are
+        standing in; an accusation is free, any of the 21 cards.
         """
         game, seat = live(table_id)
         await_turn(table_id, game, seat)
@@ -467,13 +499,14 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
 
         Every turn ends with the accusation question. `accuse` answers
         it in the same call and saves a round trip: false passes it,
-        `{"suspect", "weapon", "room"}` accuses. Give it with the answer
-        the question follows directly -- your suggestion (or a null
-        suggestion), or a move that ends in the corridor. A move into a
-        room is followed by the suggestion question first, so give
-        `accuse` with the suggestion instead; given too early it is not
-        applied and `notice` says so. Left out, the accusation arrives
-        as a decision of its own.
+        `{"suspect", "weapon", "room"}` accuses. Give it with the last
+        answer of your turn -- your suggestion (or a null suggestion),
+        or a move that ends in the corridor -- and it is applied when
+        the question reaches you, however much falls in between
+        (someone showing a card, a character thinking). If the turn
+        reaches no accusation question for you it is not applied and
+        `notice` says so. Left out, the accusation arrives as a decision
+        of its own.
 
         With `wait` (the default) the call then holds like clude_turn
         until your next decision is ready, so `pending` is usually set
@@ -486,13 +519,20 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
             _check_accuse(accuse)
             registry.answer(table_id, game, seat, int(seq), answer, by="mcp")
             if accuse is not None:
-                pending = game.pending
-                if ours(game, seat) and pending.kind == "accusation":
+                # The accusation question ends the turn, but it rarely
+                # follows the answer immediately: a suggestion is
+                # refuted first, and a refuter who is a person or a
+                # model seat pauses the game in between. So drive the
+                # table to this seat's next decision and answer it there
+                # (Phase 9d; before this, `accuse` was refused whenever
+                # anything at all fell between).
+                await_turn(table_id, game, seat)
+                if ours(game, seat) and game.pending.kind == "accusation":
                     registry.answer(table_id, game, seat, game.seq, None if accuse is False else accuse, by="mcp")
                 else:
                     notice = (
-                        "accuse was not applied: the accusation question does not follow this answer directly. "
-                        "Give it again with the answer it follows (your suggestion)."
+                        "accuse was not applied: this turn reached no accusation question for you. "
+                        "If a decision is waiting, answer it and give accuse again with that answer."
                     )
         except TableError as exc:
             view = seat_view(registry, table_id, game, seat, since=since)

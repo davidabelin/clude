@@ -9,9 +9,13 @@ from clude_core.domain import ROOMS, SUSPECTS
 
 def test_map_matches_the_human_copy_in_docs():
     human = Path(__file__).resolve().parents[1] / "docs" / "ux" / "board_map.txt"
+    text = human.read_text(encoding="utf-8")
+    picture, _, legend = text.partition("\n\n")
     ours = [line.rstrip() for line in board.BOARD_MAP.splitlines()]
-    theirs = [line.rstrip() for line in human.read_text(encoding="utf-8").splitlines()]
+    theirs = [line.rstrip() for line in picture.splitlines()]
     assert ours == theirs
+    # The legend below the picture is the same words the module keeps.
+    assert legend.strip() == board.BOARD_LEGEND.strip()
 
 
 def test_map_dimensions_and_counts():

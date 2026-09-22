@@ -507,3 +507,109 @@ numbers and nothing else" and "an ended table says so"),
 `tests/test_web_tables.py` gains the deal rule, ending a table (by a
 player, the starter, twice, and the maintainer), the ten-minute
 handover and the out player answered by the stand-in.
+
+### Eight fixes after game `7075f3ae29` (2026-09-22)
+
+The second live game from the chat, with David at the browser and an
+Opus at claude.ai on Scarlett's seat. Both came away with a list: four
+about the table screen, four from the chat seat. Two of them turned out
+to be one bug.
+
+**The seq, which was the root of two reports.** `TableGame.seq` was
+`len(self.entries)` and `remark()` appends an entry, so every line of
+table talk invalidated the decision that was waiting. For the chat seat
+that was "my answer comes back as out of date" -- four tries for one
+suggestion while Scarlett and Peacock chatted. For the browser it was
+half of the dropdown reset: with chatter queued a table polls every
+1.5 s, not 10 s. `seq` now counts answers (`TableGame._answers`), and
+the four internal callers that quoted `len(entries)` quote `self.seq`.
+Remarks are still entries -- the rebuild needs them at their place in
+the log -- they just no longer move the number an answer must match.
+`seq` is never stored, so no document migrates.
+
+**What was built, in the order it was done:**
+
+1. **The seq fix** (`clude_training/table.py`). Above. Pinned by
+   `test_table_talk_does_not_stale_the_decision_it_interrupts` and
+   `test_table_talk_does_not_stale_the_decision_waiting_on_the_seat`,
+   both of which fail on the old definition.
+2. **`accuse` folded into a suggestion now lands** (`clude_web/mcp.py`).
+   It was tested against whatever was pending the instant the answer
+   landed, but the accusation question rarely follows immediately: a
+   suggestion is refuted first, and a refuter who is a person or a model
+   seat pauses the game in between, so `accuse` was set aside and the
+   chat seat paid the round trip anyway. `clude_answer` now runs
+   `await_turn` first and answers the accusation when it arrives.
+   `test_accuse_still_lands_when_a_card_is_shown_in_between` builds the
+   case deliberately -- Mustard a person on autopilot, seated directly
+   after the chat seat, named from its own hand -- because no seed in
+   the suite produced it; without the fix it reproduces the reported
+   notice exactly.
+3. **The board, once** (`clude_core/board.py`, `clude_web/mcp.py`).
+   `BOARD_LEGEND` joins `BOARD_MAP` as a constant and is appended to
+   `docs/ux/board_map.txt` (`tests/test_board.py` now pins both halves);
+   `mcp.BOARD_PICTURE` is the two together, ~1,200 characters, sent with
+   `clude_sit` and with a `since=0` view and never on a turn. `me` gains
+   `at`, the seat's own position, so the picture has an anchor.
+4. **Distances on every move** (`clude_web/tables.py`). Each movement
+   option carries `distances`, every room nearest-first, from
+   `board.room_distances` -- already cached, already what the characters
+   and the floor bot score moves with, so nothing new was written. The
+   browser puts the same string in the button and board-target tooltips.
+5. **A spent budget is announced** (`clude_web/mcp.py`). The chat seat
+   reported that "every character falls back to the floor bot"; it does
+   not -- `MeteredBackend` returns an error result and the wrapper falls
+   back to the seat's own headless method, the floor bot being only ever
+   the autopilot stand-in. It guessed because `seat_view` strips
+   `last_refusal`. A `models` line now says so when some wrapper is
+   refusing, and `test_a_spent_budget_lets_the_character_play_on` gained
+   an assertion that no answer of that seat is ever entered
+   `by="autopilot"`.
+6. **The Accuse panel** (`table.html`, `table.js`, `style.css`). Its own
+   panel, always shown, "Accuse" in `--warn`, shut by default, opening
+   on its header button and closing on Close. Its three dropdowns are
+   built once at startup and the render loop never touches them, so an
+   accusation set up on turn 3 is still there on turn 9. Under the rules
+   you may accuse only at the accusation question, so the button is
+   disabled until that decision is yours (David, 2026-09-22: disabled,
+   not armed) and the panel takes a red border when it is live. The
+   decision panel keeps Pass and points at it.
+7. **The dropdowns stop resetting** (`table.js`), David's high-priority
+   report. `renderDecision` tore the panel down on every poll;
+   it is now keyed on `kind + "#" + seq` and returns early when the
+   decision has not changed, which the seq fix makes exact. As a safety
+   net `keptValues()` snapshots the selects by name before any rebuild
+   and `select()` restores them.
+8. **Table Talk, its own panel** (`tables.py`, `table.html`, `table.js`,
+   `style.css`). Events carry `about`, and every remark -- a person's
+   `chat`, a character's on-turn aside, a model seat's off-turn
+   `reaction` -- goes to a "Table Talk" panel above the log, with the
+   say box; "The game so far" keeps the moves, suggestions and
+   accusations. This also lit up `.log li.kind-remark.about-chat`, a
+   rule that had never matched anything because `describe_event` dropped
+   `about`.
+9. **No deduction bars for a seated player** (`tables.py`, `table.js`,
+   `table.html`). David's call on the fourth report. The real game does
+   not mark card backs by category -- the three stacks are separated
+   only to build the envelope, then the remaining 18 are shuffled
+   together and dealt -- but the bars were never hand composition:
+   `readings()` counts, from that seat's own view, how many of the 21
+   cards it has proven a holder for, and nothing in the payload has ever
+   exposed a hand. They are dropped for a seated viewer anyway, since no
+   real player can see how close an opponent is; `renderSeats` draws a
+   plain roster instead, and the footnote explaining the bars goes with
+   them. A spectator and Watch keep them. `view_payload` sends
+   `readings: None` to a seated viewer, which also spares a fresh belief
+   per poll -- most of a second for Plum.
+
+Tests: 492 passed, 2 skipped (the live-credential ones) with browser
+tests enabled; 474 and 20 skipped without. Ten new tests --
+`tests/test_table.py` 1, `tests/test_mcp.py` 4, `tests/test_web_tables.py`
+2, `tests/test_browser.py` 3 -- and each of the three behaviour fixes
+was checked to fail with its fix reverted. Every screen was
+re-screenshotted in both themes at both widths and looked at: that is
+what caught the bars footnote still being shown to a player who no
+longer has bars, and the placeholder lines being numbered "1.".
+
+**Not deployed.** This stacks on the 9b/9c follow-up work already marked
+"to deploy", so one deploy covers both.

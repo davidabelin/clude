@@ -503,7 +503,13 @@ def view_payload(
     ]
     points = board_svg.token_points({game.suspects[seat]: node for seat, node in snap.positions.items()})
     events = [
-        {"i": index, "turn": getattr(event, "turn", 0), "kind": kind, "text": text}
+        {
+            "i": index,
+            "turn": getattr(event, "turn", 0),
+            "kind": kind,
+            "about": getattr(event, "about", None),
+            "text": text,
+        }
         for index, event in enumerate(game.events[:snap.n_events])
         if index >= since
         for kind, text in [describe_for(event, game, names, viewer)]
@@ -519,9 +525,10 @@ def view_payload(
             pending["seq"] = snap.seq
             if request["kind"] == "movement":
                 pending["options"] = [
-                    dict(option, x=x, y=y)
+                    dict(option, x=x, y=y, distances=_distance_line(node))
                     for option in request["options"]
-                    for x, y in [board_svg.node_centre(_node_of(option["to"]))]
+                    for node in [_node_of(option["to"])]
+                    for x, y in [board_svg.node_centre(node)]
                 ]
             if request.get("shown_to") is not None:
                 pending["shown_to_name"] = names[request["shown_to"]]
@@ -540,12 +547,15 @@ def view_payload(
     me = None
     pad = None
     if viewer is not None:
+        from clude_storage.records import node_to_json
+
         me = {
             "seat": viewer,
             "token": game.suspects[viewer],
             "hand": sorted(game.state.hands[viewer]),
             "active": bool(snap.active[viewer]),
             "autopilot": bool(autopilot.get(str(viewer))),
+            "at": node_to_json(snap.positions[viewer]),
         }
         pad = notepad(game, viewer)
 
@@ -620,7 +630,12 @@ def view_payload(
         ),
         "me": me,
         "notepad": pad,
-        "readings": game.readings(),
+        # Deduction bars are for someone watching, not for someone
+        # playing: at the table you see the board, the log, your hand and
+        # your own notepad, and of the other seats only who they are
+        # (David, 2026-09-22). Skipping them also spares a fresh belief
+        # per poll, which for Plum is most of a second.
+        "readings": None if viewer is not None else game.readings(),
         "over": over,
         "remember": game.setup.remember,
     }
@@ -630,6 +645,29 @@ def _node_of(data):
     from clude_storage.records import node_from_json
 
     return node_from_json(data)
+
+
+def _distance_line(node) -> str:
+    """Every room and how many steps away it is from `node`, nearest
+    first: "Billiard 1, Library 3, ..." (Phase 9d).
+
+    `board.room_distances` is a cached breadth-first search over
+    corridors, rooms and secret passages -- a proximity measure, not a
+    turn count, and the same one the characters and the floor bot score
+    their moves with. It is given to every movement option so neither a
+    person at the board nor the chat seat over MCP has to do the
+    pathfinding by eye.
+    """
+    from clude_core import board
+
+    distances = board.room_distances(node)
+    if not distances:
+        return ""
+    ordered = sorted(distances.items(), key=lambda item: (item[1], item[0]))
+    here = ""
+    if ordered and ordered[0][1] == 0:
+        here, ordered = "in the " + ordered[0][0] + "; ", ordered[1:]
+    return here + ", ".join(f"{room} {steps}" for room, steps in ordered)
 
 
 # --- the registry -----------------------------------------------------------

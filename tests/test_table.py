@@ -314,6 +314,36 @@ def test_a_corrupt_log_is_reported_not_replayed():
 # --- 4. refusals leave the game alive ----------------------------------------
 
 
+def test_table_talk_does_not_stale_the_decision_it_interrupts():
+    """Phase 9d. `seq` counts answers, not entries, so a line said while
+    a decision is waiting leaves that decision answerable.
+
+    Before this, `seq` was the entry count and `remark` appends an entry,
+    so anyone speaking -- a person, a model seat reacting off-turn --
+    invalidated the answer the waiting seat was composing. The chat seat
+    over MCP hit it four times in a row on one suggestion.
+    """
+    setup = human_setup()
+    game = TableGame(setup)
+    while game.pending is None:
+        game.run(1)
+    request = game.pending
+    seq = game.seq
+
+    speaker = (request.seat + 1) % setup.n_players
+    game.remark(speaker, "Nobody move.", "chat")
+    game.remark(speaker, "I said nobody move.", "chat")
+
+    assert game.seq == seq, "table talk moved the seq"
+    assert game.snapshot.seq == seq
+    assert len(game.entries) == seq + 2, "the remarks were not logged as entries"
+    assert game.pending is request
+
+    game.answer(request.seat, seq, game.stand_in_answer())
+    assert game.seq == seq + 1
+
+
+
 def test_a_bad_answer_is_refused_and_the_game_goes_on():
     setup = human_setup()
     game = TableGame(setup)

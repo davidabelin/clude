@@ -28,7 +28,7 @@ from mcp import Client
 from mcp.types import LATEST_PROTOCOL_VERSION
 
 import clude_constraints
-from clude_core.domain import ROOMS, skipped_players
+from clude_core.domain import ROOMS, SUSPECTS, WEAPONS, skipped_players
 from clude_storage import GameRecord, open_store
 from clude_training.table import SeatSpec, TableSetup
 from clude_web import create_app, mcp, tables, users
@@ -206,7 +206,12 @@ async def test_a_whole_game_plays_through_the_tools(server, registry, store):
             if view["pending"] is not None:
                 kinds.append(view["pending"]["kind"])
                 if view["pending"]["kind"] == "movement":
-                    assert all(set(o) == {"move", "to", "room"} for o in view["pending"]["options"])
+                    assert all(
+                        set(o) == {"move", "to", "room", "distances"}
+                        for o in view["pending"]["options"]
+                    )
+                    # Every option says how far each room would then be.
+                    assert all(o["distances"] for o in view["pending"]["options"])
 
         final = await play_out(client, table_id, on_view=check)
     assert "accusation" in kinds, "the accusation question never came as a decision of its own"
@@ -387,6 +392,156 @@ async def test_accuse_folds_the_accusation_into_the_answer_before_it(server, reg
     game = registry.game(table_id)
     passed = [e for e in game.entries if e.get("kind") == "answer" and e["seat"] == 0 and e["decision"] == "accusation"]
     assert passed and all(e["by"] == "mcp" and e["data"] is None for e in passed)
+
+
+async def test_accuse_still_lands_when_a_card_is_shown_in_between(server, registry):
+    """Phase 9d. The accusation question ends the turn, but it rarely
+    follows the answer immediately: a suggestion is refuted first, and a
+    refuter who is not a plain bot pauses the game in between.
+
+    Built to force exactly that. Mustard is a person on autopilot and
+    sits directly after the chat seat, so it is asked to refute first;
+    naming a card from its hand stops the game on its `card_to_show`
+    between the suggestion and the accusation question. Before the fix
+    `accuse` was tested against whatever was pending the instant the
+    answer landed, so here it was set aside every time and the
+    accusation came back as a decision of its own -- the extra round
+    trip the chat seat reported.
+    """
+    seats = (
+        SeatSpec("Scarlett", "open"),
+        SeatSpec("Mustard", "human", ANN),
+        SeatSpec("White", "character", "White"),
+        SeatSpec("Plum", "character", "Plum"),
+    )
+    table_id = registry.create(TableSetup(seats, SEED), started_by=ANN)
+    async with Client(server) as client:
+        unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
+        registry.deal(table_id)
+        game = registry.game(table_id)
+        registry.set_autopilot(table_id, game, 1, True)
+
+        view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
+        for _ in range(400):
+            pending = view["pending"]
+            assert pending is not None and not view["finished"], "never reached a suggestion"
+            if pending["kind"] == "suggestion":
+                held = set(game.state.hands[1])
+                suspect = next((c for c in SUSPECTS if c in held), None)
+                weapon = next((c for c in WEAPONS if c in held), None)
+                if suspect or weapon:
+                    break
+            view = unwrap(await client.call_tool(
+                "clude_answer",
+                {"table_id": table_id, "seq": pending["seq"], "answer": simple_answer(pending)},
+            ))
+        else:
+            raise AssertionError("never reached a suggestion the seat next door could refute")
+
+        answer = {
+            "suspect": suspect or "Plum",
+            "weapon": weapon or "Rope",
+        }
+        entries_before = len(game.entries)
+        folded = unwrap(await client.call_tool(
+            "clude_answer",
+            {"table_id": table_id, "seq": pending["seq"], "answer": answer, "accuse": False},
+        ))
+
+    assert "error" not in folded, folded.get("error")
+    assert "notice" not in folded, folded["notice"]
+    answers = [e for e in game.entries[entries_before:] if e.get("kind") == "answer"]
+    decisions = [(e["seat"], e["decision"]) for e in answers]
+    assert (1, "card_to_show") in decisions, f"nothing was shown in between: {decisions}"
+    assert (0, "accusation") in decisions, f"the accusation was not folded in: {decisions}"
+    passed = [e for e in answers if e["seat"] == 0 and e["decision"] == "accusation"]
+    assert all(e["by"] == "mcp" and e["data"] is None for e in passed)
+
+
+class _Refusing:
+    """A wrapper whose backend is refusing, for the view to notice."""
+
+    class backend:
+        last_refusal = "budget: this table's $2.00 is spent"
+
+
+async def test_the_view_says_when_the_models_have_gone_dark(server, registry):
+    """Phase 9d, the chat seat's fourth report. A spent budget leaves the
+    characters playing their own methods and silent, which from the seat
+    looks like the table has gone mechanical for no reason -- the browser
+    is told, the chat seat was not. One line, only when it is true."""
+    table_id = open_table(registry)
+    async with Client(server) as client:
+        unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
+        registry.deal(table_id)
+        game = registry.game(table_id)
+
+        quiet = mcp.seat_view(registry, table_id, game, 0, since=0)
+        assert "models" not in quiet, "the notice went out with nothing refusing"
+
+        game.table.wrappers[1] = _Refusing()
+        spent = mcp.seat_view(registry, table_id, game, 0, since=0)
+        assert "budget is spent" in spent["models"]
+        assert "own methods" in spent["models"]
+
+
+async def test_table_talk_does_not_stale_the_decision_waiting_on_the_seat(server, registry):
+    """Phase 9d, the chat seat's first report: "whenever anyone speaks
+    while a decision is waiting for me, the seq moves on, and my answer
+    comes back as out of date" -- four tries for one suggestion.
+
+    `seq` now counts answers, not entries, so the seat's own line and
+    anyone else's leave a waiting decision answerable.
+    """
+    table_id = open_table(registry)
+    async with Client(server) as client:
+        unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
+        registry.deal(table_id)
+        view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
+        pending = view["pending"]
+        seq = pending["seq"]
+        game = registry.game(table_id)
+        entries_before = len(game.entries)
+
+        unwrap(await client.call_tool("clude_say", {"table_id": table_id, "text": "Anyone been in the Study?"}))
+        registry.say(table_id, game, 1, "Not lately.")
+        assert len(game.entries) > entries_before, "the lines were not logged"
+        assert game.seq == seq, "table talk moved the seq"
+
+        answered = unwrap(
+            await client.call_tool(
+                "clude_answer", {"table_id": table_id, "seq": seq, "answer": simple_answer(pending)}
+            )
+        )
+        assert "error" not in answered, answered.get("error")
+
+
+async def test_the_board_comes_once_with_the_seat_and_with_a_fresh_view(server, registry):
+    """Phase 9d: the chat seat asked for the map once rather than every
+    turn. It rides with `clude_sit` and with a `since=0` view (what a
+    fresh conversation calls), and never on a turn."""
+    table_id = open_table(registry)
+    async with Client(server) as client:
+        seated = unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
+        assert seated["board"] == mcp.BOARD_PICTURE
+        assert "Legend:" in seated["board"] and "K Kitchen" in seated["board"]
+
+        registry.deal(table_id)
+        fresh = unwrap(await client.call_tool("clude_turn", {"table_id": table_id, "since": 0}))
+        assert fresh["board"] == mcp.BOARD_PICTURE
+        assert fresh["me"]["at"] is not None
+
+        played = unwrap(
+            await client.call_tool(
+                "clude_answer",
+                {"table_id": table_id, "seq": fresh["pending"]["seq"],
+                 "answer": simple_answer(fresh["pending"]), "since": 0},
+            )
+        )
+        assert played["n_events"] > 0
+        on = unwrap(await client.call_tool("clude_turn", {"table_id": table_id, "since": played["n_events"]}))
+        assert "board" not in on, "the board went out again on a turn"
+        assert "note" not in on, "the note went out again on a turn"
 
 
 async def test_accuse_given_too_early_or_malformed_is_set_aside_or_refused(server, registry):

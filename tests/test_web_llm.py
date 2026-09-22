@@ -234,6 +234,17 @@ def test_a_spent_budget_lets_the_character_play_on(tmp_path, store):
     assert any(f and f.startswith("error: budget") for f in fallbacks)
     assert final["llm"]["refused"], final["llm"]
 
+    # Phase 9d, a doubt the chat seat raised after game 7075f3ae29: a
+    # spent budget does not hand the seat to the floor bot. The floor bot
+    # is only ever the autopilot stand-in, and a stand-in answer is
+    # entered `by="autopilot"`; every answer this seat gave is still its
+    # own, entered `by="llm"`, with the character behind the fallback.
+    # `test_the_null_twin_is_the_headless_game` below pins that the
+    # character's game is what a refused backend plays.
+    seats = {e["seat"] for e in game.entries if e.get("by") == "llm"}
+    assert seats, "the model seat entered no answers at all"
+    assert not [e for e in game.entries if e.get("by") == "autopilot" and e["seat"] in seats]
+
 
 def test_the_null_twin_is_the_headless_game(tmp_path, store):
     """A model seat whose backend never answers plays the character's own

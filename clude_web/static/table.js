@@ -30,6 +30,11 @@
   var myToken = document.getElementById("my-token");
   var autopilotButton = document.getElementById("autopilot");
   var log = document.getElementById("log");
+  var talk = document.getElementById("talk");
+  var accusePanel = document.getElementById("accuse-panel");
+  var accuseToggle = document.getElementById("accuse-toggle");
+  var accuseBody = document.getElementById("accuse-body");
+  var accuseHint = document.getElementById("accuse-hint");
   var sayForm = document.getElementById("say-form");
   var sayText = document.getElementById("say-text");
   var seatsBox = document.getElementById("seats");
@@ -40,6 +45,9 @@
   var timer = null;
   var busy = false;
   var current = data;
+  var renderedKey = null;
+  var accuseFields = null;
+  var accuseButton = null;
 
   /* suspect -> its circle on the board, looked up once. */
   var tokens = {};
@@ -108,24 +116,41 @@
     });
   }
 
-  function appendEvents(events) {
-    if (!log) return;
-    var placeholder = log.querySelector(".placeholder");
-    (events || []).forEach(function (event) {
-      if (event.i < since) return;
+  /* Table talk and the narration are the same RemarkEvent stream on the
+     wire, told apart by kind: every remark -- a person's line, a
+     character's aside on its turn, a model seat's off-turn reaction --
+     goes to Table Talk, and the moves, suggestions and accusations stay
+     in the game log. */
+  function appendTo(list, events, emptyText) {
+    if (!list) return;
+    var placeholder = list.querySelector(".placeholder");
+    var added = 0;
+    events.forEach(function (event) {
       if (placeholder) {
-        log.removeChild(placeholder);
+        list.removeChild(placeholder);
         placeholder = null;
       }
-      var li = el("li", "kind-" + event.kind, event.text);
+      var className = "kind-" + event.kind + (event.about ? " about-" + event.about : "");
+      var li = el("li", className, event.text);
       li.setAttribute("data-index", event.i);
-      log.appendChild(li);
+      list.appendChild(li);
+      added += 1;
     });
-    if (!log.children.length) {
-      var empty = el("li", "placeholder note", "The cards are dealt. Nobody has moved yet.");
-      log.appendChild(empty);
+    if (!list.children.length) {
+      list.appendChild(el("li", "placeholder note", emptyText));
     }
-    if (events && events.length) log.scrollTop = log.scrollHeight;
+    if (added) list.scrollTop = list.scrollHeight;
+  }
+
+  function appendEvents(events) {
+    var fresh = (events || []).filter(function (event) { return event.i >= since; });
+    var said = [];
+    var played = [];
+    fresh.forEach(function (event) {
+      (event.kind === "remark" ? said : played).push(event);
+    });
+    appendTo(log, played, "The cards are dealt. Nobody has moved yet.");
+    appendTo(talk, said, "Nobody has said anything yet.");
   }
 
   function statusText(payload) {
@@ -211,7 +236,7 @@
     });
   }
 
-  function select(name, items, label) {
+  function select(name, items, label, value) {
     var wrap = el("label", "field", label + " ");
     var s = el("select");
     s.name = name;
@@ -220,16 +245,43 @@
       o.value = item;
       s.appendChild(o);
     });
+    if (value && items.indexOf(value) >= 0) s.value = value;
     wrap.appendChild(s);
     return { wrap: wrap, select: s };
+  }
+
+  /* What the decision panel's dropdowns are set to right now, by name, so
+     a rebuild puts them back rather than silently reverting to the first
+     option under someone mid-choice. */
+  function keptValues() {
+    var kept = {};
+    if (!decision) return kept;
+    Array.prototype.forEach.call(decision.querySelectorAll("select"), function (s) {
+      if (s.name) kept[s.name] = s.value;
+    });
+    return kept;
   }
 
   var SUSPECTS = ["Scarlett", "Mustard", "White", "Green", "Peacock", "Plum"];
   var WEAPONS = ["Candlestick", "Knife", "Lead_Pipe", "Revolver", "Rope", "Wrench"];
   var ROOMS = ["Kitchen", "Ballroom", "Conservatory", "Billiard", "Library", "Study", "Hall", "Lounge", "Dining"];
 
+  /* The panel is rebuilt only when the decision itself changes.
+     `seq` counts answers, not entries, so table talk and bot work leave
+     it alone -- which is what stops a poll landing mid-choice from
+     wiping the dropdowns under the player. */
+  function decisionKey(pending) {
+    if (pending) return pending.kind + "#" + pending.seq;
+    if (current.over) return "over";
+    return current.waiting ? "waiting#" + current.waiting.seat + current.waiting.kind : "none";
+  }
+
   function renderDecision(pending) {
     if (!decision) return;
+    var key = decisionKey(pending);
+    if (key === renderedKey) return;
+    renderedKey = key;
+    var kept = keptValues();
     while (decision.firstChild) decision.removeChild(decision.firstChild);
     clearTargets();
     if (!pending) {
@@ -254,6 +306,7 @@
       pending.options.forEach(function (option) {
         var button = el("button", null, optionText(option));
         button.type = "button";
+        if (option.distances) button.title = "From there: " + option.distances;
         button.addEventListener("click", function () {
           answer({ move: option.move, to: option.to });
         });
@@ -265,7 +318,7 @@
           circle.setAttribute("cy", option.y);
           circle.setAttribute("r", 9);
           var tip = document.createElementNS("http://www.w3.org/2000/svg", "title");
-          tip.textContent = optionText(option);
+          tip.textContent = optionText(option) + (option.distances ? " - from there: " + option.distances : "");
           circle.appendChild(tip);
           circle.addEventListener("click", function () {
             answer({ move: option.move, to: option.to });
@@ -278,8 +331,8 @@
       decision.appendChild(buttons);
     } else if (pending.kind === "suggestion") {
       decisionTitle.textContent = "Suggest, in the " + pending.room;
-      var suspect = select("suspect", SUSPECTS, "Suspect");
-      var weapon = select("weapon", WEAPONS, "Weapon");
+      var suspect = select("suspect", SUSPECTS, "Suspect", kept.suspect);
+      var weapon = select("weapon", WEAPONS, "Weapon", kept.weapon);
       decision.appendChild(suspect.wrap);
       decision.appendChild(weapon.wrap);
       var go = el("button", null, "Suggest");
@@ -294,27 +347,12 @@
       buttons.appendChild(pass);
       decision.appendChild(buttons);
     } else if (pending.kind === "accusation") {
-      decisionTitle.textContent = "Accuse?";
-      var as = select("suspect", SUSPECTS, "Suspect");
-      var aw = select("weapon", WEAPONS, "Weapon");
-      var ar = select("room", ROOMS, "Room");
-      decision.appendChild(as.wrap);
-      decision.appendChild(aw.wrap);
-      decision.appendChild(ar.wrap);
-      var accuse = el("button", "warn", "Accuse");
-      accuse.type = "button";
-      accuse.addEventListener("click", function () {
-        var text = as.select.value + " with the " + aw.select.value.replace("_", " ") + " in the " + ar.select.value;
-        if (window.confirm("Accuse " + text + "? A wrong accusation puts you out of the game.")) {
-          answer({ suspect: as.select.value, weapon: aw.select.value, room: ar.select.value });
-        }
-      });
+      decisionTitle.textContent = "Accuse, or pass?";
       var skip = el("button", null, "Pass");
       skip.type = "button";
       skip.addEventListener("click", function () { answer(null); });
       buttons.appendChild(skip);
-      buttons.appendChild(accuse);
-      decision.appendChild(el("p", "note", "Pass unless you are sure: a wrong accusation ends your game, though you still show cards."));
+      decision.appendChild(el("p", "note", "Pass unless you are sure: a wrong accusation ends your game, though you still show cards. To accuse, open the Accuse panel."));
       decision.appendChild(buttons);
     } else if (pending.kind === "card_to_show") {
       decisionTitle.textContent = "Show a card to " + pending.shown_to_name;
@@ -325,6 +363,71 @@
         buttons.appendChild(button);
       });
       decision.appendChild(buttons);
+    }
+  }
+
+  /* The Accuse panel is built once, at startup, and the render loop
+     never rebuilds it -- only enables or disables its button. That is
+     what makes a half-filled accusation survive everything happening at
+     the table: you can set it up on turn 3 and leave it there. Under
+     the rules you may only accuse at the accusation question, so the
+     button stays disabled until that decision is yours. */
+  function buildAccuse() {
+    if (!accuseBody || !accuseToggle) return;
+    var suspect = select("suspect", SUSPECTS, "Suspect");
+    var weapon = select("weapon", WEAPONS, "Weapon");
+    var room = select("room", ROOMS, "Room");
+    accuseBody.appendChild(suspect.wrap);
+    accuseBody.appendChild(weapon.wrap);
+    accuseBody.appendChild(room.wrap);
+    accuseFields = { suspect: suspect.select, weapon: weapon.select, room: room.select };
+
+    accuseButton = el("button", "warn", "Accuse");
+    accuseButton.type = "button";
+    accuseButton.addEventListener("click", function () {
+      if (accuseButton.disabled || busy) return;
+      var text = accuseFields.suspect.value
+        + " with the " + accuseFields.weapon.value.replace("_", " ")
+        + " in the " + accuseFields.room.value;
+      if (window.confirm("Accuse " + text + "? A wrong accusation puts you out of the game.")) {
+        answer({
+          suspect: accuseFields.suspect.value,
+          weapon: accuseFields.weapon.value,
+          room: accuseFields.room.value
+        });
+        setAccuseOpen(false);
+      }
+    });
+    var close = el("button", "quiet", "Close");
+    close.type = "button";
+    close.addEventListener("click", function () { setAccuseOpen(false); });
+
+    var buttons = el("div", "options");
+    buttons.appendChild(accuseButton);
+    buttons.appendChild(close);
+    accuseBody.appendChild(buttons);
+
+    accuseToggle.addEventListener("click", function () {
+      setAccuseOpen(accuseBody.hidden);
+    });
+    setAccuseOpen(false);
+  }
+
+  function setAccuseOpen(open) {
+    if (!accuseBody || !accuseToggle) return;
+    accuseBody.hidden = !open;
+    accuseToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
+  function renderAccuse(pending) {
+    if (!accuseButton) return;
+    var live = !!(pending && pending.kind === "accusation");
+    accuseButton.disabled = !live;
+    if (accusePanel) accusePanel.className = "panel accuse-panel" + (live ? " live" : "");
+    if (accuseHint) {
+      accuseHint.textContent = live
+        ? "This is the moment: accuse, or Pass in the decision panel."
+        : "You can accuse at the end of your turn. Set your three cards here whenever you like; they will keep.";
     }
   }
 
@@ -345,9 +448,41 @@
     }
   }
 
+  /* Who else is at the table, for someone playing at it: the names and
+     nothing more. The deduction bars are for someone watching -- at a
+     real table nobody can see how close another player is to solving it
+     -- so the server sends no readings to a seated viewer and this draws
+     the roster instead (David, 2026-09-22). */
+  function renderRoster(payload) {
+    (payload.seats || []).forEach(function (spec) {
+      var article = el("article", "seat compact roster" + (spec.active ? "" : " out") + (spec.me ? " mine" : ""));
+      article.setAttribute("data-seat", spec.seat);
+      var h2 = el("h2");
+      h2.appendChild(el("span", "pip suspect-" + spec.token.toLowerCase()));
+      h2.appendChild(document.createTextNode(" " + spec.token + " "));
+      var who = "";
+      if (spec.kind === "llm") who = "(LLM)";
+      else if (spec.kind === "character") who = "(headless)";
+      else if (spec.kind === "floor") who = "(floorbot)";
+      else if (spec.me) who = "(you)";
+      else if (spec.name !== spec.token) who = "(" + spec.name + ")";
+      if (who) h2.appendChild(el("span", "who", who));
+      article.appendChild(h2);
+      var marks = [];
+      if (!spec.active) marks.push("out, accused wrongly");
+      if (spec.autopilot) marks.push("autopilot");
+      if (marks.length) article.appendChild(el("p", "method", marks.join(" · ")));
+      seatsBox.appendChild(article);
+    });
+  }
+
   function renderSeats(payload) {
     if (!seatsBox) return;
     while (seatsBox.firstChild) seatsBox.removeChild(seatsBox.firstChild);
+    if (!payload.readings) {
+      renderRoster(payload);
+      return;
+    }
     var seatsByIndex = {};
     (payload.seats || []).forEach(function (s) { seatsByIndex[s.seat] = s; });
     (payload.readings || []).forEach(function (r) {
@@ -438,6 +573,7 @@
     var spend = document.getElementById("spend");
     if (spend) spend.textContent = spendText(payload);
     renderDecision(payload.pending);
+    renderAccuse(payload.pending);
     renderHand(payload.me);
     renderSeats(payload);
     renderNotepad(payload);
@@ -503,6 +639,7 @@
     if (!document.hidden) schedule(200);
   });
 
+  buildAccuse();
   render(data);
   schedule(current.work ? 300 : undefined);
 })();

@@ -67,6 +67,19 @@ OOOOOOO..HHHHHH..SSSSSSS
 OOOOOOOr HHHHHH .SSSSSSS
 """
 
+BOARD_LEGEND = """Legend: an upper-case letter is a cell of that room -- K Kitchen, B Ballroom,
+C Conservatory, D Dining, I Billiard, L Library, O Lounge, H Hall, S Study.
+The lower-case of the same letter is a door cell of that room (still inside
+it): the only way in or out on foot. '.' is a corridor square, 'X' the cellar
+(impassable), a space off the board. The six start squares are lettered for
+their suspect: w White, g Green, p Peacock, u Plum, r Scarlett, m Mustard --
+they are ordinary corridor squares. Row 0 is the top, column 0 the left.
+Secret passages join Kitchen to Study and Conservatory to Lounge.
+"""
+"""The picture in words: what each character of `BOARD_MAP` means. Kept
+here beside the map so the chat seat over MCP, `docs/ux/board_map.txt`
+and a reader of this module are all told the same thing (Phase 9d)."""
+
 N_ROWS = 25
 N_COLS = 24
 

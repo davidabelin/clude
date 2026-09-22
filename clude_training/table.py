@@ -512,8 +512,9 @@ class TableSnapshot:
     behind a slow turn.
 
     `n_events` bounds the event log a reader should look at, `seq` is the
-    entry count an answer must quote, and `pending` is
-    `describe_request` of the request the game is stopped on, or None.
+    answer count an answer must quote (table talk does not move it), and
+    `pending` is `describe_request` of the request the game is stopped
+    on, or None.
     """
 
     turns: int
@@ -610,6 +611,11 @@ class TableGame:
         self._live = next(self._steps)
         self.pending: Optional[DecisionRequest] = None
         self.entries: list = []
+        self._answers = 0
+        """How many of `entries` are answers: the `seq` an answer quotes.
+        Kept apart from the entry count because table talk is an entry
+        too, and a line said while a decision waits must not stale it
+        (Phase 9d)."""
         self.turns = 0
         self.finished = False
         self.previous_mark = 0
@@ -646,8 +652,10 @@ class TableGame:
 
     @property
     def seq(self) -> int:
-        """The entry count: what the next answer must quote."""
-        return len(self.entries)
+        """The number of answers entered: what the next answer must
+        quote. Table talk does not move it, so a line said while a
+        decision is waiting never makes that decision stale."""
+        return self._answers
 
     @property
     def snapshot(self) -> TableSnapshot:
@@ -658,7 +666,7 @@ class TableGame:
             turns=self.turns,
             finished=self.finished,
             n_events=len(self.events),
-            seq=len(self.entries),
+            seq=self._answers,
             pending=None if self.pending is None else describe_request(self.pending),
             positions=dict(self.state.positions),
             active=tuple(self.state.active),
@@ -723,7 +731,7 @@ class TableGame:
             raise TableError("nothing is waiting for an answer")
         if seat != request.seat:
             raise TableError("it is not this seat's decision")
-        if seq != len(self.entries):
+        if seq != self._answers:
             raise TableError("that answer is out of date; the table has moved on")
         value = decode_answer(request, data)
         try:
@@ -741,6 +749,7 @@ class TableGame:
         if audit is not None:
             entry["audit"] = audit
         self.entries.append(entry)
+        self._answers += 1
         self.pending = None
         try:
             self._resume(answer=value, ready=True, turns=1)
@@ -781,7 +790,7 @@ class TableGame:
         else:
             value = wrapper.choose_card_to_show(request.obs, request.candidates, request.shown_to, rng)
         audit = wrapper.decisions[-1].to_dict() if wrapper.decisions else None
-        self.answer(request.seat, len(self.entries), encode_answer(request.kind, value), by="llm", audit=audit)
+        self.answer(request.seat, self.seq, encode_answer(request.kind, value), by="llm", audit=audit)
 
     def remark(self, seat: int, text: str, about: str = "chat", audit: Optional[dict] = None) -> None:
         """Append a line of table talk from an external seat as a
@@ -832,7 +841,7 @@ class TableGame:
         request = self.pending
         if request is None:
             raise TableError("nothing is waiting for an answer")
-        self.answer(request.seat, len(self.entries), self.stand_in_answer(), by="autopilot")
+        self.answer(request.seat, self.seq, self.stand_in_answer(), by="autopilot")
 
     def _resume(self, answer=None, ready: bool = False, turns: int = 1) -> int:
         """Drive the generator until a request for an external seat, until
@@ -922,7 +931,7 @@ class TableGame:
                         f"entry {index} answers {expected[1]} for seat {expected[0]}, but the game reached {got}"
                     )
                 game.answer(
-                    request.seat, len(game.entries), entry["data"],
+                    request.seat, game.seq, entry["data"],
                     by=str(entry.get("by", "human")), audit=entry.get("audit"),
                 )
             else:

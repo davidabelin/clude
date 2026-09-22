@@ -714,6 +714,31 @@ select {
 .decision .field { display: block; margin: 0.35rem 0; }
 .decision .field select { width: auto; margin-left: 0.4rem; }
 button.warn { background: var(--warn); border-color: var(--warn); color: #fff; }
+button.warn[disabled] { opacity: 0.45; cursor: not-allowed; }
+
+.accuse-panel { max-width: none; margin: 0; }
+.accuse-panel h2 { margin: 0; }
+.accuse-toggle {
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  color: var(--warn);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+.accuse-toggle::after { content: " \25BE"; font-size: 0.8em; }
+.accuse-toggle[aria-expanded="true"]::after { content: " \25B4"; }
+.accuse-panel.live { border-color: var(--warn); }
+.accuse-body { margin-top: 0.5rem; }
+.accuse-body .field { display: block; margin: 0.35rem 0; }
+.accuse-body .field select { width: auto; margin-left: 0.4rem; }
+.accuse-body .options { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+.accuse-body .options button { margin: 0; padding: 0.45rem 0.8rem; }
+
+.seat.compact.roster .who { margin-left: 0.3rem; }
 
 .me-panel { max-width: none; margin: 0; }
 .hand { list-style: none; margin: 0 0 0.6rem; padding: 0; display: flex; flex-wrap: wrap; gap: 0.35rem; }
@@ -726,20 +751,24 @@ button.warn { background: var(--warn); border-color: var(--warn); color: #fff; }
 }
 .me-panel .buttons button { margin: 0; }
 
-.log-panel { max-width: none; margin: 0; }
-.log {
+.log-panel, .talk-panel { max-width: none; margin: 0; }
+.log, .talk {
   margin: 0;
   padding: 0 0 0 1.2rem;
   max-height: 14rem;
   overflow-y: auto;
   font-size: 0.9rem;
 }
-.log li { margin: 0.15rem 0; }
+.talk { max-height: 10rem; }
+.log li, .talk li { margin: 0.15rem 0; }
+/* An empty log is a sentence, not item one of a list. */
+.log li.placeholder, .talk li.placeholder { list-style: none; margin-left: -1.2rem; }
 .log li.kind-suggestion { color: var(--ink); }
 .log li.kind-accusation { color: var(--warn); font-weight: 600; }
-.log li.kind-remark { font-style: italic; color: var(--ink-soft); }
 .log li.kind-over { font-weight: 700; }
-.log li.kind-remark.about-chat { font-style: normal; color: var(--ink); }
+/* A character's aside is italic; a person's line stands upright. */
+.talk li.kind-remark { font-style: italic; color: var(--ink-soft); }
+.talk li.kind-remark.about-chat { font-style: normal; color: var(--ink); }
 .say { display: flex; gap: 0.4rem; margin-top: 0.5rem; }
 .say input { flex: 1; min-width: 0; font: inherit; padding: 0.3rem 0.5rem; }
 .say button { margin: 0; }

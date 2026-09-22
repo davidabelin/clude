@@ -78,6 +78,12 @@
         <div class="decision" id="decision"></div>
         <p class="error" id="error" role="alert" hidden></p>
       </div>
+      <div class="panel accuse-panel" id="accuse-panel">
+        <h2><button type="button" class="accuse-toggle" id="accuse-toggle" aria-expanded="false" aria-controls="accuse-body">Accuse</button></h2>
+        <div class="accuse-body" id="accuse-body" hidden>
+          <p class="note" id="accuse-hint"></p>
+        </div>
+      </div>
       <div class="panel me-panel">
         <h2>Your hand <span class="who" id="my-token"></span></h2>
         <ul class="hand" id="hand"></ul>
@@ -85,15 +91,20 @@
       </div>
       {% endif %}
 
-      <div class="panel log-panel">
-        <h2>The game so far</h2>
-        <ol class="log" id="log"></ol>
+      <div class="panel talk-panel">
+        <h2>Table Talk</h2>
+        <ol class="talk" id="talk"></ol>
         {% if viewer is not none %}
         <form id="say-form" class="say" autocomplete="off">
           <input id="say-text" name="text" maxlength="240" placeholder="Say something at the table" aria-label="Say something at the table">
           <button type="submit" class="quiet">Say</button>
         </form>
         {% endif %}
+      </div>
+
+      <div class="panel log-panel">
+        <h2>The game so far</h2>
+        <ol class="log" id="log"></ol>
       </div>
 
       <div class="seats-compact" id="seats"></div>
@@ -108,10 +119,14 @@
     </section>
   </div>
 
+  {# The footnote explains the bars, so it goes with them: someone
+     playing sees a plain roster and needs none of it. #}
+  {% if viewer is none %}
   <p class="note key">
     Each seat shows how many of the 21 cards it has placed and how sure its
     own method is of its best guess in each category. {{ limitation }}
   </p>
+  {% endif %}
 
   <script id="table-data" type="application/json">{{ payload_json|safe }}</script>
   <script src="{{ url_for('static', filename='table.js') }}"></script>
