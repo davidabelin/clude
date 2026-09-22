@@ -1437,6 +1437,45 @@ def _add_arena_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--json", default="", help="Also write the result to this JSON path.")
 
 
+def cmd_tables_list(args) -> int:
+    """Every table in the lobby of a store: id, status, turns, seats."""
+    from clude_web.tables import TableRegistry
+
+    store = open_store(args.uri)
+    print(f"store: {store.describe()}")
+    documents = TableRegistry(store).in_progress()
+    if not documents:
+        print("no tables in progress")
+        return 0
+    for document in documents:
+        seats = ", ".join(
+            f"{s['token']} ({s['label'] or s['kind']})" for s in document["setup"]["seats"]
+        )
+        print(
+            f"  {document['id']}  {document.get('status', 'playing'):<8} turn {document.get('turns', 0):<3} "
+            f"started by {document.get('started_by') or '?'}  {seats}"
+        )
+    return 0
+
+
+def cmd_tables_abandon(args) -> int:
+    """End a table for good, from outside the app: it leaves the lobby
+    and is never recorded. The maintainer's way to kill a stuck table
+    (David, 2026-09-21); in the app, anyone seated or whoever started
+    it has an "End table" button."""
+    from clude_training.table import TableError
+    from clude_web.tables import TableRegistry
+
+    store = open_store(args.uri)
+    try:
+        document = TableRegistry(store).abandon(args.table_id)
+    except TableError as exc:
+        print(f"cannot end {args.table_id}: {exc}")
+        return 1
+    print(f"ended table {document['id']} (was at turn {document.get('turns', 0)})")
+    return 0
+
+
 def cmd_users_add(args) -> int:
     """Create an app account (Phase 8.1; docs/phase8.1-plan.md 3.4).
 
@@ -1781,6 +1820,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="Skip records older than this version. 1 and 2 are ring-era, 3 the first on the Classic grid.",
     )
     lb_rebuild.set_defaults(fn=cmd_logbook_rebuild)
+
+    tables_p = sub.add_parser(
+        "tables",
+        help="The web app's tables: list the lobby, or end a table that should not go on.",
+    )
+    tables_sub = tables_p.add_subparsers(dest="action", required=True)
+    t_list = tables_sub.add_parser(
+        "list", help="Every table in the lobby.", formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    t_list.add_argument("--uri", default=WEB_STORE, help="Store location: the one the web app reads.")
+    t_list.set_defaults(fn=cmd_tables_list)
+    t_end = tables_sub.add_parser(
+        "abandon", help="End a table for good; it leaves the lobby and is not recorded.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    t_end.add_argument("table_id", help="The table's id, as the lobby's address shows it.")
+    t_end.add_argument("--uri", default=WEB_STORE, help="Store location: the one the web app reads.")
+    t_end.set_defaults(fn=cmd_tables_abandon)
 
     users_p = sub.add_parser(
         "users",

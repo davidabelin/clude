@@ -34,13 +34,9 @@ The tool docstrings are not documentation, they are the prompt: the
 only instructions the model gets about how to play. Read them as written
 for the player.
 
-**The head.** A seat may be taken with ``head=True``: it then receives,
-in every view, the numbers its token's own character method produces --
-Plum's posterior, Peacock's belief and plausibility, Green's arm -- as
-`WebGame.head_reading` builds them, in the method's own shape, read-only
-and advisory. Off by default: a seat with no head reasons from the log
-alone, which is the cheaper arm and the more surprising one. The arm is
-fixed when the seat is taken and recorded in the table's setup.
+**No head.** A chat seat gets the floor's numbers (the notepad) and
+nothing else: it is its own head (David, 2026-09-21). The first deploy
+offered a character's numbers beside the seat; that is gone.
 
 **Serving.** `build_server` makes the server over any registry (a test
 gives it a registry over a temp store and the SDK's in-memory client);
@@ -174,8 +170,7 @@ def seat_view(
     `digest`); `waiting` is a sentence; the movement options lose their
     screen coordinates; the notepad is `compact_notepad`; and `note`
     comes only with ``since=0``, the call a fresh conversation makes,
-    since a seat that has read it once carries it. `head` is None
-    without one, and the tools say so. What the screen needs and a
+    since a seat that has read it once carries it. What the screen needs and a
     player does not -- `readings`, `tokens`, the spend, the debriefs,
     the work flags -- is left out."""
     document = registry.document(table_id) or {"id": table_id}
@@ -234,7 +229,6 @@ def seat_view(
         "waiting": waiting,
         "me": view["me"],
         "notepad": compact_notepad(game, seat),
-        "head": game.head_reading(seat),
         "over": view["over"],
     }
     if since <= 0:
@@ -259,7 +253,7 @@ def _listing(document: dict, account: str) -> dict:
         "status": document.get("status", "playing"),
         "turns": int(document.get("turns", 0)),
         "seats": [
-            {"seat": seat, "token": spec.token, "kind": spec.kind, "label": spec.label, "head": spec.head}
+            {"seat": seat, "token": spec.token, "kind": spec.kind, "label": spec.label}
             for seat, spec in enumerate(setup.seats)
         ],
         "open_seats": [setup.seats[seat].token for seat in setup.open_seats],
@@ -333,6 +327,8 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
                     f"Table {table_id} has not been dealt yet; whoever made it deals from the browser. "
                     "Call clude_turn again in a little while."
                 )
+            if document.get("status") == "abandoned":
+                raise ToolError(f"Table {table_id} was ended before the game finished. Use clude_tables to find another.")
             raise ToolError(f"Table {table_id} cannot be played right now.")
         return game, seat
 
@@ -369,35 +365,24 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         return {"tables": listing, "you": account}
 
     @server.tool()
-    def clude_sit(table_id: str, token: str, head: bool = False) -> dict:
+    def clude_sit(table_id: str, token: str) -> dict:
         """Take an open seat at a table, as one of the six suspects.
 
         `token` is a suspect name from that table's open seats: Scarlett,
         Mustard, White, Green, Peacock or Plum. The game starts when
-        whoever made the table deals, from the browser; until then
-        clude_turn tells you the table is not dealt yet.
+        whoever made the table deals, from the browser, once every open
+        seat is taken; until then clude_turn tells you the table is not
+        dealt yet.
 
-        `head` decides how you play the whole game and cannot be changed
-        once you are seated:
-
-        - false (the default): you reason from the log and your hand alone.
-        - true: you also receive, every turn, the numbers your token's own
-          character method produces -- Plum computes an exact posterior,
-          Peacock belief and plausibility bounds, Green a bandit's
-          estimates, and so on. They arrive in `head`, in that method's
-          own shape, and they are advisory: the method cannot see the
-          table talk or read anyone's hesitation; you can. Where you
-          disagree with it, say why.
-
-        Ask which arm is wanted if it has not been said. The two produce
-        different data and it matters which one this game is.
+        You play from the log, your hand and the notepad -- the deduction
+        sheet the floor fills in with what is logically certain. No
+        character method plays for you or advises you: you are the head.
         """
         try:
-            document = registry.sit(table_id, account, (token or "").strip().title(), head=bool(head))
+            document = registry.sit(table_id, account, (token or "").strip().title())
         except TableError as exc:
             raise ToolError(str(exc)) from None
         out = _listing(document, account)
-        out["head"] = bool(head)
         out["message"] = (
             f"You are seated as {out['my_token']} at table {table_id}. The game starts when the table is "
             "dealt from the browser; then call clude_turn."
@@ -432,10 +417,12 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         who still might (`envelope` included), plus `one_of`, the facts
         of the form "X holds at least one of these", and `solution` once
         the sheet has proven all three. A seat that could not disprove a
-        suggestion is already struck from those three cards. `head` is
-        null if you are playing clueless, and otherwise carries your
-        character's own numbers for this position -- advisory, not an
-        instruction.
+        suggestion is already struck from those three cards.
+
+        If you keep the table waiting ten minutes, the floor bot takes
+        your seat (as if you had called clude_autopilot); take it back
+        with clude_autopilot on false. If the table was ended by whoever
+        made it, this call says so.
 
         Every decision arrives with its legal answers already
         enumerated, so you never have to work out what the board allows,
@@ -570,7 +557,8 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         decision of yours: it plays only what is logically certain, so it
         will not win for you, but it never stalls the table, and your
         note stays yours. Write the note first. Pass `on` false to take
-        the seat back; then call clude_turn.
+        the seat back; then call clude_turn. A seat that keeps the table
+        waiting ten minutes is handed over this way without asking.
         """
         game, seat = live(table_id)
         try:

@@ -47,9 +47,15 @@ played Plum at table `8de30daff8` for 30 turns and stopped with its
 chat nearly full, every view about 9,000 tokens and a turn two to four
 calls, so the view was made compact and cut at a `since` cursor,
 `clude_answer` gained `accuse` and `wait`, and `clude_autopilot` is
-the seventh tool -- built on fake backends, 21 MCP tests, **to
-deploy**, after which that game resumes in a new chat); in-depth UX is
-Phase 10 and clean-up and release Phase 11. Suite: 464 passed, 17 skipped (the
+the seventh tool; then David's four calls the same day: **no head**
+(a chat player is its own; `SeatSpec.head` and `head_reading` are
+gone), **tables can be ended** (`TableRegistry.abandon`, an "End
+table" button, `clude_cli.py tables abandon`), **a human seat that
+stalls ten minutes or is out goes to the stand-in** without asking,
+and **no deal until every open seat is taken** -- all built on fake
+backends, **to deploy**; the `8de30daff8` game has since finished, turn 47, `web/12`);
+in-depth UX is
+Phase 10 and clean-up and release Phase 11. Suite: 467 passed, 17 skipped (the
 live-credential and browser tests), about three minutes with
 `-n auto`; the browser tests run under `CLUDE_WEB_BROWSER=1`.
 
@@ -342,6 +348,15 @@ it; `docs/phase-plan.md` has the disposition of every file.
   The cost is stated on the form. Assumed unless he says otherwise: the floor
   bot as the autopilot stand-in, $2 per table and $10 a day as 8.3's
   budgets, no `--min-instances 1`.
+- **A chat seat has no head (2026-09-21).** "MCP players get their
+  numbers from floorbot, that's it. No heads! They're the head!" The
+  notepad is the floor; no character method advises a chat seat.
+- **Tables end, seats time out, the deal waits (2026-09-21).** Anyone
+  seated or the starter can end a table for good ("End table";
+  `tables abandon` on the CLI); a human seat that keeps the table
+  waiting ten minutes goes to the floor bot without asking, and a
+  seat that is out is answered by it; a table is not dealt until every
+  open seat is taken, since an open seat is reserved for someone.
 - **Commit messages are printed in the reply, never written into
   `commit_msg.md`** by me (David declined that, 2026-09-13).
 
@@ -458,8 +473,8 @@ Suggestions to raise, not decisions to implement.
 Phase 9's, in `docs/phase9-plan.md` section 6, were built as
 bracketed on 2026-09-21 and await David's word: the MCP endpoint
 guarded by a secret path on the public URL, the chat seat's account
-`claude`, the head a fresh reading as `readings` makes one, uvicorn as
-gunicorn's worker over the combined app, and `head` off by default.
+`claude`, and uvicorn as gunicorn's worker over the combined app. The
+two head questions are closed: there is no head (David, 2026-09-21).
 Three serving choices made from the code that day, to confirm too: the
 MCP transport stateless with JSON responses, the SDK's localhost-only
 Host check switched off (the secret is the guard), and asgiref's

@@ -22,6 +22,7 @@ from werkzeug.datastructures import MultiDict
 from clude_core.events import GameOverEvent, SuggestionEvent
 from clude_storage import GameRecord, Logbook, open_store
 from clude_training import memory as method_memory
+from clude_core.domain import ROOMS, SUSPECTS, WEAPONS
 from clude_training.table import SeatSpec, TableSetup
 from clude_web import create_app, tables, users
 
@@ -361,13 +362,112 @@ def test_the_lobby_lists_tables_and_their_state(app, ann, bob):
     assert "Sit here" in page and "Deal now" not in page
 
 
-def test_an_open_table_dealt_with_a_seat_still_empty_gets_a_floor_bot(app, ann):
+def test_an_open_table_is_not_dealt_until_every_open_seat_is_taken(app, ann, bob):
+    """An open seat is reserved for someone (David, 2026-09-21): the deal
+    is refused while one waits, and the button on the page is disabled."""
     table_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "open"})
-    assert app.extensions["tables"].game(table_id) is None
+    registry = app.extensions["tables"]
+    assert registry.game(table_id) is None
+    response = ann.post(f"/tables/{table_id}/deal", data={"csrf": csrf(ann)})
+    assert response.status_code == 400 and "waiting for someone to sit as White" in response.get_data(as_text=True)
+    page = ann.get(f"/tables/{table_id}").get_data(as_text=True)
+    assert "disabled" in page.split("Deal now")[0].rsplit("<button", 1)[1]
+    assert "dealt once every open seat is taken" in page
+    assert registry.document(table_id)["status"] == "open"
+    bob.post(f"/tables/{table_id}/sit", data={"csrf": csrf(bob), "token": "White"})
     assert ann.post(f"/tables/{table_id}/deal", data={"csrf": csrf(ann)}).status_code == 302
-    game = app.extensions["tables"].game(table_id)
-    assert game.kinds == ["human", "character", "floor"]
-    assert app.extensions["tables"].document(table_id)["status"] == "playing"
+    assert registry.game(table_id).kinds == ["human", "character", "human"]
+
+
+def test_a_table_can_be_ended_by_a_player_or_its_starter_and_leaves_the_lobby(app, store, ann, bob, cat):
+    registry = app.extensions["tables"]
+    table_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "open"})
+    bob.post(f"/tables/{table_id}/sit", data={"csrf": csrf(bob), "token": "White"})
+    ann.post(f"/tables/{table_id}/deal", data={"csrf": csrf(ann)})
+    assert registry.game(table_id) is not None
+    page = ann.get("/").get_data(as_text=True)
+    assert "End table" in page
+    assert "End table" not in cat.get("/").get_data(as_text=True)
+    # A stranger cannot; a seated player can; the table is gone from the lobby and never recorded.
+    assert cat.post(f"/tables/{table_id}/abandon", data={"csrf": csrf(cat)}).status_code == 403
+    assert bob.post(f"/tables/{table_id}/abandon", data={"csrf": csrf(bob)}).status_code == 302
+    document = registry.document(table_id)
+    assert document["status"] == "abandoned" and document["abandoned_by"] == BOB
+    assert registry.game(table_id) is None
+    assert registry.in_progress() == []
+    assert f"/tables/{table_id}" not in ann.get("/").get_data(as_text=True)
+    assert ann.get(f"/tables/{table_id}").status_code == 404
+    assert store.list_games("web") == []
+    # The starter can end a Watch table too, and an open one; a second end is harmless.
+    open_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "open"})
+    assert ann.post(f"/tables/{open_id}/abandon", data={"csrf": csrf(ann)}).status_code == 302
+    assert ann.post(f"/tables/{open_id}/abandon", data={"csrf": csrf(ann)}).status_code == 302
+    assert registry.document(open_id)["status"] == "abandoned"
+    # And the maintainer, from the CLI, with no account at all.
+    cli_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
+    tables.TableRegistry(store).abandon(cli_id)
+    assert registry.document(cli_id)["status"] == "abandoned"
+
+
+def test_a_seat_that_keeps_the_table_waiting_is_handed_to_the_stand_in(app, store, ann, monkeypatch):
+    """After `AUTOPILOT_AFTER` seconds on a human seat, the next unit of
+    work hands it over, flag and all, so a person who left never stalls
+    the table (David, 2026-09-21)."""
+    tables.WORK_INTERVAL = 0.0
+    table_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
+    registry = app.extensions["tables"]
+    game = registry.game(table_id)
+    payload = work(ann, table_id)  # the first turn: Scarlett's move, ours
+    assert game.pending is not None and game.pending.seat == 0
+    assert work(ann, table_id)["pending"] is not None, "handed over before the time was up"
+    assert payload["me"]["autopilot"] is False
+    monkeypatch.setattr(tables, "AUTOPILOT_AFTER", 0.0)
+    payload = work(ann, table_id)
+    assert payload["me"]["autopilot"] is True
+    assert registry.document(table_id)["autopilot"] == {"0": True}
+    steps = 0
+    while not payload["finished"] and steps < 3000:
+        payload = work(ann, table_id)
+        steps += 1
+        assert payload["pending"] is None, "the handed-over seat showed the person a decision"
+    assert payload["finished"]
+    assert all(e["by"] == "autopilot" for e in game.entries if e["seat"] == 0)
+
+
+def test_a_player_who_is_out_is_answered_by_the_stand_in(app, store, ann):
+    """A wrong accusation leaves a person only cards to show; the stand-in
+    shows them, so the table never waits on someone who has left
+    (David, 2026-09-21). The autopilot flag is not set: being out is
+    its own reason."""
+    tables.WORK_INTERVAL = 0.0
+    table_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
+    registry = app.extensions["tables"]
+    game = registry.game(table_id)
+    hand = sorted(game.state.hands[0])
+    accused = False
+    payload = poll(ann, table_id)
+    steps = 0
+    while not payload["finished"] and steps < 3000:
+        steps += 1
+        pending = payload["pending"]
+        if pending is None:
+            payload = work(ann, table_id)
+            continue
+        assert not accused, "a player who is out was asked to decide"
+        if pending["kind"] == "accusation":
+            # Accuse with a card from our own hand: certainly wrong.
+            suspect = next((c for c in hand if c in SUSPECTS), "Plum")
+            weapon = next((c for c in hand if c in WEAPONS), "Rope")
+            room = next((c for c in hand if c in ROOMS), "Hall")
+            payload = answer(ann, table_id, pending["seq"], {"suspect": suspect, "weapon": weapon, "room": room})
+            accused = True
+        else:
+            payload = answer(ann, table_id, pending["seq"], simple_answer(pending))
+    assert accused and payload["finished"]
+    assert not game.state.active[0]
+    shown = [e for e in game.entries if e["seat"] == 0 and e["decision"] == "card_to_show" and e["by"] == "autopilot"]
+    assert shown, "the stand-in never showed a card for the player who was out"
+    assert not (registry.document(table_id).get("autopilot") or {}).get("0")
 
 
 def test_unknown_tables_are_404(ann):

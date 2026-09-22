@@ -139,7 +139,7 @@ maintainer), and the registry taken from the Flask app so there is one.
 | Tool | Does | Calls |
 |---|---|---|
 | `clude_tables()` | Lists the tables the account could join or holds a seat at: id, status, turns, seats, open seats, `mine`. | `in_progress`, `viewer_seat` |
-| `clude_sit(table_id, token, head=False)` | Takes an open seat as `token`; fixes the arm for the game. Returns the view. | `sit`, then the view |
+| `clude_sit(table_id, token)` | Takes an open seat as `token`. (The `head` argument of the first deploy is gone; 8.) | `sit`, then the listing |
 | `clude_turn(table_id, since=0)` | Long-polls up to `POLL_SECONDS` (25): drives `work` until the decision is this seat's, the game ends, or time is up. Returns the view from `since`. | `game`, `work` |
 | `clude_answer(table_id, seq, answer, accuse=None, since=0, wait=True)` | One decision, refused if `seq` is stale; a `TableError` comes back as `error` in the view rather than an exception, so the player reads it and calls `turn` again. `accuse` (false, or a triple) answers the accusation question that follows directly, in the same call; with `wait` the call then long-polls like `clude_turn`. (Both added after the first live game; 8.) | `answer(..., by="mcp")`, `work` |
 | `clude_say(table_id, text)` | A line at the table, in the open. | `say` |
@@ -155,9 +155,8 @@ seat and per event, the events cut at a `since` cursor and capped at
 `MAX_EVENTS` (60) with the rest folded into a `digest` (counts and the
 last few unrefuted suggestions), the notepad one line per card in names
 (`compact_notepad`, with the floor's `one_of` facts and its `solution`),
-`note` only with ``since=0``, plus `head`. `head` is ``null`` when the
-seat has none, and the docstrings say so, because a seat that cannot
-tell which arm it is in narrates confidence it does not have.
+`note` only with ``since=0``. (Until the second 2026-09-21 build the
+view carried a `head`; see 8.)
 
 Errors a player can act on are messages, not stack traces: not seated
 ("use clude_tables to find one with an open seat"), a stale `seq`, a
@@ -464,5 +463,47 @@ registry change:
   autopilot handover and return.
 
 Not changed: the driver, the engine, the record, the browser's
-notepad. The live game at `8de30daff8` waits on Plum and resumes in a
-new chat once this is deployed.
+notepad. The live game at `8de30daff8` has since finished (turn 47,
+`runs/web/12`), with Opus's 757-character note still on its document.
+
+**Later the same day: no head, stuck tables, the deal (2026-09-21).**
+Four decisions of David's after the first live game, built at once:
+
+1. **No head.** "MCP players get their numbers from floorbot, that's
+   it. No heads! They're the head!" `SeatSpec.head`, `sit(head=)`,
+   `WebGame.head_reading`, `HEAD_SHAPES`, `jsonable` and the `head`
+   argument of `clude_sit` are removed; `SeatSpec.from_dict` ignores a
+   stored ``head`` key, so a setup saved between the two deploys reads
+   as a plain human seat. Open question 3 and 5 of section 6 are
+   thereby closed the other way: not the fresh reading, nothing. The
+   chat seat's numbers are the notepad, which is the floor.
+2. **Killing a table.** `TableRegistry.abandon(table_id, me=None)`
+   sets the document's status to ``abandoned``, drops the live game,
+   and never records it; `me` must be seated or the starter, and None
+   is the maintainer. `POST /tables/<id>/abandon` with an "End table"
+   button (after a confirm) in the lobby and on a waiting table's page,
+   for anyone seated or the starter; `clude_cli.py tables list |
+   abandon ID --uri STORE` from outside the app, which is how the two
+   tables David could not get out of are ended on the bucket before the
+   deploy. `in_progress` skips abandoned tables, `game` returns None
+   for one, and `clude_turn` says "was ended".
+3. **A player who stops responding.** Two rules in `work`, whoever
+   drives it: a human seat that has kept the table waiting
+   `AUTOPILOT_AFTER` (600 s) is handed to the stand-in, its flag set as
+   if the button had been pressed (so "Take my seat back" undoes it);
+   and a human seat that is out (a wrong accusation) is the stand-in's
+   without any flag, since all it has left is cards to show. A chat
+   seat is a human seat for both. Before this, a table waited for
+   ever, and the ten-minute mark only *offered* the handover to the
+   others.
+4. **The deal is held** until every open seat is taken: `deal` refuses
+   with the seats still waiting named, the page's button is disabled
+   and its note says so. `TableSetup.dealt` (open seats to floor bots)
+   stays as the driver's operation but the registry no longer reaches
+   it with an open seat. A table nobody comes to is ended instead.
+
+Tests: `tests/test_mcp.py` 22 (the head tests replaced by "the floor's
+numbers and nothing else" and "an ended table says so"),
+`tests/test_web_tables.py` gains the deal rule, ending a table (by a
+player, the starter, twice, and the maintainer), the ten-minute
+handover and the out player answered by the stand-in.

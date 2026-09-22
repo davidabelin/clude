@@ -139,6 +139,8 @@ def _table_listing(me: str) -> list:
                 "remember": setup.remember,
                 "model": any(spec.kind == "llm" for spec in setup.seats),
                 "wrapping_up": bool(tables.pending_debriefs(document)),
+                "can_end": tables.viewer_seat(setup, me) is not None
+                or (document.get("started_by") or "").lower() == me,
             }
         )
     return out
@@ -416,7 +418,7 @@ def table_leave(table_id):
 
 @bp.post("/tables/<table_id>/deal")
 def table_deal(table_id):
-    """Deal a waiting table; open seats still empty go to floor bots."""
+    """Deal a waiting table. Refused while an open seat is unfilled."""
     document = _document(table_id)
     try:
         setup = TableSetup.from_dict(document["setup"])
@@ -429,6 +431,18 @@ def table_deal(table_id):
     except TableError as exc:
         return render_template("error.html", message=str(exc)), 400
     return redirect(url_for("main.table", table_id=table_id))
+
+
+@bp.post("/tables/<table_id>/abandon")
+def table_abandon(table_id):
+    """End a table for good: anyone seated at it, or whoever started
+    it. It leaves the lobby and nothing is recorded."""
+    _document(table_id)
+    try:
+        _registry().abandon(table_id, _me())
+    except TableError as exc:
+        return render_template("error.html", message=str(exc)), 403
+    return redirect(url_for("main.index"))
 
 
 @bp.get("/tables/<table_id>/poll")

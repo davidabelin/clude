@@ -13,9 +13,8 @@ per seat and per card) and never carries `readings` or another seat's
 hand; that `accuse` folds the accusation into the answer before it and
 is refused or set aside when it cannot apply; that `clude_autopilot`
 hands the seat to the stand-in; that the notepad records a pass and
-the floor's "one of" facts; that `head` is null without a head and the
-method's own shape with one, equal to a fresh agent's belief on a
-rebuilt game as on the live one; that the note survives a cold rebuild
+the floor's "one of" facts; that a seat has no head, only the floor's
+numbers; that an ended table says so; that the note survives a cold rebuild
 and never becomes an entry; and that the combined ASGI app serves the
 lobby behind the gate and the endpoint only under its secret.
 """
@@ -29,7 +28,6 @@ from mcp import Client
 from mcp.types import LATEST_PROTOCOL_VERSION
 
 import clude_constraints
-from clude_agents import build_agent
 from clude_core.domain import ROOMS, skipped_players
 from clude_storage import GameRecord, open_store
 from clude_training.table import SeatSpec, TableSetup
@@ -157,12 +155,11 @@ async def test_tables_lists_an_open_table_and_mine_flips_after_sitting(server, r
 
         seated = unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         assert seated["mine"] is True and seated["my_token"] == "Scarlett"
-        assert seated["head"] is False
         assert "dealt" in seated["message"]
 
         [table] = unwrap(await client.call_tool("clude_tables", {}))["tables"]
         assert table["mine"] is True and table["open_seats"] == []
-        assert table["seats"][0] == {"seat": 0, "token": "Scarlett", "kind": "human", "label": CLAUDE, "head": False}
+        assert table["seats"][0] == {"seat": 0, "token": "Scarlett", "kind": "human", "label": CLAUDE}
         assert table["my_autopilot"] is False
 
     # The seat is an ordinary human seat in the stored setup.
@@ -200,7 +197,6 @@ async def test_a_whole_game_plays_through_the_tools(server, registry, store):
         def check(view):
             assert "readings" not in view and "tokens" not in view
             assert view["me"]["seat"] == 0 and view["me"]["token"] == "Scarlett"
-            assert view["head"] is None
             assert set(view) >= {"events", "digest", "notepad", "note", "seats", "pending", "finished", "n_events"}
             assert view["seats"][0] == f"Scarlett: {CLAUDE} (you)" and view["seats"][1] == "Mustard: character"
             assert all(isinstance(line, str) for line in view["events"])
@@ -508,62 +504,37 @@ async def test_autopilot_hands_the_seat_to_the_stand_in_and_back(server, registr
     assert stood_in
 
 
-# --- the head ---------------------------------------------------------------------
+# --- no head: the floor's numbers and nothing else ---------------------------------
 
 
-async def test_a_head_is_the_tokens_own_fresh_belief_live_and_rebuilt(server, registry, store):
-    seats = (SeatSpec("Scarlett", "character", "Scarlett"), SeatSpec("Mustard", "character", "Mustard"), SeatSpec("Peacock", "open"))
-    table_id = registry.create(TableSetup(seats, SEED), started_by=ANN)
+async def test_a_seat_gets_the_floors_numbers_and_no_characters(server, registry):
+    """A chat seat is its own head (David, 2026-09-21): no `head` in the
+    view, no `head` on `clude_sit`, and a stored setup from the first
+    deploy with a ``head`` key reads back as a plain human seat."""
+    table_id = open_table(registry)
     async with Client(server) as client:
-        seated = unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Peacock", "head": True}))
-        assert seated["head"] is True
-        game = registry.deal(table_id)
-        seat = tables.viewer_seat(game.setup, CLAUDE)
-        assert game.setup.seats[seat].head is True
+        seated = unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
+        assert "head" not in seated and "head" not in seated["seats"][0]
+        result = await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett", "head": True})
+        assert result.is_error  # no such argument any more
+        registry.deal(table_id)
         view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
-        for _ in range(4):  # a few decisions in, so the belief has moved
-            if view["finished"] or view["pending"] is None:
-                break
-            pending = view["pending"]
-            view = unwrap(
-                await client.call_tool(
-                    "clude_answer", {"table_id": table_id, "seq": pending["seq"], "answer": simple_answer(pending)}
-                )
-            )
-            view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
-
-    head = view["head"]
-    assert head["method"].startswith("Dempster-Shafer")
-    assert head["shape"] == "belief_plausibility"
-    assert set(head["extra"]) == {"belief", "plausibility"}
-    assert head["turn"] == game.state.turn
-
-    reader = build_agent("Peacock")
-    reader.reset(SEED)
-    belief = reader.select_action(clude_constraints.observe(game.state, seat))
-    assert head["probabilities"] == {card: round(float(p), 4) for card, p in belief.probabilities.items()}
-
-    cold = tables.TableRegistry(store).game(table_id)
-    assert cold is not game
-    assert cold.head_reading(seat) == game.head_reading(seat)
-    assert cold.setup.seats[seat].head is True
-
-    # The head is data on the seat, refused where it makes no sense.
-    with pytest.raises(ValueError):
-        SeatSpec("Mustard", "character", "Mustard", head=True)
-    with pytest.raises(ValueError):
-        SeatSpec("Plum", "floor", head=True)
-    assert SeatSpec.from_dict({"token": "Plum", "kind": "human", "label": "x"}).head is False
+    assert "head" not in view and "readings" not in view
+    assert set(view["notepad"]) == {"suspects", "weapons", "rooms", "one_of", "solution"}
+    assert SeatSpec.from_dict({"token": "Plum", "kind": "human", "label": "x", "head": True}) == SeatSpec("Plum", "human", "x")
     assert "head" not in SeatSpec("Plum", "human", "x").to_dict()
 
 
-async def test_without_a_head_the_view_says_so(server, registry):
+async def test_an_ended_table_says_so(server, registry):
     table_id = open_table(registry)
     async with Client(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         registry.deal(table_id)
-        view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
-    assert "head" in view and view["head"] is None
+        unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
+        registry.abandon(table_id, ANN)
+        result = await client.call_tool("clude_turn", {"table_id": table_id})
+        assert "ended" in error_text(result)
+        assert unwrap(await client.call_tool("clude_tables", {}))["tables"] == []
 
 
 # --- the note -------------------------------------------------------------------------

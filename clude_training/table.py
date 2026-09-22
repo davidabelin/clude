@@ -100,11 +100,6 @@ class SeatSpec:
         logbook are keyed by: a character's own name (seat-locked, so it
         equals `token`), ``"floor"`` or ``"random"`` for a bot, a human's
         account key, and empty for an open seat.
-    head : bool
-        Whether a human seat is shown its token's own character numbers
-        as a "head" (Phase 9, a chat seat over MCP): read-only, advisory,
-        fixed when the seat is taken. Only a human seat may have one -- a
-        character *is* its head, and a bot has none.
     memory : float
         An LLM seat's narrative logbook depth, from 0 (the condensed head)
         to 1 (every entry in full). Applies when the table remembers;
@@ -114,7 +109,6 @@ class SeatSpec:
     token: str
     kind: str
     label: str = ""
-    head: bool = False
     memory: float = 0.0
 
     def __post_init__(self) -> None:
@@ -126,10 +120,6 @@ class SeatSpec:
             raise ValueError("memory must be a number from 0 to 1")
         if self.memory and self.kind != "llm":
             raise ValueError("only an LLM seat has a narrative memory dial")
-        if self.head and self.kind != "human":
-            raise ValueError(f"only a human seat takes a head, not a {self.kind} seat")
-        if self.head and self.token not in AGENT_SPECS:
-            raise ValueError(f"there is no character for {self.token} to be a head")
         if self.kind in ("character", "llm"):
             if self.token not in AGENT_SPECS:
                 raise ValueError(f"there is no character for {self.token}")
@@ -154,17 +144,17 @@ class SeatSpec:
 
     def to_dict(self) -> dict:
         out = {"token": self.token, "kind": self.kind, "label": self.label}
-        if self.head:  # only when set, so every stored setup reads as before
-            out["head"] = True
         if self.kind == "llm":
             out["memory"] = self.memory
         return out
 
     @classmethod
     def from_dict(cls, data: dict) -> "SeatSpec":
+        """A stored seat. A ``head`` key, written by a chat seat between
+        the two 2026-09-21 deploys of Phase 9, is ignored: a chat player
+        is its own head (David) and gets the floor's numbers alone."""
         return cls(
-            str(data["token"]), str(data["kind"]), str(data.get("label", "")),
-            bool(data.get("head", False)), float(data.get("memory", 0.0)),
+            str(data["token"]), str(data["kind"]), str(data.get("label", "")), float(data.get("memory", 0.0)),
         )
 
 

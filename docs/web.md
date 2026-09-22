@@ -191,11 +191,17 @@ be shown on the screen rather than hidden.
   explicit `remember=0` when unchecked; missing fields default to on.
   "Deal" starts the game at once, or, with an open
   seat, puts the table under **Tables** until people have sat and someone
-  seated deals it; open seats still empty then go to floor bots.
+  seated deals it. An open seat is reserved for someone: the table is
+  not dealt until every one is taken (the button is disabled and the
+  deal refused until then; David, 2026-09-21).
 - **Tables.** Every unfinished table, newest first: who sits where,
   whether it waits for people, whose turn it is, and whether you are at
   it. A table survives closing the tab, a restart and a fresh Cloud Run
-  instance.
+  instance. **End table** (anyone seated, or whoever started it) ends
+  one for good, after a confirm: it leaves the lobby, its game is
+  dropped and nothing is recorded; the same button is on a waiting
+  table's page, and `clude_cli.py tables abandon ID --uri STORE` does
+  it from outside the app (`docs/cli.md`).
 - **Watch a game.** Characters only: tick who sits, pick a table size
   and optionally a seed, and step through it a turn at a time on the
   Watch screen. Nothing here can call a model, so nothing here costs
@@ -267,7 +273,14 @@ reads from a `<meta>` tag; a JSON body would fail the check on purpose.
 stand-in -- the plain characterless player, so a seat on autopilot never
 impersonates a character -- and "Take my seat back" takes it back. Anyone
 seated may hand a seat to the stand-in once it has kept the table
-waiting ten minutes, so one person leaving cannot lock the table.
+waiting ten minutes, and since 2026-09-21 nobody has to: the next unit
+of `work` after those ten minutes (`AUTOPILOT_AFTER`) hands the seat
+over itself, flag and all, so a person who left never stalls a table;
+they take it back with the button when they return. A person put out
+by a wrong accusation is answered by the stand-in from then on -- all
+they can do is show cards -- without the flag, so the table never
+waits on someone with nothing left to decide. The clock is the
+instance's: a cold rebuild starts it again.
 
 **Surviving a restart.** A table's document (`tables/<id>.json`) holds
 its setup and its *entries*: every answer sent in, with the length of
@@ -613,10 +626,13 @@ line per seat, per event and per card -- because a chat pays for every
 token it reads: the first live game (2026-09-21) ran out of room at
 turn 30 on views of about 9,000 tokens (`docs/phase9-plan.md` 8). Its
 answers are entered ``by="mcp"``, and the record shows it as a person
-under its account key, so its dossier accrues like anyone's. Optionally it takes its seat with a `head`: its
-token's own character numbers, as Watch's readings are built, in every
-view; off by default. The tool docstrings in `clude_web/mcp.py` are the
-only instructions the player gets.
+under its account key, so its dossier accrues like anyone's. It gets
+the floor's numbers (the notepad) and nothing else: a chat player is
+its own head (David, 2026-09-21; the first deploy's optional `head`, a
+character's numbers beside the seat, is gone). The tool docstrings in
+`clude_web/mcp.py` are the only instructions the player gets. A chat
+seat that keeps the table waiting ten minutes is handed to the floor
+bot like any human seat, and an ended table tells it so.
 
 **The account.** Make it once, per store, as any account:
 

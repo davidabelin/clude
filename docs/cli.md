@@ -623,6 +623,23 @@ live and cannot be rebuilt. `reset` is the fairness control: it forgets
 the head and method memory, and the entries too unless
 `--keep-entries`.
 
+## `tables`
+
+The web app's tables (Phase 8.2; `docs/web.md`, "The lobby"), for the
+two things a maintainer needs from outside the app:
+
+```
+tables list                    every table in the lobby: id, status, turn, who started it, the seats
+tables abandon TABLE_ID        end a table for good; it leaves the lobby and is not recorded
+```
+
+Each takes `--uri STORE`, defaulting to `data/llm`; on the deployed
+service the store is `gs://clude-game-data/llm`. Ending a table sets its
+status to `abandoned`: the lobby stops listing it, the app's own copy of
+the game is dropped, a chat seat over MCP is told the table was ended,
+and no record is written. In the app, anyone seated at a table or
+whoever started it has the same as an "End table" button.
+
 ## `users`
 
 The web app's accounts (Phase 8.1; `docs/web.md`, `docs/phase8.1-plan.md`

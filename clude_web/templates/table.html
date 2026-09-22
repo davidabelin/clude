@@ -42,7 +42,7 @@
       {% if viewer is not none or document.started_by == user %}
         <form method="post" action="{{ url_for('main.table_deal', table_id=table_id) }}">
           <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-          <button type="submit">Deal now</button>
+          <button type="submit" {% if setup.open_seats %}disabled title="Every open seat must be taken first"{% endif %}>Deal now</button>
         </form>
       {% endif %}
       {% if viewer is not none %}
@@ -51,8 +51,15 @@
           <button type="submit" class="quiet">Leave the table</button>
         </form>
       {% endif %}
+      {% if viewer is not none or document.started_by == user %}
+        <form method="post" action="{{ url_for('main.table_abandon', table_id=table_id) }}"
+              onsubmit="return confirm('End this table for good?');">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <button type="submit" class="quiet">End table</button>
+        </form>
+      {% endif %}
     </div>
-    <p class="note">Open seats still unclaimed when the table is dealt go to floorbots. Send the others this page's address.</p>
+    <p class="note">{% if setup.open_seats %}The table is dealt once every open seat is taken. {% endif %}Send the others this page's address.</p>
   </section>
 
   {% else %}

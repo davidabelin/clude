@@ -75,6 +75,13 @@
             {% if t.mine %}&middot; <strong>you are seated</strong>{% endif %}
             {% if t.remember %}&middot; remembering{% endif %}
           </span>
+          {% if t.can_end %}
+          <form method="post" action="{{ url_for('main.table_abandon', table_id=t.id) }}" class="inline"
+                onsubmit="return confirm('End this table for good? It will not be recorded.');">
+            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+            <button type="submit" class="quiet">End table</button>
+          </form>
+          {% endif %}
         </li>
       {% endfor %}
     </ul>

@@ -45,9 +45,20 @@ here can spend.
 **A chat seat (Phase 9).** `clude_web.mcp` seats a Claude in a chat
 window through this same registry: an ordinary account in an ordinary
 human seat, answering with ``by="mcp"``. What it adds here is small: a
-`head` on `sit` (the seat's own character numbers, `WebGame.head_reading`,
-built exactly as `readings` builds a bar) and a free-text note per seat
-on the document, never an entry, so a rebuild does not see it.
+free-text note per seat on the document, never an entry, so a rebuild
+does not see it. It gets the floor's numbers (the notepad) and nothing
+more: a chat player is its own head (David, 2026-09-21; the "head" of
+the first deploy, a character's numbers beside the seat, is gone).
+
+**A table nobody is playing.** A human seat that keeps the table
+waiting `AUTOPILOT_AFTER` seconds is handed to the stand-in by the next
+unit of `work`, whoever drives it, and a seat put out by a wrong
+accusation is answered by the stand-in from then on (it only shows
+cards), so a person who left never stalls a table for good. A table
+that should not go on at all is `abandon`ed: by anyone seated, by
+whoever started it, or from the CLI (`tables abandon`); it leaves the
+lobby and is never recorded. And a table is not dealt while an open
+seat waits for its person.
 """
 from __future__ import annotations
 
@@ -86,38 +97,6 @@ lives in records for ever and in every later prompt."""
 MAX_NOTE = 8000
 """Characters a chat seat may keep in its note (Phase 9): a page of
 deductions, kept on the table document and read back every call."""
-
-HEAD_SHAPES = {
-    "Scarlett": "probabilities",
-    "Plum": "posterior",
-    "Peacock": "belief_plausibility",
-    "Mustard": "probabilities",
-    "Green": "ensemble",
-    "White": "probabilities",
-}
-"""How to read a head's `extra` (Phase 9): Plum's probabilities are an
-exact (or sampled) posterior with search diagnostics beside them,
-Peacock's come with belief and plausibility bounds per card, Green's
-with the arm his bandit chose; the rest carry the masked probabilities
-alone, or a method's own notes."""
-
-
-def jsonable(value):
-    """`value` with every tuple, set and numpy-ish scalar turned into
-    what `json` writes, and anything else made a string: a method's
-    `extra` is its own shape, and a head passes it on as it is."""
-    if isinstance(value, dict):
-        return {str(k): jsonable(v) for k, v in value.items()}
-    if isinstance(value, (list, tuple, set, frozenset)):
-        return [jsonable(v) for v in value]
-    if isinstance(value, bool) or value is None or isinstance(value, (int, str)):
-        return value
-    if isinstance(value, float):
-        return round(value, 4)
-    if hasattr(value, "item"):  # a numpy scalar
-        return jsonable(value.item())
-    return str(value)
-
 
 def clean_line(text) -> str:
     """A person's line fit to keep: control characters out, whitespace
@@ -329,7 +308,6 @@ class WebGame(TableGame):
         self.reactions = chat.Reactions(self, lambda: seat_names(self))
         self._readings_at = -1
         self._readings: list = []
-        self._heads: dict = {}
 
     advance = TableGame.run
 
@@ -345,32 +323,6 @@ class WebGame(TableGame):
         reader = build_agent(label)
         reader.reset(self.setup.seed)
         return reader.select_action(obs)
-
-    def head_reading(self, seat: int) -> Optional[dict]:
-        """The seat's own character numbers, for a human seat taken with
-        a `head` (Phase 9): the token's method, its shape, the turn, the
-        masked probabilities and the method's own `extra` (Peacock's
-        belief and plausibility bounds, Green's arm, Plum's search
-        diagnostics), never flattened to a common vector. Cached per
-        event-log length like `readings`. None for a seat without a
-        head."""
-        spec = self.setup.seats[seat]
-        if not spec.head:
-            return None
-        n_events = len(self.events)
-        cached = self._heads.get(seat)
-        if cached is not None and cached[0] == n_events:
-            return cached[1]
-        belief = self.fresh_belief(seat, spec.token)
-        reading = {
-            "method": replay_data.seat_method(spec.token),
-            "shape": HEAD_SHAPES.get(spec.token, "probabilities"),
-            "turn": self.state.turn,
-            "probabilities": {card: round(float(p), 4) for card, p in belief.probabilities.items()},
-            "extra": jsonable(belief.extra),
-        }
-        self._heads[seat] = (n_events, reading)
-        return reading
 
     def turn_lines(self) -> list:
         """``(kind, text)`` for every event of the most recent turn, with
@@ -865,7 +817,7 @@ class TableRegistry:
                 return self._games.get(table_id)
         try:
             document = self.document(table_id)
-            if document is None or document.get("status") == "open":
+            if document is None or document.get("status") in ("open", "abandoned"):
                 return None
             setup = TableSetup.from_dict(document["setup"])
             game = WebGame.rebuild(
@@ -931,7 +883,13 @@ class TableRegistry:
         `WORK_INTERVAL` after the last, or the stand-in's answers for a
         seat on autopilot -- and, after a turn that stops on such a seat,
         those answers too, so a seat handed to the stand-in never shows
-        the person a decision. Never waits for the lock. Returns what
+        the person a decision. A human seat that is out (a wrong
+        accusation) is the stand-in's too, since all it can do is show
+        cards; and a human seat that has kept the table waiting
+        `AUTOPILOT_AFTER` seconds is handed to the stand-in here, its
+        flag set as if its owner had pressed the button, so a person who
+        left never stalls a table for good (David, 2026-09-21). Never
+        waits for the lock. Returns what
         happened: ``"busy"``, ``"waiting"``, ``"turn"``, ``"autopilot"``,
         ``"model"`` (one decision by a model seat, Phase 8.3a),
         ``"reaction"`` (one off-turn line, 8.3b), ``"debrief"`` (one
@@ -959,16 +917,28 @@ class TableRegistry:
             if game.reactions.pending:
                 return "waiting"
 
+            def stands_in_for(seat: int) -> bool:
+                return bool(autopilot.get(str(seat))) or not game.state.active[seat]
+
             def stand_in_plays() -> bool:
                 played = False
-                while (
-                    game.pending is not None
-                    and autopilot.get(str(game.pending.seat))
-                    and not game.finished
-                ):
+                while game.pending is not None and stands_in_for(game.pending.seat) and not game.finished:
                     game.autopilot()
                     played = True
                 return played
+
+            def hand_over_if_stalled() -> bool:
+                """A human seat that has kept the table waiting too long
+                goes to the stand-in, flag and all."""
+                pending = game.pending
+                if pending is None or game.kinds[pending.seat] != "human" or stands_in_for(pending.seat):
+                    return False
+                if self.waiting_for(table_id, game) < AUTOPILOT_AFTER:
+                    return False
+                autopilot[str(pending.seat)] = True
+                document.setdefault("autopilot", {})[str(pending.seat)] = True
+                self._put(document)
+                return True
 
             def model_plays() -> bool:
                 if game.pending is None or game.kinds[game.pending.seat] != "llm":
@@ -987,6 +957,8 @@ class TableRegistry:
                 elif model_plays():
                     did = "model"
                     stand_in_plays()
+                elif hand_over_if_stalled() and stand_in_plays():
+                    did = "autopilot"
                 else:
                     did = "waiting"
             else:
@@ -1065,11 +1037,8 @@ class TableRegistry:
 
     # -- seats before the deal -----------------------------------------
 
-    def sit(self, table_id: str, me: str, token: str, head: bool = False) -> dict:
-        """Take an open seat at a table waiting for people. With `head`
-        (Phase 9, a chat seat) the seat is shown its token's own
-        character numbers all game; the arm is fixed here and recorded
-        in the setup."""
+    def sit(self, table_id: str, me: str, token: str) -> dict:
+        """Take an open seat at a table waiting for people."""
         document = self.document(table_id)
         if document is None or document.get("status") != "open":
             raise TableError("that table is not waiting for players")
@@ -1081,7 +1050,7 @@ class TableRegistry:
                 if spec.kind != "open":
                     raise TableError(f"{token}'s seat is taken")
                 try:
-                    setup = setup.with_seat(seat, SeatSpec(token, "human", me, bool(head)))
+                    setup = setup.with_seat(seat, SeatSpec(token, "human", me))
                 except ValueError as exc:
                     raise TableError(str(exc)) from None
                 break
@@ -1104,7 +1073,10 @@ class TableRegistry:
         return self._put(document)
 
     def deal(self, table_id: str) -> WebGame:
-        """Deal a waiting table: open seats still empty go to floor bots."""
+        """Deal a waiting table. Refused while an open seat is still
+        waiting for its person (David, 2026-09-21: a seat marked open is
+        reserved for someone, so it never goes to a floor bot by
+        default); the table is dealt when every seat is taken."""
         document = self.document(table_id)
         if document is None:
             raise TableError("no such table")
@@ -1113,12 +1085,41 @@ class TableRegistry:
             if game is None:
                 raise TableError("that table cannot be dealt")
             return game
-        setup = TableSetup.from_dict(document["setup"]).dealt()
+        setup = TableSetup.from_dict(document["setup"])
+        if setup.open_seats:
+            waiting = ", ".join(setup.seats[seat].token for seat in setup.open_seats)
+            raise TableError(f"the table is still waiting for someone to sit as {waiting}")
+        setup = setup.dealt()
         game = self._deal(document, setup)
         self._put(document)
         return game
 
     # -- notes (Phase 9) -------------------------------------------------
+
+    def abandon(self, table_id: str, me: Optional[str] = None) -> dict:
+        """End a table for good, whatever its state: it leaves the lobby,
+        its live game is dropped, and nothing is recorded. `me` must be
+        seated at it or have started it; None is the maintainer (the
+        CLI), who may end any table. A finished table is left alone."""
+        document = self.document(table_id)
+        if document is None:
+            raise TableError("no such table")
+        if document.get("status") == "abandoned":
+            return document
+        if document.get("status") == "finished" and not pending_debriefs(document):
+            raise TableError("that table is over already")
+        if me is not None:
+            setup = TableSetup.from_dict(document["setup"])
+            if viewer_seat(setup, me) is None and document.get("started_by", "").lower() != me.lower():
+                raise TableError("only someone at the table, or whoever started it, can end it")
+        document["status"] = "abandoned"
+        document["abandoned_by"] = me or "cli"
+        document.pop("debriefs", None)
+        self._put(document)
+        with self._lock:
+            self._games.pop(table_id, None)
+        self._pending_since.pop(table_id, None)
+        return document
 
     def note(self, table_id: str, seat: int) -> str:
         """The seat's free-text note: what a chat seat wrote itself to
@@ -1151,13 +1152,17 @@ class TableRegistry:
 
     def in_progress(self) -> list:
         """Every unfinished table's document, newest first, and every
-        finished one still wrapping up (a debrief pending, Phase 8.3c)."""
+        finished one still wrapping up (a debrief pending, Phase 8.3c).
+        An abandoned table is gone from here."""
         documents = []
         for key in self.store.list_docs(TABLES_PREFIX):
             document = self.document(key)
             if document is None:
                 continue
-            if document.get("status") != "finished" or pending_debriefs(document):
+            status = document.get("status")
+            if status == "abandoned":
+                continue
+            if status != "finished" or pending_debriefs(document):
                 documents.append(document)
         return sorted(documents, key=lambda d: d.get("created", ""), reverse=True)
 
