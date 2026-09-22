@@ -42,7 +42,11 @@ beside the characters and the game is played from the browser, or from
 the terminal with `play --human`. Since Phase 8.3 a character can play
 as **X (LLM)** at a web table under a spend cap, people talk at the
 table and the model seats answer off-turn, and a remembering table ends
-with each model seat writing its logbook.
+with each model seat writing its logbook. Phase 9 seats a Claude in a
+chat window at the table: through an MCP server mounted beside the Flask
+app, a conversation at claude.ai takes an open seat and plays it like
+anyone else, reasoning from the log, its hand and the deduction sheet
+([docs/phase9-plan.md](docs/phase9-plan.md)).
 
 New Play and Watch tables **remember by default**, with a checkbox to
 opt out. The seat choices are **empty**, **open**, **floorbot**,
@@ -137,6 +141,8 @@ five personality dials. Each is documented in
 - [docs/phase6-plan.md](docs/phase6-plan.md) -- the Phase 6 plan, David's decisions, and what was built
 - [docs/phase7-plan.md](docs/phase7-plan.md) -- the Phase 7 plan, David's decisions, and what was built
 - [docs/phase8-plan.md](docs/phase8-plan.md) -- Phase 8 to completion: the landing rule, human players, the model and chat on the web, and what was built
+- [docs/phase9-plan.md](docs/phase9-plan.md) -- Phase 9, a seat over MCP: the seven tools, the design, and what was built
+- [docs/phase10-plan.md](docs/phase10-plan.md) -- Phase 10, the shippable look: typography, ornament, the decorated board, motion and sound
 - [docs/web.md](docs/web.md) -- the Flask app: running it, accounts, the table, Watch, the replay, and deploying to Cloud Run
 - [docs/llm-wrapper.md](docs/llm-wrapper.md) -- how an LLM pilots a character: menus, leash, personas, backends, cost
 - [docs/logbooks.md](docs/logbooks.md) -- playerbot memory: the three tiers, the `memory` dial, the debrief, the CLI

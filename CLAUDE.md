@@ -13,76 +13,34 @@ phase's plan doc ends with an "as implemented" section that records what
 was actually built and where it departed from the plan: trust that over
 the plan sections above it, and over this file if they disagree.
 
-## Status (2026-09-19)
+## Status (2026-09-22)
 
-Phases 1-8 are done and committed. Each phase's record is the "as
-implemented" section of its plan doc (`docs/phase5-plan.md` to
-`docs/phase8-plan.md`; Phases 1-4 in `docs/phase-plan.md`), and every
-measurement is in `docs/strategy-glossary.md`. The game runs headless
-through `scripts/clude_cli.py`, and since 8.1a also in a local Flask app
-(`docs/web.md`): a login, a lobby, a replay scrubber for any stored game,
-and a Watch screen that plays a headless game a turn at a time. Since
-8.1b the same app runs on Cloud Run at
+Phases 1-8 are done, committed and deployed. Phase 9, a seat over MCP,
+is built: 9a-9c are live, and **everything since 9c is built but not
+deployed**. Phase 10 is planned but not started; Phase 11 is untouched.
+
+Each phase's record is the "as implemented" section of its plan doc
+(`docs/phase5-plan.md` to `docs/phase9-plan.md`; Phases 1-4 in
+`docs/phase-plan.md`), and every measurement is in
+`docs/strategy-glossary.md`. Those say what was built and why; this
+section says only where things stand.
+
+The game runs headlessly through `scripts/clude_cli.py`, and as a Flask
+app (`docs/web.md`) both locally and on Cloud Run at
 <https://clude-648214345192.us-central1.run.app>, reading a mirror of
-`data/llm` in the bucket (`docs/web.md`, "Deploying"). Phase 8 was
-planned to completion on 2026-09-18 (`docs/phase8-plan.md`); that day
-8.0.4 (the landing rule) and 8.2a-c (human players) were built, and on
-2026-09-19 8.2d was deployed and live-checked, 8.3a-c built on fake
-backends, the key deployed and 8.3 live-checked on the URL: a character
-can play as an LLM character at a web table under a per-table budget and a
-daily cap, people type at the table and the model seats answer off-turn
-with pacing, and a remembering table wraps up with each model seat's
-logbook entry. **Phase 8 closed 2026-09-19** (`docs/phase8-plan.md` 12,
-"8.3d"): the live table cost $0.34 with no fallbacks, and the cold
-rebuild came back in 0.1 s for a short table. One loose end: the
-table's two debriefs drain on the next deploy (a `table.js` fix, below).
-**Renumbered 2026-09-20:** Phase 9 is now the seat over MCP (planned
-in `docs/phase9-plan.md`, 9a done; **9b built 2026-09-21** on fake
-backends together with the serving code: `clude_web/mcp.py`, the
-head, the note, the combined ASGI app and the Dockerfile command;
-**9c deployed the same day**: the secret, the `claude` account,
-revision 6 probed and live-checked, `docs/phase9-plan.md` 8; **the
-first live game from the chat the same evening**: an Opus at claude.ai
-played Plum at table `8de30daff8` for 30 turns and stopped with its
-chat nearly full, every view about 9,000 tokens and a turn two to four
-calls, so the view was made compact and cut at a `since` cursor,
-`clude_answer` gained `accuse` and `wait`, and `clude_autopilot` is
-the seventh tool; then David's four calls the same day: **no head**
-(a chat player is its own; `SeatSpec.head` and `head_reading` are
-gone), **tables can be ended** (`TableRegistry.abandon`, an "End
-table" button, `clude_cli.py tables abandon`), **a human seat that
-stalls three minutes or is out goes to the stand-in** without asking,
-and **no deal until every open seat is taken** -- all built on fake
-backends, **to deploy**; the `8de30daff8` game has since finished, turn 47, `web/12`);
-then **eight fixes after game `7075f3ae29` on 2026-09-22**, the second
-live game from the chat, also **to deploy** (`docs/phase9-plan.md` 8,
-"Eight fixes"): `seq` counts answers, not entries, so **table talk no
-longer stales a waiting decision** (which was the chat seat's "out of
-date" *and* half of the browser's resetting dropdowns); **`accuse`
-folded into a suggestion now lands** even when a card is shown in
-between; the **board picture and legend go out once** (`clude_sit` and
-any `since=0` view) and every move carries **`distances`**; a **spent
-budget is announced** to the chat seat; and on the table screen an
-**Accuse panel** of its own, **Table Talk** split from the narration,
-the **Suggest dropdowns stop resetting**, and **no deduction bars for a
-seated player** (a plain roster instead; spectators and Watch keep
-them, knowingly: early in a game those bars *are* each seat's hand
-composition by category, which David caught and I had wrongly denied).
-Then **Phase 9e the same day**, also to deploy: a **spectator gallery**
-(signed-in watchers of a live table, shown to the people playing only
-when somebody is there, presence kept in memory for 45 s), the **LLM
-memory slider starting at 1.0** rather than 0 (the lobby form only;
-`SeatSpec.memory` still defaults to 0), **"The game so far" and "Table
-Talk" folding away**, and a real bug that turning the memory default up
-exposed: **a seat whose model budget is spent is no longer queued to
-speak**, since it can never produce a line and queueing it held every
-bot turn for two to eight seconds and then served nothing -- that table
-could not finish in 1,500 requests before and finishes in 148 now.
-In-depth UX is
-Phase 10 and clean-up and release Phase 11. Suite: 477 passed, 21 skipped (the
-live-credential and browser tests), about three minutes with
-`-n auto`; the browser tests run under `CLUDE_WEB_BROWSER=1` (496
-passed, 2 skipped).
+`data/llm` in the bucket. The app has a login, a lobby, a replay
+scrubber, a Watch screen, and tables where people, agents and a Claude
+in a chat window play together.
+
+**Waiting on a deploy**, all built on fake backends with the suite
+green: the compact MCP views and `clude_autopilot`; David's four calls
+of 2026-09-21 (no persona advises a chat seat, tables can be ended, a
+stalled seat goes to the stand-in, no deal until every open seat is
+taken); the eight fixes after game `7075f3ae29`; and Phase 9e. All of
+them are in `docs/phase9-plan.md` 8.
+
+Suite: 477 passed, 21 skipped, about two and a half minutes with
+`-n auto`; 496 passed and 2 skipped under `CLUDE_WEB_BROWSER=1`.
 
 **The road from here** (David renumbered it on 2026-09-16;
 `docs/phase-plan.md` has the table):
@@ -93,25 +51,26 @@ passed, 2 skipped).
 | 8.1 | 8.1a a basic UX scaffold as a local Flask app; 8.1b the same app on Cloud Run behind an app login | done: 8.1a built 2026-09-17 (steps 1-5: the engine seam, the login and accounts, the board and replay data, the replay scrubber, the lobby and Watch); 8.1b deployed 2026-09-18 (steps 6-9: the container, `store copy`, the service running as `clude-run`) -- `docs/phase8.1-plan.md`, `docs/web.md` |
 | 8.2 | Human players | done: 8.2a-c built 2026-09-18 (the table driver and `play --human`; the table on the web with open seats, autopilot, cold rebuild and "characters remember"); 8.2d deployed and live-checked 2026-09-19, the cold rebuild 0.1 s on a 3-turn table (`docs/phase8-plan.md` 12, `docs/web.md`) |
 | 8.3 | The rest of chat: the model on the web under a spend cap, human chat, off-turn talk with pacing, debriefs after web games | done: 8.3a-c built 2026-09-19 on fake backends, the key deployed and one live table played the same day (two model seats, chat, "remember"; $0.34, no fallbacks); 8.3d closed Phase 8 (`docs/phase8-plan.md` 12) |
-| 9 | A seat over MCP: a Claude in a chat window (claude.ai) plays one seat of a live table through an MCP server mounted beside the Flask app, on the same `TableRegistry`; optionally with its character's own numbers as a "head" | 9a (the plan and this renumbering) done 2026-09-20; 9b built 2026-09-21 (`clude_web/mcp.py`: `build_server` over any registry and `combined_app`, the one ASGI app the container now serves; `SeatSpec.head`, `answer(by="mcp")`, `WebGame.head_reading`, the seat's note); 9c deployed 2026-09-21 (`clude-mcp-secret`, the `claude` account on the bucket, revision 6; the endpoint probed and a resumed live-check game played to the end), the connector added and the first live game played from the chat that evening (Plum, 30 turns, stopped with the chat full), which led to the compact `since` view, `accuse` and `wait` on `clude_answer` and the seventh tool `clude_autopilot` (21 tests, to deploy); then 9d -- `docs/phase9-plan.md` 8 |
-| 10 | In-depth UX | not started (was Phase 9 until 2026-09-20) |
+| 9 | A seat over MCP: a Claude in a chat window (claude.ai) plays one seat of a live table through an MCP server mounted beside the Flask app, on the same `TableRegistry` | built. 9a the plan and the renumbering (2026-09-20); 9b the server and the combined ASGI app, 9c deployed with the secret and the `claude` account, both 2026-09-21, and the first live game from the chat that evening; 9d the eight fixes after the second live game and 9e David's follow-ups, both 2026-09-22. Everything after 9c is **to deploy** -- `docs/phase9-plan.md` 8 |
+| 10 | In-depth UX: the shippable look, "engraved, not brass-plated" | planned, not started. `docs/phase10-plan.md` proposed 2026-09-20, David's answers recorded 2026-09-21: D1-D4 and D6 settled, D5 (the logo) open until he sees the three alternates in 10a (was Phase 9 until 2026-09-20) |
 | 11 | Tweak, polish, release: clean-up and close, then version 1.0.0, released to family and friends, and planning in versions, not phases | not started (was Phase 10) |
 
 Where things stand:
 
-- **Seats and remembering (2026-09-21).** New Play and Watch tables
+- **Seats and remembering (2026-09-22).** New Play and Watch tables
   remember by default, with an opt-out. The lobby options, in order, are
-  `empty`, `open`, `floorbot`, `me (signed-in name)`, `X (LLM)`, and
-  `X (headless)`. An LLM character uses its numerical method plus Claude's
-  persona, leashed choices, chat and narrative logbook; a headless
-  character never chats. Mustard, White and Green have method memory in
-  either mode. Each LLM seat's memory-depth dial is saved as
-  `SeatSpec.memory` (0 = condensed head, not off). Without a service key
+  `empty`, `open`, `floorbot`, `me (signed-in name)`, `X (LLM)` and
+  `X (headless)` -- the UI's own words for an agent with and without its
+  persona. With it, the agent runs its numerical method plus Claude's
+  persona, leashed choices, chat and narrative logbook; without, it
+  never chats. Mustard, White and Green keep method memory either way.
+  Each model seat's memory depth is saved as `SeatSpec.memory`, where 0
+  is the condensed summary rather than memory off; the lobby slider
+  starts at 1, the whole logbook (2026-09-22), while `SeatSpec.memory`
+  still defaults to 0 for the driver and the CLI. Without a service key
   the LLM option is visible but disabled. Saved tables keep their memory
   choice; legacy setups missing the flag restore False. CLI logbooks
   remain explicit with `--logbook`. Working guide: `docs/web.md`.
-  Validation: 496 passed, 2 live-credential tests skipped with browser
-  tests enabled; the lobby also passes a 390 px overflow check.
 
 - **The board (2026-09-15).** The engine plays the Classic 24 x 25 grid
   under the Classic movement rules, measured from
@@ -373,15 +332,33 @@ it; `docs/phase-plan.md` has the disposition of every file.
   The cost is stated on the form. Assumed unless he says otherwise: the floor
   bot as the autopilot stand-in, $2 per table and $10 a day as 8.3's
   budgets, no `--min-instances 1`.
-- **A chat seat has no head (2026-09-21).** "MCP players get their
-  numbers from floorbot, that's it. No heads! They're the head!" The
-  notepad is the floor; no character method advises a chat seat.
+- **No persona advises a chat seat (2026-09-21).** "MCP players get
+  their numbers from floorbot, that's it. No heads! They're the head!"
+  A Claude playing over MCP gets the deduction floor's notepad and
+  nothing else; no agent's method or persona sits behind it.
 - **Tables end, seats time out, the deal waits (2026-09-21).** Anyone
   seated or the starter can end a table for good ("End table";
   `tables abandon` on the CLI); a human seat that keeps the table
   waiting three minutes goes to the floor bot without asking, and a
   seat that is out is answered by it; a table is not dealt until every
   open seat is taken, since an open seat is reserved for someone.
+- **Spectators, and what the seat bars give away (2026-09-22).**
+  Watching a live table needs an account: the table id is not a
+  capability URL, and the MCP endpoint stays the only route outside the
+  login gate. A spectator can do nothing at the table, and the people
+  playing see who is watching only while somebody is. The per-category
+  seat bars are kept for spectators and for Watch knowing what they
+  leak: early in a game they read exactly as each seat's hand
+  composition (all six seats through turn 9, none by turn 21), because
+  a seat has proven only its own hand. David's call -- a spectator
+  telling a player is a social problem, not a software one. A seated
+  player gets a plain roster instead.
+- **Say "agents" and "personas" (2026-09-22),** not "head" and
+  "headless", which between them carry three unrelated meanings in this
+  project. Prose and commit messages only: code identifiers
+  (`LogbookHead`, `head.json`), stored keys and the lobby's own
+  `(headless)` label are a separate, deliberate change if David wants
+  one.
 - **Commit messages are printed in the reply, never written into
   `commit_msg.md`** by me (David declined that, 2026-09-13).
 
@@ -495,19 +472,21 @@ Suggestions to raise, not decisions to implement.
 
 ## Open questions (ask, don't assume)
 
-Phase 9's, in `docs/phase9-plan.md` section 6, were built as
-bracketed on 2026-09-21 and await David's word: the MCP endpoint
-guarded by a secret path on the public URL, the chat seat's account
-`claude`, and uvicorn as gunicorn's worker over the combined app. The
-two head questions are closed: there is no head (David, 2026-09-21).
-Three serving choices made from the code that day, to confirm too: the
-MCP transport stateless with JSON responses, the SDK's localhost-only
-Host check switched off (the secret is the guard), and asgiref's
-Flask bridge run off its one-thread lane (`docs/phase9-plan.md` 8). Phase 8 left
-none: its assumptions stood through
-its close (`docs/phase8-plan.md` 9): the floor bot as the autopilot
-stand-in, 8.3's budgets ($2 a table, $10 a day), and no
-`--min-instances 1` (the cold rebuild is accepted and measured).
+**Phase 9** (`docs/phase9-plan.md` 6 and 8), built as bracketed on
+2026-09-21 and still awaiting David's word: the MCP endpoint guarded by
+a secret path on the public URL; the chat seat's account `claude`;
+uvicorn as gunicorn's worker over the combined app; and three serving
+choices made from the code -- the MCP transport stateless with JSON
+responses, the SDK's localhost-only Host check switched off (the secret
+is the guard), and asgiref's Flask bridge run off its one-thread lane.
+
+**Phase 10** (`docs/phase10-plan.md` 13): D5, the logo, is open until
+David sees the three alternates in 10a. D1-D4 and D6 are settled.
+
+**Phase 8** left none; its assumptions stood through its close
+(`docs/phase8-plan.md` 9): the floor bot as the autopilot stand-in,
+8.3's budgets ($2 a table, $10 a day), and no `--min-instances 1` (the
+cold rebuild is accepted and measured).
 
 Resolved 2026-09-13: leash presets stand; the parking fix waits behind
 logbooks; `docs/zenbot_memories.json` is the logbook model; no writing
@@ -521,7 +500,11 @@ as a new narrow `clude-run` rather than the now-owner `clude-sa`, and
 uploading the grid-era runs *and* the logbooks. Resolved 2026-09-18:
 the one-time Google Cloud changes for 8.1b, made by David in the
 Console; the parking question (8.0.4, the landing rule, kept); the four
-Phase 8 decisions above.
+Phase 8 decisions above. Resolved 2026-09-21: no persona advises a chat
+seat, and the three table rules (ending, timing out, holding the deal).
+Resolved 2026-09-22: spectators need an account and keep the seat bars;
+the memory slider starts at full depth; "agents" and "personas" over
+"head" and "headless".
 
 ## Working with David
 
@@ -585,7 +568,7 @@ Phase 8 decisions above.
 - CLI: `& .venv\Scripts\python.exe scripts\clude_cli.py <cmd> --help`,
   where `<cmd>` is `agents`, `play`, `prompt`, `trace`, `floor`,
   `benchmark`, `train-mustard`, `snapshots`, `arena`, `sweep`, `store`,
-  `logbook` or `users`. Every command is deterministic per `--seed` (and,
+  `logbook`, `tables` or `users`. Every command is deterministic per `--seed` (and,
   with `--logbook`, per logbook state). `docs/cli.md` explains each and how
   to read its output.
 - Claude API: `ANTHROPIC_API_KEY` in the environment (or an `ant auth
@@ -623,13 +606,17 @@ Phase 8 decisions above.
 - `docs/architecture.md` -- package layout, the floor, `ClueObservation`,
   the engine seam, `AgentProtocol`, personality layer, LLM wrapper,
   storage, credentials, deployment cost, Seats proposal.
-- `docs/phase-plan.md` -- the eight phases with status, legacy
+- `docs/phase-plan.md` -- all eleven phases with status, legacy
   disposition, scope of each built phase.
 - `docs/phase5-plan.md`, `docs/phase6-plan.md`, `docs/phase7-plan.md`
   -- plan, David's decisions, and "as implemented".
 - `docs/phase9-plan.md` -- Phase 9, a seat over MCP: what the code
-  dictates, the design, sub-phases 9a-9d, David's decisions, open
+  dictates, the design, sub-phases 9a-9e, David's decisions, open
   questions.
+- `docs/phase10-plan.md` -- Phase 10, the shippable look: typography,
+  ornament, the decorated board and its logo, motion, the six-seat
+  layouts, case-file styling, sound in 10g. Proposed 2026-09-20; D1-D4
+  and D6 settled, D5 (the logo) open.
 - `docs/strategy-glossary.md` -- each method in plain language; the
   benchmark, dial sweeps, tuned presets, and the Phase 6 measurements.
 - `docs/llm-wrapper.md` -- how a model pilots a character; credentials;
@@ -644,16 +631,19 @@ Phase 8 decisions above.
 - `docs/board.md` -- the Classic board as measured, the doors, the
   rules, what the module exposes, and the ring it replaced.
 - `docs/board-plan.md` -- the board rebuild: plan, David's decisions,
-  and "as implemented". `docs/phase8.0-plan.md` -- Phase 8.0, the costed plan to
-  re-run every glossary measurement on the grid, with the trigger for
-  its conditional paid steps. `docs/phase8.1-plan.md` -- Phase 8.1, the
-  web scaffold (8.1a) and Cloud Run (8.1b), both built.
+  and "as implemented".
+- `docs/phase8.0-plan.md` -- Phase 8.0, the costed plan to re-run every
+  glossary measurement on the grid, with the trigger for its conditional
+  paid steps.
+- `docs/phase8.1-plan.md` -- Phase 8.1, the web scaffold (8.1a) and
+  Cloud Run (8.1b), both built.
 - `docs/ux/` -- the UX pass: the two reference boards, `board_map.txt`
   (the source of truth for `clude_core/board.py`), and `replay/`, the
   four replay-screen direction sketches on the design canvas.
 - `docs/docstring-guidelines.md` -- docstring conventions.
-- `docs/pre_stage_5.md` -- the "Fab4" review that reworked Phase 5
-  against the code as it was; historical.
+- `docs/phase5-prep.md` -- the "Fab4" review that reworked Phase 5
+  against the code as it was; historical. (Was `pre_stage_5.md`, renamed
+  in the board rebuild.)
 - `docs/commit_msg_correction.md` -- the commit-message shape David
   wants, as a WRONG/RIGHT pair. Local only: it is gitignored, so it may
   be absent on a fresh clone; the rule itself is stated above.

@@ -1,10 +1,18 @@
 # Phase 9: a seat over MCP
 
-Planned 2026-09-20. Status: 9a (this plan and the renumbering) done;
-9b built and 9c deployed 2026-09-21; the connector at claude.ai, the
-live game from the chat and 9d not started. The "as
-implemented" section at the end is written as the work lands and wins
-over the plan above it where they differ.
+Planned 2026-09-20. Status: **9a-9e all done** -- 9a the plan and the
+renumbering (2026-09-20), 9b built and 9c deployed with the first live
+game from the chat (2026-09-21), 9d the eight fixes after the second
+live game and 9e David's follow-ups (2026-09-22). Everything after 9c
+is still **to deploy**.
+
+Section 8, "As implemented", is written as the work lands and **wins
+over the plan sections above it wherever they differ** -- read it
+first. Two things it overturns, so that nobody follows the plan text by
+mistake: there is **no head** (sections 3-5 design one; David removed it
+on 2026-09-21, and `SeatSpec.head` and `WebGame.head_reading` do not
+exist), and a **stalled seat is handed over after three minutes**, not
+ten.
 
 ## 1. Context
 
@@ -535,16 +543,12 @@ the log -- they just no longer move the number an answer must match.
    both of which fail on the old definition.
 2. **`accuse` folded into a suggestion now lands** (`clude_web/mcp.py`).
    It was tested against whatever was pending the instant the answer
-   landed, but the accusation question rarely follows immediately: a
-   suggestion is refuted first, and a refuter who is a person or a model
-   seat pauses the game in between, so `accuse` was set aside and the
-   chat seat paid the round trip anyway. `clude_answer` now runs
-   `await_turn` first and answers the accusation when it arrives.
-   `test_accuse_still_lands_when_a_card_is_shown_in_between` builds the
-   case deliberately -- Mustard a person on autopilot, seated directly
-   after the chat seat, named from its own hand -- because no seed in
-   the suite produced it; without the fix it reproduces the reported
-   notice exactly.
+   landed, but a suggestion is refuted first, and a refuter who is a
+   person or a model seat pauses the game in between. `clude_answer` now
+   runs `await_turn` first and answers the accusation when it arrives.
+   The test builds the case deliberately -- Mustard a person on
+   autopilot, seated next after the chat seat, named from its own hand --
+   because no seed in the suite produced it.
 3. **The board, once** (`clude_core/board.py`, `clude_web/mcp.py`).
    `BOARD_LEGEND` joins `BOARD_MAP` as a constant and is appended to
    `docs/ux/board_map.txt` (`tests/test_board.py` now pins both halves);
@@ -558,22 +562,19 @@ the log -- they just no longer move the number an answer must match.
    browser puts the same string in the button and board-target tooltips.
 5. **A spent budget is announced** (`clude_web/mcp.py`). The chat seat
    reported that "every character falls back to the floor bot"; it does
-   not -- `MeteredBackend` returns an error result and the wrapper falls
-   back to the seat's own headless method, the floor bot being only ever
-   the autopilot stand-in. It guessed because `seat_view` strips
-   `last_refusal`. A `models` line now says so when some wrapper is
-   refusing, and `test_a_spent_budget_lets_the_character_play_on` gained
-   an assertion that no answer of that seat is ever entered
-   `by="autopilot"`.
+   not. `MeteredBackend` returns an error result and the wrapper falls
+   back to the agent's own method, the floor bot being only ever the
+   autopilot stand-in. The seat guessed because `seat_view` strips
+   `last_refusal`; a `models` line now says so when a wrapper is
+   refusing, and the spent-budget test pins that no answer of that seat
+   is ever entered `by="autopilot"`.
 6. **The Accuse panel** (`table.html`, `table.js`, `style.css`). Its own
-   panel, always shown, "Accuse" in `--warn`, shut by default, opening
-   on its header button and closing on Close. Its three dropdowns are
-   built once at startup and the render loop never touches them, so an
-   accusation set up on turn 3 is still there on turn 9. Under the rules
-   you may accuse only at the accusation question, so the button is
-   disabled until that decision is yours (David, 2026-09-22: disabled,
-   not armed) and the panel takes a red border when it is live. The
-   decision panel keeps Pass and points at it.
+   panel, always shown, shut by default. Its three dropdowns are built
+   once at startup and the render loop never touches them, so an
+   accusation set up on turn 3 is still there on turn 9. The button is
+   disabled until the accusation question is yours (David: disabled, not
+   armed) and the panel takes a red border when live; the decision panel
+   keeps Pass and points at it.
 7. **The dropdowns stop resetting** (`table.js`), David's high-priority
    report. `renderDecision` tore the panel down on every poll;
    it is now keyed on `kind + "#" + seq` and returns early when the
@@ -582,12 +583,11 @@ the log -- they just no longer move the number an answer must match.
    and `select()` restores them.
 8. **Table Talk, its own panel** (`tables.py`, `table.html`, `table.js`,
    `style.css`). Events carry `about`, and every remark -- a person's
-   `chat`, a character's on-turn aside, a model seat's off-turn
-   `reaction` -- goes to a "Table Talk" panel above the log, with the
-   say box; "The game so far" keeps the moves, suggestions and
-   accusations. This also lit up `.log li.kind-remark.about-chat`, a
-   rule that had never matched anything because `describe_event` dropped
-   `about`.
+   `chat`, an agent's on-turn aside, a model seat's off-turn `reaction`
+   -- goes to a "Table Talk" panel above the log, with the say box; "The
+   game so far" keeps the moves, suggestions and accusations. This also
+   lit up `.log li.kind-remark.about-chat`, a rule that had never
+   matched anything because `describe_event` dropped `about`.
 9. **No deduction bars for a seated player** (`tables.py`, `table.js`,
    `table.html`). David's call on the fourth report, and he was right
    about the reason where I was wrong. I argued the bars were only
@@ -634,22 +634,20 @@ longer has bars, and the placeholder lines being numbered "1.".
 
 David's follow-ups to the eight fixes above, plus one bug they turned up.
 
-1. **The spectator gallery.** Anyone signed in who holds no seat can
-   already open a live table and watch, and already cannot act -- the
-   answer, say and autopilot routes have returned 403 to a seatless
-   viewer since 8.2. What was missing was presence. `TableRegistry`
-   gains `seen_watching` and `watching`: asking for a view of a table
-   you do not sit at puts you in its gallery for `WATCHING_FOR` (45 s,
-   outlasting a hidden tab's 15 s poll), so a closed tab leaves by
-   itself. It is kept in memory, not on the document -- a poll arrives
-   every few seconds from every open page and writing the store that
-   often would churn it for something true only for the next few
-   seconds; a restarted process forgets and relearns on the next poll.
-   `view_payload` carries `watching` to a seated viewer only, and the
-   screen shows the line only when somebody is there.
-   **Signed-in accounts only** (David, 2026-09-22): the table id does
-   not become a capability URL, and every route stays behind the gate
-   but the MCP endpoint.
+1. **The spectator gallery.** Watching and being unable to act already
+   worked -- the answer, say and autopilot routes have returned 403 to a
+   seatless viewer since 8.2 -- so this adds presence only.
+   `TableRegistry` gains `seen_watching` and `watching`: asking for a
+   view of a table you do not sit at puts you in its gallery for
+   `WATCHING_FOR` (45 s, outlasting a hidden tab's 15 s poll), so a
+   closed tab leaves by itself. It is kept in memory, not on the
+   document, since a poll arrives every few seconds from every open page
+   and the fact is true only for the next few; a restarted process
+   relearns it. `view_payload` carries `watching` to a seated viewer,
+   and the screen shows the line only when somebody is there.
+   **Signed-in accounts only** (David): the table id does not become a
+   capability URL, and the MCP endpoint stays the only route outside the
+   gate.
 2. **The bars, corrected.** David was right and the note in item 9 above
    was wrong; it now carries the measurement. **Spectators and Watch
    keep the bars knowingly** (David, 2026-09-22): a spectator telling a
@@ -669,16 +667,15 @@ David's follow-ups to the eight fixes above, plus one bug they turned up.
    asked for that.
 5. **A seat whose budget is spent is no longer queued to speak**
    (`clude_web/chat.py`, `refusing`). Turning the memory default up made
-   `test_a_spent_budget_lets_the_character_play_on` hang, which was not
-   the memory change's fault but a real defect it exposed: a refusing
-   backend can never produce a line, since `react` needs a call and gets
-   an error result, but `Reactions.opportunity` queued the seat anyway
-   and `work` then answered "waiting" for the reaction's two to eight
-   seconds before serving nothing. A table whose budget ran out both
-   crawled and went quiet. Measured on that table: it could not reach
-   its end in 1,500 requests before, and finishes in 148 with no waiting
-   step at all after. This is very likely part of what the chat seat was
-   describing in its fourth report.
+   the spent-budget test hang, which exposed a real defect rather than
+   causing one: a refusing backend can never produce a line, since
+   `react` needs a call and gets an error result, but
+   `Reactions.opportunity` queued the seat anyway and `work` then
+   answered "waiting" for the reaction's two to eight seconds before
+   serving nothing. A table whose budget ran out both crawled and went
+   quiet. Measured: it could not reach its end in 1,500 requests before,
+   and finishes in 148 with no waiting step after. Probably part of what
+   the chat seat meant in its fourth report.
 
 Tests: 496 passed, 2 skipped with browser tests enabled (477 and 21
 without). Three new --
