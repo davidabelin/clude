@@ -1,10 +1,11 @@
 # Phase 9: a seat over MCP
 
-Planned 2026-09-20. Status: **9a-9e all done** -- 9a the plan and the
+Planned 2026-09-20. Status: **9a-9f all done** -- 9a the plan and the
 renumbering (2026-09-20), 9b built and 9c deployed with the first live
 game from the chat (2026-09-21), 9d the eight fixes after the second
-live game and 9e David's follow-ups (2026-09-22). Everything after 9c
-is still **to deploy**.
+live game and 9e David's follow-ups (2026-09-22), all deployed as
+revision `clude-00010-knh` that evening; 9f the chat seat's report after
+the third live game (2026-09-25), **to deploy**.
 
 Section 8, "As implemented", is written as the work lands and **wins
 over the plan sections above it wherever they differ** -- read it
@@ -628,7 +629,8 @@ what caught the bars footnote still being shown to a player who no
 longer has bars, and the placeholder lines being numbered "1.".
 
 **Not deployed.** This stacks on the 9b/9c follow-up work already marked
-"to deploy", so one deploy covers both.
+"to deploy", so one deploy covers both. (It covered 9e too: revision
+`clude-00010-knh`, the evening of 2026-09-22; see 9f.)
 
 ### Phase 9e: spectators, the memory default, folding logs (2026-09-22)
 
@@ -683,3 +685,88 @@ the gallery (`tests/test_web_tables.py`), the refusing seat
 (`tests/test_chat.py`), the slider default (`tests/test_web_llm.py`) --
 and a browser test for the folding panels; the chat fix was checked to
 fail with it reverted.
+
+### Phase 9f: the chat seat's report after game `b089937cb8` (2026-09-25)
+
+The third live game from the chat (2026-09-24): an Opus at claude.ai as
+Plum, David as Green in the browser, Scarlett and Peacock as model seats;
+Scarlett won at turn 41. Asked afterwards, the chat seat called the
+notepad "genuinely good design -- it's doing the tedious part so I can
+do the fun part", and named three things. The measurements below come
+from rebuilding the table from the bucket.
+
+**Deployed after all.** Revision `clude-00010-knh` went live on
+2026-09-22 at 16:15 MDT, a minute after the documentation commit, so
+9d and 9e were not waiting on a deploy as this doc and `CLAUDE.md` said.
+This game ran on them: the distances it found heavy were 9d's.
+
+1. **A move is one line per room** (`clude_web/mcp.py`). Plum's ten
+   movement decisions averaged 9.7 legal moves and reached 26, each with
+   the nine-room line 9d added: the block averaged 1,798 characters and
+   reached 4,717, three quarters of the view at that point. What the
+   seat wanted was the move heading for the room it had in mind, and it
+   suggested either a per-room summary or naming the room. Both are
+   built as one thing. A movement's `pending` carries `toward` instead
+   of `options`: for each room, nearest first, what the best move toward
+   it does ("enter it now", "enter it now, by the secret passage", "3
+   steps short, ending at row 13, col 19", "1 step short, ending in the
+   Conservatory"). `clude_answer` takes `{"toward": "Library"}` and
+   `_resolve_toward` turns it into that move before the registry sees
+   it, so the log, the record and the rebuild hold an ordinary
+   `{"move", "to"}`; it does so only when the snapshot is this seat's
+   movement at the quoted `seq`, and otherwise leaves the refusal to
+   `TableGame.answer`. "Best" is `board.room_distances`, the cached
+   proximity the characters and the floor bot already score moves with,
+   ties to `board.node_sort_key` then the move's kind. A move named
+   outright is still accepted. The block is now 512 characters on
+   average and 545 at most, whatever the roll. The browser is unchanged:
+   `tables.view_payload` still sends every option with its distances.
+2. **Waiting is cheaper** (`clude_web/mcp.py`). The seat got four or
+   five empty replies in a row while David thought, each a whole view,
+   and asked for a longer hold or a sign that the wait would be long.
+   - `POLL_SECONDS` 25 to 60. claude.ai documents about 300 s a tool
+     call (one report shows 180 s), and Cloud Run and gunicorn allow
+     300 s. A person holds the table at most `AUTOPILOT_AFTER` (180 s),
+     so that is at most three idle replies a turn, down from seven.
+   - One deadline per call. `clude_answer` with `accuse` waited twice
+     -- for the accusation question, then for the next decision --
+     each a whole poll, so a suggestion a person must disprove could
+     hold 2 x `POLL_SECONDS`: at 60 s, two minutes. `await_turn` now
+     takes the call's deadline.
+   - A reply whose new lines are all moves or table talk
+     (`QUIET_KINDS`), or that has none, sends `"unchanged"` for the
+     notepad and the seats, which cannot have moved; `me`, `waiting` and
+     `pending` always come. A cursor past the end of the log is taken as
+     0. Measured over David's ten turns: an idle reply 1,527 characters
+     before, 467 after.
+   - `waiting` says when the floor bot takes a person's seat ("the
+     floor bot takes the seat at 180 s"), and `clude_turn`'s docstring
+     says an empty reply is normal while a person thinks, to call again
+     with the same `since`, and that a reply with nothing new is short.
+     It also corrects "up to half a minute" to a minute.
+3. **A warning in `clude_say` against naming one's own hand: declined**
+   (David, 2026-09-25). The seat said its hand aloud early on until
+   David told it not to, and asked for one line in the tool's
+   description. Talk and bluffing about one's own cards are allowed and
+   players learn what over-sharing costs, so the description stands.
+   The seat wrote the lesson into its note, which is kept per table, so
+   it does not reach the next game.
+
+Not built: folding the suggestion into the move call (one call rather
+than two for a turn into a room; next if the number of calls still
+matters), a note that outlives its table, and progress notifications
+during a hold (the transport is stateless JSON).
+
+Tests: `tests/test_mcp.py` 30 (from 25). `simple_answer` moves
+`toward` the nearest room, and the whole-game test checks nine lines and
+no `options`. New: every room's line against a brute force over the
+offered moves, and the move a `toward` answer makes; an unknown room and
+a stale `seq` refused, and a move named outright accepted; an idle reply
+with Ann holding the table; the notepad resent exactly when a line since
+the cursor could change it, checked from every cursor of a game; and
+one call holding one poll at most, on a stand-in clock. That last test
+was checked to fail with the old second deadline (20 s against a 10 s
+poll). 482 passed, 21 skipped; 501 passed, 2 skipped with browser tests
+enabled.
+
+**Not deployed.**

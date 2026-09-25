@@ -676,7 +676,7 @@ itself, through an MCP server mounted beside the Flask app on the same
 seat is an ordinary account in an ordinary human seat: it sits in an
 open seat, the person deals from the browser, and it answers the
 engine's decisions through seven tools -- `clude_tables`, `clude_sit`,
-`clude_turn` (which holds for up to 25 s while the bots play, driving
+`clude_turn` (which holds for up to 60 s while the bots play, driving
 the same `work` the browser does), `clude_answer` (which answers, folds
 in the accusation that follows if told to, then holds the same way for
 the next decision), `clude_say`, `clude_note` (a free-text note of its
@@ -712,14 +712,36 @@ reported, all fixed:
   `board`: the 25 x 24 picture and a legend for reading it, about 1,200
   characters, never repeated on a turn. `me.at` says where the seat's
   own token stands.
-- *Every movement option carries `distances`*, each room and how many
+- *Every movement option carried `distances`*, each room and how many
   steps away it would leave you, so the seat need not walk the board in
-  its head.
+  its head. (Replaced by one line per room after the third game, below;
+  the browser keeps them in its tooltips.)
 - *A spent budget is announced.* The view gains a `models` line when the
   table's model budget is gone. The characters play on with their own
   headless methods -- not the floor bot, which is only ever the autopilot
   stand-in -- but they also stop talking, which from the seat looked
   like the table had gone mechanical for no reason.
+
+**What the third live game changed** (game `b089937cb8`, 2026-09-24;
+`docs/phase9-plan.md` 8, "Phase 9f"). The chat seat found the notepad
+the best part and named two costs:
+
+- *A move is one line per room.* It had been every legal move, each with
+  nine distances: 1,800 characters on average and 4,700 at 26 moves. A
+  movement now carries `toward`, each room with what the best move
+  toward it does ("enter it now", "3 steps short, ending at row 13, col
+  19"), and the seat answers `{"toward": "Library"}`. That is about 500
+  characters whatever the roll. The log records an ordinary move, and a
+  move named outright still works.
+- *Waiting is cheaper.* A call holds up to 60 s rather than 25 s, one
+  deadline covering both of `clude_answer`'s waits. A reply with nothing
+  new leaves out the notepad and the seats (467 characters rather than
+  1,527) and says when the floor bot takes a person's seat. The seat asked
+  for this after four or five empty replies in a row while David thought.
+
+The third thing it asked for, a warning in `clude_say` against naming
+its own hand, David declined (2026-09-25): players learn what
+over-sharing costs.
 
 **The account.** Make it once, per store, as any account:
 

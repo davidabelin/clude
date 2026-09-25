@@ -13,11 +13,12 @@ phase's plan doc ends with an "as implemented" section that records what
 was actually built and where it departed from the plan: trust that over
 the plan sections above it, and over this file if they disagree.
 
-## Status (2026-09-22)
+## Status (2026-09-25)
 
 Phases 1-8 are done, committed and deployed. Phase 9, a seat over MCP,
-is built: 9a-9c are live, and **everything since 9c is built but not
-deployed**. Phase 10 is planned but not started; Phase 11 is untouched.
+is built: 9a-9e are live (revision `clude-00010-knh`, 2026-09-22), and
+**9f is built but not deployed**. Phase 10 is planned but not started;
+Phase 11 is untouched.
 
 Each phase's record is the "as implemented" section of its plan doc
 (`docs/phase5-plan.md` to `docs/phase9-plan.md`; Phases 1-4 in
@@ -32,15 +33,17 @@ app (`docs/web.md`) both locally and on Cloud Run at
 scrubber, a Watch screen, and tables where people, agents and a Claude
 in a chat window play together.
 
-**Waiting on a deploy**, all built on fake backends with the suite
-green: the compact MCP views and `clude_autopilot`; David's four calls
-of 2026-09-21 (no persona advises a chat seat, tables can be ended, a
-stalled seat goes to the stand-in, no deal until every open seat is
-taken); the eight fixes after game `7075f3ae29`; and Phase 9e. All of
-them are in `docs/phase9-plan.md` 8.
+**Waiting on a deploy**: Phase 9f (2026-09-25), the chat seat's report
+after the third live game (`b089937cb8`), built on fake backends with the
+suite green. A move is one line per room, answered by naming the room
+(`toward`); a call holds up to 60 s under one deadline; a reply with
+nothing new leaves out the notepad and the seats. The `clude_say` warning
+it also asked for, David declined. `docs/phase9-plan.md` 8 has it all,
+and a note that until 2026-09-25 the docs said 9d and 9e were undeployed
+when they had been live since 2026-09-22.
 
-Suite: 477 passed, 21 skipped, about two and a half minutes with
-`-n auto`; 496 passed and 2 skipped under `CLUDE_WEB_BROWSER=1`.
+Suite: 482 passed, 21 skipped, about two and a half minutes with
+`-n auto`; 501 passed and 2 skipped under `CLUDE_WEB_BROWSER=1`.
 
 **The road from here** (David renumbered it on 2026-09-16;
 `docs/phase-plan.md` has the table):
@@ -51,7 +54,7 @@ Suite: 477 passed, 21 skipped, about two and a half minutes with
 | 8.1 | 8.1a a basic UX scaffold as a local Flask app; 8.1b the same app on Cloud Run behind an app login | done: 8.1a built 2026-09-17 (steps 1-5: the engine seam, the login and accounts, the board and replay data, the replay scrubber, the lobby and Watch); 8.1b deployed 2026-09-18 (steps 6-9: the container, `store copy`, the service running as `clude-run`) -- `docs/phase8.1-plan.md`, `docs/web.md` |
 | 8.2 | Human players | done: 8.2a-c built 2026-09-18 (the table driver and `play --human`; the table on the web with open seats, autopilot, cold rebuild and "characters remember"); 8.2d deployed and live-checked 2026-09-19, the cold rebuild 0.1 s on a 3-turn table (`docs/phase8-plan.md` 12, `docs/web.md`) |
 | 8.3 | The rest of chat: the model on the web under a spend cap, human chat, off-turn talk with pacing, debriefs after web games | done: 8.3a-c built 2026-09-19 on fake backends, the key deployed and one live table played the same day (two model seats, chat, "remember"; $0.34, no fallbacks); 8.3d closed Phase 8 (`docs/phase8-plan.md` 12) |
-| 9 | A seat over MCP: a Claude in a chat window (claude.ai) plays one seat of a live table through an MCP server mounted beside the Flask app, on the same `TableRegistry` | built. 9a the plan and the renumbering (2026-09-20); 9b the server and the combined ASGI app, 9c deployed with the secret and the `claude` account, both 2026-09-21, and the first live game from the chat that evening; 9d the eight fixes after the second live game and 9e David's follow-ups, both 2026-09-22. Everything after 9c is **to deploy** -- `docs/phase9-plan.md` 8 |
+| 9 | A seat over MCP: a Claude in a chat window (claude.ai) plays one seat of a live table through an MCP server mounted beside the Flask app, on the same `TableRegistry` | built. 9a the plan and the renumbering (2026-09-20); 9b the server and the combined ASGI app, 9c deployed with the secret and the `claude` account, both 2026-09-21, and the first live game from the chat that evening; 9d the eight fixes after the second live game and 9e David's follow-ups, both 2026-09-22 and deployed that evening; 9f the chat seat's report after the third live game (2026-09-25), **to deploy** -- `docs/phase9-plan.md` 8 |
 | 10 | In-depth UX: the shippable look, "engraved, not brass-plated" | planned, not started. `docs/phase10-plan.md` proposed 2026-09-20, David's answers recorded 2026-09-21: D1-D4 and D6 settled, D5 (the logo) open until he sees the three alternates in 10a (was Phase 9 until 2026-09-20) |
 | 11 | Tweak, polish, release: clean-up and close, then version 1.0.0, released to family and friends, and planning in versions, not phases | not started (was Phase 10) |
 
@@ -504,7 +507,9 @@ Phase 8 decisions above. Resolved 2026-09-21: no persona advises a chat
 seat, and the three table rules (ending, timing out, holding the deal).
 Resolved 2026-09-22: spectators need an account and keep the seat bars;
 the memory slider starts at full depth; "agents" and "personas" over
-"head" and "headless".
+"head" and "headless". Resolved 2026-09-25: no warning in `clude_say`
+against a chat seat naming its own hand; it learns what over-sharing
+costs, as the characters do.
 
 ## Working with David
 

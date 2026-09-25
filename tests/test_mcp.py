@@ -10,7 +10,11 @@ the record saved like any other; that a stale `seq` is refused and
 reported and a doubled answer applied once; that the view is compact
 (`since` cuts the events, the note comes only with since 0, one line
 per seat and per card) and never carries `readings` or another seat's
-hand; that `accuse` folds the accusation into the answer before it and
+hand; that a move is one line per room and answered by naming the room
+(`toward`), the log still recording an ordinary move; that a reply with
+nothing new leaves out the notepad and seats and says how long a person
+can hold the table, and one call never holds longer than one poll; that
+`accuse` folds the accusation into the answer before it and
 is refused or set aside when it cannot apply; that `clude_autopilot`
 hands the seat to the stand-in; that the notepad records a pass and
 the floor's "one of" facts; that a seat has no head, only the floor's
@@ -21,6 +25,7 @@ lobby behind the gate and the endpoint only under its secret.
 from __future__ import annotations
 
 import json
+from types import SimpleNamespace
 
 import anyio
 import pytest
@@ -28,8 +33,10 @@ from mcp import Client
 from mcp.types import LATEST_PROTOCOL_VERSION
 
 import clude_constraints
+from clude_core import board
 from clude_core.domain import ROOMS, SUSPECTS, WEAPONS, skipped_players
 from clude_storage import GameRecord, open_store
+from clude_storage.records import node_from_json
 from clude_training.table import SeatSpec, TableSetup
 from clude_web import create_app, mcp, tables, users
 
@@ -95,17 +102,22 @@ def error_text(result) -> str:
 
 
 def simple_answer(pending: dict):
-    """A legal answer to any decision: the first move, a fixed
+    """A legal answer to any decision: toward the nearest room, a fixed
     suggestion, no accusation, the first card."""
     kind = pending["kind"]
     if kind == "movement":
-        option = pending["options"][0]
-        return {"move": option["move"], "to": option["to"]}
+        return {"toward": next(iter(pending["toward"]))}
     if kind == "suggestion":
         return {"suspect": "Plum", "weapon": "Rope"}
     if kind == "accusation":
         return None
     return {"card": pending["candidates"][0]}
+
+
+def lands_in_a_room(pending: dict, room: str) -> bool:
+    """Whether moving toward `room` ends the move in a room (that one,
+    or one on the way), which puts the suggestion question next."""
+    return "ending at row" not in pending["toward"][room]
 
 
 async def play_out(client, table_id, max_steps=3000, on_view=None, fold_accusation=False, since=False):
@@ -131,7 +143,7 @@ async def play_out(client, table_id, max_steps=3000, on_view=None, fold_accusati
         args = {"table_id": table_id, "seq": pending["seq"], "answer": simple_answer(pending), "since": cursor}
         if fold_accusation and (
             pending["kind"] == "suggestion"
-            or (pending["kind"] == "movement" and args["answer"]["to"] not in ROOMS)
+            or (pending["kind"] == "movement" and not lands_in_a_room(pending, args["answer"]["toward"]))
         ):
             args["accuse"] = False
         view = unwrap(await client.call_tool("clude_answer", args))
@@ -206,12 +218,10 @@ async def test_a_whole_game_plays_through_the_tools(server, registry, store):
             if view["pending"] is not None:
                 kinds.append(view["pending"]["kind"])
                 if view["pending"]["kind"] == "movement":
-                    assert all(
-                        set(o) == {"move", "to", "room", "distances"}
-                        for o in view["pending"]["options"]
-                    )
-                    # Every option says how far each room would then be.
-                    assert all(o["distances"] for o in view["pending"]["options"])
+                    # One line per room, not every legal move (Phase 9f).
+                    assert "options" not in view["pending"]
+                    assert set(view["pending"]["toward"]) == set(ROOMS)
+                    assert all(isinstance(line, str) and line for line in view["pending"]["toward"].values())
 
         final = await play_out(client, table_id, on_view=check)
     assert "accusation" in kinds, "the accusation question never came as a decision of its own"
@@ -572,13 +582,12 @@ async def test_accuse_given_too_early_or_malformed_is_set_aside_or_refused(serve
         assert "error" in bad and len(registry.game(table_id).entries) == before
 
         # A move into a room: the suggestion question comes first, so accuse waits.
-        into_room = next((o for o in pending["options"] if o["room"]), None)
+        into_room = next((room for room, line in pending["toward"].items() if line.startswith("enter")), None)
         if into_room is not None:
             view = unwrap(
                 await client.call_tool(
                     "clude_answer",
-                    {"table_id": table_id, "seq": pending["seq"], "answer": {"move": into_room["move"], "to": into_room["to"]},
-                     "accuse": False},
+                    {"table_id": table_id, "seq": pending["seq"], "answer": {"toward": into_room}, "accuse": False},
                 )
             )
             assert "error" not in view
@@ -734,6 +743,220 @@ async def test_a_line_is_said_at_the_table_and_an_empty_one_refused(server, regi
     assert remarks and remarks[-1].split(" ", 1)[0].isdigit()
     game = registry.game(table_id)
     assert any(e.get("kind") == "chat" and e["seat"] == 0 for e in game.entries)
+
+
+# --- moving toward a room (Phase 9f) ------------------------------------------------------
+
+
+def nearest(options: list, room: str) -> int:
+    """How near `room` the best of the offered moves leaves the token:
+    the brute force the `toward` lines are checked against."""
+    return min(board.room_distances(node_from_json(option["to"]))[room] for option in options)
+
+
+async def test_toward_takes_the_move_that_ends_nearest_the_room(server, registry):
+    """The chat seat's report after game b089937cb8: 15-25 moves a turn,
+    each with nine distances, when all it wanted was the one heading for
+    the room it had in mind. Every room's line agrees with a brute force
+    over the moves the engine offered, nearest first, and answering with
+    the room makes that move, entered in the log as an ordinary one."""
+    table_id = open_table(registry)
+    async with Client(server) as client:
+        unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
+        registry.deal(table_id)
+        game = registry.game(table_id)
+        view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
+        moves = 0
+        for _ in range(400):
+            if view["finished"] or moves >= 12:
+                break
+            pending = view["pending"]
+            if pending["kind"] != "movement":
+                view = unwrap(await client.call_tool(
+                    "clude_answer", {"table_id": table_id, "seq": pending["seq"], "answer": simple_answer(pending)}
+                ))
+                continue
+            options = game.snapshot.pending["options"]
+            for room, line in pending["toward"].items():
+                steps = nearest(options, room)
+                if steps == 0:
+                    assert line.startswith(("enter it now", "stay where you are")), (room, line)
+                else:
+                    assert line.startswith(f"{steps} step{'' if steps == 1 else 's'} short, ending "), (room, line)
+            ranked = [nearest(options, room) for room in pending["toward"]]
+            assert ranked == sorted(ranked), "the rooms are not nearest first"
+
+            room = ROOMS[moves % len(ROOMS)]
+            before = len(game.entries)
+            view = unwrap(await client.call_tool(
+                "clude_answer",
+                {"table_id": table_id, "seq": pending["seq"], "answer": {"toward": f" {room.lower()} "}},
+            ))
+            assert "error" not in view, view.get("error")
+            entry = game.entries[before]
+            assert entry["seat"] == 0 and entry["decision"] == "movement" and entry["by"] == "mcp"
+            assert set(entry["data"]) == {"move", "to"}, "toward reached the log"
+            assert board.room_distances(node_from_json(entry["data"]["to"]))[room] == nearest(options, room)
+            moves += 1
+    assert moves >= 3, "too few moves to check"  # each checks all nine rooms' lines
+
+
+async def test_toward_an_unknown_room_is_refused_and_a_move_named_outright_still_works(server, registry):
+    table_id = open_table(registry)
+    async with Client(server) as client:
+        unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
+        registry.deal(table_id)
+        game = registry.game(table_id)
+        view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
+        pending = view["pending"]
+        assert pending["kind"] == "movement"
+        before = len(game.entries)
+
+        refused = unwrap(await client.call_tool(
+            "clude_answer", {"table_id": table_id, "seq": pending["seq"], "answer": {"toward": "Cellar"}}
+        ))
+        assert "nine rooms" in refused["error"]
+        stale = unwrap(await client.call_tool(
+            "clude_answer", {"table_id": table_id, "seq": pending["seq"] + 1, "answer": {"toward": "Hall"}}
+        ))
+        assert "out of date" in stale["error"]
+        assert len(game.entries) == before and game.pending.kind == "movement"
+
+        option = game.snapshot.pending["options"][-1]
+        move = {"move": option["move"], "to": option["to"]}
+        view = unwrap(await client.call_tool(
+            "clude_answer", {"table_id": table_id, "seq": pending["seq"], "answer": move, "wait": False}
+        ))
+        assert "error" not in view, view.get("error")
+        assert game.entries[before]["data"] == move
+
+
+# --- waiting on a person (Phase 9f) ----------------------------------------------------------
+
+
+def a_person_next_door(registry):
+    """Scarlett's seat open for the chat seat, Mustard played by Ann
+    from a browser and seated next, White a character."""
+    seats = (
+        SeatSpec("Scarlett", "open"),
+        SeatSpec("Mustard", "human", ANN),
+        SeatSpec("White", "character", "White"),
+        SeatSpec("Plum", "character", "Plum"),
+    )
+    return registry.create(TableSetup(seats, SEED), started_by=ANN)
+
+
+async def test_a_reply_with_nothing_new_is_short_and_says_how_long_a_person_can_take(server, registry, monkeypatch):
+    """The chat seat's second report: four or five empty replies in a
+    row while David thought, each a whole view. One with nothing new now
+    leaves out the notepad and the seats, which cannot have changed, and
+    says how long a person can hold the table before the floor bot takes
+    their seat."""
+    monkeypatch.setattr(mcp, "POLL_SECONDS", 0.05)
+    table_id = a_person_next_door(registry)
+    async with Client(server) as client:
+        unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
+        registry.deal(table_id)
+        view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
+        while view["pending"] is not None:  # the chat seat's first turn, then Ann holds the table
+            view = unwrap(await client.call_tool(
+                "clude_answer",
+                {"table_id": table_id, "seq": view["pending"]["seq"], "answer": simple_answer(view["pending"])},
+            ))
+        assert not view["finished"]
+        cursor = view["n_events"]
+
+        idle = unwrap(await client.call_tool("clude_turn", {"table_id": table_id, "since": cursor}))
+        assert idle["events"] == [] and idle["pending"] is None and idle["n_events"] == cursor
+        assert idle["notepad"] == "unchanged" and idle["seats"] == "unchanged"
+        assert f"Mustard ({ANN})" in idle["waiting"]
+        assert f"the floor bot takes the seat at {tables.AUTOPILOT_AFTER:.0f} s" in idle["waiting"]
+        assert idle["me"]["hand"] and "note" not in idle and "board" not in idle
+
+        full = unwrap(await client.call_tool("clude_turn", {"table_id": table_id, "since": 0}))
+        assert isinstance(full["notepad"], dict) and isinstance(full["seats"], list)
+        # A cursor past the end is a conversation that has lost count: it gets everything.
+        lost = unwrap(await client.call_tool("clude_turn", {"table_id": table_id, "since": cursor + 50}))
+        assert lost["notepad"] == full["notepad"] and "board" in lost and "note" in lost
+
+
+async def test_the_notepad_goes_out_again_only_after_something_that_can_change_it(server, registry):
+    """Moves and table talk never change what the floor has proven; a
+    suggestion, a disproof, an accusation or the end may. Checked from
+    every cursor in a game well under way."""
+    table_id = open_table(registry)
+    async with Client(server) as client:
+        unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
+        registry.deal(table_id)
+        view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
+        for _ in range(30):
+            if view["finished"] or view["pending"] is None:
+                break
+            view = unwrap(await client.call_tool(
+                "clude_answer",
+                {"table_id": table_id, "seq": view["pending"]["seq"], "answer": simple_answer(view["pending"])},
+            ))
+    game = registry.game(table_id)
+    kinds = [line["kind"] for line in tables.view_payload(game, registry.document(table_id), 0)["events"]]
+    assert "suggestion" in kinds and "move" in kinds
+    seen = set()
+    for cursor in range(1, len(kinds) + 1):
+        view = mcp.seat_view(registry, table_id, game, 0, since=cursor)
+        quiet = all(kind in mcp.QUIET_KINDS for kind in kinds[cursor:])
+        assert (view["notepad"] == "unchanged") == quiet, (cursor, kinds[cursor:])
+        assert (view["seats"] == "unchanged") == quiet, cursor
+        if not quiet:
+            assert view["notepad"] == mcp.compact_notepad(game, 0)
+        seen.add(quiet)
+    assert seen == {True, False}
+
+
+async def test_one_call_holds_for_one_poll_at_most(server, registry, monkeypatch):
+    """`accuse` folded into a suggestion a person must disprove waited
+    twice -- for the accusation question, then for the next decision --
+    each a whole `POLL_SECONDS`, so at 60 s one call could hold two
+    minutes, near the 180 s a client was reported to allow. One deadline
+    now covers the call. Timed on a stand-in clock that moves a second
+    each time the table is found waiting, so the machine's speed never
+    matters."""
+    table_id = a_person_next_door(registry)
+    async with Client(server) as client:
+        unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
+        registry.deal(table_id)
+        game = registry.game(table_id)
+        registry.set_autopilot(table_id, game, 1, True)  # Ann plays by the stand-in until the suggestion
+        view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
+        held = set(game.state.hands[1])
+        for _ in range(400):
+            pending = view["pending"]
+            assert pending is not None and not view["finished"], "never reached a suggestion"
+            if pending["kind"] == "suggestion":
+                suspect = next((c for c in SUSPECTS if c in held), None)
+                weapon = next((c for c in WEAPONS if c in held), None)
+                if suspect or weapon:
+                    break
+            view = unwrap(await client.call_tool(
+                "clude_answer", {"table_id": table_id, "seq": pending["seq"], "answer": simple_answer(pending)}
+            ))
+        else:
+            raise AssertionError("never reached a suggestion Ann could disprove")
+
+        registry.set_autopilot(table_id, game, 1, False)  # now she keeps the table waiting
+        clock = [0.0]
+
+        def tick(_seconds):
+            clock[0] += 1.0
+
+        monkeypatch.setattr(mcp, "time", SimpleNamespace(monotonic=lambda: clock[0], sleep=tick))
+        monkeypatch.setattr(mcp, "POLL_SECONDS", 10.0)
+        folded = unwrap(await client.call_tool(
+            "clude_answer",
+            {"table_id": table_id, "seq": pending["seq"],
+             "answer": {"suspect": suspect or "Plum", "weapon": weapon or "Rope"}, "accuse": False},
+        ))
+    assert "not applied" in folded["notice"]
+    assert folded["pending"] is None and "show a card" in folded["waiting"]
+    assert clock[0] <= mcp.POLL_SECONDS + 1, f"one call held {clock[0]:.0f} s against a {mcp.POLL_SECONDS:.0f} s poll"
 
 
 # --- the combined app -------------------------------------------------------------------

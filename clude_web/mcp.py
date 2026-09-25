@@ -20,12 +20,14 @@ Three things about a chat player shape the design:
   the person a spinner, and every token of the reply is context the
   conversation never gets back: the first live game (2026-09-21) ran
   out of room at turn 30 on 9,000-token views. So the view is compact
-  -- one line per event and per card, names not seat numbers -- and
-  cut at a `since` cursor so a call returns only what is new; and
-  `clude_turn` long-polls (it drives the bot seats itself, one unit a
-  second, exactly as `table.js` does from a browser) and `clude_answer`
-  does the same after answering, so a turn is usually two calls, not
-  four: the move, then the suggestion with the accusation folded in.
+  -- one line per event and per card, names not seat numbers, one line
+  per room for a move -- and cut at a `since` cursor so a call returns
+  only what is new, the notepad and seats too when nothing new could
+  have changed them; and `clude_turn` long-polls (it drives the bot
+  seats itself, one unit a second, exactly as `table.js` does from a
+  browser) and `clude_answer` does the same after answering, so a turn
+  is usually two calls, not four: the move, then the suggestion with
+  the accusation folded in.
 - **Prone to retrying.** `clude_answer` is guarded by `seq`, which
   `TableGame.answer` refuses when stale, so a doubled submission is
   refused rather than applied twice.
@@ -59,15 +61,20 @@ from mcp.server.mcpserver.exceptions import ToolError
 import clude_constraints
 from clude_core import board
 from clude_core.domain import ROOMS, SUSPECTS, WEAPONS
+from clude_storage.records import node_from_json
 from clude_training.table import TableError, TableSetup
 
 from . import config, tables
 
 __all__ = ["build_server", "combined_app", "seat_view", "digest", "compact_notepad", "BOARD_PICTURE"]
 
-POLL_SECONDS = 25.0
-"""How long `clude_turn` holds the connection: under the client's own
-timeout, and well under Cloud Run's 300 s."""
+POLL_SECONDS = 60.0
+"""How long one call holds the connection, at most: `clude_turn`, and
+`clude_answer` with its waits together. Well under claude.ai's tool
+timeout (about 300 s documented, 180 s reported) and Cloud Run's 300 s.
+A person keeps the table waiting at most `tables.AUTOPILOT_AFTER`, so
+this is at most three idle replies a turn; it was 25 s, seven, until
+Phase 9f."""
 
 SLEEP_SECONDS = 1.0
 """The pause between two units of bot work while `clude_turn` waits:
@@ -76,6 +83,12 @@ drive the same work and neither starves the other."""
 
 MAX_EVENTS = 60
 """Event lines kept verbatim in a view; older ones become the digest."""
+
+QUIET_KINDS = frozenset({"move", "remark"})
+"""Event lines that cannot change what the floor has proven: the
+notepad moves only on suggestions, disproofs and accusations. A view
+whose new lines are all of these kinds says ``"unchanged"`` for the
+notepad and the seats rather than sending them again (Phase 9f)."""
 
 BOARD_PICTURE = board.BOARD_MAP + "\n" + board.BOARD_LEGEND
 """The board as the chat seat is shown it: the 25 x 24 picture and the
@@ -167,6 +180,80 @@ def compact_notepad(game, seat: int) -> dict:
     return pad
 
 
+def _best_by_room(options: list) -> dict:
+    """For each room, the movement option that leaves the token nearest
+    it, as ``room -> (steps, option)``: 0 steps when the option enters
+    it. `options` are the pending movement's, in `describe_request`'s
+    shape. Nearness is `board.room_distances`, the cached proximity the
+    characters and the floor bot score their moves with; a tie goes to
+    the lower `board.node_sort_key` and then the move's kind, so a room
+    beats a corridor square and the choice never depends on the order
+    the moves came in."""
+    best: dict = {}
+    for option in options:
+        node = node_from_json(option["to"])
+        steps = board.room_distances(node)
+        for room in ROOMS:
+            key = (steps[room], board.node_sort_key(node), option["move"])
+            if room not in best or key < best[room][0]:
+                best[room] = (key, option)
+    return {room: (key[0], option) for room, (key, option) in best.items()}
+
+
+def toward_lines(options: list) -> dict:
+    """The movement decision as the chat seat is shown it: one line per
+    room, nearest first, saying what the best move toward it does --
+    ``"enter it now"``, or ``"3 steps short, ending at row 13, col 19"``
+    (Phase 9f). This replaces the list of every legal move, each with
+    its nine-room distances, which averaged 1,800 characters and reached
+    4,700 (26 moves) in game b089937cb8; this is about 500 whatever the
+    roll."""
+    lines = {}
+    ranked = sorted(_best_by_room(options).items(), key=lambda item: (item[1][0], item[0]))
+    for room, (steps, option) in ranked:
+        if steps == 0:
+            lines[room] = {
+                "secret_passage": "enter it now, by the secret passage",
+                "stay": "stay where you are",
+            }.get(option["move"], "enter it now")
+            continue
+        node = node_from_json(option["to"])
+        where = f"in the {node}" if isinstance(node, str) else f"at row {node.row}, col {node.col}"
+        if option["move"] == "stay":
+            where += " (staying put)"
+        lines[room] = f"{steps} step{'' if steps == 1 else 's'} short, ending {where}"
+    return lines
+
+
+def _resolve_toward(game, seat: int, seq: int, answer):
+    """`answer` with ``{"toward": room}`` made into the move it stands
+    for: the option `toward_lines` described for that room, as
+    ``{"move", "to"}``, so the entry stored is an ordinary move and the
+    record, the rebuild and the replay never see `toward`.
+
+    Resolved against the snapshot only when it is this seat's movement
+    at `seq`; otherwise the answer goes on unchanged and
+    `TableGame.answer` refuses it as out of date or not this seat's,
+    which it checks before it looks at the answer's shape.
+
+    Raises
+    ------
+    TableError
+        `toward` names no room.
+    """
+    if not (isinstance(answer, dict) and "toward" in answer):
+        return answer
+    room = str(answer["toward"] or "").strip().title()
+    if room not in ROOMS:
+        raise TableError(f"toward names one of the nine rooms: {', '.join(ROOMS)}")
+    snap = game.snapshot
+    request = snap.pending
+    if request is None or request["seat"] != seat or request["kind"] != "movement" or snap.seq != seq:
+        return answer
+    _steps, option = _best_by_room(request["options"])[room]
+    return {"move": option["move"], "to": option["to"]}
+
+
 def seat_view(
     registry: tables.TableRegistry, table_id: str, game: tables.WebGame, seat: int, since: int = 0
 ) -> dict:
@@ -174,40 +261,56 @@ def seat_view(
     still complete: the screen's `view_payload` from that seat, then
     reshaped. Every seat is one line; every event since `since` is one
     line (capped at `MAX_EVENTS` from the end, the rest folded into
-    `digest`); `waiting` is a sentence; the movement options lose their
-    screen coordinates; the notepad is `compact_notepad`; and `note`
-    comes only with ``since=0``, the call a fresh conversation makes,
-    since a seat that has read it once carries it. What the screen needs and a
-    player does not -- `readings`, `tokens`, the spend, the debriefs,
-    the work flags -- is left out."""
+    `digest`); `waiting` is a sentence; a movement is `toward_lines`,
+    one line per room, rather than every legal move; the notepad is
+    `compact_notepad`; and `note` comes only with ``since=0``, the call
+    a fresh conversation makes, since a seat that has read it once
+    carries it. What the screen needs and a player does not --
+    `readings`, `tokens`, the spend, the debriefs, the work flags -- is
+    left out.
+
+    A reply whose new lines are all `QUIET_KINDS` (or that has none,
+    the seat waiting on a person) sends ``"unchanged"`` for the notepad
+    and the seats, which are most of a view and cannot have moved; a
+    cursor past the end of the log is taken as 0, so a conversation that
+    has lost count gets the whole picture rather than "unchanged"
+    (Phase 9f)."""
     document = registry.document(table_id) or {"id": table_id}
+    since = max(0, int(since or 0))
+    if since > game.snapshot.n_events:
+        since = 0
     view = tables.view_payload(
         game,
         document,
         seat,
-        since=max(0, int(since or 0)),
+        since=since,
         replay_url=_replay_path(document),
         waiting_for=registry.waiting_for(table_id, game),
     )
     lines = view.get("events") or []
     dropped = lines[:-MAX_EVENTS] if len(lines) > MAX_EVENTS else []
     kept = lines[-MAX_EVENTS:]
+    quiet = since > 0 and all(line["kind"] in QUIET_KINDS for line in lines)
 
     pending = view.get("pending")
     if pending is not None and pending.get("kind") == "movement":
-        pending = dict(pending)
-        pending["options"] = [
-            {key: option[key] for key in ("move", "to", "room", "distances")}
-            for option in pending["options"]
-        ]
+        pending = {key: value for key, value in pending.items() if key != "options"}
+        pending["toward"] = toward_lines(view["pending"]["options"])
 
     waiting = view.get("waiting")
     if waiting is not None:
         what = {"movement": "move", "suggestion": "suggest", "accusation": "decide whether to accuse"}.get(
             waiting["kind"], "show a card"
         )
+        details = []
+        if waiting["seconds"] >= 1:
+            details.append(f"{waiting['seconds']:.0f} s so far")
+        if game.kinds[waiting["seat"]] == "human" and not waiting["autopilot"]:
+            # The most a person can keep the table waiting, so a seat
+            # polling for its turn knows how long this can go on.
+            details.append(f"the floor bot takes the seat at {tables.AUTOPILOT_AFTER:.0f} s")
         waiting = f"Waiting for {waiting['name']} to {what}" + (
-            f" ({waiting['seconds']:.0f} s so far)" if waiting["seconds"] >= 1 else ""
+            f" ({'; '.join(details)})" if details else ""
         ) + (", on autopilot." if waiting["autopilot"] else ".")
 
     seats = []
@@ -230,13 +333,13 @@ def seat_view(
         "broken": view["broken"],
         "seq": view["seq"],
         "n_events": view["n_events"],
-        "seats": seats,
+        "seats": "unchanged" if quiet else seats,
         "digest": digest(game, dropped),
         "events": [f"{line['i']} (turn {line['turn']}) {line['text']}" for line in kept],
         "pending": pending,
         "waiting": waiting,
         "me": view["me"],
-        "notepad": compact_notepad(game, seat),
+        "notepad": "unchanged" if quiet else compact_notepad(game, seat),
         "over": view["over"],
     }
     refusals = [
@@ -248,7 +351,7 @@ def seat_view(
             "The table's model budget is spent. The characters are playing on with their own "
             "methods and have stopped talking; nothing else about the game changes."
         )
-    if since <= 0:
+    if since == 0:
         out["note"] = registry.note(table_id, seat)
         out["board"] = BOARD_PICTURE
     return out
@@ -354,10 +457,13 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         pending = game.pending
         return pending is not None and pending.seat == seat
 
-    def await_turn(table_id: str, game, seat: int) -> None:
+    def await_turn(table_id: str, game, seat: int, deadline: Optional[float] = None) -> None:
         """Drive the bots until the decision is this seat's, the game
-        ends, or `POLL_SECONDS` pass."""
-        deadline = time.monotonic() + POLL_SECONDS
+        ends, or `deadline` (`POLL_SECONDS` from now by default) passes.
+        A call that waits twice passes one deadline to both, so no call
+        holds longer than `POLL_SECONDS`."""
+        if deadline is None:
+            deadline = time.monotonic() + POLL_SECONDS
         while not (game.finished or game.broken or ours(game, seat)):
             if time.monotonic() >= deadline:
                 break
@@ -420,15 +526,20 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
     def clude_turn(table_id: str, since: int = 0) -> dict:
         """Wait for your turn, then return the decision waiting for you.
 
-        This call holds for up to half a minute while the other seats
-        play, so call it once and wait rather than calling it repeatedly.
-        It returns one of three things:
+        This call holds for up to a minute while the other seats play,
+        so call it once and wait rather than calling it repeatedly. It
+        returns one of three things:
 
         - `pending` set: a decision is yours. Answer it with clude_answer,
           passing back the `seq` you were given here.
-        - `pending` null and `finished` false: the table is still moving
-          (another person may be thinking, or you are on autopilot). Say
-          something with clude_say if you like, then call this again.
+        - `pending` null and `finished` false: someone else is still
+          deciding, and `waiting` says who and for how long. This is
+          normal, not a fault: a person can take a few minutes, and the
+          floor bot takes over a person's seat once they have kept the
+          table waiting three minutes, so it never goes on longer than
+          that. Just call this again with the same `since`; a reply with
+          nothing new in it is short. Say something with clude_say
+          meanwhile if you like.
         - `finished` true: the game is over; `over` holds the solution
           and who won.
 
@@ -440,24 +551,28 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         summarises anything cut from its front), `board` (the board
         picture and its legend) and `note` (whatever you last wrote with
         clude_note). The last two come only with since 0, so read them
-        then. `notepad` always
-        comes: the deduction sheet filled in for you from what is
-        logically certain -- for every card, who is proven to hold it, or
-        who still might (`envelope` included), plus `one_of`, the facts
-        of the form "X holds at least one of these", and `solution` once
-        the sheet has proven all three. A seat that could not disprove a
-        suggestion is already struck from those three cards.
+        then. `notepad` is the deduction sheet filled in for you from
+        what is logically certain -- for every card, who is proven to
+        hold it, or who still might (`envelope` included), plus `one_of`,
+        the facts of the form "X holds at least one of these", and
+        `solution` once the sheet has proven all three. A seat that could
+        not disprove a suggestion is already struck from those three
+        cards. When nothing since `since` could have changed them (only
+        moves and table talk), `notepad` and `seats` say "unchanged":
+        the ones you last saw still stand.
 
         If you keep the table waiting three minutes, the floor bot takes
         your seat (as if you had called clude_autopilot); take it back
         with clude_autopilot on false. If the table was ended by whoever
         made it, this call says so.
 
-        A movement decision arrives with its legal moves already
-        enumerated, each with the `room` it leads to and `distances`,
-        every room and how many steps away it would leave you -- so you
-        never have to work out what the board allows or do the
-        pathfinding yourself. A suggestion names the `room` you are
+        A movement decision arrives as `toward`: one line per room,
+        nearest first, saying what your best move toward it does with
+        this roll -- "enter it now", or "3 steps short, ending at row 13,
+        col 19". Steps measure nearness, not turns (a die averages 3.5).
+        Answer with the room you are heading for and the move is made for
+        you, so you never have to work out what the board allows or do
+        the pathfinding yourself. A suggestion names the `room` you are
         standing in; an accusation is free, any of the 21 cards.
         """
         game, seat = live(table_id)
@@ -482,10 +597,12 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
 
         The shape of `answer` depends on the decision's `kind`:
 
-        - movement: `{"move": ..., "to": ...}`, copied from one of the
-          listed `options` (each also names the `room` it leads to, or
-          null for a corridor square). Copy both fields from the same
-          option.
+        - movement: `{"toward": "Library"}`, a room from `toward`: you
+          enter it if this roll reaches it, and otherwise end where its
+          line says, as near it as the roll allows. (`{"move": "move",
+          "to": {"row": 13, "col": 19}}` also works, for any square this
+          roll reaches exactly or any room it reaches, if you want one
+          `toward` does not pick.)
         - suggestion: `{"suspect": "Plum", "weapon": "Rope"}`; the room
           is the one you are standing in (`room`). Pass null to make no
           suggestion.
@@ -514,9 +631,11 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         `since` as in clude_turn so only new events come back.
         """
         game, seat = live(table_id)
+        deadline = time.monotonic() + POLL_SECONDS
         notice = None
         try:
             _check_accuse(accuse)
+            answer = _resolve_toward(game, seat, int(seq), answer)
             registry.answer(table_id, game, seat, int(seq), answer, by="mcp")
             if accuse is not None:
                 # The accusation question ends the turn, but it rarely
@@ -526,7 +645,7 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
                 # table to this seat's next decision and answer it there
                 # (Phase 9d; before this, `accuse` was refused whenever
                 # anything at all fell between).
-                await_turn(table_id, game, seat)
+                await_turn(table_id, game, seat, deadline)
                 if ours(game, seat) and game.pending.kind == "accusation":
                     registry.answer(table_id, game, seat, game.seq, None if accuse is False else accuse, by="mcp")
                 else:
@@ -539,7 +658,7 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
             view["error"] = str(exc)
             return view
         if wait:
-            await_turn(table_id, game, seat)
+            await_turn(table_id, game, seat, deadline)
         view = seat_view(registry, table_id, game, seat, since=since)
         if notice:
             view["notice"] = notice
@@ -653,7 +772,7 @@ def combined_app(settings=None, secret: Optional[str] = None, account: Optional[
     on one thread, one at a time), so the game lock and the registry's
     threading model are unchanged from the threaded gunicorn worker. The
     MCP transport is stateless with JSON responses: no session to lose
-    when the instance scales to zero, and a 25 s long-poll is an ordinary
+    when the instance scales to zero, and a 60 s long-poll is an ordinary
     request. The SDK's localhost-only host check is switched off, since
     the secret path is the guard and the Host is Cloud Run's.
 
