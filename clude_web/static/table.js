@@ -473,8 +473,33 @@
       if (!spec.active) marks.push("out, accused wrongly");
       if (spec.autopilot) marks.push("autopilot");
       if (marks.length) article.appendChild(el("p", "method", marks.join(" · ")));
+      var bar = costBar(payload, spec.seat);
+      if (bar) article.appendChild(bar);
       seatsBox.appendChild(article);
     });
+  }
+
+  /* The one bar a seat's tab keeps for someone playing (Phase 9g): its
+     share of what the table has spent with Claude, the model seats'
+     calls and the logbook entries after the game. Only on a table with
+     model seats; a seat that cannot spend -- a person, the chat seat, a
+     floorbot, a headless character -- reads 0%. Solid rather than pale:
+     a cost is a fact, not a belief. */
+  function costBar(payload, seat) {
+    if (!payload.llm) return null;
+    var total = Number(payload.llm.spent || 0);
+    var dollars = Number((payload.llm.seats || {})[String(seat)] || 0);
+    var share = total > 0 ? dollars / total : 0;
+    var gauge = el("div", "gauge cost");
+    gauge.appendChild(el("span", "gname", "cost"));
+    var bar = el("span", "sure");
+    var fill = el("span", "sure-fill");
+    fill.style.width = (share * 100).toFixed(1) + "%";
+    bar.appendChild(fill);
+    bar.title = "$" + dollars.toFixed(2) + " of $" + total.toFixed(2) + " spent with Claude";
+    gauge.appendChild(bar);
+    gauge.appendChild(el("span", "pct", Math.round(share * 100) + "%"));
+    return gauge;
   }
 
   /* Who is watching without a seat. The line is absent unless somebody
@@ -534,6 +559,8 @@
         }
         article.appendChild(gauge);
       });
+      var bar = costBar(payload, r.seat);
+      if (bar) article.appendChild(bar);
       seatsBox.appendChild(article);
     });
   }

@@ -11,7 +11,14 @@ It boots the app on a spare port against a throwaway store seeded from
 real records, signs in, and writes a PNG per screen: the login, the
 lobby (including an LLM seat's memory dial), a run's games, a watched game as dealt and a few turns in, a
 table with a person at it on their move and a few answers later, a
-table waiting for players, and a replay at its start, middle and end.
+table with two model seats as a player and as a spectator sees it (each
+seat's share of the spend), a table waiting for players, and a replay
+at its start, middle and end.
+
+The model here never answers, so it never spends: the spend on the model
+table is seeded into the app's ledger, and the first game of the copied
+run is given a cost, so the cost bars and the games' cost column have
+something to show (Phase 9g).
 
 Usage
 -----
@@ -90,8 +97,19 @@ def seed_store(target: Path, source_uri: str, run: str, games: int) -> tuple:
     return store, picked, source.list_games(picked)[:games]
 
 
+def seed_cost(store, run: str) -> None:
+    """Give the throwaway copy's first game a cost, so the run page's
+    cost column shows a figure beside the dashes."""
+    summary = store.get_run(run)
+    games = sorted(summary.get("games", []), key=lambda g: g["game_index"])
+    if games:
+        games[0]["cost"] = 0.34
+        store.put_run(run, dict(summary, games=games))
+
+
 def serve(store_uri: str):
-    """Run the app on a spare port in a background thread."""
+    """Run the app on a spare port in a background thread. Returns the
+    server, its address and the app."""
     from clude_llm import NullBackend  # noqa: PLC0415
 
     # A stand-in key so the lobby shows its model seats; the backend
@@ -104,10 +122,24 @@ def serve(store_uri: str):
     server = make_server("127.0.0.1", port, app, handler_class=_Quiet)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
-    return server, f"http://127.0.0.1:{port}"
+    return server, f"http://127.0.0.1:{port}", app
 
 
-def shoot(base: str, run: str, index: int, out: Path, dark: bool, phone: bool) -> list:
+def spender(app):
+    """``table_id -> None``: what the model table's two model seats
+    (seats 1 and 3: White and Plum) would have spent, put in the app's
+    own ledger so its screens read it as they would a real spend."""
+    ledger = app.extensions["tables"].ledger
+
+    def spend(table_id: str) -> None:
+        if ledger.spent(table_id) == 0:
+            ledger.add(table_id, 0.14, 1)
+            ledger.add(table_id, 0.27, 3)
+
+    return spend
+
+
+def shoot(base: str, run: str, index: int, out: Path, dark: bool, phone: bool, spend=None) -> list:
     """Drive the app and write a PNG per screen. Returns their paths."""
     from playwright.sync_api import sync_playwright
 
@@ -204,6 +236,34 @@ def shoot(base: str, run: str, index: int, out: Path, dark: bool, phone: bool) -
                 )
                 save("table-later")
 
+                # A table with two model seats (Phase 9g): each seat's
+                # tab has one bar, its share of what the table has spent.
+                if spend is not None:
+                    page.goto(f"{base}/")
+                    for token, value in (("Scarlett", "me"), ("Mustard", "empty"), ("White", "llm"),
+                                         ("Green", "floor"), ("Peacock", "empty"), ("Plum", "llm")):
+                        page.select_option(f"#seat-{token}", value)
+                    page.fill("#table-seed", "7")
+                    page.click("#table-form button[type=submit]")
+                    page.wait_for_selector(".seat.compact.roster", timeout=20000)
+                    spend(page.url.rstrip("/").split("/")[-1])
+                    page.reload()
+                    page.wait_for_selector(".gauge.cost .pct", timeout=20000)
+                    save("table-cost")
+
+                    # And as a spectator: the same bar after the deduction bars.
+                    page.goto(f"{base}/")
+                    for token, value in (("Scarlett", "floor"), ("Mustard", "empty"), ("White", "llm"),
+                                         ("Green", "floor"), ("Peacock", "empty"), ("Plum", "llm")):
+                        page.select_option(f"#seat-{token}", value)
+                    page.fill("#table-seed", "7")
+                    page.click("#table-form button[type=submit]")
+                    page.wait_for_selector(".seat.compact .gauge", timeout=20000)
+                    spend(page.url.rstrip("/").split("/")[-1])
+                    page.reload()
+                    page.wait_for_selector(".gauge.cost .pct", timeout=20000)
+                    save("table-cost-watching")
+
                 # A table waiting for players.
                 page.goto(f"{base}/")
                 page.select_option("#seat-Scarlett", "me")
@@ -257,14 +317,15 @@ def main(argv=None) -> int:
 
     with tempfile.TemporaryDirectory(prefix="clude-shots-") as scratch:
         store_dir = Path(scratch) / "store"
-        _store, run, indexes = seed_store(store_dir, args.store, args.run, args.games)
+        store, run, indexes = seed_store(store_dir, args.store, args.run, args.games)
+        seed_cost(store, run)
         index = args.game if args.game in indexes else indexes[0]
-        server, base = serve(str(store_dir))
+        server, base, app = serve(str(store_dir))
         print(f"serving {store_dir} at {base}; shooting {run} game {index}")
         try:
             time.sleep(0.2)
             out = Path(args.out) if args.out else Path(scratch).parent / "clude-shots"
-            written = shoot(base, run, index, out, args.dark, args.phone)
+            written = shoot(base, run, index, out, args.dark, args.phone, spend=spender(app))
         finally:
             server.shutdown()
     for path in written:

@@ -240,8 +240,11 @@ select {
 .games th { color: var(--ink-soft); font-weight: 600; font-size: 0.8rem; }
 .games td:nth-child(4),
 .games td:nth-child(5),
+.games td:nth-child(6),
 .games th:nth-child(4),
-.games th:nth-child(5) { text-align: right; }
+.games th:nth-child(5),
+.games th:nth-child(6) { text-align: right; }
+.games td.cost { font-variant-numeric: tabular-nums; }
 
 /* --- watching a game (Direction D) ---------------------------------- */
 
@@ -345,6 +348,11 @@ select {
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
 }
+
+/* A seat's share of the table's spend (Phase 9g): no cells, and a solid
+   fill, since what was spent is a fact rather than a belief. */
+.gauge.cost { grid-template-columns: 4.6rem 1fr 2.4rem; }
+.gauge.cost .sure-fill { background: var(--ink-soft); opacity: 1; }
 
 .note {
   color: var(--ink-soft);
@@ -654,6 +662,10 @@ select {
   .lobby .knobs { grid-template-columns: minmax(0, 1fr); }
   .lobby .cast { grid-template-columns: minmax(0, 1fr); }
   .row { grid-template-columns: 5rem 1fr 0.6rem; font-size: 0.7rem; }
+  /* Six columns do not fit a phone: the suggestion count gives way to
+     the cost (Phase 9g). */
+  .games th:nth-child(5),
+  .games td:nth-child(5) { display: none; }
 }
 
 /* --- a table people play at (Phase 8.2) -------------------------------- */

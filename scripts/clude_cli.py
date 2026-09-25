@@ -1476,6 +1476,37 @@ def cmd_tables_abandon(args) -> int:
     return 0
 
 
+def cmd_tables_costs(args) -> int:
+    """What each finished web game with model seats cost (Phase 9g), and
+    for one recorded before costs were, the cost filled in from the
+    daily spend ledgers: into its record, the web run's line for it
+    (the lobby's list of games) and its table document. Prints what it
+    would do unless `--write`. A game still writing its logbook entries
+    is left for the app to settle when the last one is in."""
+    from clude_web.tables import TABLES_PREFIX, TableRegistry
+
+    store = open_store(args.uri)
+    print(f"store: {store.describe()}")
+    registry = TableRegistry(store)
+    found = 0
+    for table_id in store.list_docs(TABLES_PREFIX):
+        row = registry.backfill_cost(table_id, write=args.write)
+        if row is None:
+            continue
+        found += 1
+        split = "by seat" if row["seats"] else "no split by seat"
+        state = {
+            "recorded": "already recorded",
+            "writing": "still writing its logbook entries; left alone",
+            "missing": "not recorded; --write records it",
+            "written": "recorded now",
+        }[row["state"]]
+        print(f"  {row['table']}  {row['record']:<12} ${row['total']:.4f}  ({split})  {state}")
+    if not found:
+        print("no finished web games with model seats")
+    return 0
+
+
 def cmd_users_add(args) -> int:
     """Create an app account (Phase 8.1; docs/phase8.1-plan.md 3.4).
 
@@ -1823,7 +1854,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     tables_p = sub.add_parser(
         "tables",
-        help="The web app's tables: list the lobby, or end a table that should not go on.",
+        help="The web app's tables: list the lobby, end a table that should not go on, or list what games cost.",
     )
     tables_sub = tables_p.add_subparsers(dest="action", required=True)
     t_list = tables_sub.add_parser(
@@ -1838,6 +1869,15 @@ def build_parser() -> argparse.ArgumentParser:
     t_end.add_argument("table_id", help="The table's id, as the lobby's address shows it.")
     t_end.add_argument("--uri", default=WEB_STORE, help="Store location: the one the web app reads.")
     t_end.set_defaults(fn=cmd_tables_abandon)
+    t_costs = tables_sub.add_parser(
+        "costs",
+        help="What each finished web game with model seats cost; with --write, fill in the games "
+        "recorded before costs were, from the daily spend ledgers.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    t_costs.add_argument("--uri", default=WEB_STORE, help="Store location: the one the web app reads.")
+    t_costs.add_argument("--write", action="store_true", help="Record the missing costs; without it, only print.")
+    t_costs.set_defaults(fn=cmd_tables_costs)
 
     users_p = sub.add_parser(
         "users",

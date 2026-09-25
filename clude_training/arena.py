@@ -52,7 +52,7 @@ from __future__ import annotations
 
 import math
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from random import Random
 from typing import Optional
 
@@ -64,6 +64,7 @@ from clude_core import engine
 from clude_core.bots import RandomBot
 from clude_core.events import AccusationEvent, GameOverEvent
 from clude_llm import LLMCharacter, LLMSettings
+from clude_llm.anthropic_backend import estimate_cost
 from clude_storage.logbooks import Logbook
 from clude_storage.records import GameRecord, SeatRecord
 from clude_training import memory as method_memory
@@ -300,7 +301,9 @@ class PlayerStats:
 
 @dataclass(frozen=True)
 class GameSummary:
-    """One line per game for the run summary."""
+    """One line per game for the run summary. `cost` is what the game's
+    LLM seats spent, their logbook entries included, at list prices
+    (Phase 9g): None, and left out of the line, for a game with none."""
 
     game_index: int
     seed: int
@@ -311,9 +314,10 @@ class GameSummary:
     n_suggestions: int
     n_accusations: int
     hit_cap: bool
+    cost: Optional[float] = None
 
     def to_dict(self) -> dict:
-        return {
+        out = {
             "game_index": self.game_index,
             "seed": self.seed,
             "n_players": self.n_players,
@@ -324,6 +328,9 @@ class GameSummary:
             "n_accusations": self.n_accusations,
             "hit_cap": self.hit_cap,
         }
+        if self.cost is not None:
+            out["cost"] = self.cost
+        return out
 
 
 @dataclass
@@ -610,6 +617,28 @@ def seat_kind(label: str) -> str:
     return _kind_of(label)
 
 
+def _seat_costs(lineup, wrapped, characters, before: dict, model: str) -> dict:
+    """Seat -> dollars for this game's LLM seats: each wrapper's tokens
+    since `before` (its `summary()` when the game began, so a logbook
+    entry written since is included) at `model`'s list price (Phase 9g).
+    Empty for a game with no LLM seat, and when the model is unpriced."""
+    out = {}
+    for seat, label in enumerate(lineup):
+        if label not in wrapped:
+            continue
+        after = characters[label].summary()
+        cost = estimate_cost(
+            model,
+            after["input_tokens"] - before[label]["input_tokens"],
+            after["output_tokens"] - before[label]["output_tokens"],
+            after["cached_tokens"] - before[label]["cached_tokens"],
+        )
+        if cost is None:
+            return {}
+        out[seat] = round(cost, 6)
+    return out
+
+
 LLM_SUMMARY_KEYS: tuple = (
     "decisions", "singles", "llm_calls", "played", "fallbacks", "deviations", "remarks",
     "entries", "input_tokens", "output_tokens", "cached_tokens", "llm_seconds",
@@ -795,17 +824,17 @@ def run_arena(
                 )
             )
 
+        record = None
         if store is not None or logbook_store is not None:
             record = GameRecord.from_game(
                 run_id, g, game_seed, state, events, seats, llm_log=llm_log or None
             )
-            if store is not None:
-                store.put_game(run_id, g, record.to_dict())
             if logbook_store is not None and not logbooks_readonly:
                 # Each character writes to its logbook: method memory for the
                 # three that have it, and the model's entry for an LLM seat.
                 # The debrief comes before the stats below so its tokens land
-                # in this game's slice.
+                # in this game's slice, and before the record is stored so
+                # the record's cost includes it (Phase 9g).
                 for seat, label in enumerate(lineup):
                     if label not in logbooks:
                         continue
@@ -813,6 +842,14 @@ def run_arena(
                         stale.add(label)
                     if label in wrapped:
                         characters[label].debrief(record, seat)
+        seat_costs = _seat_costs(lineup, wrapped, characters, llm_before, llm_settings.model) if wrapped else {}
+        game_cost = round(sum(seat_costs.values()), 6) if seat_costs else None
+        if record is not None:
+            if seat_costs:
+                record.seats = [replace(s, cost=seat_costs[s.seat]) if s.seat in seat_costs else s for s in record.seats]
+                record.cost = game_cost
+            if store is not None:
+                store.put_game(run_id, g, record.to_dict())
 
         for seat, label in enumerate(lineup):
             kind = "llm" if label in wrapped else _kind_of(label)
@@ -841,6 +878,7 @@ def run_arena(
                 n_suggestions=len(state.suggestion_log),
                 n_accusations=len(state.accusation_log),
                 hit_cap=winner is None and any(state.active),
+                cost=game_cost,
             )
         )
     result.per_player = {

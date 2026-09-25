@@ -387,6 +387,31 @@ line, and past either cap the character plays on by itself and the
 line says so. Without a key the LLM option is disabled, submitted LLM seats are
 refused, and nothing reachable from the URL can spend.
 
+**What a game cost** (Phase 9g, `docs/phase9-plan.md` 8). Each call is
+also metered to its seat, in one document a table
+(`spend/tables/<id>.json`: the table's total and each seat's share,
+whatever the date). The table's budget is read from it, so a game that
+crosses midnight UTC (8 pm Eastern) keeps its budget; before 9g it
+started again. On a table with model seats each seat's tab has one bar,
+its share of the spend as a percent, solid because a cost is a fact:
+for a person playing, the only bar their roster has, and for a
+spectator, after the deduction bars. A seat that cannot spend -- a
+person, the chat seat, a floorbot, a headless character -- reads 0%. A
+chat seat over MCP gets the same split as one `cost` line on every
+reply. The characters are never told what they cost: nothing about it
+reaches a prompt or a logbook. The cost is recorded once the game is
+over *and* its logbook entries are written, since those calls are part
+of the bill -- over the first nine web games with model seats, 38% of
+it ($1.69 of $4.40). Then it goes on the table document
+(`llm.spent`, `llm.seats`, `llm.final`), on the record (`cost`, and
+`cost` on each model seat), and on the game's line in the web run's
+summary, which the lobby's list of games shows as its Cost column
+(a dash for a game with no model seat), with the run's total under
+"Stored games". Ending a table that is still writing its entries
+records what it spent so far. Games recorded before 9g are priced from
+the daily ledgers, with no split by seat, by `tables costs`
+(`docs/cli.md`).
+
 **Table talk** (8.3b). A seated person types a line under the log
 (`POST /tables/<id>/say`, at most 240 characters, control characters
 stripped); everyone reads it, every model seat hears it, and the engine
@@ -578,7 +603,7 @@ $P = '--project=clude-game'
 | `clude-run@clude-game` | The identity the service runs as. It holds **Storage Object Admin on `gs://clude-game-data`** and **Secret Accessor on `clude-flask-secret`**, and nothing else, so the most the internet-facing login page can ever expose is the game store. `clude-sa`, which is project owner, stays on Orbit. |
 | `clude-flask-secret` | The session secret, in Secret Manager, generated for the service and never the same as the local `.env` one. Handed to the app as `FLASK_SECRET_KEY`. |
 | `clude-mcp-secret` | The MCP endpoint's path segment (Phase 9), handed to the app as `CLUDE_MCP_SECRET`; `clude-run` holds Secret Accessor on it. Its value is the connector URL's last segment and nothing else guards the endpoint. |
-| `clude-anthropic-key` | The workspace-scoped Anthropic key, in Secret Manager since Phase 8.3a, handed to the app as `ANTHROPIC_API_KEY`; `clude-run` holds Secret Accessor on it. With it the lobby enables "X (LLM)" seats; the spend is capped per table (`CLUDE_WEB_LLM_BUDGET`, $2 by default, the form may change it) and per UTC day (`CLUDE_WEB_LLM_DAILY_CAP`, $10), and the ledger is `spend/<date>.json` in the store. |
+| `clude-anthropic-key` | The workspace-scoped Anthropic key, in Secret Manager since Phase 8.3a, handed to the app as `ANTHROPIC_API_KEY`; `clude-run` holds Secret Accessor on it. With it the lobby enables "X (LLM)" seats; the spend is capped per table (`CLUDE_WEB_LLM_BUDGET`, $2 by default, the form may change it) and per UTC day (`CLUDE_WEB_LLM_DAILY_CAP`, $10), and the ledger is `spend/<date>.json` in the store, with `spend/tables/<id>.json` per table since Phase 9g. |
 | `gs://clude-game-data/llm` | The service's store: a mirror of `data/llm`'s grid-era runs, cached traces and logbooks, plus the service's own accounts (`users/`), every table played or watched there (`tables/`), the games they became (`runs/web`) and the traces it computes. |
 | `cloud-run-source-deploy` | The Artifact Registry repository the builds go to, with a cleanup policy that keeps the 3 newest images. |
 

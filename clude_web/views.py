@@ -104,10 +104,19 @@ def run_listing(store) -> list:
                 "n_games": summary.get("n_games", len(summary.get("games", []))),
                 "roster": summary.get("roster", []),
                 "player_counts": summary.get("player_counts", []),
+                "cost": run_cost(summary.get("games", [])),
             }
         )
     runs.sort(key=lambda r: (r["run_id"] != tables.WEB_RUN, r["run_id"]))
     return runs
+
+
+def run_cost(games: list):
+    """What a run's games spent with Claude in all, from each game's
+    ``cost`` in the summary (Phase 9g), or None when no game records
+    one: a headless run, or one stored before costs were."""
+    costs = [float(g["cost"]) for g in games if g.get("cost") is not None]
+    return round(sum(costs), 6) if costs else None
 
 
 def _table_listing(me: str) -> list:
@@ -203,11 +212,13 @@ def run(run_id):
         summary = _store().get_run(run_id)
     except (KeyError, ValueError):
         abort(404)
+    games = sorted(summary.get("games", []), key=lambda g: g["game_index"])
     return render_template(
         "run.html",
         run_id=run_id,
         summary=summary,
-        games=sorted(summary.get("games", []), key=lambda g: g["game_index"]),
+        games=games,
+        cost=run_cost(games),
     )
 
 
@@ -286,6 +297,7 @@ def _payload(table_id: str, game, since: int = 0) -> dict:
         replay_url=_replay_url(document),
         waiting_for=registry.waiting_for(table_id, game),
         watching=registry.watching(table_id),
+        spend=registry.spend(table_id, document),
     )
 
 

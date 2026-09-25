@@ -212,4 +212,5 @@ def test_the_lobby_reads_summaries_in_parallel_and_keeps_its_order():
 
     listing = run_listing(Store())
     assert [r["run_id"] for r in listing] == ["web", "a-run", "b-run"]
-    assert listing[0] == {"run_id": "web", "n_games": 2, "roster": ["Plum"], "player_counts": [3]}
+    # No game line carries a cost, so the run has no total (Phase 9g).
+    assert listing[0] == {"run_id": "web", "n_games": 2, "roster": ["Plum"], "player_counts": [3], "cost": None}

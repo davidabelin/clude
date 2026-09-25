@@ -5,7 +5,8 @@ renumbering (2026-09-20), 9b built and 9c deployed with the first live
 game from the chat (2026-09-21), 9d the eight fixes after the second
 live game and 9e David's follow-ups (2026-09-22), all deployed as
 revision `clude-00010-knh` that evening; 9f the chat seat's report after
-the third live game (2026-09-25), **to deploy**.
+the third live game and 9g what a game cost (both 2026-09-25), **to
+deploy**.
 
 Section 8, "As implemented", is written as the work lands and **wins
 over the plan sections above it wherever they differ** -- read it
@@ -770,3 +771,117 @@ poll). 482 passed, 21 skipped; 501 passed, 2 skipped with browser tests
 enabled.
 
 **Not deployed.**
+
+### Phase 9g: what a game cost (2026-09-25)
+
+The table screen's "Model spend $X of $Y" (8.3a) was a hit, and David
+asked for more of it: the cost of each game in the lobby's list of
+games, recorded with the game's other data; each seat's share of it;
+and one bar back on the seat tabs, that seat's share as a percent.
+Settled with him while planning:
+
+- **Recorded with the game, never shown to the characters.** A game's
+  cost and its split go on the record and the run summary, not into a
+  logbook entry, and no prompt mentions cost. The bar is for users: a
+  person at the table or watching it, and an MCP player. (A draft put
+  the seat's cost in its logbook entry; David struck it.)
+- **Arena runs record a cost too**, from now on.
+- **The web games already played are priced from the daily ledgers**,
+  with no split by seat, since those never recorded seats.
+
+**A bug on the way.** `Ledger.spent(table_id)` read only today's
+document, and it was both the table's budget check and the figure on
+the screen. A game that crossed midnight UTC (8 pm Eastern, 5 pm
+Pacific) started its budget again at zero, and its screen froze at the
+pre-midnight figure. None of the nine web games with model seats so far
+crossed midnight, so no real game hit it.
+
+What was built:
+
+1. **A meter per table** (`clude_llm/metered.py`). `Ledger.add` takes
+   the seat, and besides the day's document writes one per table,
+   `spend/tables/<id>.json`: the total and each seat's share, whatever
+   the date. `Ledger.spent` reads it, which fixes the bug, and a
+   `Ledger` keeps the table documents it has read or written in memory
+   (one instance, one lock), so a poll never reads the store for them.
+   `MeteredBackend` takes `seat=`; `known_spent` is gone.
+   `Ledger.days_total` sums the daily documents, for the backfill.
+2. **`cost` on `GameRecord` and `SeatRecord`** (`clude_storage/records.py`),
+   and on the run summary's line (`GameSummary.cost` in the arena), each
+   written only when set: a game with no model seat has none, and every
+   headless record and summary reads exactly as it did. No version bump.
+3. **The web records it last** (`clude_web/tables.py`). A game's cost
+   is final only once its logbook entries are written, since those are
+   calls too, so `TableRegistry._settle_cost` runs:
+   - at `finish` when no entry is to be written (a table not
+     remembering);
+   - after the last `debrief_one`;
+   - or when a table still writing its entries is ended.
+
+   It reads the table's meter fresh and writes the total and the split
+   onto the table document (`llm.spent`, `llm.seats`, `llm.final`), the
+   record and its model seats, and the web run's line for the game
+   (`record_cost`, under the save lock). The replay's trace cache is
+   keyed by run and index, so rewriting the record leaves it alone. The
+   entries matter: over the nine games, the figure the table document
+   held until now (play only) came to $2.71 of the $4.40 the ledgers
+   show, so the logbook entries were 38% of the bill.
+4. **The arena** (`clude_training/arena.py`) runs its debriefs before
+   it stores the record, and prices each LLM seat from its token counts
+   since the game began, debrief included (`_seat_costs`, at the run's
+   model). `clude_llm/player.py` is untouched.
+5. **What users see.** `view_payload` takes `spend=`
+   (`TableRegistry.spend`) and gives `llm.spent` the table's total and
+   `llm.seats` the split. `table.js` adds one `.gauge.cost` row to each
+   seat's tab on a table with model seats (`costBar`): for a person
+   playing, the one bar the roster has (9e took the others away); for a
+   spectator, after the deduction bars. The fill is solid, not the pale
+   of a belief, and a seat that cannot spend reads 0%. The MCP view
+   gets `cost_line` as `cost` on every reply, "unchanged" or not, since
+   a move or a line of talk spends too: "Model spend $0.39 of $2.00:
+   Scarlett 41%, Peacock 59%; everyone else 0%." `clude_turn`'s
+   description says so. The lobby's list of games (`run.html`) has a
+   Cost column, a dash where there is none, and the run's total above
+   it; "Stored games" gives each run's total. At phone width the six
+   columns ran 11 px past the screen, so there the suggestion count
+   gives way to the cost.
+6. **`tables costs [--write]`** (`scripts/clude_cli.py`, over
+   `TableRegistry.backfill_cost`) lists every finished web game with
+   model seats and prices the ones recorded before 9g from the daily
+   ledgers, writing only with `--write`, and leaving a game still
+   writing its entries to the app. A dry run on the bucket found nine
+   such games, $0.13 to $1.03 each, $4.40 in all. The 8.3 live table
+   `1b31ccffd9` comes to $0.536, matching the $0.34 of play plus about
+   $0.20 of entries recorded at the time.
+
+Tests: `tests/test_cost.py`, 10 new; `tests/test_metered.py` 9 (from
+6); one browser test. `tests/test_cost.py` pins:
+- the split adding up to the total;
+- nothing recorded until the last entry is in, and then every figure
+  matching the ledger, entries included;
+- no cost in a logbook entry, and none on a game with no model seat;
+- a cold registry settling the same figures;
+- a table ended while writing its entries;
+- the lobby's column and total;
+- the MCP line, and that line on a quiet reply;
+- an arena record priced from its audits plus its entry;
+- the backfill, dry run and `--write`, on a game made to look older.
+
+`tests/test_metered.py` adds the split by seat, a budget across
+midnight (its third call is refused; before 9g it was allowed) and the
+daily sum. The browser test finds one bar per seat for a player and for
+a spectator, and none at a table with no model seat. `test_deploy.py`'s
+lobby listing gains its `cost` key. 495 passed, 22 skipped; 515 passed,
+2 skipped with browser tests enabled. `scripts/clude_shots.py` now
+shoots a model table as a player and as a spectator, with its spend
+seeded since the backend there never spends, and gives the copied run
+one cost.
+
+**Not deployed.** The nine older games are backfilled: `tables costs
+--uri gs://clude-game-data/llm --write`, run on 2026-09-25 with David's
+yes, recorded all nine ($4.40); a second run finds them "already
+recorded", and the records and the web run's lines agree. The service
+still on the old code ignores the new keys.
+Deploy with no model table in progress (there was none on 2026-09-25):
+the per-table meter starts at the deploy, so a table live across it
+would record only what it spent afterwards.

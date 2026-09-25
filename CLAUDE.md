@@ -17,7 +17,7 @@ the plan sections above it, and over this file if they disagree.
 
 Phases 1-8 are done, committed and deployed. Phase 9, a seat over MCP,
 is built: 9a-9e are live (revision `clude-00010-knh`, 2026-09-22), and
-**9f is built but not deployed**. Phase 10 is planned but not started;
+**9f and 9g are built but not deployed**. Phase 10 is planned but not started;
 Phase 11 is untouched.
 
 Each phase's record is the "as implemented" section of its plan doc
@@ -42,8 +42,20 @@ it also asked for, David declined. `docs/phase9-plan.md` 8 has it all,
 and a note that until 2026-09-25 the docs said 9d and 9e were undeployed
 when they had been live since 2026-09-22.
 
-Suite: 482 passed, 21 skipped, about two and a half minutes with
-`-n auto`; 501 passed and 2 skipped under `CLUDE_WEB_BROWSER=1`.
+Also waiting on a deploy: Phase 9g (2026-09-25), **what a game cost**.
+Every model call is now metered to its seat as well as its table
+(`spend/tables/<id>.json`). Once a game's logbook entries are written,
+its total and each model seat's share go on the record, the run
+summary (the lobby's Cost column) and the table document; the entries
+are about 38% of the bill. Each seat's tab shows its share as one bar,
+and an MCP player gets the same as a `cost` line. The characters are
+never told. A table's budget now holds across midnight UTC, where it
+used to start again. Arena runs record a cost too. The nine older web
+games were backfilled into the bucket on 2026-09-25 (`tables costs
+--write`, $4.40, no split by seat).
+
+Suite: 495 passed, 22 skipped, about two and a half minutes with
+`-n auto`; 515 passed and 2 skipped under `CLUDE_WEB_BROWSER=1`.
 
 **The road from here** (David renumbered it on 2026-09-16;
 `docs/phase-plan.md` has the table):
@@ -54,7 +66,7 @@ Suite: 482 passed, 21 skipped, about two and a half minutes with
 | 8.1 | 8.1a a basic UX scaffold as a local Flask app; 8.1b the same app on Cloud Run behind an app login | done: 8.1a built 2026-09-17 (steps 1-5: the engine seam, the login and accounts, the board and replay data, the replay scrubber, the lobby and Watch); 8.1b deployed 2026-09-18 (steps 6-9: the container, `store copy`, the service running as `clude-run`) -- `docs/phase8.1-plan.md`, `docs/web.md` |
 | 8.2 | Human players | done: 8.2a-c built 2026-09-18 (the table driver and `play --human`; the table on the web with open seats, autopilot, cold rebuild and "characters remember"); 8.2d deployed and live-checked 2026-09-19, the cold rebuild 0.1 s on a 3-turn table (`docs/phase8-plan.md` 12, `docs/web.md`) |
 | 8.3 | The rest of chat: the model on the web under a spend cap, human chat, off-turn talk with pacing, debriefs after web games | done: 8.3a-c built 2026-09-19 on fake backends, the key deployed and one live table played the same day (two model seats, chat, "remember"; $0.34, no fallbacks); 8.3d closed Phase 8 (`docs/phase8-plan.md` 12) |
-| 9 | A seat over MCP: a Claude in a chat window (claude.ai) plays one seat of a live table through an MCP server mounted beside the Flask app, on the same `TableRegistry` | built. 9a the plan and the renumbering (2026-09-20); 9b the server and the combined ASGI app, 9c deployed with the secret and the `claude` account, both 2026-09-21, and the first live game from the chat that evening; 9d the eight fixes after the second live game and 9e David's follow-ups, both 2026-09-22 and deployed that evening; 9f the chat seat's report after the third live game (2026-09-25), **to deploy** -- `docs/phase9-plan.md` 8 |
+| 9 | A seat over MCP: a Claude in a chat window (claude.ai) plays one seat of a live table through an MCP server mounted beside the Flask app, on the same `TableRegistry` | built. 9a the plan and the renumbering (2026-09-20); 9b the server and the combined ASGI app, 9c deployed with the secret and the `claude` account, both 2026-09-21, and the first live game from the chat that evening; 9d the eight fixes after the second live game and 9e David's follow-ups, both 2026-09-22 and deployed that evening; 9f the chat seat's report after the third live game and 9g what a game cost (both 2026-09-25), **to deploy** -- `docs/phase9-plan.md` 8 |
 | 10 | In-depth UX: the shippable look, "engraved, not brass-plated" | planned, not started. `docs/phase10-plan.md` proposed 2026-09-20, David's answers recorded 2026-09-21: D1-D4 and D6 settled, D5 (the logo) open until he sees the three alternates in 10a (was Phase 9 until 2026-09-20) |
 | 11 | Tweak, polish, release: clean-up and close, then version 1.0.0, released to family and friends, and planning in versions, not phases | not started (was Phase 10) |
 
@@ -165,7 +177,8 @@ Where things stand:
   and 8.0.2b on 2026-09-16 ($9.36 and $4.88, against a $21-35 quote):
   about $78 in all, with $0.22 more re-recording the fixtures for 8.0.4
   on 2026-09-18 and $0.34 for the 8.3 live table on 2026-09-19 (plus
-  its two debriefs, about $0.20). An LLM seat-game
+  its two debriefs, about $0.20). The nine web games with model seats
+  to 2026-09-24 came to $4.40, 38% of it logbook entries (Phase 9g). An LLM seat-game
   costs $0.07-0.11 for most characters and about $0.25 for Plum. Estimates have come in
   under twice: quote a range, not a point, and get a yes before any
   live run.
@@ -392,8 +405,8 @@ Built; the detail is in `docs/architecture.md`.
   (`NullBackend`, `ScriptedBackend`, `RecordingBackend`/`ReplayBackend`,
   `AnthropicBackend`), `LLMCharacter` (with `attach_logbook`,
   `read_back`, `debrief`, and `react` for off-turn talk), `logbook` (the
-  debrief prompt), `metered` (`MeteredBackend` and the daily `Ledger`,
-  the web's spend caps).
+  debrief prompt), `metered` (`MeteredBackend` and the `Ledger`, daily
+  and per table by seat: the web's spend caps and what a game cost).
 - `clude_web` -- the Flask app: `create_app`, `config` (secret, store,
   cookie policy), `auth` (the login gate, CSRF, rate limit), `users`
   (accounts as store documents), `board_svg` (the grid drawn from

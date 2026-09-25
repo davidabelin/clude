@@ -27,6 +27,13 @@ extend rather than replace.
 grid, where 1 and 2 wrote a ring cell as ``{room_a, room_b, k}``. A
 version-1 document loads
 unchanged, since it simply contains no remarks.
+
+What a game cost (Phase 9g) is ``cost`` on the record and on each model
+seat's `SeatRecord`, in dollars at list prices, and only on a game that
+had a model seat: written only when set, so every headless record reads
+exactly as it did and no version was needed. A web game's cost includes
+the logbook entries written after it, so its record is written again
+once the last of them is in (`clude_web.tables`).
 """
 from __future__ import annotations
 
@@ -203,6 +210,10 @@ class SeatRecord:
         The character's `Profile.to_dict()` at play time; None for bots.
     model : str or None
         The model id behind an ``"llm"`` seat; None otherwise.
+    cost : float or None
+        Dollars this seat's model spent on the game, its logbook entry
+        included (Phase 9g); None for a seat with no model, and for a
+        game recorded before costs were.
     """
 
     seat: int
@@ -211,9 +222,10 @@ class SeatRecord:
     kind: str
     profile: Optional[dict] = None
     model: Optional[str] = None
+    cost: Optional[float] = None
 
     def to_dict(self) -> dict:
-        return {
+        out = {
             "seat": self.seat,
             "suspect": self.suspect,
             "label": self.label,
@@ -221,6 +233,9 @@ class SeatRecord:
             "profile": self.profile,
             "model": self.model,
         }
+        if self.cost is not None:
+            out["cost"] = self.cost
+        return out
 
     @classmethod
     def from_dict(cls, data: dict) -> "SeatRecord":
@@ -231,6 +246,7 @@ class SeatRecord:
             kind=data["kind"],
             profile=data.get("profile"),
             model=data.get("model"),
+            cost=None if data.get("cost") is None else float(data["cost"]),
         )
 
 
@@ -264,6 +280,10 @@ class GameRecord:
         ISO-8601 UTC timestamp of when the record was built.
     version : int
         `RECORD_VERSION`, for future schema changes.
+    cost : float or None
+        Dollars the game's model seats spent, at list prices, their
+        logbook entries included (Phase 9g); None for a game with no
+        model seat, and for one recorded before costs were.
     """
 
     run_id: str
@@ -281,6 +301,7 @@ class GameRecord:
     llm_log: Optional[dict] = None
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     version: int = RECORD_VERSION
+    cost: Optional[float] = None
 
     @classmethod
     def from_game(
@@ -308,8 +329,8 @@ class GameRecord:
 
     def to_dict(self) -> dict:
         """JSON-ready copy (hand keys become strings, events are tagged
-        objects)."""
-        return {
+        objects). ``cost`` is written last, and only when it is set."""
+        out = {
             "version": self.version,
             "run_id": self.run_id,
             "game_index": self.game_index,
@@ -329,6 +350,9 @@ class GameRecord:
             ),
             "created_at": self.created_at,
         }
+        if self.cost is not None:
+            out["cost"] = self.cost
+        return out
 
     @classmethod
     def from_dict(cls, data: dict) -> "GameRecord":
@@ -352,4 +376,5 @@ class GameRecord:
             ),
             created_at=data.get("created_at", ""),
             version=int(data.get("version", RECORD_VERSION)),
+            cost=None if data.get("cost") is None else float(data["cost"]),
         )

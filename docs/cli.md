@@ -626,11 +626,12 @@ the head and method memory, and the entries too unless
 ## `tables`
 
 The web app's tables (Phase 8.2; `docs/web.md`, "The lobby"), for the
-two things a maintainer needs from outside the app:
+three things a maintainer needs from outside the app:
 
 ```
 tables list                    every table in the lobby: id, status, turn, who started it, the seats
 tables abandon TABLE_ID        end a table for good; it leaves the lobby and is not recorded
+tables costs [--write]         what each finished web game with model seats cost; fill in the older ones
 ```
 
 Each takes `--uri STORE`, defaulting to `data/llm`; on the deployed
@@ -639,6 +640,22 @@ status to `abandoned`: the lobby stops listing it, the app's own copy of
 the game is dropped, a chat seat over MCP is told the table was ended,
 and no record is written. In the app, anyone seated at a table or
 whoever started it has the same as an "End table" button.
+
+`tables costs` (Phase 9g) lists every finished web game with model
+seats: its table, its record (`web/<index>`), what it cost, whether that
+is split by seat, and whether the cost is recorded. The app records a
+game's cost itself once its logbook entries are in; a game finished
+before 9g has none, and this prices it from the daily spend ledgers,
+which have always had every call a table made, entries included. Those
+never recorded seats, so an older game has a total and no split. It
+only prints unless `--write`, which puts the total on the record, the
+web run's line for the game (the lobby's Cost column) and the table
+document. A game still writing its entries is left for the app.
+
+```
+tables costs --uri gs://clude-game-data/llm            # what it would record
+tables costs --uri gs://clude-game-data/llm --write    # record it
+```
 
 ## `users`
 

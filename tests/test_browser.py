@@ -491,3 +491,31 @@ def test_the_table_page_never_names_a_card_shown_between_others(page):
     for line in lines:
         if " showed " in line:
             assert line.startswith("Scarlett (browser) suggests") or "(browser) showed" in line, line
+
+
+def test_each_seat_tab_shows_its_share_of_the_cost_only_at_a_model_table(page):
+    """Phase 9g: one bar per seat's tab, that seat's share of what the
+    table has spent with Claude, for someone playing and for someone
+    watching; none at a table with no model seat. The model here never
+    answers, so every share is 0%."""
+    _deal_table(page, {"Scarlett": "me", "Plum": "llm", "White": "character",
+                       "Green": "empty", "Peacock": "empty", "Mustard": "empty"})
+    page.wait_for_selector(".seat.compact.roster .gauge.cost", timeout=20000)
+    assert page.locator(".seat.compact .gauge.cost").count() == 3
+    assert page.locator(".gauge.cost .pct").all_inner_texts() == ["0%"] * 3
+
+    # Watching a model table, the bar comes after each seat's deduction bars.
+    _deal_table(page, {"Scarlett": "floor", "Plum": "llm", "White": "character",
+                       "Green": "empty", "Peacock": "empty", "Mustard": "empty"})
+    page.wait_for_selector(".seat.compact .gauge.cost", timeout=20000)
+    assert page.locator(".seat.compact.roster").count() == 0, "a spectator got the roster"
+    assert page.locator(".seat.compact .gauge.cost").count() == 3
+    assert page.locator(".seat.compact .gauge:last-child").evaluate_all(
+        "gauges => gauges.every(g => g.classList.contains('cost'))"
+    )
+
+    _deal_table(page, {"Scarlett": "me", "Mustard": "character", "White": "character",
+                       "Green": "empty", "Peacock": "empty", "Plum": "empty"})
+    page.wait_for_selector("#autopilot", timeout=20000)
+    page.wait_for_selector(".seat.compact.roster", timeout=20000)
+    assert page.locator(".gauge.cost").count() == 0

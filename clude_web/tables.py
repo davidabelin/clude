@@ -42,6 +42,17 @@ past either the wrapper's fallback plays the headless character. Without
 a key (`LLMConfig` None) the lobby disables LLM seats and nothing
 here can spend.
 
+**What a game cost (Phase 9g).** Each model seat's backend is metered
+to its seat as well as its table (`Ledger.add`), so the screen shows the
+table's spend and each seat's share of it as they accrue, and a person
+at the table or an MCP player sees who is spending. The characters are
+never told. The cost is recorded once the game is over *and* its logbook
+entries are written -- those calls are part of what it cost -- by
+`TableRegistry._settle_cost`, the last thing written for a game: on the
+table document, on the record and each model seat of it, and on the web
+run's line for the game, which is where the lobby's list of games reads
+it.
+
 **A chat seat (Phase 9).** `clude_web.mcp` seats a Claude in a chat
 window through this same registry: an ordinary account in an ordinary
 human seat, answering with ``by="mcp"``. What it adds here is small: a
@@ -65,6 +76,7 @@ from __future__ import annotations
 import secrets
 import threading
 import time
+from dataclasses import replace
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -489,12 +501,18 @@ def view_payload(
     replay_url: Optional[str] = None,
     waiting_for: float = 0.0,
     watching: Optional[list] = None,
+    spend: Optional[dict] = None,
 ) -> dict:
     """Everything the table screen needs, from `viewer`'s seat, as one
     JSON-ready object: the seats, the tokens' points on the board, the
     event lines since `since`, the decision if it is the viewer's,
     what the game is waiting on otherwise, the viewer's hand and
     notepad, every seat's compact reading, and the ending.
+
+    `spend` is `TableRegistry.spend`: what the table's model seats have
+    spent in all and each seat's share, which ``llm`` carries as
+    ``spent`` and ``seats``; without it the figures stored on the
+    document are shown.
 
     Reads the driver's snapshot and never its lock, so a poll comes back
     while a turn is being played; the lines are cut at the snapshot's
@@ -600,10 +618,12 @@ def view_payload(
 
     llm = document.get("llm")
     if llm:
-        backends = [getattr(w, "backend", None) for w in game.wrappers.values()]
+        if spend is None:
+            spend = {"total": float(llm.get("spent", 0.0)), "seats": dict(llm.get("seats") or {})}
         llm = dict(
             llm,
-            spent=round(max([getattr(b, "known_spent", 0.0) for b in backends] + [float(llm.get("spent", 0.0))]), 4),
+            spent=round(float(spend["total"]), 4),
+            seats={str(seat): round(float(dollars), 4) for seat, dollars in spend["seats"].items()},
             refused={
                 str(seat): getattr(getattr(w, "backend", None), "last_refusal", None)
                 for seat, w in game.wrappers.items()
@@ -703,7 +723,7 @@ class TableRegistry:
     def __init__(self, store, llm: Optional[LLMConfig] = None) -> None:
         self.store = store
         self.llm = llm
-        self.ledger = Ledger(store) if llm is not None else None
+        self.ledger = Ledger(store)
         self._games: dict = {}
         self._lock = threading.Lock()
         self._building: dict = {}
@@ -750,7 +770,8 @@ class TableRegistry:
 
         def factory(seat: int):
             return MeteredBackend(
-                llm.make_backend(llm.model, llm.key), self.ledger, table_id, budget, llm.daily_cap, llm.model
+                llm.make_backend(llm.model, llm.key), self.ledger, table_id, budget, llm.daily_cap, llm.model,
+                seat=seat,
             )
 
         return factory
@@ -768,6 +789,21 @@ class TableRegistry:
         document["updated"] = _now()
         self.store.put_doc(table_key(document["id"]), document)
         return document
+
+    def spend(self, table_id: str, document: Optional[dict] = None) -> Optional[dict]:
+        """What the table's model seats have spent, as ``{"total",
+        "seats": {"<seat>": dollars}}``, or None for a table with no model
+        seat (Phase 9g). Read from the ledger's memory while the game can
+        still spend, so a poll never reads the store for it; from the
+        document once the cost is settled."""
+        if document is None:
+            document = self.document(table_id) or {}
+        llm = document.get("llm")
+        if not llm:
+            return None
+        if llm.get("final"):
+            return {"total": float(llm.get("spent", 0.0)), "seats": dict(llm.get("seats") or {})}
+        return self.ledger.table(table_id)
 
     def create(self, setup, started_by: Optional[str], budget: Optional[float] = None) -> str:
         """A new table. Deals at once when no seat is open; otherwise the
@@ -949,9 +985,10 @@ class TableRegistry:
         )
         if record_ref is not None:
             document["record"] = record_ref
-        if document.get("llm") and game.wrappers:
-            spent = max(getattr(w.backend, "known_spent", 0.0) for w in game.wrappers.values())
-            document["llm"]["spent"] = round(max(spent, float(document["llm"].get("spent", 0.0))), 4)
+        if document.get("llm") and not document["llm"].get("final"):
+            spend = self.ledger.table(table_id)
+            document["llm"]["spent"] = round(float(spend["total"]), 6)
+            document["llm"]["seats"] = spend["seats"]
         return self._put(document)
 
     def waiting_for(self, table_id: str, game: TableGame) -> float:
@@ -1206,6 +1243,11 @@ class TableRegistry:
         with self._lock:
             self._games.pop(table_id, None)
         self._pending_since.pop(table_id, None)
+        if document.get("record"):
+            # A finished game whose entries were still being written: it
+            # is recorded, so what it cost so far is its cost.
+            self._settle_cost(table_id)
+            document = self.document(table_id) or document
         return document
 
     def note(self, table_id: str, seat: int) -> str:
@@ -1289,6 +1331,8 @@ class TableRegistry:
         document = self.document(table_id) or document
         document.setdefault("debriefs", {})[str(seat)] = entry_state
         self._put(document)
+        if not pending_debriefs(document):
+            self._settle_cost(table_id)
         return seat
 
     # -- the end -----------------------------------------------------------
@@ -1356,13 +1400,106 @@ class TableRegistry:
                 table_id,
                 [seat for seat, kind in enumerate(game.kinds) if kind == "llm" and seat in game.wrappers],
             )
+        if not pending_debriefs(self.document(table_id) or {}):
+            self._settle_cost(table_id)
         return ref
+
+    def backfill_cost(self, table_id: str, write: bool = False) -> Optional[dict]:
+        """Price a finished game from the daily ledgers, for a web game
+        recorded before costs were (Phase 9g; ``tables costs`` on the
+        CLI). The daily documents have always had every call a table
+        made, logbook entries included, so the total is exact; the split
+        by seat is kept only when the table's own document, which began
+        with 9g, accounts for all of it. Returns ``{"table", "record",
+        "total", "seats", "state"}`` -- `state` one of ``"recorded"`` (it
+        already was), ``"writing"`` (its logbook entries are still
+        pending, so it is left alone), ``"missing"`` (to write) or
+        ``"written"`` -- or None for a table that is not a finished game
+        with model seats. Writes only with `write`."""
+        document = self.document(table_id)
+        if document is None or not document.get("record") or not document.get("llm"):
+            return None
+        ref = document["record"]
+        out = {"table": table_id, "record": f"{ref['run_id']}/{ref['index']}", "seats": None}
+        llm = document["llm"]
+        if llm.get("final"):
+            return dict(out, total=float(llm.get("spent", 0.0)), seats=llm.get("seats") or None, state="recorded")
+        total = self.ledger.days_total(table_id)
+        own = self.ledger.table(table_id, fresh=True)
+        seats = own["seats"] if own["seats"] and abs(float(own["total"]) - total) < 1e-6 else None
+        out.update(total=total, seats=seats)
+        if pending_debriefs(document):
+            return dict(out, state="writing")
+        if not write:
+            return dict(out, state="missing")
+        with _SAVE_LOCK:
+            record_cost(self.store, ref["run_id"], int(ref["index"]), total, seats)
+        document["llm"].update(spent=total, final=True)
+        if seats is not None:
+            document["llm"]["seats"] = seats
+        self._put(document)
+        return dict(out, state="written")
+
+    def _settle_cost(self, table_id: str) -> Optional[float]:
+        """Record what a finished game cost, once, as the last thing
+        written for it (Phase 9g): the table's total and each model
+        seat's share, read fresh from the ledger, on the table document
+        (``llm.spent``, ``llm.seats``, ``llm.final``), on the record and
+        its model seats, and on the web run's line for the game. Called
+        when the game is over and no logbook entry is left to write --
+        at `finish`, after the last `debrief_one`, or when a table still
+        writing its entries is ended -- since those entries are calls
+        too, and often most of the bill. A table with no model seat
+        records no cost. Returns the total, or None.
+        """
+        document = self.document(table_id)
+        if document is None or not document.get("record") or not document.get("llm"):
+            return None
+        llm = document["llm"]
+        if llm.get("final"):
+            return float(llm.get("spent", 0.0))
+        spend = self.ledger.table(table_id, fresh=True)
+        total = round(float(spend["total"]), 6)
+        seats = {str(seat): round(float(dollars), 6) for seat, dollars in spend["seats"].items()}
+        ref = document["record"]
+        with _SAVE_LOCK:
+            record_cost(self.store, ref["run_id"], int(ref["index"]), total, seats)
+        document = self.document(table_id) or document
+        document["llm"].update(spent=total, seats=seats, final=True)
+        self._put(document)
+        return total
 
 
 def pending_debriefs(document: dict) -> list:
     """The seats whose debrief is still to be written, in seat order."""
     debriefs = document.get("debriefs") or {}
     return sorted(int(seat) for seat, state in debriefs.items() if (state or {}).get("status") == "pending")
+
+
+def record_cost(store, run_id: str, index: int, total: float, seats: Optional[dict] = None) -> GameRecord:
+    """Write what a finished game cost into its record and into its line
+    of the run's summary, which the lobby's list of games reads (Phase
+    9g). `seats` maps ``"<seat>"`` to dollars and prices every ``llm``
+    seat of the record, one missing from it at 0; None leaves the seats
+    as they are, for a game whose split was never metered. Returns the
+    record as written."""
+    record = GameRecord.from_dict(store.get_game(run_id, index))
+    record.cost = round(float(total), 6)
+    if seats is not None:
+        record.seats = [
+            replace(s, cost=round(float(seats.get(str(s.seat), 0.0)), 6)) if s.kind == "llm" else s
+            for s in record.seats
+        ]
+    store.put_game(run_id, index, record.to_dict())
+    try:
+        summary = store.get_run(run_id)
+    except KeyError:
+        return record
+    for line in summary.get("games", []):
+        if int(line.get("game_index", -1)) == int(index):
+            line["cost"] = record.cost
+    store.put_run(run_id, summary)
+    return record
 
 
 def add_to_web_run(store, record: GameRecord, max_turns: int) -> None:
@@ -1394,6 +1531,7 @@ def add_to_web_run(store, record: GameRecord, max_turns: int) -> None:
             "n_suggestions": record.n_suggestions,
             "n_accusations": record.n_accusations,
             "hit_cap": record.winner is None and record.turns >= max_turns,
+            **({"cost": record.cost} if record.cost is not None else {}),
         }
     )
     summary["games"].sort(key=lambda g: g["game_index"])

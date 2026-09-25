@@ -66,7 +66,7 @@ from clude_training.table import TableError, TableSetup
 
 from . import config, tables
 
-__all__ = ["build_server", "combined_app", "seat_view", "digest", "compact_notepad", "BOARD_PICTURE"]
+__all__ = ["build_server", "combined_app", "seat_view", "digest", "compact_notepad", "cost_line", "BOARD_PICTURE"]
 
 POLL_SECONDS = 60.0
 """How long one call holds the connection, at most: `clude_turn`, and
@@ -266,8 +266,11 @@ def seat_view(
     `compact_notepad`; and `note` comes only with ``since=0``, the call
     a fresh conversation makes, since a seat that has read it once
     carries it. What the screen needs and a player does not --
-    `readings`, `tokens`, the spend, the debriefs, the work flags -- is
-    left out.
+    `readings`, `tokens`, the debriefs, the work flags -- is left out.
+    The spend comes as one `cost_line`, on a table with model seats,
+    since a player is shown who is spending as a person at the screen is
+    (Phase 9g); it comes on every reply, "unchanged" or not, because a
+    move or a line of table talk costs money too.
 
     A reply whose new lines are all `QUIET_KINDS` (or that has none,
     the seat waiting on a person) sends ``"unchanged"`` for the notepad
@@ -286,6 +289,7 @@ def seat_view(
         since=since,
         replay_url=_replay_path(document),
         waiting_for=registry.waiting_for(table_id, game),
+        spend=registry.spend(table_id, document),
     )
     lines = view.get("events") or []
     dropped = lines[:-MAX_EVENTS] if len(lines) > MAX_EVENTS else []
@@ -346,6 +350,9 @@ def seat_view(
         getattr(getattr(wrapper, "backend", None), "last_refusal", None)
         for wrapper in game.wrappers.values()
     ]
+    cost = cost_line(view)
+    if cost is not None:
+        out["cost"] = cost
     if any(refusals):
         out["models"] = (
             "The table's model budget is spent. The characters are playing on with their own "
@@ -355,6 +362,29 @@ def seat_view(
         out["note"] = registry.note(table_id, seat)
         out["board"] = BOARD_PICTURE
     return out
+
+
+def cost_line(view: dict) -> Optional[str]:
+    """What a table's model seats have spent with Claude and each seat's
+    share of it, in one line, or None for a table with no model seat
+    (Phase 9g): "Model spend $0.39 of $2.00: Scarlett 41%, Peacock 59%;
+    everyone else 0%." The one bar a person at the screen gets per seat,
+    in words. `view` is `tables.view_payload`'s."""
+    llm = view.get("llm")
+    if not llm:
+        return None
+    total = float(llm.get("spent") or 0.0)
+    line = f"Model spend ${total:.2f} of ${float(llm.get('budget') or 0.0):.2f}"
+    seats = llm.get("seats") or {}
+    shares = [
+        f"{spec['token']} {round(100 * float(seats[str(spec['seat'])]) / total)}%"
+        for spec in view["seats"]
+        if total > 0 and float(seats.get(str(spec["seat"]), 0.0)) > 0
+    ]
+    if not shares:
+        return line + "."
+    rest = "; everyone else 0%" if len(shares) < len(view["seats"]) else ""
+    return f"{line}: {', '.join(shares)}{rest}."
 
 
 def _replay_path(document: dict) -> Optional[str]:
@@ -559,7 +589,9 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         not disprove a suggestion is already struck from those three
         cards. When nothing since `since` could have changed them (only
         moves and table talk), `notepad` and `seats` say "unchanged":
-        the ones you last saw still stand.
+        the ones you last saw still stand. At a table with model
+        characters, `cost` says what they have spent with Claude so far
+        and each seat's share of it.
 
         If you keep the table waiting three minutes, the floor bot takes
         your seat (as if you had called clude_autopilot); take it back

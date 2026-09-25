@@ -71,9 +71,12 @@ answer with its audit and lines, so a cold instance replays the game
 without a call; the engine's `speakers` hook lands the lines where a
 player object's would. Every backend there is a
 `clude_llm.metered.MeteredBackend`: it prices each call with
-`estimate_cost`, keeps a daily ledger in the store (`spend/<date>.json`),
-and refuses -- as an error result the fallback absorbs -- an unpriced
-model, a table past its budget or a day past its cap.
+`estimate_cost`, keeps a daily ledger in the store (`spend/<date>.json`)
+and, since Phase 9g, one a table split by seat
+(`spend/tables/<id>.json`), and refuses -- as an error result the
+fallback absorbs -- an unpriced model, a table past its budget (on
+every day it was played) or a day past its cap. What a game cost is
+recorded with it, never shown to the model (`docs/web.md`).
 
 ## What the model is shown, and what it is not
 

@@ -141,6 +141,7 @@
               {{ r.n_games }} game{{ '' if r.n_games == 1 else 's' }}
               {% if r.player_counts %}&middot; {{ r.player_counts|join('/') }} seats{% endif %}
               {% if r.roster %}&middot; {{ r.roster|join(', ') }}{% endif %}
+              {% if r.cost is not none %}&middot; ${{ '%.2f'|format(r.cost) }} with Claude{% endif %}
             </span>
           </li>
         {% endfor %}

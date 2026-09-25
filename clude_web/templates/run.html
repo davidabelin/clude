@@ -7,12 +7,13 @@
   <p class="note">
     {{ games|length }} game{{ '' if games|length == 1 else 's' }}.
     {% if summary.roster %}Roster: {{ summary.roster|join(', ') }}.{% endif %}
+    {% if cost is not none %}Spent with Claude in all: ${{ '%.2f'|format(cost) }}.{% endif %}
     A game opens as a replay; the first open of each takes a few seconds.
   </p>
   {% if games %}
     <table class="games">
       <thead>
-        <tr><th>Game</th><th>Seats, in turn order</th><th>Winner</th><th>Turns</th><th>Suggestions</th></tr>
+        <tr><th>Game</th><th>Seats, in turn order</th><th>Winner</th><th>Turns</th><th>Suggestions</th><th>Cost</th></tr>
       </thead>
       <tbody>
         {% for g in games %}
@@ -26,6 +27,7 @@
             </td>
             <td>{{ g.turns }}</td>
             <td>{{ g.n_suggestions }}</td>
+            <td class="cost">{% if g.cost is number %}${{ '%.2f'|format(g.cost) }}{% else %}<span class="note" title="no LLM seat, or not recorded">&ndash;</span>{% endif %}</td>
           </tr>
         {% endfor %}
       </tbody>
