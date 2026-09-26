@@ -61,7 +61,7 @@ after which the floor bot plays that turn only, three in a row handing
 the seat over -- and the finding that the old three-minute hand-over
 never fired on a browser-only table, since nothing called `work` while
 a person's decision was pending; the certainty tag, every seat's name
-coloured blue-white-red by the bits it has gained, shown to everyone;
+coloured blue-white-red by the bits it has gained, shown to everyone, the chat seat included;
 Play and a speed slider on the replay; and the Legacy style, the look of
 Phases 8.1 to 9h frozen as the first entry of a per-account setting in
 the header bar. The replay trace's cached shape is version 2, so every
@@ -378,7 +378,7 @@ it; `docs/phase-plan.md` has the disposition of every file.
   the floor bot plays the rest of that turn and the seat stays the
   person's; three timed-out turns in a row hand it over as before.
   Chat does not count as acting. The certainty tag is shown to
-  everyone, players included, overriding the 2026-09-22 plain-roster
+  everyone, players and the chat seat included, overriding the 2026-09-22 plain-roster
   rule for this one number (the poker face); its scale is bits gained,
   0 at 1/324 and 1 at certain, raw rather than relative to any accuse
   threshold. The look is a per-account setting, Legacy the only entry

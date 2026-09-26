@@ -773,6 +773,7 @@ seat is on the table's clock like any human seat (Phase 9h): past the
 time-out on a decision the floor bot plays the rest of that turn, three
 such turns in a row hand the seat over, and `waiting` says the time-out;
 a speed table's 30 s is tight for a chat seat, and the docstring says so.
+It reads every seat's certainty too, at the end of each `seats` line.
 An ended table tells it so.
 
 **What the second live game changed** (game `7075f3ae29`, 2026-09-22;

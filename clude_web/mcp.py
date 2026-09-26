@@ -270,7 +270,9 @@ def seat_view(
     The spend comes as one `cost_line`, on a table with model seats,
     since a player is shown who is spending as a person at the screen is
     (Phase 9g); it comes on every reply, "unchanged" or not, because a
-    move or a line of table talk costs money too.
+    move or a line of table talk costs money too. Each seat's line ends
+    with its certainty (Phase 9h), the number behind the screen's
+    coloured name-tag, which only a non-quiet event can move.
 
     A reply whose new lines are all `QUIET_KINDS` (or that has none,
     the seat waiting on a person) sends ``"unchanged"`` for the notepad
@@ -327,6 +329,11 @@ def seat_view(
             line += ", on autopilot"
         if not spec["active"]:
             line += ", out (accused wrongly)"
+        if spec.get("certainty") is not None:
+            # The poker face (Phase 9h): everyone at the table sees how
+            # far each seat has come from guessing to knowing, and the
+            # chat seat is at the table too (David, 2026-09-26).
+            line += f", certainty {round(float(spec['certainty']) * 100)}%"
         seats.append(line)
 
     out = {
@@ -579,7 +586,10 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         the events after it come back; leave it at 0 in a fresh
         conversation and the whole picture does: `me` (your seat, token
         and hand, and `at`, where your token stands), `seats` (who is at
-        the table), `events` (the log, each line numbered; `digest`
+        the table, each with its `certainty`: how far that seat has come
+        from guessing to knowing, 0% a uniform guess over the 324
+        possible answers, 100% certain, 50% about one in 18 -- yours
+        included, from your notepad alone), `events` (the log, each line numbered; `digest`
         summarises anything cut from its front), `board` (the board
         picture and its legend) and `note` (whatever you last wrote with
         clude_note). The last two come only with since 0, so read them

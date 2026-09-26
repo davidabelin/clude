@@ -165,7 +165,9 @@ and dark, pale so the ink stays readable) and mixes them in two
 `color-mix` steps: cold to white over the first half, white to hot over
 the second. Each screen's key sentence says what the colour is.
 
-Not built: a certainty line in the MCP view.
+The chat seat reads it too: each line of `seats` in the MCP view ends
+with "certainty N%", and `clude_turn` explains the scale (David,
+2026-09-26, "fair's fair"; a first cut left it out as a screen thing).
 
 ### 9h.4 Play and speed on the replay
 
@@ -245,7 +247,7 @@ crowded the mark until it was let wrap.
 
 ## 5. Out of scope
 
-A live switch for speed mode; a certainty line in the MCP view; a
-`users style` CLI command; screenshots per style while there is one;
+A live switch for speed mode (David: leave it out); a `users style`
+CLI command (David: not until Phase 10, if then); screenshots per style while there is one;
 any change to a method, dial, preset, persona or `rules.md`; the deploy
 itself.

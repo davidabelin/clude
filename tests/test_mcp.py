@@ -210,7 +210,8 @@ async def test_a_whole_game_plays_through_the_tools(server, registry, store):
             assert "readings" not in view and "tokens" not in view
             assert view["me"]["seat"] == 0 and view["me"]["token"] == "Scarlett"
             assert set(view) >= {"events", "digest", "notepad", "note", "seats", "pending", "finished", "n_events"}
-            assert view["seats"][0] == f"Scarlett: {CLAUDE} (you)" and view["seats"][1] == "Mustard: character"
+            assert view["seats"][0].startswith(f"Scarlett: {CLAUDE} (you), certainty ")
+            assert view["seats"][1].startswith("Mustard: character, certainty ") and view["seats"][1].endswith("%")
             assert all(isinstance(line, str) for line in view["events"])
             assert set(view["notepad"]) == {"suspects", "weapons", "rooms", "one_of", "solution"}
             seen_hands.add(tuple(view["me"]["hand"]))
@@ -310,8 +311,12 @@ async def test_the_view_shows_only_this_seats_hand_and_no_readings(server, regis
         assert (lines[card] == "Peacock") == (obs.mask.holder_of(card) == 3)
     for card in game.state.hands[0]:
         assert lines[card] == "me"
-    assert view["seats"][3] == f"Peacock: {ANN}"
-    assert view["seats"][0] == f"Scarlett: {CLAUDE} (you)"
+    assert view["seats"][3].startswith(f"Peacock: {ANN}, certainty ")
+    assert view["seats"][0].startswith(f"Scarlett: {CLAUDE} (you), certainty ")
+    # Fair's fair (David, 2026-09-26): the chat seat reads every seat's
+    # certainty, the same number the screen colours the name-tags with.
+    numbers = [int(line.rsplit("certainty ", 1)[1].rstrip("%")) for line in view["seats"]]
+    assert all(0 <= n <= 100 for n in numbers) and numbers[0] > 0
 
 
 def card_lines(pad: dict) -> dict:
@@ -657,7 +662,7 @@ async def test_autopilot_hands_the_seat_to_the_stand_in_and_back(server, registr
         assert game.pending is None or game.pending.seat != 0
         view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
         assert view["me"]["autopilot"] is True
-        assert view["seats"][0].endswith("(you), on autopilot")
+        assert "(you), on autopilot" in view["seats"][0]
         assert view["pending"] is None
         off = unwrap(await client.call_tool("clude_autopilot", {"table_id": table_id, "on": False}))
         assert off["autopilot"] is False and "clude_turn" in off["message"]
