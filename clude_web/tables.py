@@ -62,10 +62,13 @@ more: a chat player is its own head (David, 2026-09-21; the "head" of
 the first deploy, a character's numbers beside the seat, is gone).
 
 **A table nobody is playing.** A human seat that keeps the table
-waiting `AUTOPILOT_AFTER` seconds is handed to the stand-in by the next
-unit of `work`, whoever drives it, and a seat put out by a wrong
-accusation is answered by the stand-in from then on (it only shows
-cards), so a person who left never stalls a table for good. A table
+waiting `TURN_TIMEOUT` seconds (`SPEED_TIMEOUT` at a speed table) has
+that turn played by the stand-in, by the next unit of `work`, whoever
+drives it; the seat stays the person's, and only `STRIKES` such turns
+in a row hand it over for good (Phase 9h; until then a stall of three
+minutes handed it over at once). A seat put out by a wrong accusation
+is answered by the stand-in from then on (it only shows cards), so a
+person who left never stalls a table for good. A table
 that should not go on at all is `abandon`ed: by anyone seated, by
 whoever started it, or from the CLI (`tables abandon`); it leaves the
 lobby and is never recorded. And a table is not dealt while an open
@@ -178,10 +181,22 @@ WORK_INTERVAL = 1.5
 """Seconds between two bot turns played by `work`: the table's beat, so
 a run of bot turns reads at a human pace rather than as one lump."""
 
-AUTOPILOT_AFTER = 180.0
-"""Seconds a human seat may keep the table waiting before `work` hands
-it to the stand-in (and before anyone seated may do so by hand). Ten
-minutes until 2026-09-21; three on David's word."""
+TURN_TIMEOUT = 90.0
+"""Seconds a human seat may keep the table waiting on one decision
+before `work` has the stand-in play the rest of that turn (Phase 9h).
+Table talk does not reset it. Until 9h a seat that stalled
+`AUTOPILOT_AFTER` (180 s; 600 s until 2026-09-21) went on autopilot
+for good; now `STRIKES` such turns in a row do."""
+
+SPEED_TIMEOUT = 30.0
+"""`TURN_TIMEOUT` at a table made in speed mode (the lobby's
+checkbox)."""
+
+STRIKES = 3
+"""Timed-out turns in a row after which the seat is handed to the
+stand-in as if its person had pressed the button (David, 2026-09-26):
+each timed-out turn costs the table the whole time-out, and someone
+who has gone should not cost it that every turn."""
 
 DEFAULT_MEMORY = "1"
 """Where a new LLM seat's memory-depth slider starts on the lobby form:
@@ -197,6 +212,12 @@ table. A table page polls every 4 s, or every 15 s with the tab hidden,
 so this outlasts a hidden tab and drops a closed one within a poll or
 two."""
 
+TYPING_FOR = 8.0
+"""Seconds a person's "is typing" mark lasts after their page last sent
+it (Phase 9h). The page pings every 4 s while the box holds text and
+clears the mark when it is emptied or sent, so a mark that outlives its
+typist is one whose page went away mid-sentence."""
+
 CATEGORIES = (("suspects", SUSPECTS), ("weapons", WEAPONS), ("rooms", ROOMS))
 
 _SAVE_LOCK = threading.Lock()
@@ -211,6 +232,20 @@ def _now() -> str:
 
 def table_key(table_id: str) -> str:
     return f"{TABLES_PREFIX}/{table_id}.json"
+
+
+def timeout_for(document) -> float:
+    """The table's time-out in seconds: what its document says, or
+    `TURN_TIMEOUT` for a table made before Phase 9h."""
+    try:
+        return float((document or {}).get("timeout") or TURN_TIMEOUT)
+    except (TypeError, ValueError):
+        return TURN_TIMEOUT
+
+
+def speed_from_form(form) -> bool:
+    """Whether the lobby form asked for speed mode (`SPEED_TIMEOUT`)."""
+    return str(form.get("speed", "0")).strip().lower() in ("1", "on", "true", "yes")
 
 
 # --- the form -------------------------------------------------------------
@@ -335,6 +370,8 @@ class WebGame(TableGame):
         self.reactions = chat.Reactions(self, lambda: seat_names(self))
         self._readings_at = -1
         self._readings: list = []
+        self._beliefs_at = -1
+        self._beliefs: dict = {}
 
     advance = TableGame.run
 
@@ -369,10 +406,35 @@ class WebGame(TableGame):
             return None
         return replay_data.suggestion_line(log[-1], self.suspects, reveal=False)
 
+    def beliefs(self) -> dict:
+        """Seat -> what a fresh agent of its label believes now, or None
+        for a seat with no method; cached per event-log length, since a
+        fresh Plum reading is most of a second and both the readings and
+        the certainties (Phase 9h) are made from it."""
+        n_events = len(self.events)
+        if n_events != self._beliefs_at:
+            self._beliefs = {
+                seat: self.fresh_belief(seat, label) if label in AGENT_SPECS else None
+                for seat, label in enumerate(self.table.labels)
+            }
+            self._beliefs_at = n_events
+        return self._beliefs
+
+    def certainties(self) -> list:
+        """Seat -> certainty, 0 to 1 (`replay_data.seat_certainty`,
+        Phase 9h): a character's from its fresh belief, a person's or the
+        floor bot's from the floor alone. Shown to everyone at the table
+        as the colour of the seat's name (David, 2026-09-26)."""
+        beliefs = self.beliefs()
+        return [
+            replay_data.seat_certainty(label, beliefs[seat], clude_constraints.observe(self.state, seat))
+            for seat, label in enumerate(self.table.labels)
+        ]
+
     def readings(self) -> list:
         """Each seat's compact bar: cards placed, and per category how
         many are placed, whether the answer is proven, and how sure the
-        seat's own method is. Names no card.
+        seat's own method is; and its certainty (Phase 9h). Names no card.
 
         Beliefs come from a fresh agent per reading, reset with the game
         seed -- never from the agent actually playing, whose RNG a
@@ -387,11 +449,11 @@ class WebGame(TableGame):
         if n_events == self._readings_at:
             return self._readings
         out = []
+        beliefs = self.beliefs()
+        certainties = self.certainties()
         for seat, label in enumerate(self.table.labels):
             obs = clude_constraints.observe(self.state, seat)
-            probabilities = {}
-            if label in AGENT_SPECS:
-                probabilities = self.fresh_belief(seat, label).probabilities
+            probabilities = beliefs[seat].probabilities if beliefs[seat] is not None else {}
             groups = []
             placed = 0
             for name, cards in CATEGORIES:
@@ -421,6 +483,7 @@ class WebGame(TableGame):
                     "placed": placed,
                     "total": len(ALL_CARDS),
                     "groups": groups,
+                    "certainty": certainties[seat],
                 }
             )
         self._readings_at, self._readings = n_events, out
@@ -502,12 +565,17 @@ def view_payload(
     waiting_for: float = 0.0,
     watching: Optional[list] = None,
     spend: Optional[dict] = None,
+    typing: Optional[list] = None,
 ) -> dict:
     """Everything the table screen needs, from `viewer`'s seat, as one
     JSON-ready object: the seats, the tokens' points on the board, the
     event lines since `since`, the decision if it is the viewer's,
     what the game is waiting on otherwise, the viewer's hand and
     notepad, every seat's compact reading, and the ending.
+
+    `typing` is `TableRegistry.typing`: the seats with a line on the
+    way, given to everyone as ``typing``, the names of every seat but
+    the viewer's own (Phase 9h).
 
     `spend` is `TableRegistry.spend`: what the table's model seats have
     spent in all and each seat's share, which ``llm`` carries as
@@ -521,6 +589,13 @@ def view_payload(
     snap = game.snapshot
     names = seat_names(game)
     autopilot = document.get("autopilot") or {}
+    strikes = document.get("strikes") or {}
+    timeout = timeout_for(document)
+    # Every seat's certainty, for every viewer (Phase 9h; David's call
+    # over the 2026-09-22 rule that a player learns nothing of the other
+    # seats: this one number is the poker face). Cached per event, so
+    # a poll pays for it once per move, not once per page.
+    certainties = game.certainties() if hasattr(game, "certainties") else []
     seats = [
         {
             "seat": seat,
@@ -530,6 +605,8 @@ def view_payload(
             "kind": game.kinds[seat],
             "active": bool(snap.active[seat]),
             "autopilot": bool(autopilot.get(str(seat))),
+            "strikes": int(strikes.get(str(seat), 0)),
+            "certainty": certainties[seat] if seat < len(certainties) else None,
             "me": seat == viewer,
         }
         for seat, token in enumerate(game.suspects)
@@ -588,6 +665,7 @@ def view_payload(
             "hand": sorted(game.state.hands[viewer]),
             "active": bool(snap.active[viewer]),
             "autopilot": bool(autopilot.get(str(viewer))),
+            "strikes": int(strikes.get(str(viewer), 0)),
             "at": node_to_json(snap.positions[viewer]),
         }
         pad = notepad(game, viewer)
@@ -645,6 +723,12 @@ def view_payload(
         "events": events,
         "pending": pending,
         "waiting": waiting,
+        # Work is due while the bots play, while a model seat decides,
+        # while a line waits to be said -- and once a person's time is up
+        # (Phase 9h): only `work` plays the timed-out turn, so the page
+        # that sees the deadline pass, the stalling player's own included,
+        # must post for it. Before 9h nothing did, and the hand-over never
+        # fired on a table with no chat seat driving `work`.
         "work": (
             wrapping_up
             or (
@@ -654,15 +738,14 @@ def view_payload(
                     snap.pending is None
                     or bool(waiting and waiting["model"] and not waiting["no_model"])
                     or game.reactions.pending
+                    or bool(waiting and not waiting["model"] and waiting_for >= timeout)
                 )
             )
         ),
         "chatter": game.reactions.pending,
         "debriefs": debriefs,
         "wrapping_up": wrapping_up,
-        "offer_autopilot": (
-            waiting is not None and not waiting["autopilot"] and waiting_for >= AUTOPILOT_AFTER
-        ),
+        "timeout": timeout,
         "me": me,
         "notepad": pad,
         # Deduction bars are for someone watching, not for someone
@@ -675,6 +758,10 @@ def view_payload(
         # unless somebody is there, so the gallery is absent from the
         # screen rather than sitting there saying nobody (Phase 9e).
         "watching": list(watching or []) if viewer is not None else [],
+        # Who has a line on the way (Phase 9h): a person typing, or a
+        # model seat with a reaction queued. Everyone sees it but the
+        # typist, who knows.
+        "typing": [names[seat] for seat in (typing or []) if seat != viewer],
         "over": over,
         "remember": game.setup.remember,
     }
@@ -730,6 +817,7 @@ class TableRegistry:
         self._last_work: dict = {}
         self._pending_since: dict = {}
         self._watchers: dict = {}
+        self._typing: dict = {}
 
     # -- the spectator gallery ------------------------------------------
 
@@ -758,6 +846,35 @@ class TableRegistry:
         live = {name: at for name, at in seen.items() if now - at < WATCHING_FOR}
         self._watchers[table_id] = live
         return [name for name, _ in sorted(live.items(), key=lambda item: (item[1], item[0]))]
+
+    # -- who is typing --------------------------------------------------
+
+    def seen_typing(self, table_id: str, seat: int, on: bool = True) -> None:
+        """Note that `seat`'s person has text in the chat box (Phase 9h),
+        or with `on` False that they emptied it. In memory like the
+        gallery, and for the same reason: it is true for seconds."""
+        marks = self._typing.setdefault(table_id, {})
+        if on:
+            marks[seat] = time.monotonic()
+        else:
+            marks.pop(seat, None)
+
+    def typing(self, table_id: str, game) -> list:
+        """The seats with a line on the way, in seat order: a person whose
+        mark is younger than `TYPING_FOR`, and a model seat with a
+        reaction queued for this turn (`clude_web.chat`), which is about
+        to say something or decide not to."""
+        now = time.monotonic()
+        marks = self._typing.get(table_id) or {}
+        live = {seat: at for seat, at in marks.items() if now - at < TYPING_FOR}
+        if marks:
+            self._typing[table_id] = live
+        seats = set(live)
+        reactions = getattr(game, "reactions", None)
+        if reactions is not None:
+            turn = game.state.turn
+            seats.update(r.seat for r in reactions.queue if r.turn == turn)
+        return sorted(seats)
 
     def _backend_factory(self, document: dict):
         """``seat -> MeteredBackend`` for a table with model seats, or None
@@ -805,12 +922,15 @@ class TableRegistry:
             return {"total": float(llm.get("spent", 0.0)), "seats": dict(llm.get("seats") or {})}
         return self.ledger.table(table_id)
 
-    def create(self, setup, started_by: Optional[str], budget: Optional[float] = None) -> str:
+    def create(
+        self, setup, started_by: Optional[str], budget: Optional[float] = None, speed: bool = False
+    ) -> str:
         """A new table. Deals at once when no seat is open; otherwise the
         table waits in the lobby for people to sit (`sit`, `deal`).
         `setup` may be a Watch setup (anything with `to_table_setup`).
         `budget` is the table's model spend in dollars, for a table with
-        ``llm`` seats.
+        ``llm`` seats. `speed` makes it a speed table: `SPEED_TIMEOUT`
+        rather than `TURN_TIMEOUT` a decision (Phase 9h).
 
         Raises
         ------
@@ -831,6 +951,8 @@ class TableRegistry:
             "turns": 0,
             "status": "open" if setup.open_seats else "playing",
             "autopilot": {},
+            "strikes": {},
+            "timeout": SPEED_TIMEOUT if speed else TURN_TIMEOUT,
             "started_by": started_by,
             "created": _now(),
             "updated": _now(),
@@ -1010,11 +1132,14 @@ class TableRegistry:
         the person a decision. A human seat that is out (a wrong
         accusation) is the stand-in's too, since all it can do is show
         cards; and a human seat that has kept the table waiting
-        `AUTOPILOT_AFTER` seconds is handed to the stand-in here, its
-        flag set as if its owner had pressed the button, so a person who
-        left never stalls a table for good (David, 2026-09-21). Never
-        waits for the lock. Returns what
+        the table's time-out on one decision has the rest of that turn
+        played by the stand-in here (Phase 9h; the seat stays the
+        person's), and `STRIKES` such turns in a row hand the seat over,
+        its flag set as if its owner had pressed the button, so a person
+        who left never stalls a table for good (David, 2026-09-21 and
+        2026-09-26). Never waits for the lock. Returns what
         happened: ``"busy"``, ``"waiting"``, ``"turn"``, ``"autopilot"``,
+        ``"timeout"`` (a turn the stand-in played on the clock),
         ``"model"`` (one decision by a model seat, Phase 8.3a),
         ``"reaction"`` (one off-turn line, 8.3b), ``"debrief"`` (one
         logbook entry after the game, 8.3c), ``"finished"`` or
@@ -1051,16 +1176,25 @@ class TableRegistry:
                     played = True
                 return played
 
-            def hand_over_if_stalled() -> bool:
-                """A human seat that has kept the table waiting too long
-                goes to the stand-in, flag and all."""
+            def time_out() -> bool:
+                """A human seat whose time on this decision is up has the
+                rest of its turn played by the stand-in -- every decision
+                until the game moves to another seat -- and a strike
+                against it; at `STRIKES` in a row the seat is handed over,
+                flag and all."""
                 pending = game.pending
                 if pending is None or game.kinds[pending.seat] != "human" or stands_in_for(pending.seat):
                     return False
-                if self.waiting_for(table_id, game) < AUTOPILOT_AFTER:
+                if self.waiting_for(table_id, game) < timeout_for(document):
                     return False
-                autopilot[str(pending.seat)] = True
-                document.setdefault("autopilot", {})[str(pending.seat)] = True
+                seat = pending.seat
+                while game.pending is not None and game.pending.seat == seat and not game.finished:
+                    game.autopilot(by="timeout")
+                strikes = document.setdefault("strikes", {})
+                strikes[str(seat)] = int(strikes.get(str(seat), 0)) + 1
+                if strikes[str(seat)] >= STRIKES:
+                    autopilot[str(seat)] = True
+                    document.setdefault("autopilot", {})[str(seat)] = True
                 self._put(document)
                 return True
 
@@ -1081,8 +1215,9 @@ class TableRegistry:
                 elif model_plays():
                     did = "model"
                     stand_in_plays()
-                elif hand_over_if_stalled() and stand_in_plays():
-                    did = "autopilot"
+                elif time_out():
+                    did = "timeout"
+                    stand_in_plays()
                 else:
                     did = "waiting"
             else:
@@ -1094,7 +1229,7 @@ class TableRegistry:
                     self._last_work[table_id] = now
                     did = "turn"
                     stand_in_plays()
-            if did in ("turn", "autopilot", "model"):
+            if did in ("turn", "autopilot", "model", "timeout"):
                 game.reactions.scan()
                 self._moved(table_id)
                 self.save(table_id, game)
@@ -1122,6 +1257,7 @@ class TableRegistry:
             game.remark(seat, line, "chat")
             game.reactions.scan()
             self.save(table_id, game)
+        self.seen_typing(table_id, seat, False)
         return line
 
     def answer(self, table_id: str, game: WebGame, seat: int, seq: int, data, by: str = "human") -> None:
@@ -1134,6 +1270,15 @@ class TableRegistry:
             self.save(table_id, game)
             if game.finished:
                 self.finish(table_id, game)
+        self._unstrike(table_id, seat)
+
+    def _unstrike(self, table_id: str, seat: int) -> None:
+        """A seat that answered for itself has no timed-out turns in a
+        row any more (Phase 9h)."""
+        document = self.document(table_id)
+        if document and int((document.get("strikes") or {}).get(str(seat), 0)):
+            document["strikes"][str(seat)] = 0
+            self._put(document)
 
     def set_autopilot(self, table_id: str, game: WebGame, seat: int, on: bool) -> dict:
         """Hand `seat` to the stand-in, or take it back. With it on and

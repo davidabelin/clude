@@ -1,21 +1,36 @@
 <!DOCTYPE html>
-<html lang="en">
+{% set style = current_style() %}
+<html lang="en" data-style="{{ style.key }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}clude{% endblock %}</title>
   <meta name="csrf" content="{{ csrf_token() }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename=style.stylesheet) }}">
 </head>
 <body>
   <header class="bar">
     <a class="mark" href="{{ url_for('main.index') }}">clude</a>
     {% if session.get('user') %}
-      <form method="post" action="{{ url_for('auth.logout') }}">
-        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-        <span class="who">{{ session['user'] }}</span>
-        <button type="submit" class="quiet">Sign out</button>
-      </form>
+      <div class="bar-right">
+        {# The look (Phase 9h): the account's choice, changed from any page, a table mid-game included. #}
+        <form method="post" action="{{ url_for('auth.style') }}" class="look">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="next" value="{{ request.full_path if request.query_string else request.path }}">
+          <label for="style">Look</label>
+          <select id="style" name="style">
+            {% for key, option in styles.items() %}
+              <option value="{{ key }}" {% if key == style.key %}selected{% endif %}>{{ option.title }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="quiet">Apply</button>
+        </form>
+        <form method="post" action="{{ url_for('auth.logout') }}">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <span class="who">{{ session['user'] }}</span>
+          <button type="submit" class="quiet">Sign out</button>
+        </form>
+      </div>
     {% endif %}
   </header>
   <main>

@@ -366,6 +366,9 @@ def test_a_bad_answer_is_refused_and_the_game_goes_on():
     game.autopilot()
     assert game.pending is not request
     assert game.entries[-1]["by"] == "autopilot"
+    if game.pending is not None:
+        game.autopilot(by="timeout")
+        assert game.entries[-1]["by"] == "timeout", "a timed-out turn says so in its entry (Phase 9h)"
 
 
 def test_a_card_the_seat_does_not_hold_is_refused():

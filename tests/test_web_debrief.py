@@ -59,8 +59,16 @@ class Factory:
 
 
 def _finish(app, ann, remember=None):
-    table_id = new_table(ann, SEATS, seed=SEED, remember=remember)
-    final = play_out(app, table_id, {ANN: ann})
+    # Off-turn talk waits 2-8 s to be due, and `play_out` spins its
+    # steps in memory: on a fast machine 4,000 polls pass in less, so
+    # the reactions are made immediate here.
+    from clude_web import chat
+    chat.delay, saved = (lambda rng: 0.0), chat.delay
+    try:
+        table_id = new_table(ann, SEATS, seed=SEED, remember=remember)
+        final = play_out(app, table_id, {ANN: ann})
+    finally:
+        chat.delay = saved
     assert final["finished"]
     return table_id, final
 

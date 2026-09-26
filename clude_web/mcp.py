@@ -72,9 +72,9 @@ POLL_SECONDS = 60.0
 """How long one call holds the connection, at most: `clude_turn`, and
 `clude_answer` with its waits together. Well under claude.ai's tool
 timeout (about 300 s documented, 180 s reported) and Cloud Run's 300 s.
-A person keeps the table waiting at most `tables.AUTOPILOT_AFTER`, so
-this is at most three idle replies a turn; it was 25 s, seven, until
-Phase 9f."""
+A person keeps the table waiting at most the table's time-out
+(`tables.TURN_TIMEOUT`, 90 s), so this is at most two idle replies a
+turn; it was 25 s, seven, until Phase 9f."""
 
 SLEEP_SECONDS = 1.0
 """The pause between two units of bot work while `clude_turn` waits:
@@ -312,7 +312,7 @@ def seat_view(
         if game.kinds[waiting["seat"]] == "human" and not waiting["autopilot"]:
             # The most a person can keep the table waiting, so a seat
             # polling for its turn knows how long this can go on.
-            details.append(f"the floor bot takes the seat at {tables.AUTOPILOT_AFTER:.0f} s")
+            details.append(f"the floor bot plays this turn at {view['timeout']:.0f} s")
         waiting = f"Waiting for {waiting['name']} to {what}" + (
             f" ({'; '.join(details)})" if details else ""
         ) + (", on autopilot." if waiting["autopilot"] else ".")
@@ -411,6 +411,7 @@ def _listing(document: dict, account: str) -> dict:
         "mine": mine is not None,
         "my_token": None if mine is None else setup.seats[mine].token,
         "my_autopilot": mine is not None and bool(autopilot.get(str(mine))),
+        "timeout": tables.timeout_for(document),
     }
 
 
@@ -564,10 +565,11 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
           passing back the `seq` you were given here.
         - `pending` null and `finished` false: someone else is still
           deciding, and `waiting` says who and for how long. This is
-          normal, not a fault: a person can take a few minutes, and the
-          floor bot takes over a person's seat once they have kept the
-          table waiting three minutes, so it never goes on longer than
-          that. Just call this again with the same `since`; a reply with
+          normal, not a fault: a person may think for a while, and the
+          floor bot plays a person's turn for them once they have kept
+          the table waiting the table's time-out (90 s; 30 s at a speed
+          table), so it never goes on longer than that. Just call this
+          again with the same `since`; a reply with
           nothing new in it is short. Say something with clude_say
           meanwhile if you like.
         - `finished` true: the game is over; `over` holds the solution
@@ -593,10 +595,13 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         characters, `cost` says what they have spent with Claude so far
         and each seat's share of it.
 
-        If you keep the table waiting three minutes, the floor bot takes
-        your seat (as if you had called clude_autopilot); take it back
-        with clude_autopilot on false. If the table was ended by whoever
-        made it, this call says so.
+        The same clock runs on you: keep the table waiting past its
+        time-out on a decision and the floor bot plays the rest of that
+        turn for you (the seat stays yours; `waiting` says the time-out);
+        three such turns in a row and it takes your seat as if you had
+        called clude_autopilot, which gives it back. A speed table's 30 s
+        is tight for a chat seat: answer promptly there. If the table was
+        ended by whoever made it, this call says so.
 
         A movement decision arrives as `toward`: one line per room,
         nearest first, saying what your best move toward it does with
@@ -748,8 +753,9 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         decision of yours: it plays only what is logically certain, so it
         will not win for you, but it never stalls the table, and your
         note stays yours. Write the note first. Pass `on` false to take
-        the seat back; then call clude_turn. A seat that keeps the table
-        waiting three minutes is handed over this way without asking.
+        the seat back; then call clude_turn. A seat that lets the clock
+        run out on three turns in a row is handed over this way without
+        asking.
         """
         game, seat = live(table_id)
         try:

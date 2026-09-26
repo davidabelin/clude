@@ -207,6 +207,27 @@ def test_plum_with_claude_plays_to_the_end_one_decision_per_work(tmp_path, store
     assert app.extensions["tables"].document(table_id)["llm"]["spent"] == pytest.approx(Ledger(store).spent(table_id), abs=1e-4)
 
 
+def test_a_model_seat_with_a_reaction_queued_reads_as_typing(tmp_path, store, monkeypatch):
+    """Phase 9h. The queue is what the table knows of a line on the
+    way: while Plum's reaction waits to be due he "is typing", and once
+    it is served (or the turn moves past it) he is not."""
+    from clude_web import chat
+    monkeypatch.setattr(chat, "delay", lambda rng: 3600.0)
+    monkeypatch.setattr(chat, "joins", lambda rng, p: True)
+    app = make_app(tmp_path, store, Factory())
+    ann = login(app, ANN)
+    table_id = new_table(ann, SEATS, seed=SEED)
+    assert poll(ann, table_id)["typing"] == []
+    assert ann.post(f"/tables/{table_id}/say", data={"csrf": csrf(ann), "text": "Good evening, all."}).status_code == 200
+    assert poll(ann, table_id)["typing"] == ["Plum"]
+    registry = app.extensions["tables"]
+    game = registry.game(table_id)
+    for reaction in game.reactions.queue:
+        reaction.due = 0.0
+    assert work(ann, table_id)["did"] == "reaction"
+    assert poll(ann, table_id)["typing"] == []
+
+
 def test_a_cold_registry_rebuilds_a_model_table_with_no_call(tmp_path, store, monkeypatch):
     # Off-turn talk is made certain and immediate, so the rebuild is proved
     # over a served reaction too (8.3d: the seat that said one must

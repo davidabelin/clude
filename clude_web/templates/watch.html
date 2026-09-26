@@ -48,7 +48,7 @@
       <div class="seats-compact">
         {% for r in readings %}
           <article class="seat compact{% if not r.active %} out{% endif %}" data-seat="{{ r.seat }}">
-            <h2>
+            <h2 class="tag" style="--certainty: {{ '%.3f'|format(r.certainty or 0) }}" title="certainty {{ ((r.certainty or 0) * 100)|round|int }}%">
               <span class="pip suspect-{{ r.suspect|lower }}"></span>
               {{ r.suspect }}
               {% if r.label != r.suspect %}<span class="who">({{ r.label }})</span>{% endif %}
@@ -84,7 +84,8 @@
     hand and whatever the deduction floor has proven -- as filled cells, and
     how sure its own method is of its best guess in each category. No card is
     named: every seat's hand, laid side by side, would give the answer away.
-    {{ limitation }}
+    A seat's name sits on its certainty, blue for clueless through white to
+    red for certain. {{ limitation }}
   </p>
 </div>
 {% endblock %}

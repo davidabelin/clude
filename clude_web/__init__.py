@@ -22,7 +22,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from clude_storage import open_store
 
-from . import auth, config, tables, views
+from . import auth, config, styles, tables, views
 
 __all__ = ["create_app"]
 
@@ -108,6 +108,8 @@ def create_app(settings=None) -> Flask:
         return response
 
     app.jinja_env.globals["csrf_token"] = auth.csrf_token
+    app.jinja_env.globals["current_style"] = auth.current_style
+    app.jinja_env.globals["styles"] = styles.STYLES
     app.before_request(auth.require_session)
     app.register_blueprint(auth.bp)
     app.register_blueprint(views.bp)

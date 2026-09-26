@@ -1,10 +1,15 @@
-/* clude's scaffold stylesheet: plain on purpose.
+/* The Legacy style: clude as it looked through Phase 9 (frozen
+ * 2026-09-26, Phase 9h), the scaffold stylesheet of Phases 8.1 to 9h,
+ * plain on purpose.
  *
- * Typography, ornament, the decorated board and its logo, and motion are
- * Phase 9 (docs/phase8.1-plan.md 1). What is here is the colour system
- * those screens will inherit: every colour is a variable, declared once
- * for light and once for dark, so Phase 9 restyles the app by changing
- * this block rather than hunting through templates.
+ * A style is one stylesheet (clude_web/styles.py): its colours, type,
+ * sizes and the board's dressing, each colour a variable declared once
+ * for light and once for dark. Every account picks its style and can
+ * change it at any time, from the header bar. This file is kept as it
+ * is: Phase 10's look ("engraved, not brass-plated") is a second file
+ * beside it and becomes the default, and Legacy stays on the list.
+ * board_svg.py sets no colour and draws the geometry; a style only
+ * dresses what it draws.
  */
 
 :root {
@@ -18,6 +23,14 @@
   --warn: #9b2226;
   --radius: 6px;
   --gap: 1rem;
+  /* The certainty tag (Phase 9h): a seat's name sits on a colour that
+     runs cold to hot as its certainty runs 0 to 1, through white at
+     one half. Pale stops, so the ink stays readable on all of them. */
+  --certainty: 0;
+  --certain-cold: #9cc1ee;
+  --certain-mid: #ffffff;
+  --certain-hot: #f08a95;
+  --certain-ink: #1b1b1f;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -30,6 +43,9 @@
     --accent: #c2596a;
     --accent-ink: #16161a;
     --warn: #f08a8a;
+    --certain-cold: #6f9fd8;
+    --certain-mid: #ece9e2;
+    --certain-hot: #e0687a;
   }
 }
 
@@ -57,6 +73,19 @@ body {
   align-items: center;
   gap: 0.5rem;
   margin: 0;
+}
+
+/* The right of the bar: the look picker (Phase 9h) and the sign-out. */
+.bar-right { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; justify-content: flex-end; }
+.bar .look label { margin: 0; font-size: 0.85rem; color: var(--ink-soft); }
+.bar .look select {
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  background: var(--page);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
 }
 
 .mark {
@@ -539,6 +568,22 @@ select {
   font-size: 1rem;
 }
 
+/* The name-tag coloured by certainty (Phase 9h): `--certainty` is set
+   on the heading by the screen, 0 to 1; the two mixes take it from cold
+   to white over the first half and white to hot over the second. */
+.seat h2.tag {
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius);
+  color: var(--certain-ink);
+  background: color-mix(
+    in oklab,
+    color-mix(in oklab, var(--certain-cold), var(--certain-mid) calc(min(1, 2 * var(--certainty)) * 100%)),
+    var(--certain-hot) calc(max(0, 2 * var(--certainty) - 1) * 100%)
+  );
+  transition: background 0.3s linear;
+}
+.seat h2.tag .who { color: inherit; opacity: 0.75; }
+
 .pip {
   width: 0.7rem;
   height: 0.7rem;
@@ -629,8 +674,22 @@ select {
 .scrubber {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.4rem;
 }
+
+/* Play and the speed slider (Phase 9h). The slider takes a short run
+   of its own; on a narrow screen the whole label wraps to a second row. */
+.scrubber #play { min-width: 4.2rem; }
+.scrubber .speed {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+.scrubber .speed input[type="range"] { flex: none; width: 7rem; }
 
 .scrubber button {
   margin-top: 0;
@@ -666,6 +725,11 @@ select {
      the cost (Phase 9g). */
   .games th:nth-child(5),
   .games td:nth-child(5) { display: none; }
+  /* The bar on a phone (Phase 9h): the look picker loses its word and
+     the right-hand group may take a second row under the mark. */
+  .bar { flex-wrap: wrap; gap: 0.5rem; }
+  .bar .look label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .bar-right { gap: 0.5rem; }
 }
 
 /* --- a table people play at (Phase 8.2) -------------------------------- */
@@ -764,6 +828,9 @@ button.warn[disabled] { opacity: 0.45; cursor: not-allowed; }
 .me-panel .buttons button { margin: 0; }
 
 .log-panel, .talk-panel { max-width: none; margin: 0; }
+
+/* "So-and-so is typing" under the talk (Phase 9h): one name at a time. */
+.talk-panel .typing { margin: 0.3rem 0 0; font-style: italic; }
 
 /* Both logs collapse. The heading is the handle, so it keeps its look
    and gains a marker and a pointer. */

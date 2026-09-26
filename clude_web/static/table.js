@@ -38,6 +38,7 @@
   var accuseHint = document.getElementById("accuse-hint");
   var sayForm = document.getElementById("say-form");
   var sayText = document.getElementById("say-text");
+  var typingLine = document.getElementById("typing");
   var seatsBox = document.getElementById("seats");
   var notepad = document.getElementById("notepad");
   var svg = document.querySelector("svg.board");
@@ -47,6 +48,7 @@
   var busy = false;
   var current = data;
   var renderedKey = null;
+  var receivedAt = Date.now();
   var accuseFields = null;
   var accuseButton = null;
 
@@ -108,6 +110,18 @@
     errorBox.hidden = !message;
   }
 
+  /* The certainty tag (Phase 9h): the seat's heading takes its colour
+     from `--certainty`, 0 (clueless) to 1 (certain), and says the number
+     on hover. Left plain when the server sent none. */
+  function tag(h2, certainty) {
+    if (certainty === null || certainty === undefined) return h2;
+    var c = Math.max(0, Math.min(1, Number(certainty)));
+    h2.className = (h2.className ? h2.className + " " : "") + "tag";
+    h2.style.setProperty("--certainty", c.toFixed(3));
+    h2.title = "certainty " + Math.round(c * 100) + "%";
+    return h2;
+  }
+
   function moveTokens(points) {
     Object.keys(points || {}).forEach(function (suspect) {
       var circle = tokens[suspect];
@@ -154,6 +168,22 @@
     appendTo(talk, said, "Nobody has said anything yet.");
   }
 
+  /* How long the seat the table waits on has left before the floor bot
+     plays its turn (Phase 9h): the server's count at the last payload
+     plus the time since, so the line ticks without a request. */
+  function secondsLeft(payload) {
+    var w = payload.waiting;
+    if (!w || w.model || w.autopilot || !payload.timeout) return null;
+    var elapsed = (w.seconds || 0) + (Date.now() - receivedAt) / 1000;
+    return Math.max(0, Math.ceil(payload.timeout - elapsed));
+  }
+
+  function clockText(payload) {
+    var left = secondsLeft(payload);
+    if (left === null) return "";
+    return " " + left + " s left" + (payload.waiting.seat === (payload.me || {}).seat ? " before the floor bot moves for you." : ".");
+  }
+
   function statusText(payload) {
     if (payload.broken) return "This table is broken: " + payload.broken;
     if (payload.over) {
@@ -168,13 +198,15 @@
       return ending;
     }
     if (payload.pending) {
+      var mine;
       switch (payload.pending.kind) {
-        case "movement": return "Your move.";
-        case "suggestion": return "You are in the " + payload.pending.room + ". Make a suggestion?";
-        case "accusation": return "Accuse, or pass?";
-        case "card_to_show": return payload.pending.shown_to_name + " named cards you hold. Show one.";
-        default: return "Your decision.";
+        case "movement": mine = "Your move."; break;
+        case "suggestion": mine = "You are in the " + payload.pending.room + ". Make a suggestion?"; break;
+        case "accusation": mine = "Accuse, or pass?"; break;
+        case "card_to_show": mine = payload.pending.shown_to_name + " named cards you hold. Show one."; break;
+        default: mine = "Your decision.";
       }
+      return mine + clockText(payload);
     }
     if (payload.waiting) {
       var w = payload.waiting;
@@ -182,7 +214,7 @@
       if (w.no_model) return w.name + " is an LLM character, but this server has no key; the table cannot go on.";
       if (w.model && w.refused) return w.name + "'s LLM budget is spent; its headless method plays on.";
       if (w.model) return w.name + " is thinking.";
-      return "Waiting for " + w.name + " to " + what + (w.autopilot ? " (on autopilot)" : "") + ".";
+      return "Waiting for " + w.name + " to " + what + (w.autopilot ? " (on autopilot)" : "") + "." + clockText(payload);
     }
     if (payload.chatter) return "The table is talking.";
     if (payload.work) return "The table is playing.";
@@ -219,12 +251,34 @@
       });
   }
 
+  /* "So-and-so is typing" at the other seats (Phase 9h): while the box
+     holds text the page tells the server so every 4 s, and once more
+     when it is emptied; sending the line clears it server-side. A ping
+     is fire-and-forget -- the next poll brings back who else is typing. */
+  var TYPING_PING = 4000;
+  var lastPing = 0;
+  var pingedOn = false;
+
+  function pingTyping(on) {
+    if (!urls.typing) return;
+    var now = Date.now();
+    if (on && pingedOn && now - lastPing < TYPING_PING) return;
+    if (!on && !pingedOn) return;
+    pingedOn = on;
+    lastPing = now;
+    post(urls.typing, { on: on ? "1" : "0" }).catch(function () {});
+  }
+
   if (sayForm) {
+    sayText.addEventListener("input", function () {
+      pingTyping(!!(sayText.value || "").trim());
+    });
     sayForm.addEventListener("submit", function (event) {
       event.preventDefault();
       var text = (sayText.value || "").trim();
       if (!text || busy) return;
       busy = true;
+      pingedOn = false;
       post(urls.say, { text: text, since: since })
         .then(function (payload) {
           sayText.value = "";
@@ -235,6 +289,43 @@
         .catch(function (err) { showError(err.message); })
         .then(function () { busy = false; });
     });
+  }
+
+  /* One name at a time under the talk: "Ann is typing...", and with
+     several on the way the line cycles through them every 2 s. */
+  var typingNames = [];
+  var typingIndex = 0;
+  var typingTimer = null;
+
+  function showTyping() {
+    if (!typingLine) return;
+    if (!typingNames.length) {
+      typingLine.hidden = true;
+      typingLine.textContent = "";
+      if (typingTimer) { window.clearInterval(typingTimer); typingTimer = null; }
+      return;
+    }
+    typingIndex = typingIndex % typingNames.length;
+    typingLine.textContent = typingNames[typingIndex] + " is typing\u2026";
+    typingLine.hidden = false;
+    if (typingNames.length > 1 && !typingTimer) {
+      typingTimer = window.setInterval(function () {
+        typingIndex = (typingIndex + 1) % Math.max(1, typingNames.length);
+        showTyping();
+      }, 2000);
+    } else if (typingNames.length <= 1 && typingTimer) {
+      window.clearInterval(typingTimer);
+      typingTimer = null;
+    }
+  }
+
+  function renderTyping(payload) {
+    var names = payload.typing || [];
+    if (names.join("|") !== typingNames.join("|")) {
+      typingNames = names.slice();
+      typingIndex = 0;
+    }
+    showTyping();
   }
 
   function select(name, items, label, value) {
@@ -439,6 +530,14 @@
       hand.appendChild(el("li", "card-chip", card.replace("_", " ")));
     });
     if (myToken) myToken.textContent = "(" + me.token + (me.active ? "" : ", out") + ")";
+    var strikesLine = document.getElementById("strikes");
+    if (strikesLine) {
+      var n = me.strikes || 0;
+      strikesLine.hidden = !n;
+      strikesLine.textContent = n
+        ? "The floor bot has played " + n + (n === 1 ? " turn" : " turns in a row") + " for you after the time-out; at three it keeps your seat until you take it back."
+        : "";
+    }
     if (autopilotButton) {
       autopilotButton.textContent = me.autopilot ? "Take my seat back" : "Let the floor bot play for me";
       autopilotButton.onclick = function () {
@@ -468,10 +567,11 @@
       else if (spec.me) who = "(you)";
       else if (spec.name !== spec.token) who = "(" + spec.name + ")";
       if (who) h2.appendChild(el("span", "who", who));
-      article.appendChild(h2);
+      article.appendChild(tag(h2, spec.certainty));
       var marks = [];
       if (!spec.active) marks.push("out, accused wrongly");
       if (spec.autopilot) marks.push("autopilot");
+      else if (spec.strikes) marks.push("timed out \u00d7" + spec.strikes);
       if (marks.length) article.appendChild(el("p", "method", marks.join(" · ")));
       var bar = costBar(payload, spec.seat);
       if (bar) article.appendChild(bar);
@@ -535,7 +635,7 @@
         h2.appendChild(el("span", "who", "(" + (seat.kind === "floor" ? "floorbot" : r.label) + (seat.me ? ", you" : "") + ")"));
       }
       h2.appendChild(el("span", "placed", r.placed + "/" + r.total));
-      article.appendChild(h2);
+      article.appendChild(tag(h2, r.certainty !== undefined ? r.certainty : seat.certainty));
       var method = r.method || (seat.kind === "human" ? "a person" : r.label);
       article.appendChild(el("p", "method", method + (r.active ? "" : " · out, accused wrongly") + (seat.autopilot ? " · autopilot" : "")));
       r.groups.forEach(function (g) {
@@ -604,6 +704,7 @@
 
   function render(payload) {
     current = payload;
+    receivedAt = Date.now();
     if (title) title.textContent = "Turn " + payload.turns;
     moveTokens(payload.tokens);
     appendEvents(payload.events);
@@ -615,6 +716,7 @@
     renderAccuse(payload.pending);
     renderHand(payload.me);
     renderWatching(payload);
+    renderTyping(payload);
     renderSeats(payload);
     renderNotepad(payload);
     if (payload.over && payload.over.replay && !payload.pending) {
@@ -642,6 +744,7 @@
   function interval() {
     if (current.finished && !current.work) return 0;
     if (current.work) return 1500;
+    if (current.typing && current.typing.length) return 3000;
     if (current.pending) return 10000;
     return 4000;
   }
@@ -668,12 +771,29 @@
       });
   }
 
+  /* The next poll lands at the deadline when the table waits on a
+     person (Phase 9h): the floor bot plays only inside a /work request,
+     so whichever page sees the time run out -- the stalling player's own
+     included -- posts for it rather than waiting a whole interval. */
+  function untilDeadline() {
+    var left = secondsLeft(current);
+    if (left === null) return null;
+    return Math.max(500, left * 1000 + 250);
+  }
+
   function schedule(delay) {
     if (timer) window.clearTimeout(timer);
     var wait = delay !== undefined ? delay : interval();
     if (!wait) return;
+    var deadline = delay === undefined ? untilDeadline() : null;
+    if (deadline !== null && deadline < wait) wait = deadline;
     timer = window.setTimeout(tick, wait);
   }
+
+  /* The status line's clock ticks once a second without a request. */
+  window.setInterval(function () {
+    if (status && current && secondsLeft(current) !== null) status.textContent = statusText(current);
+  }, 1000);
 
   document.addEventListener("visibilitychange", function () {
     if (!document.hidden) schedule(200);

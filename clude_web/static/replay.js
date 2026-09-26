@@ -19,6 +19,8 @@
   var scrub = document.getElementById("scrub");
   var stepLine = document.getElementById("step-line");
   var counter = document.getElementById("counter");
+  var playButton = document.getElementById("play");
+  var speed = document.getElementById("speed");
 
   /* suspect -> its circle on the board, looked up once. */
   var tokens = {};
@@ -32,9 +34,11 @@
   /* seat index -> { card -> {fill, row, mark} }, looked up once so a
      step is a few hundred style writes and no DOM searching. */
   var seats = {};
+  var headings = {};
   Array.prototype.forEach.call(
     document.querySelectorAll(".seat"),
     function (block) {
+      headings[block.getAttribute("data-seat")] = block.querySelector("h2");
       var rows = {};
       Array.prototype.forEach.call(
         block.querySelectorAll(".row"),
@@ -85,6 +89,13 @@
     if (!belief) return;
 
     belief.seats.forEach(function (seat) {
+      var h2 = headings[String(seat.seat)];
+      if (h2 && typeof seat.certainty === "number") {
+        /* The certainty tag (Phase 9h), as on the table screen. */
+        var c = Math.max(0, Math.min(1, seat.certainty));
+        h2.style.setProperty("--certainty", c.toFixed(3));
+        h2.title = "certainty " + Math.round(c * 100) + "%";
+      }
       var rows = seats[String(seat.seat)];
       if (!rows) return;
       Object.keys(rows).forEach(function (card) {
@@ -120,36 +131,100 @@
     draw(clamped);
   }
 
-  scrub.addEventListener("input", function () {
+  /* Play (Phase 9h): one step per tick, the tick set by the slider on a
+     log scale -- 2 s a step at its slowest, about 350 ms in the middle,
+     60 ms flat out -- and re-read at every step so a nudge takes at
+     once. Reaching the end pauses; Play at the end starts over; any hand
+     on the scrubber pauses. `scrub.value` stays the one source of truth. */
+  var playing = false;
+  var playTimer = null;
+
+  function stepMs() {
+    var v = speed ? Number(speed.value) : 50;
+    return 2000 * Math.pow(0.03, v / 100);
+  }
+
+  function showPlaying() {
+    if (!playButton) return;
+    playButton.textContent = playing ? "Pause" : "Play";
+    playButton.setAttribute("aria-pressed", playing ? "true" : "false");
+  }
+
+  function pause() {
+    playing = false;
+    if (playTimer) { window.clearTimeout(playTimer); playTimer = null; }
+    showPlaying();
+  }
+
+  function stepForward() {
+    playTimer = null;
+    if (!playing) return;
+    var next = Number(scrub.value) + 1;
+    if (next >= frames.length) { pause(); return; }
+    go(next);
+    if (next >= frames.length - 1) { pause(); return; }
+    playTimer = window.setTimeout(stepForward, stepMs());
+  }
+
+  function play() {
+    if (playing) return;
+    if (Number(scrub.value) >= frames.length - 1) go(0);
+    playing = true;
+    showPlaying();
+    playTimer = window.setTimeout(stepForward, stepMs());
+  }
+
+  function toggle() {
+    if (playing) pause(); else play();
+  }
+
+  if (playButton) playButton.addEventListener("click", toggle);
+
+  function byHand(fn) {
+    return function () { pause(); fn(); };
+  }
+
+  scrub.addEventListener("input", byHand(function () {
     draw(Number(scrub.value));
-  });
-  document.getElementById("first").addEventListener("click", function () {
+  }));
+  document.getElementById("first").addEventListener("click", byHand(function () {
     go(0);
-  });
-  document.getElementById("prev").addEventListener("click", function () {
+  }));
+  document.getElementById("prev").addEventListener("click", byHand(function () {
     go(Number(scrub.value) - 1);
-  });
-  document.getElementById("next").addEventListener("click", function () {
+  }));
+  document.getElementById("next").addEventListener("click", byHand(function () {
     go(Number(scrub.value) + 1);
-  });
-  document.getElementById("last").addEventListener("click", function () {
+  }));
+  document.getElementById("last").addEventListener("click", byHand(function () {
     go(frames.length - 1);
-  });
+  }));
 
   document.addEventListener("keydown", function (event) {
-    if (event.target && event.target.tagName === "INPUT" && event.target !== scrub) {
+    if (event.target && event.target.tagName === "INPUT" && event.target !== scrub && event.target !== speed) {
       return;
     }
+    if (event.key === " " || event.key === "Spacebar") {
+      if (event.target === playButton) return;  /* the button's own click follows */
+      toggle();
+      event.preventDefault();
+      return;
+    }
+    if (event.target === speed) return;
     if (event.key === "ArrowLeft") {
+      pause();
       go(Number(scrub.value) - 1);
       event.preventDefault();
     } else if (event.key === "ArrowRight") {
+      pause();
       go(Number(scrub.value) + 1);
       event.preventDefault();
     } else if (event.key === "Home") {
+      pause();
       go(0);
       event.preventDefault();
     } else if (event.key === "End") {
+      pause();
       go(frames.length - 1);
       event.preventDefault();
     }

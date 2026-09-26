@@ -173,6 +173,52 @@ def test_every_route_but_login_redirects_without_a_session(app, client):
     assert checked, "no private routes were checked"
 
 
+def test_every_page_wears_the_account_s_look_and_the_bar_can_change_it(app, store, client):
+    """Phase 9h. The chosen style is linked on every page and named on
+    the html element; the header bar's form changes it for the account
+    and sends the player back where they were; a bad key or a foreign
+    `next` is refused."""
+    from clude_web import styles, users
+
+    sign_in(client)
+    page = client.get("/").get_data(as_text=True)
+    assert 'data-style="legacy"' in page and "styles/legacy.css" in page
+    assert 'action="/style"' in page and '<option value="legacy" selected>Legacy</option>' in page
+    assert users.style_of(users.get_user(store, NAME)) == "legacy"
+    assert styles.style_named("no-such-look").key == styles.DEFAULT_STYLE
+
+    token = csrf_from(client)
+    bad = client.post("/style", data={"csrf": token, "style": "brass", "next": "/"})
+    assert bad.status_code == 400 and users.get_user(store, NAME)["style"] == "legacy"
+
+    ok = client.post("/style", data={"csrf": token, "style": "legacy", "next": "/replay/web-test/0?x=1"})
+    assert ok.status_code == 302 and ok.headers["Location"].endswith("/replay/web-test/0?x=1")
+    assert users.get_user(store, NAME)["style"] == "legacy"
+    with client.session_transaction() as session:
+        assert session["style"] == "legacy"
+
+    away = client.post("/style", data={"csrf": token, "style": "legacy", "next": "https://example.com/"})
+    assert away.status_code == 302 and away.headers["Location"].endswith("/")
+    assert "example.com" not in away.headers["Location"]
+
+    # An account made before there was a choice, and one whose stored
+    # key has gone from the list, both read as the default.
+    document = users.get_user(store, NAME)
+    del document["style"]
+    store.put_doc(users.user_key(NAME), document)
+    assert users.style_of(users.get_user(store, NAME)) == "legacy"
+    users.set_style(store, NAME, "legacy")
+    document["style"] = "gone"
+    store.put_doc(users.user_key(NAME), document)
+    assert users.style_of(users.get_user(store, NAME)) == "legacy"
+    with pytest.raises(ValueError):
+        users.set_style(store, NAME, "gone")
+
+    # Signed out, the login page still has a look, and no picker.
+    out = app.test_client().get("/login").get_data(as_text=True)
+    assert "styles/legacy.css" in out and 'action="/style"' not in out
+
+
 def test_the_login_page_itself_is_reachable(client):
     assert client.get("/login").status_code == 200
 
@@ -381,6 +427,7 @@ def test_a_replay_renders_its_board_seats_and_scrubber(app, store, client):
     assert text.count('class="board-room"') == 9
     assert text.count('class="seat"') == 3
     assert 'id="scrub"' in text
+    assert 'id="play"' in text and 'id="speed"' in text, "Play and the speed slider (Phase 9h)"
     assert "replay.js" in text
 
 

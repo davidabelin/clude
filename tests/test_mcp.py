@@ -870,7 +870,7 @@ async def test_a_reply_with_nothing_new_is_short_and_says_how_long_a_person_can_
         assert idle["events"] == [] and idle["pending"] is None and idle["n_events"] == cursor
         assert idle["notepad"] == "unchanged" and idle["seats"] == "unchanged"
         assert f"Mustard ({ANN})" in idle["waiting"]
-        assert f"the floor bot takes the seat at {tables.AUTOPILOT_AFTER:.0f} s" in idle["waiting"]
+        assert f"the floor bot plays this turn at {tables.TURN_TIMEOUT:.0f} s" in idle["waiting"]
         assert idle["me"]["hand"] and "note" not in idle and "board" not in idle
 
         full = unwrap(await client.call_tool("clude_turn", {"table_id": table_id, "since": 0}))

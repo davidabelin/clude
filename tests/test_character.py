@@ -13,8 +13,10 @@ import clude_constraints
 from clude_agents import AGENT_SPECS, ClueBelief, build_character
 from clude_agents.character import (
     Character,
+    N_TRIPLES,
     best_triple,
     cards_exposed,
+    certainty,
     ds_belief_confidence,
     probabilities_confidence,
     show_scores,
@@ -79,6 +81,23 @@ def test_best_triple_takes_the_product_of_category_maxima():
     assert p == pytest.approx(0.4)
     # Missing cards count as 0; a fully-tied category picks its first card.
     assert best_triple({})[0] == (SUSPECTS[0], WEAPONS[0], ROOMS[0])
+
+
+def test_certainty_is_the_fraction_of_the_bits_gained():
+    """Phase 9h: 0 at a uniform guess over the 324 triples, 1 at a
+    certain one, one half at about one triple in 18, and never outside
+    [0, 1] whatever the confidence."""
+    assert N_TRIPLES == 324
+    uniform = {c: 1 / 6 for c in SUSPECTS}
+    uniform.update({c: 1 / 6 for c in WEAPONS})
+    uniform.update({c: 1 / 9 for c in ROOMS})
+    assert certainty(uniform) == pytest.approx(0.0)
+    assert certainty({"Plum": 1.0, "Rope": 1.0, "Study": 1.0}) == pytest.approx(1.0)
+    assert certainty({"Plum": 1 / 2, "Rope": 1 / 3, "Study": 1 / 3}) == pytest.approx(0.5)
+    # Monotone in P(best triple), and clamped.
+    ladder = [certainty({"Plum": p, "Rope": 1.0, "Study": 1.0}) for p in (0.001, 0.01, 0.1, 0.5, 1.0)]
+    assert ladder == sorted(ladder) and ladder[0] == 0.0
+    assert certainty({}) == 0.0 and certainty({"Plum": 2.0, "Rope": 2.0, "Study": 2.0}) == 1.0
 
 
 def test_never_accuses_below_its_threshold_and_always_on_proof():

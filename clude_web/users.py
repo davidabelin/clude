@@ -28,6 +28,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from clude_storage.stores import validate_run_id
 
+from . import styles
+
 USERS_PREFIX = "users"
 """Folder holding the account documents, beside `runs/` and `games/`."""
 
@@ -46,9 +48,11 @@ family and friends, so convenience beats secrecy here (David,
 change once, after their first login (`clude_web.auth.password`); after
 that only `clude_cli.py users passwd` can change it."""
 
-DOCUMENT_VERSION = 2
-"""1 was the first shape; 2 added `password_prompted`. A version 1
-account simply reads as never having been offered the change."""
+DOCUMENT_VERSION = 3
+"""1 was the first shape; 2 added `password_prompted`; 3 added `style`
+(Phase 9h). A version 1 account simply reads as never having been
+offered the change, and an account without `style` as on the default
+look."""
 
 
 def normalise(name: str) -> str:
@@ -128,6 +132,7 @@ def add_user(store, name: str, password: str = DEFAULT_PASSWORD) -> dict:
         "password_hash": generate_password_hash(password),
         "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "password_prompted": False,
+        "style": styles.DEFAULT_STYLE,
     }
     store.put_doc(user_key(key), document)
     return document
@@ -161,6 +166,31 @@ def mark_password_prompted(store, name: str) -> dict:
     if document is None:
         raise ValueError(f"no such user: {name!r}")
     document["password_prompted"] = True
+    store.put_doc(user_key(name), document)
+    return document
+
+
+def style_of(document) -> str:
+    """The key of the look this account chose (Phase 9h): the default
+    for an account made before there was a choice, and for a stored key
+    no longer on the list."""
+    return styles.style_named((document or {}).get("style")).key
+
+
+def set_style(store, name: str, key: str) -> dict:
+    """Record the look `name` chose; returns the updated document.
+
+    Raises
+    ------
+    ValueError
+        No such account, or no such style.
+    """
+    document = get_user(store, name)
+    if document is None:
+        raise ValueError(f"no such user: {name!r}")
+    if not styles.is_style(key):
+        raise ValueError(f"no such style: {key!r}")
+    document["style"] = styles.style_named(key).key
     store.put_doc(user_key(name), document)
     return document
 

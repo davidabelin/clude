@@ -28,6 +28,8 @@ from datetime import datetime, timezone
 
 import clude_constraints
 from clude_agents import AGENT_SPECS, build_agent
+from clude_agents.base import mask_and_normalize
+from clude_agents.character import certainty
 from clude_core import board
 from clude_core.domain import ALL_CARDS, ROOMS, SUSPECTS, WEAPONS
 from clude_core.events import (
@@ -40,9 +42,10 @@ from clude_core.events import (
 from clude_training.replay import state_from_record
 from clude_training.self_play import truncate_state
 
-TRACE_VERSION = 1
+TRACE_VERSION = 2
 """Bumped when the cached document's shape changes, so a stale cache is
-rebuilt rather than misread."""
+rebuilt rather than misread. 2 added each seat's `certainty` per frame
+(Phase 9h)."""
 
 TRACE_LIMITATION = (
     "White's and Green's bars are a stateless reading of the evidence, not "
@@ -195,6 +198,21 @@ def seat_method(label: str) -> str:
     return getattr(spec, "description", "") if spec else ""
 
 
+def seat_certainty(label: str, belief, obs) -> float:
+    """One seat's certainty, 0 to 1 (`clude_agents.character.certainty`,
+    Phase 9h): from `belief` through the character's own confidence
+    (Peacock's lower bound, everyone else's probabilities) when `label`
+    is a character's, and otherwise from the floor alone -- uniform over
+    whatever `obs`'s mask has not ruled out, which is what a person or
+    the floor bot has to go on."""
+    spec = AGENT_SPECS.get(label)
+    if spec is not None and belief is not None:
+        confidence = spec.confidence_fn(belief)
+    else:
+        confidence = mask_and_normalize({}, obs.mask)
+    return round(certainty(confidence), 4)
+
+
 def _proven(obs) -> dict:
     """Card -> who is proven to hold it, or None, from the floor mask.
 
@@ -254,6 +272,7 @@ def trace_document(record, every: int = 1) -> dict:
                     "seat": seat.seat,
                     "probabilities": dict(belief.probabilities) if belief else {},
                     "proven": _proven(obs),
+                    "certainty": seat_certainty(seat.label, belief, obs),
                 }
             )
         frames.append({"k": k, "seats": per_seat})
@@ -358,6 +377,7 @@ def screen_payload(record, trace: dict) -> dict:
                             for card, holder in seat["proven"].items()
                             if holder is not None
                         },
+                        "certainty": seat.get("certainty", 0.0),
                     }
                     for seat in belief["seats"]
                 ],

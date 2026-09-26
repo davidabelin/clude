@@ -197,9 +197,10 @@ def test_a_dealt_table_opens_on_the_play_view(ann, app):
     payload = json.loads(page.split('id="table-data" type="application/json">')[1].split("</script>")[0])
     assert payload["me"]["seat"] == 0 and payload["me"]["token"] == "Scarlett"
     assert len(payload["me"]["hand"]) == 5 or len(payload["me"]["hand"]) == 4
+    assert 0.0 < payload["seats"][0].pop("certainty") < 1.0, "a person's own hand already narrows the field"
     assert payload["seats"][0] == {
         "seat": 0, "token": "Scarlett", "label": ANN, "name": "Scarlett (ann)", "kind": "human",
-        "active": True, "autopilot": False, "me": True,
+        "active": True, "autopilot": False, "strikes": 0, "me": True,
     }
     assert [s["kind"] for s in payload["seats"]] == ["human", "character", "character", "floor"]
     assert len(payload["notepad"]) == 21 and all(r["holder"] in (0, None, "envelope", 1, 2, 3) for r in payload["notepad"])
@@ -269,6 +270,60 @@ def test_the_spectator_gallery_shows_who_is_watching_and_only_then(app, ann, bob
         name: at - tables.WATCHING_FOR - 1 for name, at in registry._watchers[table_id].items()
     }
     assert poll(ann, table_id)["watching"] == []
+
+
+def test_every_seat_s_certainty_is_shown_to_players_and_spectators_alike(app, ann, cat):
+    """Phase 9h, David's call: the poker face. Every seat carries a
+    certainty in [0, 1] for whoever is looking; a person's is the floor's
+    and only ever rises, ending higher than it began."""
+    table_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
+    seen = []
+    def note(payload):
+        seats = payload["seats"]
+        assert all(0.0 <= s["certainty"] <= 1.0 for s in seats)
+        seen.append(seats[0]["certainty"])
+    final = play_out(app, table_id, {ANN: ann}, on_payload=note)
+    assert final["finished"] and seen == sorted(seen) and seen[-1] > seen[0]
+    # The spectator's copy is the same number, and the page explains the colour.
+    assert cat.get(f"/tables/{table_id}").status_code in (200, 302)
+    fresh = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
+    assert [s["certainty"] for s in poll(cat, fresh)["seats"]] == [s["certainty"] for s in poll(ann, fresh)["seats"]]
+    assert "blue for clueless" in cat.get(f"/tables/{fresh}").get_data(as_text=True)
+
+
+def test_who_is_typing_is_told_to_everyone_but_the_typist(app, ann, bob, cat):
+    """Phase 9h. A page with text in its chat box pings the table; the
+    other seats and the gallery read "so-and-so is typing" on their next
+    poll, the typist does not, and the mark goes when the line is sent,
+    when the box is emptied, or when the page stops pinging."""
+    table_id = new_table(ann, {"Scarlett": "me", "Mustard": "open", "White": "character"})
+    assert bob.post(f"/tables/{table_id}/sit", data={"csrf": csrf(bob), "token": "Mustard"}).status_code == 302
+    assert ann.post(f"/tables/{table_id}/deal", data={"csrf": csrf(ann)}).status_code == 302
+
+    assert poll(ann, table_id)["typing"] == []
+    ping = ann.post(f"/tables/{table_id}/typing", data={"csrf": csrf(ann), "on": "1"})
+    assert ping.status_code == 200 and ping.get_json() == {"ok": True}
+    assert poll(bob, table_id)["typing"] == ["Scarlett (ann)"], "named as the log names the seat"
+    assert poll(cat, table_id)["typing"] == ["Scarlett (ann)"], "the gallery sees it too"
+    assert poll(ann, table_id)["typing"] == [], "the typist knows"
+
+    # Sending the line clears it.
+    assert ann.post(f"/tables/{table_id}/say", data={"csrf": csrf(ann), "text": "Hello."}).status_code == 200
+    assert poll(bob, table_id)["typing"] == []
+
+    # Emptying the box clears it; a spectator cannot ping.
+    ann.post(f"/tables/{table_id}/typing", data={"csrf": csrf(ann), "on": "1"})
+    ann.post(f"/tables/{table_id}/typing", data={"csrf": csrf(ann), "on": "0"})
+    assert poll(bob, table_id)["typing"] == []
+    assert cat.post(f"/tables/{table_id}/typing", data={"csrf": csrf(cat), "on": "1"}).status_code == 403
+
+    # Two typists, in seat order; then one page stops pinging.
+    ann.post(f"/tables/{table_id}/typing", data={"csrf": csrf(ann), "on": "1"})
+    bob.post(f"/tables/{table_id}/typing", data={"csrf": csrf(bob), "on": "1"})
+    assert poll(cat, table_id)["typing"] == ["Scarlett (ann)", "Mustard (bob)"]
+    registry = app.extensions["tables"]
+    registry._typing[table_id][0] -= tables.TYPING_FOR + 1
+    assert poll(cat, table_id)["typing"] == ["Mustard (bob)"]
 
 
 def test_events_say_whether_a_line_was_talk_and_moves_carry_room_distances(app, ann):
@@ -494,20 +549,75 @@ def test_a_table_can_be_ended_by_a_player_or_its_starter_and_leaves_the_lobby(ap
     assert registry.document(cli_id)["status"] == "abandoned"
 
 
-def test_a_seat_that_keeps_the_table_waiting_is_handed_to_the_stand_in(app, store, ann, monkeypatch):
-    """After `AUTOPILOT_AFTER` seconds on a human seat, the next unit of
-    work hands it over, flag and all, so a person who left never stalls
-    the table (David, 2026-09-21)."""
+def _stall(registry, table_id, seconds):
+    """Make the table's clock read `seconds` on the pending decision."""
+    import time as _time
+    registry._pending_since[table_id] = _time.monotonic() - seconds
+
+
+def test_a_turn_the_person_lets_time_out_is_played_by_the_stand_in_and_the_seat_stays_theirs(app, ann):
+    """Phase 9h. Past the table's time-out on a decision, the next unit of
+    work has the floor bot play the rest of that turn -- every decision
+    of it -- and the seat is still the person's: the next turn is shown
+    to them again. Table talk does not reset the clock."""
     tables.WORK_INTERVAL = 0.0
     table_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
     registry = app.extensions["tables"]
     game = registry.game(table_id)
     payload = work(ann, table_id)  # the first turn: Scarlett's move, ours
     assert game.pending is not None and game.pending.seat == 0
-    assert work(ann, table_id)["pending"] is not None, "handed over before the time was up"
-    assert payload["me"]["autopilot"] is False
-    monkeypatch.setattr(tables, "AUTOPILOT_AFTER", 0.0)
+    assert payload["timeout"] == tables.TURN_TIMEOUT and payload["work"] is False
+    assert payload["waiting"]["seconds"] < tables.TURN_TIMEOUT
+    assert work(ann, table_id)["pending"] is not None, "played before the time was up"
+
+    _stall(registry, table_id, tables.TURN_TIMEOUT + 1)
+    assert ann.post(f"/tables/{table_id}/say", data={"csrf": csrf(ann), "text": "Thinking..."}).status_code == 200
+    stalled = poll(ann, table_id)
+    assert stalled["work"] is True, "a poll past the deadline must send the page to /work (the 9h bug)"
+    assert stalled["pending"] is not None, "chat does not count as acting"
+
     payload = work(ann, table_id)
+    assert payload["did"] == "timeout"
+    timed = [e for e in game.entries if e["seat"] == 0 and e.get("kind") == "answer"]
+    assert timed and all(e["by"] == "timeout" for e in timed)
+    assert len(timed) >= 2, "the whole turn -- the move and the suggestion -- not one decision"
+    assert payload["me"]["autopilot"] is False and payload["me"]["strikes"] == 1
+    assert registry.document(table_id)["autopilot"] == {}
+    assert next(s for s in payload["seats"] if s["seat"] == 0)["strikes"] == 1
+
+    # The turn comes round again and it is hers to play.
+    steps = 0
+    while payload["pending"] is None and not payload["finished"] and steps < 200:
+        payload = work(ann, table_id)
+        steps += 1
+    assert payload["pending"] is not None and payload["pending"]["seat"] == 0
+    # Answering for herself clears the strike.
+    payload = answer(ann, table_id, payload["pending"]["seq"], simple_answer(payload["pending"]))
+    assert payload["me"]["strikes"] == 0
+
+
+def test_three_timed_out_turns_in_a_row_hand_the_seat_over(app, ann):
+    """Phase 9h, David's call: a person who has gone should not cost the
+    table a whole time-out every turn, so `STRIKES` in a row set the
+    autopilot flag as if they had pressed the button, and the stand-in
+    plays on without showing them a decision."""
+    tables.WORK_INTERVAL = 0.0
+    table_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
+    registry = app.extensions["tables"]
+    game = registry.game(table_id)
+    payload = work(ann, table_id)
+    strikes = 0
+    while strikes < tables.STRIKES:
+        if payload["finished"]:
+            pytest.skip("the sample game ended before three strikes")
+        if payload["pending"] is not None:
+            _stall(registry, table_id, tables.TURN_TIMEOUT + 1)
+            payload = work(ann, table_id)
+            assert payload["did"] == "timeout"
+            strikes += 1
+            assert payload["me"]["strikes"] == strikes
+        else:
+            payload = work(ann, table_id)
     assert payload["me"]["autopilot"] is True
     assert registry.document(table_id)["autopilot"] == {"0": True}
     steps = 0
@@ -516,7 +626,34 @@ def test_a_seat_that_keeps_the_table_waiting_is_handed_to_the_stand_in(app, stor
         steps += 1
         assert payload["pending"] is None, "the handed-over seat showed the person a decision"
     assert payload["finished"]
-    assert all(e["by"] == "autopilot" for e in game.entries if e["seat"] == 0)
+    assert all(e["by"] in ("timeout", "autopilot") for e in game.entries if e["seat"] == 0)
+
+
+def test_speed_mode_is_a_lobby_checkbox_and_older_tables_read_the_default(app, ann):
+    fields = [("csrf", csrf(ann)), ("seed", str(SEED)), ("remember", "0"), ("speed", "1"),
+              ("seat-Scarlett", "me"), ("seat-Mustard", "character"), ("seat-White", "character")]
+    response = ann.post("/tables", data=MultiDict(fields))
+    assert response.status_code == 302
+    table_id = response.headers["Location"].rstrip("/").split("/")[-1]
+    registry = app.extensions["tables"]
+    document = registry.document(table_id)
+    assert document["timeout"] == tables.SPEED_TIMEOUT and document["strikes"] == {}
+    assert poll(ann, table_id)["timeout"] == tables.SPEED_TIMEOUT
+    page = ann.get(f"/tables/{table_id}").get_data(as_text=True)
+    assert "speed mode, 30 s a decision" in page
+    assert "speed mode" in ann.get("/").get_data(as_text=True).split('class="listing tables"')[1]
+
+    plain = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
+    assert registry.document(plain)["timeout"] == tables.TURN_TIMEOUT
+    assert "90 s a decision" in ann.get(f"/tables/{plain}").get_data(as_text=True)
+    # A table made before Phase 9h has no time-out on its document.
+    document = registry.document(plain)
+    del document["timeout"]
+    registry._put(document)
+    assert tables.timeout_for(registry.document(plain)) == tables.TURN_TIMEOUT
+    assert poll(ann, plain)["timeout"] == tables.TURN_TIMEOUT
+    # And the autopilot button is the seat's owner's alone.
+    assert ann.post(f"/tables/{plain}/autopilot", data={"csrf": csrf(ann), "seat": "1", "on": "1"}).status_code == 403
 
 
 def test_a_player_who_is_out_is_answered_by_the_stand_in(app, store, ann):

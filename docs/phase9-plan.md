@@ -885,3 +885,14 @@ still on the old code ignores the new keys.
 Deploy with no model table in progress (there was none on 2026-09-25):
 the per-table meter starts at the deploy, so a table live across it
 would record only what it spent afterwards.
+
+### Phase 9h: five tweaks in one sweep (2026-09-26)
+
+Planned and built in `docs/phase9h-plan.md`: "so-and-so is typing" in
+Table Talk; a 90 s turn time-out (30 s in speed mode) after which the
+floor bot plays that turn only, three in a row handing the seat over,
+and the finding that the old three-minute hand-over never fired on a
+browser-only table; the certainty tag, every seat's name coloured
+blue-white-red by the bits it has gained; Play and a speed slider on
+the replay; and the Legacy style, the look of Phases 8.1 to 9h frozen
+as the first entry of a per-account setting. **Not deployed.**

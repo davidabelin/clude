@@ -40,11 +40,13 @@ character would have had it.
 """
 from __future__ import annotations
 
+import math
+
 import time
 from random import Random
 from typing import Any, Callable, Optional
 
-from clude_core.domain import SUSPECTS, WEAPONS
+from clude_core.domain import ROOMS, SUSPECTS, WEAPONS
 from clude_core.engine import MoveChoice
 from clude_core.state import ClueObservation
 
@@ -67,6 +69,30 @@ def ds_belief_confidence(belief: ClueBelief) -> dict:
     actually singles it out -- so she does not commit on a merely
     probable card. Cards absent from `extra` count as 0."""
     return belief.extra.get("belief", {})
+
+
+N_TRIPLES = len(SUSPECTS) * len(WEAPONS) * len(ROOMS)
+"""How many (suspect, weapon, room) triples a deal can hide: 324. The
+floor of every seat's certainty (`certainty`)."""
+
+
+def certainty(confidence: dict) -> float:
+    """How far a seat has come from guessing to knowing, 0 to 1 (Phase 9h).
+
+    Let P be `best_triple`'s product, the seat's own P(correct) for the
+    triple it would accuse. Linear in P a seat sits near 0 all game and
+    jumps at the end, so this is the fraction of the bits gained:
+    ``ln(P * 324) / ln(324)``, 0 at a uniform guess over the 324 triples,
+    0.5 at about one triple in 18, 1 when the triple is certain. The same
+    scale for everyone: a person's floor (uniform over what it has not
+    ruled out), a character's own belief, Peacock's lower bound. It is
+    raw, not relative to any accuse threshold: Scarlett, who accuses at
+    P 0.3, goes pink rather than red when she jumps.
+    """
+    _triple, p = best_triple(confidence)
+    if p <= 0.0:
+        return 0.0
+    return max(0.0, min(1.0, math.log(p * N_TRIPLES) / math.log(N_TRIPLES)))
 
 
 def best_triple(confidence: dict) -> tuple:
