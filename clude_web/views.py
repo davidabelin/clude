@@ -146,6 +146,7 @@ def _table_listing(me: str) -> list:
                 "mine": tables.viewer_seat(setup, me) is not None,
                 "human": bool(humans),
                 "remember": setup.remember,
+                "speed": tables.timeout_for(document) <= tables.SPEED_TIMEOUT,
                 "model": any(spec.kind == "llm" for spec in setup.seats),
                 "wrapping_up": bool(tables.pending_debriefs(document)),
                 "can_end": tables.viewer_seat(setup, me) is not None
@@ -189,6 +190,7 @@ def _lobby(error=None, form=None, status=200, table_error=None, table_form=None)
             tokens=tokens,
             table_seed=table_form.get("seed", ""),
             remember=tables.remember_from_form(table_form),
+            speed=tables.speed_from_form(table_form),
             watch_remember=tables.remember_from_form(form),
             table_error=table_error,
             llm=_registry().llm,
@@ -298,6 +300,7 @@ def _payload(table_id: str, game, since: int = 0) -> dict:
         waiting_for=registry.waiting_for(table_id, game),
         watching=registry.watching(table_id),
         spend=registry.spend(table_id, document),
+        typing=registry.typing(table_id, game),
     )
 
 
@@ -362,6 +365,7 @@ def _table_page(table_id: str):
                     "answer": url_for("main.table_answer", table_id=table_id),
                     "autopilot": url_for("main.table_autopilot", table_id=table_id),
                     "say": url_for("main.table_say", table_id=table_id),
+                    "typing": url_for("main.table_typing", table_id=table_id),
                 },
             )
         ),
@@ -401,7 +405,9 @@ def table_new():
         return _lobby(table_error=str(exc), table_form=request.form.to_dict(), status=400)
     try:
         budget = tables.parse_budget(request.form, _registry().llm)
-        table_id = _registry().create(setup, current_user(), budget)
+        table_id = _registry().create(
+            setup, current_user(), budget, speed=tables.speed_from_form(request.form)
+        )
     except ValueError as exc:
         return _lobby(table_error=str(exc), table_form=request.form.to_dict(), status=400)
     return redirect(url_for("main.table", table_id=table_id))
@@ -530,10 +536,27 @@ def table_say(table_id):
     return jsonify(_payload(table_id, game, since))
 
 
+@bp.post("/tables/<table_id>/typing")
+def table_typing(table_id):
+    """The viewer's page says their chat box holds text (``on=1``) or
+    was emptied (``on=0``), for "so-and-so is typing" at the other
+    seats (Phase 9h). A heartbeat, not a view: the next poll carries
+    the answer, so this returns nothing but an acknowledgement."""
+    game = _live(table_id)
+    viewer = tables.viewer_seat(game.setup, _me())
+    if viewer is None:
+        return jsonify({"error": "You are not sitting at this table."}), 403
+    on = (request.form.get("on") or "").strip().lower() in ("1", "on", "true", "yes")
+    _registry().seen_typing(table_id, viewer, on)
+    return jsonify({"ok": True})
+
+
 @bp.post("/tables/<table_id>/autopilot")
 def table_autopilot(table_id):
-    """Hand a seat to the stand-in or take it back: the seat's owner at
-    any time, anyone seated once the seat has kept the table waiting."""
+    """Hand a seat to the stand-in or take it back: the seat's owner
+    only. (Until Phase 9h anyone seated could hand over a seat that had
+    stalled three minutes; the time-out plays a stalled turn itself now,
+    so nobody needs to.)"""
     game = _live(table_id)
     registry = _registry()
     viewer = tables.viewer_seat(game.setup, _me())
@@ -545,10 +568,7 @@ def table_autopilot(table_id):
         return jsonify({"error": "No such seat."}), 400
     on = (request.form.get("on") or "").strip().lower() in ("1", "on", "true", "yes")
     if seat != viewer:
-        waited = registry.waiting_for(table_id, game)
-        stuck = game.pending is not None and game.pending.seat == seat
-        if not (on and stuck and waited >= tables.AUTOPILOT_AFTER):
-            return jsonify({"error": "Only the seat's owner can do that, until it has kept the table waiting three minutes."}), 403
+        return jsonify({"error": "Only the seat's owner can do that."}), 403
     if not (0 <= seat < game.setup.n_players) or game.kinds[seat] != "human":
         return jsonify({"error": "No such seat."}), 400
     try:

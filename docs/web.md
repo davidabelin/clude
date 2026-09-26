@@ -130,14 +130,16 @@ Alongside it:
 | `clude_web/watch.py` | Watch as a table with nobody human at it: the all-bot form and the names the Watch screen speaks. |
 | `clude_web/views.py` | The lobby, a run's games, the replay, Watch, and the table routes (page, poll, work, answer, sit, deal, autopilot). |
 | `clude_web/templates/` | Jinja templates; `base.html` is the shell, `table.html` the table. |
-| `clude_web/static/style.css` | One stylesheet, every colour a variable. |
+| `clude_web/styles.py` | The looks a player can choose between (Phase 9h): one stylesheet each, Legacy the only one and the default. |
+| `clude_web/static/styles/legacy.css` | The Legacy style, frozen 2026-09-26: every colour a variable, light and dark. |
 | `clude_web/static/table.js` | The table screen: polls, fires bot work, draws the decision and posts the answer; writes only text into the page. |
 
 The stylesheet is plain on purpose. Typography, ornament, the decorated
 board and its logo, and motion are Phase 10; what is there now is the colour
 system those screens will inherit, declared once for light and once for
-dark, so Phase 10 restyles the app by editing that block rather than hunting
-through templates.
+dark. Since Phase 9h it is the *Legacy* style, one of a list (`styles.py`),
+and Phase 10's look is a second file beside it rather than an edit of it
+("Looks", below).
 
 ## The board and the replay data
 
@@ -257,7 +259,25 @@ remark, whether a person's line, a character's aside on its turn or a
 model seat's off-turn reaction. "The game so far" keeps the moves,
 suggestions and accusations. A person's line is upright, a character's
 italic. Both panels fold away -- click the heading -- and both start
-open; the state is not remembered between page loads.
+open; the state is not remembered between page loads. Under the talk,
+"Ann is typing…" (Phase 9h): a page with text in its say box pings
+`/tables/<id>/typing` every 4 s and once more when the box is emptied,
+the mark lasts 8 s (`TYPING_FOR`, in memory like the gallery), and a
+model seat with a reaction queued counts too. Everyone but the typist
+sees it, one name at a time, cycling every 2 s when several are on the
+way.
+
+**The certainty tag (Phase 9h, experimental).** Each seat's name sits on
+a colour: blue for clueless, white for half a clue, red for certain. The
+number under it is `clude_agents.character.certainty`, the fraction of
+the bits gained from a uniform guess over the 324 triples to a certain
+one (0.5 is about one triple in 18), from a character's own confidence
+(Peacock's lower bound) or, for a person or the floor bot, from what the
+floor has not ruled out. Everyone sees every seat's, players included:
+David's call of 2026-09-26 over the 2026-09-22 rule that a player learns
+nothing of the other seats -- this one number is the poker face. It
+costs one fresh reading per character seat per event, cached, as the
+spectator's bars always did.
 
 **Spectators.** Anyone signed in who opens a table they hold no seat at
 is watching it: they see the board, the log and Table Talk in real time,
@@ -330,18 +350,28 @@ card you do not hold -- is a 400 with the reason and the game is exactly
 as it was. Every write is a form POST with the CSRF token, which the page
 reads from a `<meta>` tag; a JSON body would fail the check on purpose.
 
+**The time-out (Phase 9h).** A decision has 90 s (`TURN_TIMEOUT`; 30 s at
+a table made in speed mode, the lobby's checkbox, `SPEED_TIMEOUT`). The
+status line counts it down. Past it, the next unit of `work` has the
+floor bot play the rest of that turn -- the move, the suggestion and the
+accusation question, or the one card to show -- and the seat is still
+the person's: their next turn is theirs again. Table talk does not reset
+the clock. The hand panel says how many turns the floor bot has played
+for you this way, and three in a row (`STRIKES`) hand the seat over as
+if you had pressed the button. Whichever page sees the deadline pass
+posts `/work` for it, the stalling player's own included: only `work`
+plays a turn, and until 9h nothing called it while a person's decision
+was pending, so the old three-minute hand-over never fired on a table
+with no chat seat driving `work`. The clock is the instance's: a cold
+rebuild starts it again.
+
 **Autopilot.** "Let the floor bot play for me" hands your seat to the
 stand-in -- the plain characterless player, so a seat on autopilot never
-impersonates a character -- and "Take my seat back" takes it back. Anyone
-seated may hand a seat to the stand-in once it has kept the table
-waiting three minutes, and since 2026-09-21 nobody has to: the next unit
-of `work` after those three minutes (`AUTOPILOT_AFTER`, 180 s; ten until 2026-09-21) hands the seat
-over itself, flag and all, so a person who left never stalls a table;
-they take it back with the button when they return. A person put out
-by a wrong accusation is answered by the stand-in from then on -- all
-they can do is show cards -- without the flag, so the table never
-waits on someone with nothing left to decide. The clock is the
-instance's: a cold rebuild starts it again.
+impersonates a character -- and "Take my seat back" takes it back; the
+seat's owner alone can do either. A person put out by a wrong accusation
+is answered by the stand-in from then on -- all they can do is show
+cards -- without the flag, so the table never waits on someone with
+nothing left to decide.
 
 **Surviving a restart.** A table's document (`tables/<id>.json`) holds
 its setup and its *entries*: every answer sent in, with the length of
@@ -491,7 +521,12 @@ game reads exactly as the live one did.
 `/replay/<run_id>/<index>` is Direction A, the scrubber: the board with
 the tokens where they stood, a block per seat, the line for the current
 step, and a slider with step buttons and the arrow keys (also Home and
-End).
+End). Since Phase 9h it also plays itself: Play (or Space) steps forward
+at the pace of the slower-faster slider, 2 s a step to 60 ms on a log
+scale, pausing at the end; any hand on the scrubber pauses it. Each
+seat's name carries its certainty colour, frame by frame (see "The
+certainty tag" under "A table"), from the trace, whose cached shape is
+version 2 for it.
 
 The whole game goes to the page once, as JSON in a `<script>` block, and
 `static/replay.js` redraws from it -- so stepping never touches the
@@ -513,6 +548,23 @@ involved saw it.
 
 The first open of a game computes its trace and takes about ten seconds;
 every open after that reads the cache and is immediate.
+
+## Looks
+
+A look is one stylesheet under `static/styles/` (`clude_web/styles.py`,
+Phase 9h): its colours, type, sizes and the board's dressing;
+`board_svg.py` draws the geometry and sets no colour. Each account
+records its choice (`users.set_style`, the `style` field, account
+document version 3), the session caches it at login, `base.html` links
+the chosen sheet and sets `<html data-style="...">`, and the header bar's
+"Look" form (`POST /style`) changes it from any page and brings that
+page back, a table mid-game included. Only Legacy exists, the look of
+Phases 8.1 to 9h frozen on 2026-09-26 before Phase 10 starts on the
+shippable look; a new look is a new file and a new entry in `STYLES`,
+never an edit of `legacy.css`, and Phase 10 makes its own the default.
+An account made before the choice, or holding a key since removed, reads
+as the default. The two stylesheet tests in `tests/test_replay_screen.py`
+run over every look on the list.
 
 ## Looking at it
 
@@ -717,8 +769,11 @@ the floor's numbers (the notepad) and nothing else: a chat player is
 its own head (David, 2026-09-21; the first deploy's optional `head`, a
 character's numbers beside the seat, is gone). The tool docstrings in
 `clude_web/mcp.py` are the only instructions the player gets. A chat
-seat that keeps the table waiting three minutes is handed to the floor
-bot like any human seat, and an ended table tells it so.
+seat is on the table's clock like any human seat (Phase 9h): past the
+time-out on a decision the floor bot plays the rest of that turn, three
+such turns in a row hand the seat over, and `waiting` says the time-out;
+a speed table's 30 s is tight for a chat seat, and the docstring says so.
+An ended table tells it so.
 
 **What the second live game changed** (game `7075f3ae29`, 2026-09-22;
 `docs/phase9-plan.md` 8, "Eight fixes"). Four things the chat seat
@@ -834,7 +889,8 @@ temp dir, with no network and no real store. `tests/test_web_watch.py` pins the 
 through the JSON routes, each reading only what its seat may; a bad
 answer leaves the game alive; a cold registry rebuilds a table at its
 pending decision; open seats, dealing, autopilot, reserved names and the
-memory toggle. `tests/test_mcp.py` plays a whole game through the MCP tools on the
+memory toggle; and Phase 9h's typing, time-out, strikes, speed mode and
+certainty. `tests/test_mcp.py` plays a whole game through the MCP tools on the
 SDK's in-memory client, and checks the combined app's mount and guard
 ("A seat over MCP"). `tests/test_browser.py` adds the table page in Chromium:
 the legal squares drawn where the server says, a click that plays the

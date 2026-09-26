@@ -9,6 +9,8 @@ no picture.
 from __future__ import annotations
 
 import re
+
+import pytest
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -143,13 +145,20 @@ def test_the_board_is_well_formed_xml():
     assert root.tag.endswith("svg")
 
 
-def test_every_class_the_board_uses_is_styled():
+def _stylesheets() -> list:
+    """Every style's stylesheet, as (key, text): the tests below hold
+    for each look on the list (Phase 9h), not just the first."""
+    from clude_web import styles
+
+    static = Path(__file__).resolve().parents[1] / "clude_web" / "static"
+    return [(key, (static / style.stylesheet).read_text(encoding="utf-8")) for key, style in styles.STYLES.items()]
+
+
+@pytest.mark.parametrize("key,css", _stylesheets())
+def test_every_class_the_board_uses_is_styled(key, css):
     """board_svg.py sets no colour, so a class with no rule is an
     invisible shape. The stylesheet must also stay ASCII: a Devanagari
     digit once made it into a hex colour, which CSS silently ignores."""
-    css = (Path(__file__).resolve().parents[1] / "clude_web" / "static" / "style.css").read_text(
-        encoding="utf-8"
-    )
     svg = board_svg.board_svg({"Scarlett": "Hall", "Plum": Square(7, 4)})
     used = {
         name
@@ -157,25 +166,22 @@ def test_every_class_the_board_uses_is_styled():
         for name in group.split()
     }
 
-    assert css.isascii(), "a non-ASCII character got into the stylesheet"
+    assert css.isascii(), f"a non-ASCII character got into the {key} stylesheet"
     unstyled = sorted(name for name in used if f".{name}" not in css)
-    assert not unstyled, f"classes with no rule: {unstyled}"
+    assert not unstyled, f"classes with no rule in {key}: {unstyled}"
 
 
-def test_the_stylesheet_has_no_broken_colours():
+@pytest.mark.parametrize("key,css", _stylesheets())
+def test_the_stylesheet_has_no_broken_colours(key, css):
     """CSS fails silently: a malformed value is dropped and the shape
     renders with whatever it inherited, which is exactly how `#b4a
     territory` and a Devanagari digit both got as far as a screenshot."""
-    css = (Path(__file__).resolve().parents[1] / "clude_web" / "static" / "style.css").read_text(
-        encoding="utf-8"
-    )
-
     malformed = re.findall(r"--[a-z-]+:\s*#[0-9a-fA-F]*[^0-9a-fA-F;\s][^;]*;", css)
-    assert not malformed, f"malformed colour values: {malformed}"
+    assert not malformed, f"malformed colour values in {key}: {malformed}"
 
     defined = set(re.findall(r"(--[a-z-]+)\s*:", css))
     used = set(re.findall(r"var\((--[a-z-]+)\)", css))
-    assert not used - defined, f"variables used but never defined: {sorted(used - defined)}"
+    assert not used - defined, f"variables used but never defined in {key}: {sorted(used - defined)}"
 
 
 # --- the event frames -------------------------------------------------
@@ -374,6 +380,37 @@ def test_a_trace_is_computed_once_and_read_back(tmp_path):
     assert first == second
     assert store.get_doc(replay_data.trace_key(record.run_id, record.game_index))
     assert first["built"] == second["built"], "the trace was rebuilt instead of read"
+
+
+def test_every_seat_has_a_certainty_in_every_frame_and_the_floor_s_only_rises():
+    """Phase 9h. A seat with no method is measured from its floor alone,
+    which only ever tightens, so its certainty never falls along the
+    game; a character's comes from its own confidence. Both are in
+    [0, 1] and reach the screen payload."""
+    record = play()
+    document = replay_data.trace_document(record)
+    assert document["version"] == 2
+    for seat in range(record.n_players):
+        values = [frame["seats"][seat]["certainty"] for frame in document["frames"]]
+        assert all(0.0 <= v <= 1.0 for v in values)
+        assert values == sorted(values), f"seat {seat}'s floor certainty fell"
+        assert values[0] > 0.0, "a seat's own hand already narrows the field"
+    winner = record.winner
+    if winner is not None:
+        assert abs(document["frames"][-1]["seats"][winner]["certainty"] - 1.0) < 1e-3
+    payload = replay_data.screen_payload(record, document)
+    assert all("certainty" in seat for belief in payload["beliefs"] for seat in belief["seats"])
+
+    # A character's certainty is its own confidence, Peacock's her lower bound.
+    from clude_agents import build_agent
+    from clude_agents.character import certainty, ds_belief_confidence
+    from clude_training.replay import state_from_record
+    state = state_from_record(record)
+    obs = clude_constraints.observe(state, 0)
+    peacock = build_agent("Peacock")
+    peacock.reset(record.seed)
+    belief = peacock.select_action(obs)
+    assert replay_data.seat_certainty("Peacock", belief, obs) == round(certainty(ds_belief_confidence(belief)), 4)
 
 
 def test_a_stale_trace_is_rebuilt_rather_than_trusted(tmp_path):

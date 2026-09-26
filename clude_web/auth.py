@@ -25,7 +25,7 @@ from flask import (
     url_for,
 )
 
-from . import users
+from . import styles, users
 
 bp = Blueprint("auth", __name__)
 
@@ -39,6 +39,11 @@ SESSION_OFFER = "password_offer"
 """Session key set when this player still owes an answer to the one-time
 password offer. Held in the session rather than read from the store on
 every request, and set from the account at login."""
+
+SESSION_STYLE = "style"
+"""Session key holding the key of the look this account chose (Phase
+9h), set from the account at login and again when it is changed, so no
+request reads the store for it."""
 
 
 def public(view):
@@ -163,8 +168,37 @@ def login():
     session.clear()  # a new session id and a new CSRF token on every login
     session[SESSION_USER] = account["name"]
     session[SESSION_OFFER] = users.needs_password_offer(account)
+    session[SESSION_STYLE] = users.style_of(account)
     csrf_token()
     return redirect(url_for("main.index"))
+
+
+def current_style():
+    """The look this session's account chose, as a `styles.Style`; the
+    default when signed out. What `base.html` links."""
+    return styles.style_named(session.get(SESSION_STYLE))
+
+
+def _safe_next(target) -> str:
+    """`target` if it is a path on this site, else the lobby: a
+    redirect chosen by the form must not leave the app."""
+    target = str(target or "")
+    if target.startswith("/") and not target.startswith("//") and "\\" not in target:
+        return target
+    return url_for("main.index")
+
+
+@bp.post("/style")
+def style():
+    """Change the look, from the header bar on any page (Phase 9h): the
+    account remembers it and the page that asked is shown again in it,
+    a table mid-game included."""
+    key = request.form.get("style", "")
+    if not styles.is_style(key):
+        return render_template("error.html", message="No such look."), 400
+    users.set_style(current_app.extensions["store"], current_user(), key)
+    session[SESSION_STYLE] = styles.style_named(key).key
+    return redirect(_safe_next(request.form.get("next")))
 
 
 @bp.route("/password", methods=["GET", "POST"])

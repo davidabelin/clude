@@ -1,7 +1,7 @@
 """Screenshot the web app, so a UI change can actually be looked at.
 
 An SVG rasteriser is no use for clude: `clude_web.board_svg` sets no
-colour at all, leaving every shape to `static/style.css`, so rendering
+colour at all, leaving every shape to the stylesheet (`static/styles/legacy.css`), so rendering
 the SVG on its own gives an unstyled blank. Only a real browser applies
 the stylesheet, runs `replay.js` and honours dark mode and a phone
 width. Hence Playwright.

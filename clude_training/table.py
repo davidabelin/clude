@@ -835,13 +835,16 @@ class TableGame:
             value = bot.choose_card_to_show(request.obs, request.candidates, request.shown_to, rng)
         return encode_answer(request.kind, value)
 
-    def autopilot(self) -> None:
+    def autopilot(self, by: str = "autopilot") -> None:
         """Answer the pending request with `stand_in_answer`, recorded as
-        an entry like any other so a rebuild never needs the stand-in."""
+        an entry like any other so a rebuild never needs the stand-in.
+        `by` is what the entry says: ``"autopilot"`` for a seat handed
+        over, ``"timeout"`` for a turn the stand-in played because its
+        person let the clock run out (Phase 9h)."""
         request = self.pending
         if request is None:
             raise TableError("nothing is waiting for an answer")
-        self.answer(request.seat, self.seq, self.stand_in_answer(), by="autopilot")
+        self.answer(request.seat, self.seq, self.stand_in_answer(), by=by)
 
     def _resume(self, answer=None, ready: bool = False, turns: int = 1) -> int:
         """Drive the generator until a request for an external seat, until

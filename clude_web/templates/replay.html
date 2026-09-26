@@ -24,7 +24,7 @@
     <section class="replay-seats" id="seats">
       {% for seat in trace.seats %}
         <article class="seat" data-seat="{{ seat.seat }}">
-          <h2>
+          <h2 class="tag" style="--certainty: 0">
             <span class="pip suspect-{{ seat.suspect|lower }}"></span>
             {{ seat.suspect }}
             {% if seat.label != seat.suspect %}<span class="who">({{ seat.label }})</span>{% endif %}
@@ -50,6 +50,7 @@
   <footer class="replay-foot">
     <p class="step-line" id="step-line" aria-live="polite">&nbsp;</p>
     <div class="scrubber">
+      <button type="button" id="play" title="Play or pause (space)" aria-pressed="false">Play</button>
       <button type="button" id="first" title="First step">&laquo;</button>
       <button type="button" id="prev" title="Previous step (left arrow)">&lsaquo;</button>
       <input type="range" id="scrub" min="0" max="{{ n_frames - 1 }}" value="0"
@@ -57,12 +58,16 @@
       <button type="button" id="next" title="Next step (right arrow)">&rsaquo;</button>
       <button type="button" id="last" title="Last step">&raquo;</button>
       <span class="counter" id="counter"></span>
+      <label class="speed" for="speed">slower
+        <input type="range" id="speed" min="0" max="100" value="50" aria-label="Playback speed, slower to faster">
+        faster</label>
     </div>
     <p class="note key">
       A <em>solid</em> bar is proven by the deduction floor; a <em>pale</em>
       bar is that seat's own belief that the card is in the envelope; a
       greyed row is a card it has proven someone holds. The red mark is the
-      truth. {{ trace.limitation }}
+      truth. A seat's name sits on its certainty, blue for clueless through
+      white to red for certain. {{ trace.limitation }}
     </p>
   </footer>
 

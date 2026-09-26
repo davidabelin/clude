@@ -13,11 +13,11 @@ phase's plan doc ends with an "as implemented" section that records what
 was actually built and where it departed from the plan: trust that over
 the plan sections above it, and over this file if they disagree.
 
-## Status (2026-09-25)
+## Status (2026-09-26)
 
 Phases 1-8 are done, committed and deployed. Phase 9, a seat over MCP,
 is built: 9a-9e are live (revision `clude-00010-knh`, 2026-09-22), and
-**9f and 9g are built but not deployed**. Phase 10 is planned but not started;
+**9f, 9g and 9h are built but not deployed**. Phase 10 is planned but not started;
 Phase 11 is untouched.
 
 Each phase's record is the "as implemented" section of its plan doc
@@ -54,8 +54,22 @@ used to start again. Arena runs record a cost too. The nine older web
 games were backfilled into the bucket on 2026-09-25 (`tables costs
 --write`, $4.40, no split by seat).
 
-Suite: 495 passed, 22 skipped, about two and a half minutes with
-`-n auto`; 515 passed and 2 skipped under `CLUDE_WEB_BROWSER=1`.
+Also waiting on a deploy: Phase 9h (2026-09-26), **five tweaks in one
+sweep** (`docs/phase9h-plan.md`): "so-and-so is typing" under Table
+Talk; a 90 s turn time-out (30 s at a speed table, a lobby checkbox)
+after which the floor bot plays that turn only, three in a row handing
+the seat over -- and the finding that the old three-minute hand-over
+never fired on a browser-only table, since nothing called `work` while
+a person's decision was pending; the certainty tag, every seat's name
+coloured blue-white-red by the bits it has gained, shown to everyone;
+Play and a speed slider on the replay; and the Legacy style, the look of
+Phases 8.1 to 9h frozen as the first entry of a per-account setting in
+the header bar. The replay trace's cached shape is version 2, so every
+stored trace rebuilds on its next open.
+
+Suite: 503 passed, 27 skipped, about two minutes with `-n auto`; 25
+more under `CLUDE_WEB_BROWSER=1`. (Three debrief tests turned out to
+fail on a fast machine before 9h: reactions are now immediate there.)
 
 **The road from here** (David renumbered it on 2026-09-16;
 `docs/phase-plan.md` has the table):
@@ -66,7 +80,7 @@ Suite: 495 passed, 22 skipped, about two and a half minutes with
 | 8.1 | 8.1a a basic UX scaffold as a local Flask app; 8.1b the same app on Cloud Run behind an app login | done: 8.1a built 2026-09-17 (steps 1-5: the engine seam, the login and accounts, the board and replay data, the replay scrubber, the lobby and Watch); 8.1b deployed 2026-09-18 (steps 6-9: the container, `store copy`, the service running as `clude-run`) -- `docs/phase8.1-plan.md`, `docs/web.md` |
 | 8.2 | Human players | done: 8.2a-c built 2026-09-18 (the table driver and `play --human`; the table on the web with open seats, autopilot, cold rebuild and "characters remember"); 8.2d deployed and live-checked 2026-09-19, the cold rebuild 0.1 s on a 3-turn table (`docs/phase8-plan.md` 12, `docs/web.md`) |
 | 8.3 | The rest of chat: the model on the web under a spend cap, human chat, off-turn talk with pacing, debriefs after web games | done: 8.3a-c built 2026-09-19 on fake backends, the key deployed and one live table played the same day (two model seats, chat, "remember"; $0.34, no fallbacks); 8.3d closed Phase 8 (`docs/phase8-plan.md` 12) |
-| 9 | A seat over MCP: a Claude in a chat window (claude.ai) plays one seat of a live table through an MCP server mounted beside the Flask app, on the same `TableRegistry` | built. 9a the plan and the renumbering (2026-09-20); 9b the server and the combined ASGI app, 9c deployed with the secret and the `claude` account, both 2026-09-21, and the first live game from the chat that evening; 9d the eight fixes after the second live game and 9e David's follow-ups, both 2026-09-22 and deployed that evening; 9f the chat seat's report after the third live game and 9g what a game cost (both 2026-09-25), **to deploy** -- `docs/phase9-plan.md` 8 |
+| 9 | A seat over MCP: a Claude in a chat window (claude.ai) plays one seat of a live table through an MCP server mounted beside the Flask app, on the same `TableRegistry` | built. 9a the plan and the renumbering (2026-09-20); 9b the server and the combined ASGI app, 9c deployed with the secret and the `claude` account, both 2026-09-21, and the first live game from the chat that evening; 9d the eight fixes after the second live game and 9e David's follow-ups, both 2026-09-22 and deployed that evening; 9f the chat seat's report after the third live game and 9g what a game cost (both 2026-09-25), 9h five tweaks in one sweep (2026-09-26; typing, the turn time-out and speed mode, the certainty tag, the animated replay, the Legacy style), **to deploy** -- `docs/phase9-plan.md` 8, `docs/phase9h-plan.md` |
 | 10 | In-depth UX: the shippable look, "engraved, not brass-plated" | planned, not started. `docs/phase10-plan.md` proposed 2026-09-20, David's answers recorded 2026-09-21: D1-D4 and D6 settled, D5 (the logo) open until he sees the three alternates in 10a (was Phase 9 until 2026-09-20) |
 | 11 | Tweak, polish, release: clean-up and close, then version 1.0.0, released to family and friends, and planning in versions, not phases | not started (was Phase 10) |
 
@@ -355,9 +369,20 @@ it; `docs/phase-plan.md` has the disposition of every file.
 - **Tables end, seats time out, the deal waits (2026-09-21).** Anyone
   seated or the starter can end a table for good ("End table";
   `tables abandon` on the CLI); a human seat that keeps the table
-  waiting three minutes goes to the floor bot without asking, and a
+  waiting three minutes goes to the floor bot without asking (replaced
+  by the per-turn time-out of 2026-09-26, below), and a
   seat that is out is answered by it; a table is not dealt until every
   open seat is taken, since an open seat is reserved for someone.
+- **Phase 9h's four calls (2026-09-26).** The time-out is per turn:
+  90 s on a decision (30 s at a speed table, a lobby checkbox), then
+  the floor bot plays the rest of that turn and the seat stays the
+  person's; three timed-out turns in a row hand it over as before.
+  Chat does not count as acting. The certainty tag is shown to
+  everyone, players included, overriding the 2026-09-22 plain-roster
+  rule for this one number (the poker face); its scale is bits gained,
+  0 at 1/324 and 1 at certain, raw rather than relative to any accuse
+  threshold. The look is a per-account setting, Legacy the only entry
+  until Phase 10 adds its own beside it; `legacy.css` is never edited.
 - **Spectators, and what the seat bars give away (2026-09-22).**
   Watching a live table needs an account: the table id is not a
   capability URL, and the MCP endpoint stays the only route outside the
@@ -415,12 +440,13 @@ Built; the detail is in `docs/architecture.md`.
   registry that stores, drives and rebuilds every game, the seat form,
   the view of a game from one seat, the model seats and their metering),
   `chat` (off-turn talk: the reaction queue and its pacing), `watch`
-  (Watch as a table with nobody human at it), `mcp` (Phase 9: the seven
+  (Watch as a table with nobody human at it), `styles` (the looks a
+  player can choose between, Legacy the only one; Phase 9h), `mcp` (Phase 9: the seven
   tools a Claude in a chat window plays a seat through, built by
   `build_server` over any registry, the compact `seat_view` it reads,
   and `combined_app`, Flask and the endpoint in one ASGI app under a
   secret path), `views`, templates,
-  one stylesheet, `replay.js` and `table.js`.
+  one stylesheet per look under `static/styles/`, `replay.js` and `table.js`.
   Imports every other package; nothing imports it (`docs/web.md`).
   `clude_training.arena.headless_table` is the table `play` seats, shared
   with Watch and pinned to the CLI by a test.
@@ -522,7 +548,9 @@ Resolved 2026-09-22: spectators need an account and keep the seat bars;
 the memory slider starts at full depth; "agents" and "personas" over
 "head" and "headless". Resolved 2026-09-25: no warning in `clude_say`
 against a chat seat naming its own hand; it learns what over-sharing
-costs, as the characters do.
+costs, as the characters do. Resolved 2026-09-26: Phase 9h's four calls
+(the per-turn time-out with three strikes, the certainty tag for
+everyone on the bits-gained scale, speed mode as a lobby checkbox).
 
 ## Working with David
 

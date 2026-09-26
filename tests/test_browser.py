@@ -1,7 +1,7 @@
 """The replay screen in a real browser.
 
 Everything else in the suite tests markup and data. These tests drive
-Chromium, which is the only thing that applies `style.css`, runs
+Chromium, which is the only thing that applies the stylesheet, runs
 `replay.js` and can say where a token actually ended up on screen --
 `board_svg` sets no colour at all, so an SVG rasteriser would render a
 blank and prove nothing.
@@ -37,6 +37,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 NAME = "browser"
+OTHER = "second"
 PASSWORD = "browser-password"
 RUN = "browser-test"
 
@@ -68,6 +69,8 @@ def served(tmp_path_factory):
     store.put_run(RUN, {"n_games": 1, "seed": 11, "roster": ["floor"], "per_player": {}})
     users.add_user(store, NAME, PASSWORD)
     users.mark_password_prompted(store, NAME)
+    users.add_user(store, OTHER, PASSWORD)
+    users.mark_password_prompted(store, OTHER)
 
     app = create_app({
         "STORE_URI": str(root), "SECRET_KEY": "browser-tests",
@@ -344,7 +347,7 @@ def test_a_table_shows_the_move_on_the_board_and_as_buttons(page):
     _deal_table(page, {"Scarlett": "me", "Mustard": "character", "White": "character",
                        "Green": "empty", "Peacock": "empty", "Plum": "empty"})
     page.wait_for_selector(".decision .options button", timeout=20000)
-    assert page.inner_text("#status") == "Your move."
+    assert page.inner_text("#status").startswith("Your move."), "the status line, then the clock (Phase 9h)"
     buttons = page.locator(".decision .options button").count()
     targets = page.locator(".board-target").count()
     assert buttons == targets >= 1
@@ -519,3 +522,130 @@ def test_each_seat_tab_shows_its_share_of_the_cost_only_at_a_model_table(page):
     page.wait_for_selector("#autopilot", timeout=20000)
     page.wait_for_selector(".seat.compact.roster", timeout=20000)
     assert page.locator(".gauge.cost").count() == 0
+
+
+# --- Phase 9h -----------------------------------------------------------
+
+
+def _second_page(page, base):
+    """Another person's browser, signed in as `OTHER`, with its console
+    errors collected on the first page's list."""
+    context = page.context.browser.new_context(viewport={"width": 1440, "height": 1000})
+    other = context.new_page()
+    other.on("console", lambda m: page.problems.append(m.text) if m.type == "error" else None)
+    other.on("pageerror", lambda e: page.problems.append(str(e)))
+    other.goto(f"{base}/login")
+    other.fill("#name", OTHER)
+    other.fill("#password", PASSWORD)
+    other.click("button[type=submit]")
+    other.wait_for_url(f"{base}/")
+    return other
+
+
+def test_so_and_so_is_typing_shows_at_the_other_seat(page):
+    """Phase 9h. Text in one person's chat box puts "X is typing" under
+    the other person's Table Talk within a poll; sending the line takes
+    it away; the typist never sees their own name."""
+    base = page.base
+    _deal_table(page, {"Scarlett": "me", "Mustard": "open", "White": "character",
+                       "Green": "empty", "Peacock": "empty", "Plum": "empty"})
+    page.wait_for_selector(".table-open", timeout=20000)
+    table_url = page.url
+    other = _second_page(page, base)
+    other.goto(table_url)
+    other.click(".seat-row form button")  # Sit here, at Mustard
+    page.reload()
+    page.click("form[action$='/deal'] button")
+    page.wait_for_selector("#say-text", timeout=20000)
+    other.reload()
+    other.wait_for_selector("#talk", timeout=20000)
+
+    page.fill("#say-text", "I think it was")
+    other.wait_for_function(
+        "() => { const t = document.getElementById('typing'); return t && !t.hidden && t.textContent.includes('is typing'); }",
+        timeout=20000,
+    )
+    assert other.inner_text("#typing").startswith("Scarlett (browser) is typing")
+    assert page.locator("#typing").is_hidden(), "the typist saw their own name"
+
+    page.click("#say-form button[type=submit]")
+    other.wait_for_function(
+        "() => document.querySelectorAll('#talk li:not(.placeholder)').length >= 1", timeout=20000
+    )
+    other.wait_for_function("() => document.getElementById('typing').hidden", timeout=20000)
+    other.context.close()
+
+
+def test_a_turn_the_person_lets_time_out_is_played_from_their_own_page(page):
+    """Phase 9h. Nothing but a /work request plays the floor bot's turn,
+    and the stalling player's own page is the one that posts it once the
+    clock runs out; the person is told, and the seat is still theirs."""
+    from clude_web import tables
+
+    saved = tables.TURN_TIMEOUT
+    tables.TURN_TIMEOUT = 2.0
+    try:
+        _deal_table(page, {"Scarlett": "me", "Mustard": "character", "White": "character",
+                           "Green": "empty", "Peacock": "empty", "Plum": "empty"})
+        page.wait_for_selector(".decision .options button", timeout=20000)
+    finally:
+        tables.TURN_TIMEOUT = saved
+    assert "s left before the floor bot moves for you" in page.inner_text("#status")
+    page.wait_for_function(
+        "() => Array.from(document.querySelectorAll('#log li')).some(li => li.textContent.includes('Scarlett (browser) moves'))",
+        timeout=20000,
+    )
+    page.wait_for_function("() => !document.getElementById('strikes').hidden", timeout=20000)
+    assert page.inner_text("#strikes").startswith("The floor bot has played 1 turn for you")
+    assert page.inner_text("#autopilot") == "Let the floor bot play for me", "the seat was handed over"
+
+
+def test_the_certainty_tag_colours_every_seat_s_name(page):
+    """Phase 9h. Each seat's heading carries `--certainty` and a painted
+    background; in the replay the winner's tag ends warmer than it began."""
+    tags = page.locator(".replay .seat h2.tag")
+    assert tags.count() == 4
+    at_start = tags.first.evaluate("h => getComputedStyle(h).backgroundColor")
+    assert at_start not in ("", "rgba(0, 0, 0, 0)"), "the tag is not painted"
+    page.keyboard.press("End")
+    colours = tags.evaluate_all("hs => hs.map(h => [h.style.getPropertyValue('--certainty'), getComputedStyle(h).backgroundColor])")
+    assert all(c for c, _ in colours)
+    assert any(float(c) >= 0.99 for c, _ in colours), "nobody is certain at the end of a finished game"
+
+    _deal_table(page, {"Scarlett": "me", "Mustard": "character", "White": "character",
+                       "Green": "empty", "Peacock": "empty", "Plum": "empty"})
+    page.wait_for_selector(".seat.compact.roster h2.tag", timeout=20000)
+    assert page.locator(".seat.compact.roster h2.tag").count() == 3
+    titles = page.locator(".seat.compact.roster h2.tag").evaluate_all("hs => hs.map(h => h.title)")
+    assert all(t.startswith("certainty ") and t.endswith("%") for t in titles)
+
+
+def test_play_steps_the_replay_and_pause_holds_it(page):
+    """Phase 9h. Play advances the scrubber by itself at the slider's
+    pace; Pause stops it where it is; a hand on the scrubber pauses."""
+    assert page.inner_text("#play") == "Play"
+    page.fill("#speed", "100")
+    page.click("#play")
+    assert page.inner_text("#play") == "Pause"
+    page.wait_for_function("() => Number(document.getElementById('scrub').value) >= 5", timeout=20000)
+    page.click("#play")
+    assert page.inner_text("#play") == "Play"
+    held = page.evaluate("() => document.getElementById('scrub').value")
+    page.wait_for_timeout(500)
+    assert page.evaluate("() => document.getElementById('scrub').value") == held
+    page.click("#play")
+    page.keyboard.press("ArrowLeft")
+    assert page.inner_text("#play") == "Play", "a key on the scrubber pauses"
+
+
+def test_the_look_picker_applies_and_keeps_the_page(page):
+    """Phase 9h. The header bar's Look form writes the account's choice
+    and brings the same page back in it."""
+    assert page.evaluate("() => document.documentElement.getAttribute('data-style')") == "legacy"
+    assert page.locator("link[rel=stylesheet]").get_attribute("href").endswith("/static/styles/legacy.css")
+    url = page.url
+    page.select_option("#style", "legacy")
+    page.click(".look button[type=submit]")
+    page.wait_for_url(url)
+    assert page.evaluate("() => document.documentElement.getAttribute('data-style')") == "legacy"
+    assert page.locator("#style").input_value() == "legacy"

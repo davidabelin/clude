@@ -49,6 +49,11 @@
           <span class="note">(LLM logbooks and supported method memory; Mustard may take about half a minute to prepare)</span>
         </label>
         <input type="hidden" name="remember" value="0">
+        <label class="check" for="speed">
+          <input type="checkbox" id="speed" name="speed" value="1" {% if speed %}checked{% endif %}>
+          speed mode
+          <span class="note">(30 s a decision before the floor bot plays the turn for you, instead of 90)</span>
+        </label>
         {% if llm %}
         <label for="table-budget">LLM budget, $ <span class="note">(an LLM seat costs about $0.10 a game, Plum $0.25, plus a logbook entry; the day's cap is ${{ '%.2f'|format(llm.daily_cap) }})</span></label>
         <input id="table-budget" name="budget" inputmode="decimal" value="{{ budget or ('%.2f'|format(llm.budget)) }}" autocomplete="off">
@@ -74,6 +79,7 @@
             {% if t.started_by %}&middot; started by {{ t.started_by }}{% endif %}
             {% if t.mine %}&middot; <strong>you are seated</strong>{% endif %}
             {% if t.remember %}&middot; remembering{% endif %}
+            {% if t.speed %}&middot; speed mode{% endif %}
           </span>
           {% if t.can_end %}
           <form method="post" action="{{ url_for('main.table_abandon', table_id=t.id) }}" class="inline"

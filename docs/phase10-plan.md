@@ -367,6 +367,19 @@ Rough size: 10a a day, 10b-10f a day each; estimate 10g after selecting the cues
 
 10g also adds `static/sounds/` (sound-effect assets) and `static/sound.js` (shared playback and preferences), with controls and event hooks in the templates and table/replay scripts above.
 
+### Amendment (2026-09-26, Phase 9h)
+
+Phase 9h froze the look of Phases 8.1 to 9h as the *Legacy* style
+(`clude_web/styles.py`, `static/styles/legacy.css`) and made the look a
+per-account setting. So `style.css` is no longer "rewritten in place":
+10b writes `static/styles/engraved.css` beside Legacy, adds it to
+`STYLES`, makes it `DEFAULT_STYLE`, and leaves Legacy on the list. The
+variable names stay the same across the two files, so the templates and
+scripts need not know which is linked; a rule that must differ by look
+can key on `<html data-style="...">`. `scripts/clude_shots.py` gains a
+loop over styles then, and the two stylesheet tests already run over
+every entry.
+
 ## 16\. Out of scope
 
 - Any change to the engine, the six methods, the personality dials or the prompts. Phase 10 covers visual and audio presentation.  

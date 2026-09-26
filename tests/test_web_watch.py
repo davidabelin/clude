@@ -205,8 +205,9 @@ def test_a_reading_names_no_card():
 
     for reading in game.readings():
         assert set(reading) == {
-            "seat", "suspect", "label", "method", "active", "placed", "total", "groups",
+            "seat", "suspect", "label", "method", "active", "placed", "total", "groups", "certainty",
         }
+        assert 0.0 <= reading["certainty"] <= 1.0
         for group in reading["groups"]:
             assert set(group) == {"name", "size", "placed", "solved", "confidence"}
             assert group["name"] in ("suspects", "weapons", "rooms")
@@ -295,6 +296,7 @@ def test_characters_are_seat_locked_in_a_watched_game():
 def test_dealing_opens_a_game_at_turn_zero(client):
     watch_id = deal(client)
     page = client.get(f"/watch/{watch_id}").get_data(as_text=True)
+    assert page.count('class="tag" style="--certainty: ') == page.count('<article class="seat compact'), "every seat's name-tag carries its certainty (Phase 9h)"
 
     assert "Turn 0" in page
     assert page.count('class="seat compact') == 4

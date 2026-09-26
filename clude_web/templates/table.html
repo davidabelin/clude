@@ -7,7 +7,7 @@
     <p class="crumbs"><a href="{{ url_for('main.index') }}">Lobby</a> &rsaquo; table</p>
     <h1 id="title">{% if open_table %}Waiting for players{% else %}Turn {{ payload.turns }}{% endif %}</h1>
     <p class="note">
-      {{ setup.n_players }} seats, seed {{ setup.seed }}{% if document.started_by %}, started by {{ document.started_by }}{% endif %}{% if setup.remember %}; the characters remember{% endif %}.
+      {{ setup.n_players }} seats, seed {{ setup.seed }}{% if document.started_by %}, started by {{ document.started_by }}{% endif %}{% if setup.remember %}; the characters remember{% endif %}{% if document.timeout and document.timeout <= 30 %}; speed mode, {{ document.timeout|int }} s a decision{% else %}; {{ (document.timeout or 90)|int }} s a decision{% endif %}.
       {% if viewer is none and not open_table %}You are watching: hands stay hidden until the game ends.{% endif %}
     </p>
   </header>
@@ -87,6 +87,7 @@
       <div class="panel me-panel">
         <h2>Your hand <span class="who" id="my-token"></span></h2>
         <ul class="hand" id="hand"></ul>
+        <p class="note" id="strikes" hidden></p>
         <div class="buttons"><button type="button" class="quiet" id="autopilot"></button></div>
       </div>
       {% endif %}
@@ -94,6 +95,7 @@
       <details class="panel talk-panel" open>
         <summary><h2>Table Talk</h2></summary>
         <ol class="talk" id="talk"></ol>
+        <p class="note typing" id="typing" aria-live="polite" hidden></p>
         {% if viewer is not none %}
         <form id="say-form" class="say" autocomplete="off">
           <input id="say-text" name="text" maxlength="240" placeholder="Say something at the table" aria-label="Say something at the table">
@@ -126,7 +128,8 @@
   {% if viewer is none %}
   <p class="note key">
     Each seat shows how many of the 21 cards it has placed and how sure its
-    own method is of its best guess in each category. {{ limitation }}
+    own method is of its best guess in each category; its name sits on its
+    certainty, blue for clueless through white to red for certain. {{ limitation }}
   </p>
   {% endif %}
 
