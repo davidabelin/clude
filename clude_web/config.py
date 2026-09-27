@@ -59,6 +59,10 @@ same trade the login makes (`docs/web.md`, "Convenience over secrecy").
 On Cloud Run it arrives from Secret Manager; locally the `.env`
 fallback serves. Without it the endpoint is not mounted at all."""
 
+PUBLIC_URL_ENV = "CLUDE_PUBLIC_URL"
+"""The address people reach the app at, such as the Cloud Run URL. Set
+by the deploy; unset locally, where a link stays a path."""
+
 MCP_ACCOUNT_ENV = "CLUDE_MCP_ACCOUNT"
 DEFAULT_MCP_ACCOUNT = "claude"
 """The account the chat seat plays as: an ordinary one, made with
@@ -69,6 +73,15 @@ def mcp_secret():
     """The MCP endpoint's secret path segment, or None: the environment
     first, then `.env`."""
     return os.environ.get(MCP_SECRET_ENV) or read_env_file(MCP_SECRET_ENV)
+
+
+def public_url():
+    """The service's own address, without a trailing slash, or None:
+    the environment first, then `.env`. What makes a replay link a
+    whole URL for a chat seat, which has no page to be relative to
+    (Phase 9i)."""
+    found = (os.environ.get(PUBLIC_URL_ENV) or read_env_file(PUBLIC_URL_ENV) or "").strip().rstrip("/")
+    return found or None
 
 
 def mcp_account() -> str:

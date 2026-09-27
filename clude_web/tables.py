@@ -113,6 +113,19 @@ MAX_NOTE = 8000
 """Characters a chat seat may keep in its note (Phase 9): a page of
 deductions, kept on the table document and read back every call."""
 
+NOTEPAD_LEVELS = ("full", "shown", "none")
+"""How much of the deduction floor a chat seat is shown (Phase 9i):
+``full`` the floor's notepad, ``shown`` only its hand and the cards
+shown to it and by it, ``none`` nothing beyond the log and its hand.
+The last two are the chat seat's hard mode, so the deduction is its own."""
+
+
+def notepad_level(document, seat: int) -> str:
+    """The seat's `NOTEPAD_LEVELS` entry on this table, ``full`` unless
+    it chose otherwise."""
+    level = ((document or {}).get("notepad_level") or {}).get(str(seat))
+    return level if level in NOTEPAD_LEVELS else "full"
+
 def clean_line(text) -> str:
     """A person's line fit to keep: control characters out, whitespace
     collapsed, at most `MAX_LINE` characters.
@@ -1339,6 +1352,7 @@ class TableRegistry:
             raise TableError("you are not sitting at this table")
         setup = setup.with_seat(seat, SeatSpec(setup.seats[seat].token, "open"))
         document["setup"] = setup.to_dict()
+        (document.get("notepad_level") or {}).pop(str(seat), None)
         return self._put(document)
 
     def deal(self, table_id: str) -> WebGame:
@@ -1421,6 +1435,24 @@ class TableRegistry:
         document.setdefault("notes", {})[str(seat)] = text
         self._put(document)
         return text
+
+    def set_notepad_level(self, table_id: str, seat: int, level: str) -> dict:
+        """Set how much of the floor a chat seat is shown (Phase 9i):
+        one of `NOTEPAD_LEVELS`. Only before the deal, so the level a
+        game was played at is the level it was played at throughout.
+
+        Raises
+        ------
+        TableError
+            No such table, a table already dealt, or an unknown level.
+        """
+        if level not in NOTEPAD_LEVELS:
+            raise TableError(f"notepad is one of: {', '.join(NOTEPAD_LEVELS)}")
+        document = self.document(table_id)
+        if document is None or document.get("status") != "open":
+            raise TableError("the notepad is chosen before the deal; this table is not waiting for players")
+        document.setdefault("notepad_level", {})[str(seat)] = level
+        return self._put(document)
 
     # -- listing ---------------------------------------------------------
 

@@ -16,8 +16,9 @@ the plan sections above it, and over this file if they disagree.
 ## Status (2026-09-26)
 
 Phases 1-8 are done, committed and deployed. Phase 9, a seat over MCP,
-is built: 9a-9e are live (revision `clude-00010-knh`, 2026-09-22), and
-**9f, 9g and 9h are built but not deployed**. Phase 10 is planned but not started;
+is built: 9a-9h are live (9f and 9g in revision `clude-00011-t7g`,
+2026-09-25; 9h in `clude-00012-bqr`, 2026-09-26), and **9i is built
+but not deployed**. Phase 10 is planned but not started;
 Phase 11 is untouched.
 
 Each phase's record is the "as implemented" section of its plan doc
@@ -33,7 +34,7 @@ app (`docs/web.md`) both locally and on Cloud Run at
 scrubber, a Watch screen, and tables where people, agents and a Claude
 in a chat window play together.
 
-**Waiting on a deploy**: Phase 9f (2026-09-25), the chat seat's report
+**Live since 2026-09-25**: Phase 9f, the chat seat's report
 after the third live game (`b089937cb8`), built on fake backends with the
 suite green. A move is one line per room, answered by naming the room
 (`toward`); a call holds up to 60 s under one deadline; a reply with
@@ -42,7 +43,7 @@ it also asked for, David declined. `docs/phase9-plan.md` 8 has it all,
 and a note that until 2026-09-25 the docs said 9d and 9e were undeployed
 when they had been live since 2026-09-22.
 
-Also waiting on a deploy: Phase 9g (2026-09-25), **what a game cost**.
+Also live since 2026-09-25: Phase 9g, **what a game cost**.
 Every model call is now metered to its seat as well as its table
 (`spend/tables/<id>.json`). Once a game's logbook entries are written,
 its total and each model seat's share go on the record, the run
@@ -54,7 +55,7 @@ used to start again. Arena runs record a cost too. The nine older web
 games were backfilled into the bucket on 2026-09-25 (`tables costs
 --write`, $4.40, no split by seat).
 
-Also waiting on a deploy: Phase 9h (2026-09-26), **five tweaks in one
+Live since 2026-09-26: Phase 9h, **five tweaks in one
 sweep** (`docs/phase9h-plan.md`): "so-and-so is typing" under Table
 Talk; a 90 s turn time-out (30 s at a speed table, a lobby checkbox)
 after which the floor bot plays that turn only, three in a row handing
@@ -65,9 +66,21 @@ coloured blue-white-red by the bits it has gained, shown to everyone, the chat s
 Play and a speed slider on the replay; and the Legacy style, the look of
 Phases 8.1 to 9h frozen as the first entry of a per-account setting in
 the header bar. The replay trace's cached shape is version 2, so every
-stored trace rebuilds on its next open.
+stored trace rebuilds on its next open. Until 2026-09-26 these
+paragraphs said 9f-9h were undeployed; the revisions list says
+otherwise.
 
-Suite: 503 passed, 27 skipped, about two minutes with `-n auto`; 25
+**Waiting on a deploy**: Phase 9i (2026-09-26), the chat seat's five
+requests after table `5019abeb0a`. `clude_turn` waits for the deal; a
+pass given ahead (`accuse: false`) is held back when the suggestion
+goes undisproved or the notepad proves the envelope (the pass that
+lost that table); each seat line has its hand size and `order` names
+who disproves in turn; a hard mode chosen at `clude_sit` (`notepad`
+"shown" or "none", fixed at the deal, the seat's own certainty
+hidden); and the replay a whole URL from `CLUDE_PUBLIC_URL`, set by
+the deploy. `docs/phase9-plan.md` 8.
+
+Suite: 510 passed, 27 skipped, about three minutes with `-n auto`; 25
 more under `CLUDE_WEB_BROWSER=1`. (Three debrief tests turned out to
 fail on a fast machine before 9h: reactions are now immediate there.)
 
@@ -80,7 +93,7 @@ fail on a fast machine before 9h: reactions are now immediate there.)
 | 8.1 | 8.1a a basic UX scaffold as a local Flask app; 8.1b the same app on Cloud Run behind an app login | done: 8.1a built 2026-09-17 (steps 1-5: the engine seam, the login and accounts, the board and replay data, the replay scrubber, the lobby and Watch); 8.1b deployed 2026-09-18 (steps 6-9: the container, `store copy`, the service running as `clude-run`) -- `docs/phase8.1-plan.md`, `docs/web.md` |
 | 8.2 | Human players | done: 8.2a-c built 2026-09-18 (the table driver and `play --human`; the table on the web with open seats, autopilot, cold rebuild and "characters remember"); 8.2d deployed and live-checked 2026-09-19, the cold rebuild 0.1 s on a 3-turn table (`docs/phase8-plan.md` 12, `docs/web.md`) |
 | 8.3 | The rest of chat: the model on the web under a spend cap, human chat, off-turn talk with pacing, debriefs after web games | done: 8.3a-c built 2026-09-19 on fake backends, the key deployed and one live table played the same day (two model seats, chat, "remember"; $0.34, no fallbacks); 8.3d closed Phase 8 (`docs/phase8-plan.md` 12) |
-| 9 | A seat over MCP: a Claude in a chat window (claude.ai) plays one seat of a live table through an MCP server mounted beside the Flask app, on the same `TableRegistry` | built. 9a the plan and the renumbering (2026-09-20); 9b the server and the combined ASGI app, 9c deployed with the secret and the `claude` account, both 2026-09-21, and the first live game from the chat that evening; 9d the eight fixes after the second live game and 9e David's follow-ups, both 2026-09-22 and deployed that evening; 9f the chat seat's report after the third live game and 9g what a game cost (both 2026-09-25), 9h five tweaks in one sweep (2026-09-26; typing, the turn time-out and speed mode, the certainty tag, the animated replay, the Legacy style), **to deploy** -- `docs/phase9-plan.md` 8, `docs/phase9h-plan.md` |
+| 9 | A seat over MCP: a Claude in a chat window (claude.ai) plays one seat of a live table through an MCP server mounted beside the Flask app, on the same `TableRegistry` | built. 9a the plan and the renumbering (2026-09-20); 9b the server and the combined ASGI app, 9c deployed with the secret and the `claude` account, both 2026-09-21, and the first live game from the chat that evening; 9d the eight fixes after the second live game and 9e David's follow-ups, both 2026-09-22 and deployed that evening; 9f the chat seat's report after the third live game and 9g what a game cost (both 2026-09-25, deployed that day), 9h five tweaks in one sweep (2026-09-26 and deployed that evening; typing, the turn time-out and speed mode, the certainty tag, the animated replay, the Legacy style); 9i the chat seat's five requests after table `5019abeb0a` (2026-09-26; waiting for the deal, the held-back pass, hand sizes and disproof order, hard mode, a whole replay URL), **to deploy** -- `docs/phase9-plan.md` 8, `docs/phase9h-plan.md` |
 | 10 | In-depth UX: the shippable look, "engraved, not brass-plated" | planned, not started. `docs/phase10-plan.md` proposed 2026-09-20, David's answers recorded 2026-09-21: D1-D4 and D6 settled, D5 (the logo) open until he sees the three alternates in 10a (was Phase 9 until 2026-09-20) |
 | 11 | Tweak, polish, release: clean-up and close, then version 1.0.0, released to family and friends, and planning in versions, not phases | not started (was Phase 10) |
 

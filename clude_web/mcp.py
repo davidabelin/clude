@@ -60,13 +60,16 @@ from mcp.server.mcpserver.exceptions import ToolError
 
 import clude_constraints
 from clude_core import board
-from clude_core.domain import ROOMS, SUSPECTS, WEAPONS
+from clude_core.domain import ROOMS, SUSPECTS, WEAPONS, players_after
 from clude_storage.records import node_from_json
 from clude_training.table import TableError, TableSetup
 
 from . import config, tables
 
-__all__ = ["build_server", "combined_app", "seat_view", "digest", "compact_notepad", "cost_line", "BOARD_PICTURE"]
+__all__ = [
+    "build_server", "combined_app", "seat_view", "digest", "compact_notepad", "shown_notepad", "order_line",
+    "held_pass", "cost_line", "BOARD_PICTURE",
+]
 
 POLL_SECONDS = 60.0
 """How long one call holds the connection, at most: `clude_turn`, and
@@ -274,6 +277,13 @@ def seat_view(
     with its certainty (Phase 9h), the number behind the screen's
     coloured name-tag, which only a non-quiet event can move.
 
+    Phase 9i: each seat's line carries its hand size and `order` says
+    who is asked to disprove this seat's suggestions, in turn. The seat's
+    `tables.notepad_level` decides the notepad: the floor's
+    (`compact_notepad`), only the cards seen (`shown_notepad`), or none
+    at all, the last two also dropping the seat's own certainty. `over`
+    says which level the game was played at.
+
     A reply whose new lines are all `QUIET_KINDS` (or that has none,
     the seat waiting on a person) sends ``"unchanged"`` for the notepad
     and the seats, which are most of a view and cannot have moved; a
@@ -281,6 +291,7 @@ def seat_view(
     has lost count gets the whole picture rather than "unchanged"
     (Phase 9f)."""
     document = registry.document(table_id) or {"id": table_id}
+    level = tables.notepad_level(document, seat)
     since = max(0, int(since or 0))
     if since > game.snapshot.n_events:
         since = 0
@@ -325,16 +336,33 @@ def seat_view(
         line = f"{spec['token']}: {what}"
         if spec["me"]:
             line += " (you)"
+        # Public from the deal: 18 cards dealt round, so the first seats
+        # may hold one more (Phase 9i).
+        line += f", {len(game.state.hands[spec['seat']])} cards"
         if spec["autopilot"]:
             line += ", on autopilot"
         if not spec["active"]:
             line += ", out (accused wrongly)"
-        if spec.get("certainty") is not None:
+        if spec.get("certainty") is not None and not (spec["me"] and level != "full"):
             # The poker face (Phase 9h): everyone at the table sees how
             # far each seat has come from guessing to knowing, and the
-            # chat seat is at the table too (David, 2026-09-26).
+            # chat seat is at the table too (David, 2026-09-26). Its own
+            # is the floor's reading of its notepad, so hard mode drops
+            # it: at 100% it would be the answer (Phase 9i).
             line += f", certainty {round(float(spec['certainty']) * 100)}%"
         seats.append(line)
+
+    if level == "full":
+        notepad = compact_notepad(game, seat)
+    elif level == "shown":
+        notepad = shown_notepad(game, seat, view["n_events"])
+    else:
+        notepad = None
+    over = view["over"]
+    if over is not None:
+        over = dict(over, notepad=level)
+        if over.get("replay"):
+            over["replay_note"] = "The replay needs a sign-in: it is for the person you are chatting with."
 
     out = {
         "table_id": view.get("id"),
@@ -345,14 +373,19 @@ def seat_view(
         "seq": view["seq"],
         "n_events": view["n_events"],
         "seats": "unchanged" if quiet else seats,
+        "order": "unchanged" if quiet else order_line(game, seat, view["seats"]),
         "digest": digest(game, dropped),
         "events": [f"{line['i']} (turn {line['turn']}) {line['text']}" for line in kept],
         "pending": pending,
         "waiting": waiting,
         "me": view["me"],
-        "notepad": "unchanged" if quiet else compact_notepad(game, seat),
-        "over": view["over"],
+        "notepad": "unchanged" if quiet else notepad,
+        "over": over,
     }
+    if level == "none":
+        # Hard mode at its hardest: the log and the hand, and no notepad
+        # at all, not even "unchanged" (Phase 9i).
+        del out["notepad"]
     refusals = [
         getattr(getattr(wrapper, "backend", None), "last_refusal", None)
         for wrapper in game.wrappers.values()
@@ -395,10 +428,77 @@ def cost_line(view: dict) -> Optional[str]:
 
 
 def _replay_path(document: dict) -> Optional[str]:
+    """The finished game's replay: a whole URL when the service knows
+    its own address (`config.public_url`, Phase 9i), since a chat seat
+    has no page for a path to be relative to; the path otherwise."""
     ref = document.get("record")
     if not ref:
         return None
-    return f"/replay/{ref['run_id']}/{ref['index']}"
+    return f"{config.public_url() or ''}/replay/{ref['run_id']}/{ref['index']}"
+
+
+def shown_notepad(game, seat: int, n_events: int) -> dict:
+    """The hard-mode notepad (``shown``, Phase 9i): the seat's hand and
+    what changed hands in private -- each card shown to it and who
+    showed it, and each card it showed and to whom -- over the whole
+    game, not the view's window, so a card shown early is never lost to
+    the digest. Nothing the floor deduced: that is the player's work."""
+    shown_to_me: dict = {}
+    i_showed: dict = {}
+    for event in game.events[:n_events]:
+        suggestion = getattr(event, "suggestion", None)
+        if suggestion is None or suggestion.refuter is None or suggestion.card_shown is None:
+            continue
+        if suggestion.suggester == seat:
+            shown_to_me[suggestion.card_shown] = game.suspects[suggestion.refuter]
+        elif suggestion.refuter == seat:
+            cards = i_showed.setdefault(game.suspects[suggestion.suggester], [])
+            if suggestion.card_shown not in cards:
+                cards.append(suggestion.card_shown)
+    return {"hand": sorted(game.state.hands[seat]), "shown_to_me": shown_to_me, "i_showed": i_showed}
+
+
+def order_line(game, seat: int, seats: list) -> str:
+    """Who is asked to disprove this seat's suggestions, in the order
+    the engine asks them (`players_after`, Phase 9i). A seat that is out
+    still shows cards, and the line says so. `seats` are
+    `view_payload`'s."""
+    names = [
+        game.suspects[other] + ("" if seats[other]["active"] else " (out, still shows cards)")
+        for other in players_after(len(game.suspects), seat)
+    ]
+    return "Seats are listed in play order. Your suggestions are put to them in this order: " + ", ".join(names) + "."
+
+
+def held_pass(game, seat: int, since_event: int, level: str) -> Optional[str]:
+    """Why a pass given ahead (``accuse: false``) should not be applied,
+    or None (Phase 9i). Given with the suggestion, the pass was decided
+    before the answer to it came in; if nobody could disprove it, or the
+    notepad now proves the envelope, the answer changed the question,
+    and table 5019abeb0a was lost to exactly that. A suggestion wholly
+    of the seat's own cards is a bluff whose silence says nothing new,
+    so it does not hold the pass. The proven envelope counts only on the
+    full notepad: in hard mode the notice would be the floor's hint."""
+    hand = game.state.hands[seat]
+    for event in game.events[since_event:]:
+        suggestion = getattr(event, "suggestion", None)
+        if (
+            suggestion is not None
+            and suggestion.suggester == seat
+            and suggestion.refuter is None
+            and not set(suggestion.cards()) <= hand
+        ):
+            return (
+                "accuse false was not applied: nobody could disprove your suggestion "
+                f"({suggestion.suspect}, {suggestion.weapon}, {suggestion.room}). "
+                "The accusation question is yours: answer it now."
+            )
+    if level == "full" and clude_constraints.observe(game.state, seat).mask.solution() is not None:
+        return (
+            "accuse false was not applied: your notepad now proves the solution. "
+            "The accusation question is yours: answer it now."
+        )
+    return None
 
 
 def _listing(document: dict, account: str) -> dict:
@@ -418,6 +518,7 @@ def _listing(document: dict, account: str) -> dict:
         "mine": mine is not None,
         "my_token": None if mine is None else setup.seats[mine].token,
         "my_autopilot": mine is not None and bool(autopilot.get(str(mine))),
+        "my_notepad": None if mine is None else tables.notepad_level(document, mine),
         "timeout": tables.timeout_for(document),
     }
 
@@ -484,7 +585,7 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
             if document.get("status") == "open":
                 raise ToolError(
                     f"Table {table_id} has not been dealt yet; whoever made it deals from the browser. "
-                    "Call clude_turn again in a little while."
+                    "clude_turn waits for the deal."
                 )
             if document.get("status") == "abandoned":
                 raise ToolError(f"Table {table_id} was ended before the game finished. Use clude_tables to find another.")
@@ -520,25 +621,37 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
 
         Returns each table's id, its status (open: waiting for players;
         playing; finished), its seats, which seats are open, and whether
-        you already hold one (`mine`, with `my_token`, and `my_autopilot`
-        if you handed it to the floor bot).
+        you already hold one (`mine`, with `my_token`, `my_autopilot`
+        if you handed it to the floor bot, and `my_notepad`, the notepad
+        you chose with clude_sit).
         """
         listing = [_listing(document, account) for document in registry.in_progress()]
         return {"tables": listing, "you": account}
 
     @server.tool()
-    def clude_sit(table_id: str, token: str) -> dict:
+    def clude_sit(table_id: str, token: str, notepad: str = "full") -> dict:
         """Take an open seat at a table, as one of the six suspects.
 
         `token` is a suspect name from that table's open seats: Scarlett,
         Mustard, White, Green, Peacock or Plum. The game starts when
         whoever made the table deals, from the browser, once every open
-        seat is taken; until then clude_turn tells you the table is not
-        dealt yet.
+        seat is taken; clude_turn waits for the deal.
 
-        You play from the log, your hand and the notepad -- the deduction
-        sheet the floor fills in with what is logically certain. No
-        character method plays for you or advises you: you are the head.
+        You play from the log and your hand, and by default the notepad
+        -- the deduction sheet the floor fills in with what is logically
+        certain. No character method plays for you or advises you: you
+        are the head. `notepad` chooses how much of the sheet you get,
+        for the whole game:
+
+        - "full" (the default): the whole deduction sheet.
+        - "shown": no deductions, only your hand, each card shown to you
+          and by whom, and each card you showed and to whom. The
+          deduction is yours. Your own certainty is left out of `seats`
+          too, since it is the sheet's reading.
+        - "none": no notepad at all: the log and your hand.
+
+        Call clude_sit again for the seat you hold to change it before
+        the deal; after the deal it is fixed, and the ending records it.
 
         `board` comes back with this call: the board as a picture, one
         character per square, with a legend for reading it. It is the
@@ -548,15 +661,27 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         move is enumerated for you -- but it is what the rooms, doors
         and corridors look like.
         """
+        token = (token or "").strip().title()
+        level = (notepad or "full").strip().lower()
         try:
-            document = registry.sit(table_id, account, (token or "").strip().title())
+            if level not in tables.NOTEPAD_LEVELS:
+                raise TableError(f"notepad is one of: {', '.join(tables.NOTEPAD_LEVELS)}")
+            document = registry.document(table_id)
+            setup = None if document is None else TableSetup.from_dict(document["setup"])
+            mine = None if setup is None else tables.viewer_seat(setup, account)
+            if mine is None or setup.seats[mine].token != token or document.get("status") != "open":
+                # Sitting down; `sit` refuses a second seat, a taken one
+                # and a table already dealt.
+                document = registry.sit(table_id, account, token)
+                mine = tables.viewer_seat(TableSetup.from_dict(document["setup"]), account)
+            document = registry.set_notepad_level(table_id, mine, level)
         except TableError as exc:
             raise ToolError(str(exc)) from None
         out = _listing(document, account)
         out["board"] = BOARD_PICTURE
         out["message"] = (
-            f"You are seated as {out['my_token']} at table {table_id}. The game starts when the table is "
-            "dealt from the browser; then call clude_turn."
+            f"You are seated as {out['my_token']} at table {table_id}, notepad {level}. The game starts "
+            "when the table is dealt from the browser; call clude_turn, which waits for the deal."
         )
         return out
 
@@ -565,8 +690,10 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         """Wait for your turn, then return the decision waiting for you.
 
         This call holds for up to a minute while the other seats play,
-        so call it once and wait rather than calling it repeatedly. It
-        returns one of three things:
+        or while the table waits to be dealt, so call it once and wait
+        rather than calling it repeatedly. Before the deal it comes back
+        with `status` "open" and `waiting` saying what the table is
+        waiting for; call it again. After, it returns one of three things:
 
         - `pending` set: a decision is yours. Answer it with clude_answer,
           passing back the `seq` you were given here.
@@ -586,10 +713,13 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         the events after it come back; leave it at 0 in a fresh
         conversation and the whole picture does: `me` (your seat, token
         and hand, and `at`, where your token stands), `seats` (who is at
-        the table, each with its `certainty`: how far that seat has come
+        the table, in play order, each with the number of cards it
+        holds and its `certainty`: how far that seat has come
         from guessing to knowing, 0% a uniform guess over the 324
         possible answers, 100% certain, 50% about one in 18 -- yours
-        included, from your notepad alone), `events` (the log, each line numbered; `digest`
+        included, from your notepad alone, unless you chose a smaller
+        notepad), `order` (who is asked to disprove your suggestions, in
+        turn), `events` (the log, each line numbered; `digest`
         summarises anything cut from its front), `board` (the board
         picture and its legend) and `note` (whatever you last wrote with
         clude_note). The last two come only with since 0, so read them
@@ -599,9 +729,13 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         the facts of the form "X holds at least one of these", and
         `solution` once the sheet has proven all three. A seat that could
         not disprove a suggestion is already struck from those three
-        cards. When nothing since `since` could have changed them (only
-        moves and table talk), `notepad` and `seats` say "unchanged":
-        the ones you last saw still stand. At a table with model
+        cards. If you sat with notepad "shown", `notepad` is instead your
+        `hand`, `shown_to_me` (card: who showed it) and `i_showed` (who:
+        the cards you showed them), for the whole game; with "none" it
+        is not there. When nothing since `since` could have changed them
+        (only moves and table talk), `notepad`, `seats` and `order` say
+        "unchanged": the ones you last saw still stand. `over`, at the
+        end, has a `replay` link for the person you are chatting with. At a table with model
         characters, `cost` says what they have spent with Claude so far
         and each seat's share of it.
 
@@ -622,8 +756,29 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         the pathfinding yourself. A suggestion names the `room` you are
         standing in; an accusation is free, any of the 21 cards.
         """
+        document, seat = seated(table_id)
+        deadline = time.monotonic() + POLL_SECONDS
+        # Seated before the deal, the seat waits for it here rather than
+        # being told to come back (Phase 9i), under the one deadline.
+        while document.get("status") == "open" and time.monotonic() < deadline:
+            time.sleep(2 * SLEEP_SECONDS)
+            document = registry.document(table_id) or document
+        if document.get("status") == "open":
+            setup = TableSetup.from_dict(document["setup"])
+            still_open = [setup.seats[other].token for other in setup.open_seats]
+            return {
+                "table_id": table_id,
+                "status": "open",
+                "finished": False,
+                "pending": None,
+                "waiting": (
+                    f"Waiting for the table to be dealt; open seats: {', '.join(still_open)}. Call clude_turn again."
+                    if still_open
+                    else "Every seat is taken; waiting for whoever made the table to deal it. Call clude_turn again."
+                ),
+            }
         game, seat = live(table_id)
-        await_turn(table_id, game, seat)
+        await_turn(table_id, game, seat, deadline)
         return seat_view(registry, table_id, game, seat, since=since)
 
     @server.tool()
@@ -669,8 +824,11 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         the question reaches you, however much falls in between
         (someone showing a card, a character thinking). If the turn
         reaches no accusation question for you it is not applied and
-        `notice` says so. Left out, the accusation arrives as a decision
-        of its own.
+        `notice` says so. A pass (false) given ahead is held back when
+        nobody could disprove your suggestion, or when your notepad now
+        proves the solution: the question comes to you as a decision
+        instead, with a `notice` saying why. Left out, the accusation
+        arrives as a decision of its own.
 
         With `wait` (the default) the call then holds like clude_turn
         until your next decision is ready, so `pending` is usually set
@@ -683,6 +841,7 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         try:
             _check_accuse(accuse)
             answer = _resolve_toward(game, seat, int(seq), answer)
+            events_before = game.snapshot.n_events
             registry.answer(table_id, game, seat, int(seq), answer, by="mcp")
             if accuse is not None:
                 # The accusation question ends the turn, but it rarely
@@ -694,7 +853,17 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
                 # anything at all fell between).
                 await_turn(table_id, game, seat, deadline)
                 if ours(game, seat) and game.pending.kind == "accusation":
-                    registry.answer(table_id, game, seat, game.seq, None if accuse is False else accuse, by="mcp")
+                    held = None
+                    if accuse is False:
+                        # A pass decided before the answer came in
+                        # (Phase 9i): an undisproved suggestion or a
+                        # proven envelope puts the question back.
+                        level = tables.notepad_level(registry.document(table_id), seat)
+                        held = held_pass(game, seat, events_before, level)
+                    if held:
+                        notice = held
+                    else:
+                        registry.answer(table_id, game, seat, game.seq, None if accuse is False else accuse, by="mcp")
                 else:
                     notice = (
                         "accuse was not applied: this turn reached no accusation question for you. "

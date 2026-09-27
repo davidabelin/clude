@@ -895,4 +895,71 @@ and the finding that the old three-minute hand-over never fired on a
 browser-only table; the certainty tag, every seat's name coloured
 blue-white-red by the bits it has gained; Play and a speed slider on
 the replay; and the Legacy style, the look of Phases 8.1 to 9h frozen
-as the first entry of a per-account setting. **Not deployed.**
+as the first entry of a per-account setting. Deployed 2026-09-26 as
+`clude-00012-bqr` (9f and 9g as `clude-00011-t7g`, 2026-09-25).
+
+### Phase 9i: the chat seat's five requests after table `5019abeb0a` (2026-09-26)
+
+After its game at `5019abeb0a` the chat seat asked for five things, and
+all five are in `clude_web/mcp.py`, with one registry method, one config
+setting and one deploy variable. Nothing in the engine, the driver or
+the browser moved. Built on the in-memory client with the suite green
+(510 passed, 27 skipped); **not deployed**.
+
+- **`clude_turn` waits for the deal.** Seated at a table still `open`,
+  it used to raise "not dealt yet" and leave the retrying to the model.
+  Now it re-reads the document every two beats until the deal, then goes
+  on into `await_turn` under **the same deadline**, so one call still
+  holds `POLL_SECONDS` at most. Still undealt at the deadline, it
+  returns `status` "open" and a `waiting` line naming the open seats (or
+  saying every seat is taken and the starter has yet to deal), not an
+  error. `clude_answer` and the rest still refuse before the deal: there
+  is nothing to answer.
+- **A pass given ahead is held back when the answer changed the
+  question** (`held_pass`). `accuse: false` folded into a suggestion was
+  applied blindly when the accusation question came, and at
+  `5019abeb0a` the suggestion went undisproved and the pass threw the
+  game away. The pass is now withheld, and the question comes back as
+  the seat's decision with a `notice` saying why, when a suggestion of
+  the seat's since the answer went round undisproved (unless all three
+  cards are its own, a bluff that says nothing new), or, on the full
+  notepad, when the floor now proves the envelope. The second test is
+  left out in hard mode, where the notice would be the floor's hint. An
+  accusation given ahead is applied as before.
+- **Hand sizes and the disproof order.** Every seat line carries its
+  hand size ("Peacock: floor, 4 cards, certainty 41%"), and a new
+  `order` line names who is asked to disprove the seat's suggestions, in
+  `players_after` order, the order the engine asks in. A seat that is out
+  still shows cards, and the line says so. Both go wherever `seats` goes,
+  "unchanged" on a quiet reply.
+- **Hard mode.** `clude_sit` takes `notepad`: "full" (the default and
+  the old behaviour), "shown" (the hand, `shown_to_me` card by card with
+  who showed it, and `i_showed` by suggester, over the whole game rather
+  than the 60-line window: `shown_notepad`), or "none" (no `notepad` key
+  at all). It is stored as `notepad_level` on the table document
+  (`TableRegistry.set_notepad_level`, `tables.notepad_level`). Calling
+  `clude_sit` again for the seat already held changes the level; after
+  the deal it is refused, so a game is played at one level throughout.
+  `leave` clears it. Hard mode also drops the seat's **own** certainty
+  from its line, since that number is the floor's reading of its notepad
+  and at 100% would be the answer; everyone else's stays. `clude_tables`
+  gives `my_notepad`, and `over` records the level.
+- **A whole replay URL.** `config.public_url()` reads `CLUDE_PUBLIC_URL`
+  (environment, then `.env`); `_replay_path` prefixes it when set and
+  gives the bare path otherwise, so tests and local runs are unchanged.
+  `scripts/deploy.bat` and the command in `docs/web.md` set it to the
+  Cloud Run URL. The replay sits behind the login, so `over` also
+  carries a `replay_note`: the link is for the person in the chat, not
+  for the chat seat.
+
+Tests (`tests/test_mcp.py`): the wait for the deal on a stand-in clock
+that deals mid-wait; hand sizes summing to 18 and `order` against
+`players_after`, with an out seat; `held_pass` on a fake log (this
+turn's undisproved suggestion, an earlier one, a disproved one, a bluff,
+someone else's); a live pass held back after a suggestion of the
+envelope's suspect and weapon in a room nobody else holds; both hard
+levels played to the end (the cards shown checked against the hands, no
+notepad key at "none", the own certainty gone and the others' kept, the
+level refused after the deal); a bad level refused; and the whole URL.
+Five older tests moved with the seat line's new shape, `clude_turn`'s
+wait, and the folded pass that can now come back as a decision.

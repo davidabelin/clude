@@ -673,7 +673,7 @@ gcloud run deploy clude --source . --region us-central1 `
     --service-account clude-run@clude-game.iam.gserviceaccount.com `
     --allow-unauthenticated --min-instances 0 --max-instances 1 --concurrency 8 `
     --cpu 1 --memory 1Gi --timeout 300 `
-    --set-env-vars "CLUDE_WEB_HTTPS=1,CLUDE_WEB_STORE=gs://clude-game-data/llm,CLUDE_WEB_LLM_BUDGET=2.00,CLUDE_WEB_LLM_DAILY_CAP=10.00" `
+    --set-env-vars "CLUDE_WEB_HTTPS=1,CLUDE_WEB_STORE=gs://clude-game-data/llm,CLUDE_WEB_LLM_BUDGET=2.00,CLUDE_WEB_LLM_DAILY_CAP=10.00,CLUDE_PUBLIC_URL=https://clude-648214345192.us-central1.run.app" `
     --set-secrets "FLASK_SECRET_KEY=clude-flask-secret:latest,ANTHROPIC_API_KEY=clude-anthropic-key:latest,CLUDE_MCP_SECRET=clude-mcp-secret:latest" `
     --quiet $A $P
 ```
