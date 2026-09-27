@@ -1,10 +1,12 @@
 """A seat at a clude table, over MCP (Phase 9, docs/phase9-plan.md).
 
-A Claude in a chat window plays one seat of a live game through the
-seven tools here. Nothing in this module is a new game: every call goes
+A chatbot in a chat window (a Claude at claude.ai, or another at
+ChatGPT) plays one seat of a live game through the tools here, or
+watches one. Nothing in this module is a new game: every call goes
 through the same `TableRegistry` the web screens use, so the chat seat
-is an ordinary account (`config.mcp_account`, ``claude``) in an ordinary
-human seat, answering the engine's `DecisionRequest`s from outside it
+is an ordinary account in an ordinary human seat -- logged in with
+`clude_login` as a person logs in at the form, each chatbot its own
+account since Phase 9j -- answering the engine's `DecisionRequest`s from outside it
 exactly as a browser does, and a game with one is indistinguishable in
 the store from a game without -- except that its answers are entered
 ``by="mcp"``.
@@ -51,9 +53,12 @@ beside Flask and not served on its own.
 """
 from __future__ import annotations
 
+import hashlib
 import re
 import time
 from typing import Optional, Union
+
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
@@ -61,14 +66,15 @@ from mcp.server.mcpserver.exceptions import ToolError
 import clude_constraints
 from clude_core import board
 from clude_core.domain import ROOMS, SUSPECTS, WEAPONS, players_after
+from clude_storage import GameRecord
 from clude_storage.records import node_from_json
 from clude_training.table import TableError, TableSetup
 
-from . import config, tables
+from . import config, replay_data, tables, users
 
 __all__ = [
     "build_server", "combined_app", "seat_view", "digest", "compact_notepad", "shown_notepad", "order_line",
-    "held_pass", "cost_line", "BOARD_PICTURE",
+    "held_pass", "cost_line", "watch_view", "issue_login", "check_login", "BOARD_PICTURE",
 ]
 
 POLL_SECONDS = 60.0
@@ -87,6 +93,10 @@ drive the same work and neither starves the other."""
 MAX_EVENTS = 60
 """Event lines kept verbatim in a view; older ones become the digest."""
 
+REPLAY_PAGE = 120
+"""Event lines in one page of `clude_replay`: a whole game is 150 to
+400, too many for one reply to a chat."""
+
 QUIET_KINDS = frozenset({"move", "remark"})
 """Event lines that cannot change what the floor has proven: the
 notepad moves only on suggestions, disproofs and accusations. A view
@@ -103,15 +113,19 @@ INSTRUCTIONS = """\
 clude is a game of Clue (the classic board game) played at a web table by \
 a mix of people and six characters, each running its own probability \
 method. Through these tools you sit at a table as one of the suspects and \
-play a seat yourself, reasoning from the log and your hand. The usual \
-round: clude_tables to find a table with an open seat, clude_sit to take \
+play a seat yourself, reasoning from the log and your hand, or watch. \
+First clude_login, with the name and password the person you are chatting \
+with gives you, and pass the `login` it returns to every other tool. The \
+usual round: clude_tables to find a table with an open seat, clude_sit to take \
 it, then clude_turn once (it waits for your first decision) and after \
 that clude_answer over and over, since each answer waits for your next \
 decision; clude_say for table talk, clude_note for what you want to \
 remember, clude_autopilot to hand your seat to the floor bot when you \
 must leave. Pass `since` (the last `n_events` you saw) to every turn and \
 answer so only new events come back; a call with since 0 returns \
-everything, so nothing has to be remembered between calls.\
+everything, so nothing has to be remembered between calls. To look on \
+instead: clude_watch for a live table, clude_games and clude_replay for \
+finished ones.\
 """
 
 
@@ -314,43 +328,8 @@ def seat_view(
         pending = {key: value for key, value in pending.items() if key != "options"}
         pending["toward"] = toward_lines(view["pending"]["options"])
 
-    waiting = view.get("waiting")
-    if waiting is not None:
-        what = {"movement": "move", "suggestion": "suggest", "accusation": "decide whether to accuse"}.get(
-            waiting["kind"], "show a card"
-        )
-        details = []
-        if waiting["seconds"] >= 1:
-            details.append(f"{waiting['seconds']:.0f} s so far")
-        if game.kinds[waiting["seat"]] == "human" and not waiting["autopilot"]:
-            # The most a person can keep the table waiting, so a seat
-            # polling for its turn knows how long this can go on.
-            details.append(f"the floor bot plays this turn at {view['timeout']:.0f} s")
-        waiting = f"Waiting for {waiting['name']} to {what}" + (
-            f" ({'; '.join(details)})" if details else ""
-        ) + (", on autopilot." if waiting["autopilot"] else ".")
-
-    seats = []
-    for spec in view["seats"]:
-        what = spec["kind"] if spec["kind"] != "human" else spec["label"]
-        line = f"{spec['token']}: {what}"
-        if spec["me"]:
-            line += " (you)"
-        # Public from the deal: 18 cards dealt round, so the first seats
-        # may hold one more (Phase 9i).
-        line += f", {len(game.state.hands[spec['seat']])} cards"
-        if spec["autopilot"]:
-            line += ", on autopilot"
-        if not spec["active"]:
-            line += ", out (accused wrongly)"
-        if spec.get("certainty") is not None and not (spec["me"] and level != "full"):
-            # The poker face (Phase 9h): everyone at the table sees how
-            # far each seat has come from guessing to knowing, and the
-            # chat seat is at the table too (David, 2026-09-26). Its own
-            # is the floor's reading of its notepad, so hard mode drops
-            # it: at 100% it would be the answer (Phase 9i).
-            line += f", certainty {round(float(spec['certainty']) * 100)}%"
-        seats.append(line)
+    waiting = waiting_line(game, view)
+    seats = [seat_line(game, spec, hide_certainty=spec["me"] and level != "full") for spec in view["seats"]]
 
     if level == "full":
         notepad = compact_notepad(game, seat)
@@ -402,6 +381,164 @@ def seat_view(
         out["note"] = registry.note(table_id, seat)
         out["board"] = BOARD_PICTURE
     return out
+
+
+def waiting_line(game, view: dict) -> Optional[str]:
+    """Who the table is waiting on, as a sentence, or None: from
+    `view_payload`'s ``waiting``. For a person, the most they can keep
+    the table waiting, so a seat polling for its turn knows how long
+    this can go on."""
+    waiting = view.get("waiting")
+    if waiting is None:
+        return None
+    what = {"movement": "move", "suggestion": "suggest", "accusation": "decide whether to accuse"}.get(
+        waiting["kind"], "show a card"
+    )
+    details = []
+    if waiting["seconds"] >= 1:
+        details.append(f"{waiting['seconds']:.0f} s so far")
+    if game.kinds[waiting["seat"]] == "human" and not waiting["autopilot"]:
+        details.append(f"the floor bot plays this turn at {view['timeout']:.0f} s")
+    return f"Waiting for {waiting['name']} to {what}" + (
+        f" ({'; '.join(details)})" if details else ""
+    ) + (", on autopilot." if waiting["autopilot"] else ".")
+
+
+def seat_line(game, spec: dict, hide_certainty: bool = False) -> str:
+    """One seat of `view_payload`'s ``seats`` in a line: its token, who
+    plays it (a person by name, capitalised: Phase 9j), its hand size
+    (public from the deal: 18 cards dealt round, so the first seats may
+    hold one more; Phase 9i), autopilot, out, and its certainty.
+
+    The certainty is the poker face (Phase 9h): everyone at the table
+    sees how far each seat has come from guessing to knowing, and a chat
+    seat is at the table too (David, 2026-09-26). `hide_certainty` drops
+    it for a hard-mode seat's own line, where it is the floor's reading
+    of the notepad and at 100% would be the answer (Phase 9i)."""
+    what = spec["kind"] if spec["kind"] != "human" else users.display_name(spec["label"])
+    line = f"{spec['token']}: {what}"
+    if spec.get("me"):
+        line += " (you)"
+    line += f", {len(game.state.hands[spec['seat']])} cards"
+    if spec["autopilot"]:
+        line += ", on autopilot"
+    if not spec["active"]:
+        line += ", out (accused wrongly)"
+    if spec.get("certainty") is not None and not hide_certainty:
+        line += f", certainty {round(float(spec['certainty']) * 100)}%"
+    return line
+
+
+def watch_view(registry: tables.TableRegistry, table_id: str, game: tables.WebGame, since: int = 0) -> dict:
+    """A live table as a spectator sees it (Phase 9j), shaped as
+    `seat_view` shapes a seat's: `view_payload` from no seat, so hands
+    stay hidden and the card shown at a refutation is not named, then
+    one line per seat and per event, the front of a long log folded
+    into `digest`. The deduction bars the browser's Watch draws are left
+    out; each seat's certainty is in its line. `watching` names who else
+    is looking on."""
+    document = registry.document(table_id) or {"id": table_id}
+    since = max(0, int(since or 0))
+    if since > game.snapshot.n_events:
+        since = 0
+    view = tables.view_payload(
+        game,
+        document,
+        None,
+        since=since,
+        replay_url=_replay_path(document),
+        waiting_for=registry.waiting_for(table_id, game),
+        spend=registry.spend(table_id, document),
+    )
+    lines = view.get("events") or []
+    dropped = lines[:-MAX_EVENTS] if len(lines) > MAX_EVENTS else []
+    out = {
+        "table_id": table_id,
+        "status": view["status"],
+        "turns": view["turns"],
+        "finished": view["finished"],
+        "broken": view["broken"],
+        "n_events": view["n_events"],
+        "seats": [seat_line(game, spec) for spec in view["seats"]],
+        "digest": digest(game, dropped),
+        "events": [f"{line['i']} (turn {line['turn']}) {line['text']}" for line in lines[-MAX_EVENTS:]],
+        "waiting": waiting_line(game, view),
+        "watching": [users.display_name(name) for name in registry.watching(table_id)],
+        "over": view["over"],
+    }
+    cost = cost_line(view)
+    if cost is not None:
+        out["cost"] = cost
+    return out
+
+
+def _undealt(table_id: str, document: dict) -> dict:
+    """A table not dealt yet, as `clude_turn` and `clude_watch` report
+    it: what it is waiting for, and to call again."""
+    setup = TableSetup.from_dict(document["setup"])
+    still_open = [setup.seats[other].token for other in setup.open_seats]
+    return {
+        "table_id": table_id,
+        "status": "open",
+        "finished": False,
+        "pending": None,
+        "waiting": (
+            f"Waiting for the table to be dealt; open seats: {', '.join(still_open)}. Call again."
+            if still_open
+            else "Every seat is taken; waiting for whoever made the table to deal it. Call again."
+        ),
+    }
+
+
+# --- logins (Phase 9j) --------------------------------------------------------
+
+LOGIN_SALT = "clude-mcp-login"
+"""Keeps an MCP login from ever passing for anything else the session
+secret signs."""
+
+LOGIN_DAYS = 30
+"""How long a login lasts. A chat forgets it anyway with its
+conversation; this only bounds one that leaks."""
+
+
+def _fingerprint(account: dict) -> str:
+    """A short digest of the account's password hash: in the login, so
+    changing the password (``users passwd``) ends every login made with
+    the old one. The hash itself never leaves the store."""
+    return hashlib.sha256(account["password_hash"].encode()).hexdigest()[:16]
+
+
+def issue_login(secret_key, account: dict) -> str:
+    """A signed login for `account` (a stored account document): what
+    `clude_login` returns and every other tool takes. Signed with the
+    session secret, not stored, so it survives a restart and scales to
+    zero with the service."""
+    serializer = URLSafeTimedSerializer(secret_key, salt=LOGIN_SALT)
+    return serializer.dumps({"key": account["key"], "pw": _fingerprint(account)})
+
+
+def check_login(secret_key, store, login) -> str:
+    """The account key a login stands for.
+
+    Raises
+    ------
+    ToolError
+        No login, a forged or mangled one, one past `LOGIN_DAYS`, or one
+        for an account removed or whose password has changed since.
+    """
+    if not login:
+        raise ToolError("Log in first: clude_login with the name and password you were given.")
+    serializer = URLSafeTimedSerializer(secret_key, salt=LOGIN_SALT)
+    try:
+        data = serializer.loads(str(login), max_age=LOGIN_DAYS * 86400)
+    except SignatureExpired:
+        raise ToolError("Your login has run out. Call clude_login again.") from None
+    except BadSignature:
+        raise ToolError("That is not a clude login. Call clude_login for one.") from None
+    account = users.get_user(store, str(data.get("key", "")))
+    if account is None or _fingerprint(account) != data.get("pw"):
+        raise ToolError("Your login is no longer good (the password changed?). Call clude_login again.")
+    return account["key"]
 
 
 def cost_line(view: dict) -> Optional[str]:
@@ -511,7 +648,12 @@ def _listing(document: dict, account: str) -> dict:
         "status": document.get("status", "playing"),
         "turns": int(document.get("turns", 0)),
         "seats": [
-            {"seat": seat, "token": spec.token, "kind": spec.kind, "label": spec.label}
+            {
+                "seat": seat,
+                "token": spec.token,
+                "kind": spec.kind,
+                "label": users.display_name(spec.label) if spec.kind == "human" else spec.label,
+            }
             for seat, spec in enumerate(setup.seats)
         ],
         "open_seats": [setup.seats[seat].token for seat in setup.open_seats],
@@ -544,8 +686,8 @@ def _check_accuse(accuse) -> None:
 # --- the server ---------------------------------------------------------------
 
 
-def build_server(registry: tables.TableRegistry, account: Optional[str] = None) -> MCPServer:
-    """The MCP server over `registry`, playing as `account`.
+def build_server(registry: tables.TableRegistry, secret_key, limiter=None) -> MCPServer:
+    """The MCP server over `registry`, for whoever logs in.
 
     Parameters
     ----------
@@ -553,18 +695,30 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         The one registry of the process: the Flask app's own when served
         beside it (`combined_app`), a fresh one over a temp store in a
         test. Never a second registry over a store another one holds.
-    account : str or None
-        The account key the chat seat sits as; `config.mcp_account`
-        (``claude``) by default. An ordinary account, made with
-        ``users add``; seat ownership then resolves through
-        `tables.viewer_seat` exactly as for a browser.
+    secret_key : str or bytes
+        What logins are signed with: the Flask app's session secret, so
+        an MCP login is exactly as good as a browser's.
+    limiter : auth.RateLimit or None
+        The login brake, the app's own when served beside it, so the
+        form and `clude_login` count one account's attempts together.
+
+    Every tool but `clude_login` takes `login`, the string that call
+    returned, and acts as that account (Phase 9j): an ordinary account,
+    made with ``users add``, whose seat resolves through
+    `tables.viewer_seat` exactly as a browser's does. Before 9j the
+    server played as one fixed account, ``claude``.
     """
-    account = (account or config.mcp_account()).strip().lower()
+    from .auth import RateLimit  # noqa: PLC0415
+
+    limiter = limiter if limiter is not None else RateLimit()
     server = MCPServer("clude", instructions=INSTRUCTIONS)
     server.registry = registry  # what this server plays on, for a test to check
-    server.account = account
 
-    def seated(table_id: str) -> tuple:
+    def who(login: str) -> str:
+        """The account key `login` stands for, or a `ToolError`."""
+        return check_login(secret_key, registry.store, login)
+
+    def seated(table_id: str, account: str) -> tuple:
         """The table's document and this account's seat there, or a
         `ToolError` the model can act on."""
         document = registry.document(table_id)
@@ -577,9 +731,9 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
             )
         return document, seat
 
-    def live(table_id: str) -> tuple:
+    def live(table_id: str, account: str) -> tuple:
         """The live game and this account's seat, or a `ToolError`."""
-        document, seat = seated(table_id)
+        document, seat = seated(table_id, account)
         game = registry.game(table_id)
         if game is None:
             if document.get("status") == "open":
@@ -611,7 +765,35 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
                 time.sleep(SLEEP_SECONDS)
 
     @server.tool()
-    def clude_tables() -> dict:
+    def clude_login(name: str, password: str) -> dict:
+        """Log in to clude with the name and password you were given.
+
+        The person you are chatting with has them: every player,
+        people and chatbots alike, has an account of their own. This
+        returns `login`, which every other tool needs: pass it on every
+        call. It lasts 30 days and ends early if the password changes; a
+        tool that refuses it asks you to log in again. Five wrong tries
+        in a minute and the name is locked out for that minute.
+        """
+        key = (name or "").strip().lower() or "-"
+        if not limiter.check(key):
+            raise ToolError("Too many attempts. Wait a minute.")
+        account = users.authenticate(registry.store, name, password)
+        if account is None:
+            raise ToolError("Wrong name or password.")
+        limiter.clear(account["key"])
+        you = users.display_name(account["key"])
+        return {
+            "login": issue_login(secret_key, account),
+            "you": you,
+            "message": (
+                f"You are logged in as {you}. Pass `login` to every other tool. clude_tables lists "
+                "the tables to play or watch; clude_games the finished games to replay."
+            ),
+        }
+
+    @server.tool()
+    def clude_tables(login: str) -> dict:
         """List the clude tables you could join or are already sitting at.
 
         clude is a game of Clue (the classic board game) played by a mix
@@ -625,11 +807,12 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         if you handed it to the floor bot, and `my_notepad`, the notepad
         you chose with clude_sit).
         """
+        account = who(login)
         listing = [_listing(document, account) for document in registry.in_progress()]
-        return {"tables": listing, "you": account}
+        return {"tables": listing, "you": users.display_name(account)}
 
     @server.tool()
-    def clude_sit(table_id: str, token: str, notepad: str = "full") -> dict:
+    def clude_sit(login: str, table_id: str, token: str, notepad: str = "full") -> dict:
         """Take an open seat at a table, as one of the six suspects.
 
         `token` is a suspect name from that table's open seats: Scarlett,
@@ -661,6 +844,7 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         move is enumerated for you -- but it is what the rooms, doors
         and corridors look like.
         """
+        account = who(login)
         token = (token or "").strip().title()
         level = (notepad or "full").strip().lower()
         try:
@@ -686,7 +870,7 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         return out
 
     @server.tool()
-    def clude_turn(table_id: str, since: int = 0) -> dict:
+    def clude_turn(login: str, table_id: str, since: int = 0) -> dict:
         """Wait for your turn, then return the decision waiting for you.
 
         This call holds for up to a minute while the other seats play,
@@ -756,7 +940,8 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         the pathfinding yourself. A suggestion names the `room` you are
         standing in; an accusation is free, any of the 21 cards.
         """
-        document, seat = seated(table_id)
+        account = who(login)
+        document, seat = seated(table_id, account)
         deadline = time.monotonic() + POLL_SECONDS
         # Seated before the deal, the seat waits for it here rather than
         # being told to come back (Phase 9i), under the one deadline.
@@ -764,25 +949,14 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
             time.sleep(2 * SLEEP_SECONDS)
             document = registry.document(table_id) or document
         if document.get("status") == "open":
-            setup = TableSetup.from_dict(document["setup"])
-            still_open = [setup.seats[other].token for other in setup.open_seats]
-            return {
-                "table_id": table_id,
-                "status": "open",
-                "finished": False,
-                "pending": None,
-                "waiting": (
-                    f"Waiting for the table to be dealt; open seats: {', '.join(still_open)}. Call clude_turn again."
-                    if still_open
-                    else "Every seat is taken; waiting for whoever made the table to deal it. Call clude_turn again."
-                ),
-            }
-        game, seat = live(table_id)
+            return _undealt(table_id, document)
+        game, seat = live(table_id, account)
         await_turn(table_id, game, seat, deadline)
         return seat_view(registry, table_id, game, seat, since=since)
 
     @server.tool()
     def clude_answer(
+        login: str,
         table_id: str,
         seq: int,
         answer: Optional[dict] = None,
@@ -835,7 +1009,7 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         when it returns and you need not call clude_turn at all. Pass
         `since` as in clude_turn so only new events come back.
         """
-        game, seat = live(table_id)
+        game, seat = live(table_id, who(login))
         deadline = time.monotonic() + POLL_SECONDS
         notice = None
         try:
@@ -881,7 +1055,7 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         return view
 
     @server.tool()
-    def clude_say(table_id: str, text: str) -> dict:
+    def clude_say(login: str, table_id: str, text: str) -> dict:
         """Say something at the table, in character and in the open.
 
         Everyone sees it, including the characters, who may answer. Keep
@@ -891,7 +1065,7 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         talk; the engine checks that against the hands. Returns nothing
         you need; carry on with clude_turn or clude_answer.
         """
-        game, seat = live(table_id)
+        game, seat = live(table_id, who(login))
         try:
             line = registry.say(table_id, game, seat, text)
         except TableError as exc:
@@ -899,7 +1073,7 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         return {"said": line}
 
     @server.tool()
-    def clude_note(table_id: str, text: Optional[str] = None) -> dict:
+    def clude_note(login: str, table_id: str, text: Optional[str] = None) -> dict:
         """Read or replace your note, the one thing of yours that outlives
         this conversation.
 
@@ -914,7 +1088,7 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         have nothing else of yours. Keep it short: it comes back whole
         with every since-0 view.
         """
-        _document, seat = seated(table_id)
+        _document, seat = seated(table_id, who(login))
         if text is None:
             return {"note": registry.note(table_id, seat)}
         try:
@@ -923,7 +1097,7 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
             return {"error": str(exc), "note": registry.note(table_id, seat)}
 
     @server.tool()
-    def clude_autopilot(table_id: str, on: bool = True) -> dict:
+    def clude_autopilot(login: str, table_id: str, on: bool = True) -> dict:
         """Hand your seat to the floor bot, or take it back.
 
         Use it when you must leave a game unfinished -- this conversation
@@ -936,7 +1110,7 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
         run out on three turns in a row is handed over this way without
         asking.
         """
-        game, seat = live(table_id)
+        game, seat = live(table_id, who(login))
         try:
             document = registry.set_autopilot(table_id, game, seat, bool(on))
         except TableError as exc:
@@ -951,6 +1125,117 @@ def build_server(registry: tables.TableRegistry, account: Optional[str] = None) 
             ),
         }
 
+    # -- watching (Phase 9j): what a signed-in browser can see ------------
+
+    @server.tool()
+    def clude_watch(login: str, table_id: str, since: int = 0) -> dict:
+        """Watch a table you are not sitting at, as a spectator.
+
+        What anyone watching in the browser sees: the seats (each with
+        its hand size and certainty), the log, who the table is waiting
+        on, and at the end the solution. Hands stay hidden and a card
+        shown in private is not named until the game ends, and the
+        people playing see your name among those watching. Pass `since`
+        (the `n_events` you last saw) and the call waits, up to a
+        minute, for something new to happen (with since 0, for the first
+        move), so call it once and wait rather than calling it
+        repeatedly. At a table where you hold a
+        seat, use clude_turn instead.
+        """
+        account = who(login)
+        document = registry.document(table_id)
+        if document is None:
+            raise ToolError(f"There is no table {table_id}. Use clude_tables to see the tables.")
+        if tables.viewer_seat(TableSetup.from_dict(document["setup"]), account) is not None:
+            raise ToolError(f"You sit at table {table_id}: clude_turn shows it from your seat.")
+        if document.get("status") == "open":
+            return _undealt(table_id, document)
+        game = registry.game(table_id)
+        if game is None:
+            raise ToolError(f"Table {table_id} cannot be watched: it was ended, or is no longer live.")
+        since = max(0, int(since or 0))
+        if since > game.snapshot.n_events:
+            since = 0
+        deadline = time.monotonic() + POLL_SECONDS
+        while not (game.finished or game.broken) and game.snapshot.n_events <= since:
+            if time.monotonic() >= deadline:
+                break
+            registry.seen_watching(table_id, account)
+            if registry.work(table_id, game) in ("waiting", "busy", "nothing"):
+                time.sleep(SLEEP_SECONDS)
+        registry.seen_watching(table_id, account)
+        return watch_view(registry, table_id, game, since)
+
+    @server.tool()
+    def clude_games(login: str, run_id: str = tables.WEB_RUN, limit: int = 20) -> dict:
+        """List finished games you can replay with clude_replay.
+
+        By default the games played at clude's tables (`run_id` "web"),
+        newest first: who played, who won and in how many turns. `runs`
+        names the other collections of stored games (arena runs among
+        the characters), any of which can be listed by passing its id.
+        """
+        who(login)
+        store = registry.store
+        try:
+            summary = store.get_run(run_id)
+        except (KeyError, ValueError):
+            raise ToolError(f"There is no run {run_id!r}. Runs: {', '.join(store.list_runs())}.") from None
+        games = sorted(summary.get("games", []), key=lambda g: g["game_index"], reverse=True)
+        lines = []
+        for game in games[: max(1, int(limit or 20))]:
+            winner = users.display_name(game.get("winner_label")) or "nobody"
+            players = ", ".join(users.display_name(label) for label in game.get("labels", []))
+            lines.append(f"{game['game_index']}: {players}; {winner} won in {game.get('turns', '?')} turns")
+        return {"run_id": run_id, "n_games": len(games), "games": lines, "runs": store.list_runs()}
+
+    @server.tool()
+    def clude_replay(login: str, run_id: str, index: int, since: int = 0) -> dict:
+        """Replay a finished game from clude_games, cards face up.
+
+        The whole log, every card shown named, a page at a time: pass
+        `since` from the last reply's `next` for the page after, until
+        `next` is null. With since 0 come the seats and their hands, the
+        envelope and who won, and `replay`, the game's page on the web
+        (it needs a sign-in, so it is for the person you are chatting
+        with).
+        """
+        who(login)
+        store = registry.store
+        try:
+            record = GameRecord.from_dict(store.get_game(run_id, int(index)))
+        except (KeyError, ValueError):
+            raise ToolError(f"There is no game {index} in run {run_id!r}. Use clude_games to list them.") from None
+        seats = sorted(record.seats, key=lambda seat: seat.seat)
+        names = [
+            f"{seat.suspect} ({users.display_name(seat.label)})" if seat.kind == "human" else seat.suspect
+            for seat in seats
+        ]
+        since = max(0, int(since or 0))
+        page = [
+            f"{i} (turn {getattr(event, 'turn', 0)}) {replay_data.describe_event(event, names, reveal=True)[1]}"
+            for i, event in enumerate(record.events[since: since + REPLAY_PAGE], start=since)
+        ]
+        end = since + len(page)
+        out = {
+            "run_id": run_id,
+            "index": int(index),
+            "n_events": len(record.events),
+            "events": page,
+            "next": end if end < len(record.events) else None,
+        }
+        if since == 0:
+            out["seats"] = [
+                f"{names[i]}: {seat.kind if seat.kind != 'human' else 'a person'}, holding "
+                + ", ".join(sorted(record.hands.get(seat.seat) or record.hands.get(str(seat.seat)) or []))
+                for i, seat in enumerate(seats)
+            ]
+            out["envelope"] = list(record.envelope)
+            out["winner"] = None if record.winner is None else names[record.winner]
+            out["turns"] = record.turns
+            out["replay"] = f"{config.public_url() or ''}/replay/{run_id}/{int(index)}"
+        return out
+
     return server
 
 
@@ -960,7 +1245,7 @@ SECRET_SHAPE = re.compile(r"[A-Za-z0-9_-]{16,128}")
 """What a secret path segment may look like: URL-safe and not short."""
 
 
-def combined_app(settings=None, secret: Optional[str] = None, account: Optional[str] = None):
+def combined_app(settings=None, secret: Optional[str] = None):
     """The Flask app and the MCP endpoint in one ASGI app, sharing one
     registry: Flask under ``/`` and the MCP server under
     ``/mcp/<secret>``, anything else under ``/mcp`` a 404.
@@ -979,8 +1264,6 @@ def combined_app(settings=None, secret: Optional[str] = None, account: Optional[
         at all the endpoint is not mounted and the app is the Flask app
         under an ASGI bridge, so a deploy without the secret still
         serves the game.
-    account : str or None
-        The chat seat's account; `config.mcp_account` when None.
 
     Notes
     -----
@@ -1038,7 +1321,9 @@ def combined_app(settings=None, secret: Optional[str] = None, account: Optional[
             routes.append(Route(f"{path}/{{path:path}}", no_discovery))
         routes.append(Route("/.well-known/openid-configuration", no_discovery))
 
-        server = build_server(flask_app.extensions["tables"], account)
+        server = build_server(
+            flask_app.extensions["tables"], flask_app.secret_key, flask_app.extensions["rate_limit"]
+        )
         endpoint = server.streamable_http_app(
             streamable_http_path=f"/{secret}",
             stateless_http=True,

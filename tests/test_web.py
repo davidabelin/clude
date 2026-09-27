@@ -100,6 +100,20 @@ def test_a_name_is_matched_whatever_its_case_but_shown_as_typed(store):
     assert users.authenticate(store, "DAVID", PASSWORD)["name"] == "David"
 
 
+def test_a_persons_name_is_shown_capitalised_and_a_bots_as_it_is():
+    """Phase 9j: a lower-case key reads as a slip, so a person's name is
+    capitalised wherever it is shown; the key itself never changes, and
+    a bot's label is left alone."""
+    assert users.display_name("zenbot") == "Zenbot"
+    assert users.display_name("mary-jo") == "Mary-Jo"
+    assert users.display_name("j.r_ewing") == "J.R_Ewing"
+    assert users.display_name("DeeDee") == "DeeDee"
+    assert users.display_name("7of9") == "7of9"
+    for bot in ("floor", "random", "Plum", "envelope"):
+        assert users.display_name(bot) == bot
+    assert users.display_name(None) is None and users.display_name("") == ""
+
+
 def test_authenticate_refuses_a_wrong_password_and_a_missing_account(store):
     users.add_user(store, NAME, PASSWORD)
 

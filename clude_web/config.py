@@ -63,12 +63,6 @@ PUBLIC_URL_ENV = "CLUDE_PUBLIC_URL"
 """The address people reach the app at, such as the Cloud Run URL. Set
 by the deploy; unset locally, where a link stays a path."""
 
-MCP_ACCOUNT_ENV = "CLUDE_MCP_ACCOUNT"
-DEFAULT_MCP_ACCOUNT = "claude"
-"""The account the chat seat plays as: an ordinary one, made with
-``users add claude``. Its label in every record."""
-
-
 def mcp_secret():
     """The MCP endpoint's secret path segment, or None: the environment
     first, then `.env`."""
@@ -82,11 +76,6 @@ def public_url():
     (Phase 9i)."""
     found = (os.environ.get(PUBLIC_URL_ENV) or read_env_file(PUBLIC_URL_ENV) or "").strip().rstrip("/")
     return found or None
-
-
-def mcp_account() -> str:
-    """The account key the chat seat sits as."""
-    return (os.environ.get(MCP_ACCOUNT_ENV) or "").strip().lower() or DEFAULT_MCP_ACCOUNT
 
 
 def read_env_file(name: str, path=None):

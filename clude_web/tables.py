@@ -101,7 +101,7 @@ from clude_training.table import (
     TableSetup,
 )
 
-from . import board_svg, chat, replay_data
+from . import board_svg, chat, replay_data, users
 
 from dataclasses import dataclass
 
@@ -490,7 +490,7 @@ class WebGame(TableGame):
                 {
                     "seat": seat,
                     "suspect": self.table.suspects[seat],
-                    "label": label,
+                    "label": users.display_name(label),
                     "method": replay_data.seat_method(label),
                     "active": bool(self.state.active[seat]),
                     "placed": placed,
@@ -509,11 +509,12 @@ class WebGame(TableGame):
 def seat_names(game) -> list:
     """What each seat is called on a table screen: the token, and for a
     person their name after it, since a human plays a token that is not
-    their own name."""
+    their own name. The name is capitalised (`users.display_name`,
+    Phase 9j): a person's key is lower-case and reads as a slip."""
     names = []
     for seat, token in enumerate(game.suspects):
         if game.kinds[seat] == "human":
-            names.append(f"{token} ({game.labels[seat]})")
+            names.append(f"{token} ({users.display_name(game.labels[seat])})")
         else:
             names.append(token)
     return names
@@ -770,7 +771,7 @@ def view_payload(
         # Who is watching without a seat, for the people playing. Empty
         # unless somebody is there, so the gallery is absent from the
         # screen rather than sitting there saying nobody (Phase 9e).
-        "watching": list(watching or []) if viewer is not None else [],
+        "watching": [users.display_name(name) for name in watching or []] if viewer is not None else [],
         # Who has a line on the way (Phase 9h): a person typing, or a
         # model seat with a reaction queued. Everyone sees it but the
         # typist, who knows.

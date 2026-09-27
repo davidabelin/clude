@@ -51,7 +51,7 @@
             <h2 class="tag" style="--certainty: {{ '%.3f'|format(r.certainty or 0) }}" title="certainty {{ ((r.certainty or 0) * 100)|round|int }}%">
               <span class="pip suspect-{{ r.suspect|lower }}"></span>
               {{ r.suspect }}
-              {% if r.label != r.suspect %}<span class="who">({{ r.label }})</span>{% endif %}
+              {% if r.label != r.suspect %}<span class="who">({{ r.label|person }})</span>{% endif %}
               <span class="placed">{{ r.placed }}/{{ r.total }}</span>
             </h2>
             <p class="method">

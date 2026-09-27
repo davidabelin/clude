@@ -759,7 +759,9 @@ in the accusation that follows if told to, then holds the same way for
 the next decision), `clude_say`, `clude_note` (a free-text note of its
 own, kept on the table document and never an entry) and
 `clude_autopilot` (the seat handed to the floor bot when a chat must
-end). Every view is cut at a `since` cursor and kept compact -- one
+end). Since Phase 9j there are ten: `clude_login` first, and
+`clude_watch`, `clude_games` and `clude_replay` for looking on (below,
+"Accounts"). Every view is cut at a `since` cursor and kept compact -- one
 line per seat, per event and per card -- because a chat pays for every
 token it reads: the first live game (2026-09-21) ran out of room at
 turn 30 on views of about 9,000 tokens (`docs/phase9-plan.md` 8). Its
@@ -824,22 +826,38 @@ The third thing it asked for, a warning in `clude_say` against naming
 its own hand, David declined (2026-09-25): players learn what
 over-sharing costs.
 
-**The account.** Make it once, per store, as any account:
+**Accounts (Phase 9j, 2026-09-27).** A chatbot logs in as a person
+does: every MCP player has an account of its own, made as any account
+(it gets `password` unless one is given):
 
 ```powershell
-& .venv\Scripts\python.exe scripts\clude_cli.py users add claude --uri gs://clude-game-data/llm
+& .venv\Scripts\python.exe scripts\clude_cli.py users add zenbot --uri gs://clude-game-data/llm
 ```
 
-`CLUDE_MCP_ACCOUNT` names another account if wanted.
+The person in the chat tells the chatbot its name and password;
+`clude_login` checks them as the form does (the same rate limit, one
+message for a wrong name and a wrong password) and returns a `login`,
+signed with the session secret and not stored, which every other tool
+takes. It lasts 30 days and ends when the password changes. Until 9j
+the server played as one fixed account, `claude` (`CLUDE_MCP_ACCOUNT`,
+now gone), so two chatbots could not sit at one table; the `claude`
+account stays, and the Claude at claude.ai now logs in to it.
+
+A logged-in chatbot can also look on, as a signed-in browser can:
+`clude_watch` a live table as a spectator (no hands, no card shown in
+private, its name in the players' gallery; it drives the bots while it
+waits, as a spectator's page does), and `clude_games` and
+`clude_replay` for the finished games, a replay paged and cards face up.
 
 **The guard.** The mount sits outside the login gate, and a claude.ai
 custom connector sends either an OAuth flow or nothing, never a static
 header, so the endpoint is a capability URL: `/mcp/<CLUDE_MCP_SECRET>`,
 with anything else under `/mcp` a 404 and the secret 16 to 128 URL-safe
-characters. That is the same trade "Convenience over secrecy" made for
-the login: the damage ceiling is the game store, and what a stranger
-with the URL could do is play Clue as `claude`. Without the variable the
-endpoint is simply not mounted and the app serves as before.
+characters. Since 9j the login is a second lock behind it: a stranger
+with the URL but no account can list nothing and play nothing. That is
+the same trade "Convenience over secrecy" made for the login: the
+damage ceiling is the game store. Without the variable the endpoint is
+simply not mounted and the app serves as before.
 
 **Serving.** `clude_web.mcp.combined_app()` is one ASGI app: Flask under
 `/` (asgiref's bridge, with its one-request-at-a-time lane turned off so
@@ -876,11 +894,20 @@ list of the deploy command and of `scripts\deploy.bat`, and the
 connector is added at claude.ai (Settings, Connectors, add a
 custom connector) with the URL
 `https://clude-648214345192.us-central1.run.app/mcp/<the secret>` and no
-authentication. A game then goes: make a table in the browser with one
-open seat (and LLM seats if wanted; remembering starts on); in the chat, ask
-Claude to sit; deal; Claude plays, `clude_say`ing as it goes; the
-finished game shows in the lobby and replays like any other, the chat
-seat labelled `claude`.
+authentication (at ChatGPT, a connector in developer mode, with
+"No authentication"). A game then goes: make a table in the browser with
+one open seat (and LLM seats if wanted; remembering starts on); in the
+chat, give the chatbot its name and password and ask it to sit; deal; it
+plays, `clude_say`ing as it goes; the finished game shows in the lobby
+and replays like any other, the chat seat labelled with its account.
+
+**Names as shown (Phase 9j).** An account key is lower-case, and shown
+as it is a person's name read as a slip, so wherever one is shown -- the
+header, the lobby, the seats, the log and chat, the gallery, the run
+and replay pages, and every MCP view -- it is capitalised
+(`users.display_name`, the `person` filter in templates): `zenbot` is
+Zenbot, `mary-jo` Mary-Jo. Stored keys, records and logbooks keep the
+key; a bot's label (`floor`, a character) is left alone.
 
 ## Tests
 

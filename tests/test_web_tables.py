@@ -199,7 +199,7 @@ def test_a_dealt_table_opens_on_the_play_view(ann, app):
     assert len(payload["me"]["hand"]) == 5 or len(payload["me"]["hand"]) == 4
     assert 0.0 < payload["seats"][0].pop("certainty") < 1.0, "a person's own hand already narrows the field"
     assert payload["seats"][0] == {
-        "seat": 0, "token": "Scarlett", "label": ANN, "name": "Scarlett (ann)", "kind": "human",
+        "seat": 0, "token": "Scarlett", "label": ANN, "name": "Scarlett (Ann)", "kind": "human",
         "active": True, "autopilot": False, "strikes": 0, "me": True,
     }
     assert [s["kind"] for s in payload["seats"]] == ["human", "character", "character", "floor"]
@@ -247,10 +247,10 @@ def test_the_spectator_gallery_shows_who_is_watching_and_only_then(app, ann, bob
 
     # Bob opens the table. He holds no seat, so he is a spectator.
     assert bob.get(f"/tables/{table_id}").status_code == 200
-    assert poll(ann, table_id)["watching"] == [BOB]
+    assert poll(ann, table_id)["watching"] == ["Bob"]  # shown capitalised (Phase 9j)
 
     poll(cat, table_id)
-    assert sorted(poll(ann, table_id)["watching"]) == sorted([BOB, CAT])
+    assert sorted(poll(ann, table_id)["watching"]) == ["Bob", "Cat"]
 
     # A spectator can say nothing and do nothing.
     assert bob.post(f"/tables/{table_id}/say",
@@ -262,7 +262,7 @@ def test_the_spectator_gallery_shows_who_is_watching_and_only_then(app, ann, bob
 
     # A spectator is not shown the gallery, and the seated player is not in it.
     assert poll(bob, table_id)["watching"] == []
-    assert ANN not in poll(ann, table_id)["watching"], "a seated player is not a spectator"
+    assert "Ann" not in poll(ann, table_id)["watching"], "a seated player is not a spectator"
 
     # They stop asking, and the gallery empties by itself.
     registry = app.extensions["tables"]
@@ -303,8 +303,8 @@ def test_who_is_typing_is_told_to_everyone_but_the_typist(app, ann, bob, cat):
     assert poll(ann, table_id)["typing"] == []
     ping = ann.post(f"/tables/{table_id}/typing", data={"csrf": csrf(ann), "on": "1"})
     assert ping.status_code == 200 and ping.get_json() == {"ok": True}
-    assert poll(bob, table_id)["typing"] == ["Scarlett (ann)"], "named as the log names the seat"
-    assert poll(cat, table_id)["typing"] == ["Scarlett (ann)"], "the gallery sees it too"
+    assert poll(bob, table_id)["typing"] == ["Scarlett (Ann)"], "named as the log names the seat"
+    assert poll(cat, table_id)["typing"] == ["Scarlett (Ann)"], "the gallery sees it too"
     assert poll(ann, table_id)["typing"] == [], "the typist knows"
 
     # Sending the line clears it.
@@ -320,10 +320,10 @@ def test_who_is_typing_is_told_to_everyone_but_the_typist(app, ann, bob, cat):
     # Two typists, in seat order; then one page stops pinging.
     ann.post(f"/tables/{table_id}/typing", data={"csrf": csrf(ann), "on": "1"})
     bob.post(f"/tables/{table_id}/typing", data={"csrf": csrf(bob), "on": "1"})
-    assert poll(cat, table_id)["typing"] == ["Scarlett (ann)", "Mustard (bob)"]
+    assert poll(cat, table_id)["typing"] == ["Scarlett (Ann)", "Mustard (Bob)"]
     registry = app.extensions["tables"]
     registry._typing[table_id][0] -= tables.TYPING_FOR + 1
-    assert poll(cat, table_id)["typing"] == ["Mustard (bob)"]
+    assert poll(cat, table_id)["typing"] == ["Mustard (Bob)"]
 
 
 def test_events_say_whether_a_line_was_talk_and_moves_carry_room_distances(app, ann):
@@ -493,10 +493,10 @@ def test_a_stranger_cannot_hand_a_seat_to_the_stand_in(app, ann, bob):
 def test_the_lobby_lists_tables_and_their_state(app, ann, bob):
     table_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "open"})
     page = bob.get("/").get_data(as_text=True)
-    assert f"/tables/{table_id}" in page and "White (open)" in page and "ann as Scarlett" in page
+    assert f"/tables/{table_id}" in page and "White (open)" in page and "Ann as Scarlett" in page
     bob.post(f"/tables/{table_id}/sit", data={"csrf": csrf(bob), "token": "White"})
     page = bob.get(f"/tables/{table_id}").get_data(as_text=True)
-    assert "bob (you)" in page and "Deal now" in page and "Leave the table" in page
+    assert "Bob (you)" in page and "Deal now" in page and "Leave the table" in page
     assert bob.post(f"/tables/{table_id}/leave", data={"csrf": csrf(bob)}).status_code == 302
     page = bob.get(f"/tables/{table_id}").get_data(as_text=True)
     assert "Sit here" in page and "Deal now" not in page

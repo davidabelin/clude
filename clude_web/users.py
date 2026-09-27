@@ -21,6 +21,7 @@ the account remembers which of the two to show.
 """
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 
 from clude_core.domain import SUSPECTS
@@ -76,6 +77,22 @@ def normalise(name: str) -> str:
             f"invalid user name {name!r}: use letters, digits, '_', '.' or '-'"
         ) from None
     return key
+
+
+def display_name(label) -> str:
+    """How a person's name is shown (Phase 9j): the account key, which
+    is lower-case, with the first letter of each part capitalised, parts
+    split at ``-``, ``_`` and ``.``: ``zenbot`` is shown as ``Zenbot``,
+    ``mary-jo`` as ``Mary-Jo``. Anything else stays as typed.
+
+    For display only. The key is what records, logbooks and seats are
+    stored under, and is never changed. A bot's label (a character, or
+    one of `RESERVED_NAMES` such as ``floor``) is returned untouched, so
+    this is safe on any seat label. None and empty come back as they
+    are."""
+    if not label or str(label).lower() in RESERVED_NAMES:
+        return label
+    return re.sub(r"(^|[-_.])([a-z])", lambda m: m.group(1) + m.group(2).upper(), str(label))
 
 
 def user_key(name: str) -> str:

@@ -6,7 +6,7 @@
   <h1>{{ run_id }}</h1>
   <p class="note">
     {{ games|length }} game{{ '' if games|length == 1 else 's' }}.
-    {% if summary.roster %}Roster: {{ summary.roster|join(', ') }}.{% endif %}
+    {% if summary.roster %}Roster: {{ summary.roster|map('person')|join(', ') }}.{% endif %}
     {% if cost is not none %}Spent with Claude in all: ${{ '%.2f'|format(cost) }}.{% endif %}
     A game opens as a replay; the first open of each takes a few seconds.
   </p>
@@ -19,9 +19,9 @@
         {% for g in games %}
           <tr>
             <td><a href="{{ url_for('main.replay', run_id=run_id, index_=g.game_index) }}">{{ g.game_index }}</a></td>
-            <td>{{ g.labels|join(', ') }}</td>
+            <td>{{ g.labels|map('person')|join(', ') }}</td>
             <td>
-              {% if g.winner_label %}{{ g.winner_label }}
+              {% if g.winner_label %}{{ g.winner_label|person }}
               {% elif g.hit_cap %}<span class="note">turn cap</span>
               {% else %}<span class="note">nobody</span>{% endif %}
             </td>

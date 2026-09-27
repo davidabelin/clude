@@ -16,9 +16,9 @@ the plan sections above it, and over this file if they disagree.
 ## Status (2026-09-26)
 
 Phases 1-8 are done, committed and deployed. Phase 9, a seat over MCP,
-is built: 9a-9h are live (9f and 9g in revision `clude-00011-t7g`,
-2026-09-25; 9h in `clude-00012-bqr`, 2026-09-26), and **9i is built
-but not deployed**. Phase 10 is planned but not started;
+is built: 9a-9i are live (9f and 9g in revision `clude-00011-t7g`,
+2026-09-25; 9h in `clude-00012-bqr` and 9i in `clude-00013-x95`,
+2026-09-26), and **9j is built but not deployed**. Phase 10 is planned but not started;
 Phase 11 is untouched.
 
 Each phase's record is the "as implemented" section of its plan doc
@@ -70,7 +70,7 @@ stored trace rebuilds on its next open. Until 2026-09-26 these
 paragraphs said 9f-9h were undeployed; the revisions list says
 otherwise.
 
-**Waiting on a deploy**: Phase 9i (2026-09-26), the chat seat's five
+Live since 2026-09-26: Phase 9i, the chat seat's five
 requests after table `5019abeb0a`. `clude_turn` waits for the deal; a
 pass given ahead (`accuse: false`) is held back when the suggestion
 goes undisproved or the notepad proves the envelope (the pass that
@@ -80,7 +80,17 @@ who disproves in turn; a hard mode chosen at `clude_sit` (`notepad`
 hidden); and the replay a whole URL from `CLUDE_PUBLIC_URL`, set by
 the deploy. `docs/phase9-plan.md` 8.
 
-Suite: 510 passed, 27 skipped, about three minutes with `-n auto`; 25
+**Waiting on a deploy**: Phase 9j (2026-09-27), **every chatbot its own
+login**. An MCP player logs in with `clude_login` to an account made
+with `users add`, as a person does at the form (the fixed `claude`
+account setting is gone; `claude` is now just the Claude's own
+account), and passes the `login` it gets to every other tool; a
+logged-in chatbot can watch a live table (`clude_watch`) and list and
+replay finished games (`clude_games`, `clude_replay`); and people's
+names are capitalised wherever shown (`users.display_name`, the
+`person` filter), stored keys unchanged. `docs/phase9-plan.md` 8.
+
+Suite: 518 passed, 27 skipped, about three minutes with `-n auto`; 25
 more under `CLUDE_WEB_BROWSER=1`. (Three debrief tests turned out to
 fail on a fast machine before 9h: reactions are now immediate there.)
 
@@ -93,7 +103,7 @@ fail on a fast machine before 9h: reactions are now immediate there.)
 | 8.1 | 8.1a a basic UX scaffold as a local Flask app; 8.1b the same app on Cloud Run behind an app login | done: 8.1a built 2026-09-17 (steps 1-5: the engine seam, the login and accounts, the board and replay data, the replay scrubber, the lobby and Watch); 8.1b deployed 2026-09-18 (steps 6-9: the container, `store copy`, the service running as `clude-run`) -- `docs/phase8.1-plan.md`, `docs/web.md` |
 | 8.2 | Human players | done: 8.2a-c built 2026-09-18 (the table driver and `play --human`; the table on the web with open seats, autopilot, cold rebuild and "characters remember"); 8.2d deployed and live-checked 2026-09-19, the cold rebuild 0.1 s on a 3-turn table (`docs/phase8-plan.md` 12, `docs/web.md`) |
 | 8.3 | The rest of chat: the model on the web under a spend cap, human chat, off-turn talk with pacing, debriefs after web games | done: 8.3a-c built 2026-09-19 on fake backends, the key deployed and one live table played the same day (two model seats, chat, "remember"; $0.34, no fallbacks); 8.3d closed Phase 8 (`docs/phase8-plan.md` 12) |
-| 9 | A seat over MCP: a Claude in a chat window (claude.ai) plays one seat of a live table through an MCP server mounted beside the Flask app, on the same `TableRegistry` | built. 9a the plan and the renumbering (2026-09-20); 9b the server and the combined ASGI app, 9c deployed with the secret and the `claude` account, both 2026-09-21, and the first live game from the chat that evening; 9d the eight fixes after the second live game and 9e David's follow-ups, both 2026-09-22 and deployed that evening; 9f the chat seat's report after the third live game and 9g what a game cost (both 2026-09-25, deployed that day), 9h five tweaks in one sweep (2026-09-26 and deployed that evening; typing, the turn time-out and speed mode, the certainty tag, the animated replay, the Legacy style); 9i the chat seat's five requests after table `5019abeb0a` (2026-09-26; waiting for the deal, the held-back pass, hand sizes and disproof order, hard mode, a whole replay URL), **to deploy** -- `docs/phase9-plan.md` 8, `docs/phase9h-plan.md` |
+| 9 | A seat over MCP: a Claude in a chat window (claude.ai) plays one seat of a live table through an MCP server mounted beside the Flask app, on the same `TableRegistry` | built. 9a the plan and the renumbering (2026-09-20); 9b the server and the combined ASGI app, 9c deployed with the secret and the `claude` account, both 2026-09-21, and the first live game from the chat that evening; 9d the eight fixes after the second live game and 9e David's follow-ups, both 2026-09-22 and deployed that evening; 9f the chat seat's report after the third live game and 9g what a game cost (both 2026-09-25, deployed that day), 9h five tweaks in one sweep (2026-09-26 and deployed that evening; typing, the turn time-out and speed mode, the certainty tag, the animated replay, the Legacy style); 9i the chat seat's five requests after table `5019abeb0a` (2026-09-26; waiting for the deal, the held-back pass, hand sizes and disproof order, hard mode, a whole replay URL; deployed that evening) and 9j every chatbot its own login, watching over MCP, and names capitalised (2026-09-27), **to deploy** -- `docs/phase9-plan.md` 8, `docs/phase9h-plan.md` |
 | 10 | In-depth UX: the shippable look, "engraved, not brass-plated" | planned, not started. `docs/phase10-plan.md` proposed 2026-09-20, David's answers recorded 2026-09-21: D1-D4 and D6 settled, D5 (the logo) open until he sees the three alternates in 10a (was Phase 9 until 2026-09-20) |
 | 11 | Tweak, polish, release: clean-up and close, then version 1.0.0, released to family and friends, and planning in versions, not phases | not started (was Phase 10) |
 
@@ -375,6 +385,12 @@ it; `docs/phase-plan.md` has the disposition of every file.
   The cost is stated on the form. Assumed unless he says otherwise: the floor
   bot as the autopilot stand-in, $2 per table and $10 a day as 8.3's
   budgets, no `--min-instances 1`.
+- **MCP players are web players (2026-09-27).** Every chatbot logs in
+  to an account of its own, made with `users add` and its weak default
+  password like anyone's ("it's still family and friends"), through a
+  `clude_login` tool rather than OAuth; a logged-in chatbot watches and
+  replays as a signed-in browser does. People's names are shown
+  capitalised, whatever the key.
 - **No persona advises a chat seat (2026-09-21).** "MCP players get
   their numbers from floorbot, that's it. No heads! They're the head!"
   A Claude playing over MCP gets the deduction floor's notepad and
@@ -454,9 +470,9 @@ Built; the detail is in `docs/architecture.md`.
   the view of a game from one seat, the model seats and their metering),
   `chat` (off-turn talk: the reaction queue and its pacing), `watch`
   (Watch as a table with nobody human at it), `styles` (the looks a
-  player can choose between, Legacy the only one; Phase 9h), `mcp` (Phase 9: the seven
-  tools a Claude in a chat window plays a seat through, built by
-  `build_server` over any registry, the compact `seat_view` it reads,
+  player can choose between, Legacy the only one; Phase 9h), `mcp` (Phase 9: the ten
+  tools a chatbot in a chat window logs in with, plays a seat and watches
+  through, built by `build_server` over any registry, the compact `seat_view` it reads,
   and `combined_app`, Flask and the endpoint in one ASGI app under a
   secret path), `views`, templates,
   one stylesheet per look under `static/styles/`, `replay.js` and `table.js`.
@@ -564,6 +580,8 @@ against a chat seat naming its own hand; it learns what over-sharing
 costs, as the characters do. Resolved 2026-09-26: Phase 9h's four calls
 (the per-turn time-out with three strikes, the certainty tag for
 everyone on the bits-gained scale, speed mode as a lobby checkbox).
+Resolved 2026-09-27: MCP players log in as web players do, with a
+`clude_login` tool; they may watch and replay; names are capitalised.
 
 ## Working with David
 

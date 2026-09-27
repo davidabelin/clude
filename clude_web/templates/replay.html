@@ -27,7 +27,7 @@
           <h2 class="tag" style="--certainty: 0">
             <span class="pip suspect-{{ seat.suspect|lower }}"></span>
             {{ seat.suspect }}
-            {% if seat.label != seat.suspect %}<span class="who">({{ seat.label }})</span>{% endif %}
+            {% if seat.label != seat.suspect %}<span class="who">({{ seat.label|person }})</span>{% endif %}
           </h2>
           <p class="method">{{ seat.method or seat.kind }}</p>
           <p class="hand">Holds: {{ seat.hand|join(', ')|replace('_', ' ') or 'nothing' }}</p>

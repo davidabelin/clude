@@ -26,7 +26,7 @@
               <option value="empty" {% if t.value == 'empty' %}selected{% endif %}>empty</option>
               <option value="open" {% if t.value == 'open' %}selected{% endif %}>open</option>
               <option value="floor" {% if t.value == 'floor' %}selected{% endif %}>floorbot</option>
-              <option value="me" {% if t.value == 'me' %}selected{% endif %}>me ({{ user }})</option>
+              <option value="me" {% if t.value == 'me' %}selected{% endif %}>me ({{ user|person }})</option>
               <option value="llm" {% if t.value == 'llm' %}selected{% endif %} {% if not llm %}disabled{% endif %}>{{ t.token }} (LLM)</option>
               <option value="character" {% if t.value == 'character' %}selected{% endif %}>{{ t.token }} (headless)</option>
             </select>
@@ -71,7 +71,7 @@
       {% for t in tables %}
         <li>
           <a href="{{ t.url }}">
-            {% for s in t.seats %}{% if not loop.first %}, {% endif %}{% if s.kind == 'human' %}{{ s.label }} as {{ s.token }}{% elif s.kind == 'open' %}{{ s.token }} (open){% elif s.kind == 'character' %}{{ s.token }} (headless){% elif s.kind == 'llm' %}{{ s.token }} (LLM){% elif s.kind == 'floor' %}{{ s.token }} (floorbot){% else %}{{ s.token }} ({{ s.label }}){% endif %}{% endfor %}
+            {% for s in t.seats %}{% if not loop.first %}, {% endif %}{% if s.kind == 'human' %}{{ s.label|person }} as {{ s.token }}{% elif s.kind == 'open' %}{{ s.token }} (open){% elif s.kind == 'character' %}{{ s.token }} (headless){% elif s.kind == 'llm' %}{{ s.token }} (LLM){% elif s.kind == 'floor' %}{{ s.token }} (floorbot){% else %}{{ s.token }} ({{ s.label }}){% endif %}{% endfor %}
           </a>
           <span class="note">
             {% if t.status == 'open' %}waiting for {{ t.open }} more{% elif t.wrapping_up %}over; the characters are writing up their notes{% else %}turn {{ t.turns }}{% endif %}
@@ -146,7 +146,7 @@
             <span class="note">
               {{ r.n_games }} game{{ '' if r.n_games == 1 else 's' }}
               {% if r.player_counts %}&middot; {{ r.player_counts|join('/') }} seats{% endif %}
-              {% if r.roster %}&middot; {{ r.roster|join(', ') }}{% endif %}
+              {% if r.roster %}&middot; {{ r.roster|map('person')|join(', ') }}{% endif %}
               {% if r.cost is not none %}&middot; ${{ '%.2f'|format(r.cost) }} with Claude{% endif %}
             </span>
           </li>

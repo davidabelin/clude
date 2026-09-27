@@ -904,7 +904,7 @@ After its game at `5019abeb0a` the chat seat asked for five things, and
 all five are in `clude_web/mcp.py`, with one registry method, one config
 setting and one deploy variable. Nothing in the engine, the driver or
 the browser moved. Built on the in-memory client with the suite green
-(510 passed, 27 skipped); **not deployed**.
+(510 passed, 27 skipped); deployed 2026-09-26 as `clude-00013-x95`.
 
 - **`clude_turn` waits for the deal.** Seated at a table still `open`,
   it used to raise "not dealt yet" and leave the retrying to the model.
@@ -963,3 +963,61 @@ notepad key at "none", the own certainty gone and the others' kept, the
 level refused after the deal); a bad level refused; and the whole URL.
 Five older tests moved with the seat line's new shape, `clude_turn`'s
 wait, and the folded pass that can now come back as a decision.
+
+### Phase 9j: every chatbot its own login, watching, and names capitalised (2026-09-27)
+
+David's calls after the first game from ChatGPT: treat MCP players as
+web players ("it's still family and friends"), so every chatbot logs in
+to an account of its own made with `users add`, the weak default
+password included; give a logged-in chatbot the watching a signed-in
+browser has; and capitalise people's names wherever shown. Of two ways
+to log in, a `clude_login` tool or OAuth through clude's own login page,
+he chose the tool (the password passes through the chat, which the
+"password"-grade secrecy makes acceptable). Built with the suite green
+(518 passed, 27 skipped); **not deployed**.
+
+- **Logins.** `clude_login(name, password)` checks the account with
+  `users.authenticate`, behind the app's own `RateLimit` (so the form
+  and the tool count one name's attempts together) and with the form's
+  one message for a wrong name or password. It returns `login`, an
+  itsdangerous token signed with the session secret under its own salt,
+  carrying the account key and a fingerprint of the password hash: not
+  stored, so it survives a restart; 30 days (`LOGIN_DAYS`); void once
+  the password changes or the account goes. Every other tool takes
+  `login` first (`clude_sit`'s `token` is still the suspect) and acts as
+  that account. `build_server(registry, secret_key, limiter)` replaces
+  `build_server(registry, account)`, and `config.mcp_account` and
+  `CLUDE_MCP_ACCOUNT` are gone. The secret path stays as the outer
+  lock, so the two connectors' URLs are unchanged. The one-time offer to
+  change the password is the browser's alone.
+- **Watching.** `clude_watch(login, table_id, since)` is a live table
+  from no seat (`watch_view`: `view_payload` with no viewer, so no hands
+  and no card shown in private; one line per seat with hand size and
+  certainty; the log with its digest; who is waiting; who is watching;
+  the cost), refused at a table the account sits at. With `since` it
+  waits, up to a minute, for the next event (with 0, for the first),
+  driving the bots with `work` as a spectator's page does, and it puts
+  the account in the players' gallery. `clude_games(login, run_id,
+  limit)` lists a run's games newest first (the web games by default)
+  and names the other runs; `clude_replay(login, run_id, index, since)`
+  pages a stored game's log (`REPLAY_PAGE`, 120 lines) with every card
+  shown named, and with since 0 the hands, the envelope, the winner and
+  the web page's URL.
+- **Names capitalised.** `users.display_name` capitalises the first
+  letter of each part of an account key (split at `-`, `_` and `.`) and
+  leaves a bot's label alone; the templates use it as the `person`
+  filter. Shown capitalised: the header, the lobby's seat picker and
+  table list, the run and replay pages, the table's seats, log, chat and
+  typing line (`tables.seat_names`), the gallery, the Watch readings,
+  and every MCP view. Stored keys, records and logbooks are unchanged.
+  A model seat's reactions read the table's names, so a character now
+  sees "Scarlett (Ann)" where it saw "Scarlett (ann)".
+
+Tests: a login refused when missing, forged, wrong, run out, or made
+before a password change; the lock after five wrong tries; two chatbots
+at one table, each seated as itself; a whole game watched (the first
+move waited for, every later call bringing news, no card shown in
+private named, the watcher in the players' gallery, its own table
+refused); the web games listed and a game replayed page by page;
+`display_name` on keys and bots. Fifteen older assertions moved from
+lower-case names to capitalised ones.

@@ -25,6 +25,7 @@ lobby behind the gate and the endpoint only under its secret.
 from __future__ import annotations
 
 import json
+from contextlib import asynccontextmanager
 from types import SimpleNamespace
 
 import anyio
@@ -71,13 +72,36 @@ def registry(app):
 
 
 @pytest.fixture
-def server(registry, monkeypatch):
+def server(app, registry, monkeypatch):
     """The server over the app's registry, with every pause removed so
     a game runs at full speed and a long-poll never waits on a clock."""
     monkeypatch.setattr(tables, "WORK_INTERVAL", 0.0)
     monkeypatch.setattr(mcp, "SLEEP_SECONDS", 0.0)
     monkeypatch.setattr(mcp, "POLL_SECONDS", 60.0)
-    return mcp.build_server(registry, CLAUDE)
+    return mcp.build_server(registry, app.secret_key)
+
+
+class LoggedIn:
+    """An MCP client logged in as `name` (Phase 9j): `call_tool` adds
+    the `login` to every call but `clude_login`, so a test reads as the
+    tools did before logins, and `raw` is the client itself."""
+
+    def __init__(self, client, login: str):
+        self.raw = client
+        self.login = login
+
+    async def call_tool(self, name: str, arguments: dict):
+        if name != "clude_login":
+            arguments = {"login": self.login, **arguments}
+        return await self.raw.call_tool(name, arguments)
+
+
+@asynccontextmanager
+async def playing(server, name=CLAUDE, password="pw"):
+    """`Client(server)`, logged in as `name`."""
+    async with Client(server) as client:
+        result = await client.call_tool("clude_login", {"name": name, "password": password})
+        yield LoggedIn(client, unwrap(result)["login"])
 
 
 def open_table(registry, seed=SEED, extra=()):
@@ -156,9 +180,9 @@ async def play_out(client, table_id, max_steps=3000, on_view=None, fold_accusati
 
 async def test_tables_lists_an_open_table_and_mine_flips_after_sitting(server, registry):
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         listing = unwrap(await client.call_tool("clude_tables", {}))
-        assert listing["you"] == CLAUDE
+        assert listing["you"] == "Claude"  # the key, capitalised (Phase 9j)
         [table] = listing["tables"]
         assert table["table_id"] == table_id
         assert table["status"] == "open"
@@ -171,7 +195,7 @@ async def test_tables_lists_an_open_table_and_mine_flips_after_sitting(server, r
 
         [table] = unwrap(await client.call_tool("clude_tables", {}))["tables"]
         assert table["mine"] is True and table["open_seats"] == []
-        assert table["seats"][0] == {"seat": 0, "token": "Scarlett", "kind": "human", "label": CLAUDE}
+        assert table["seats"][0] == {"seat": 0, "token": "Scarlett", "kind": "human", "label": "Claude"}
         assert table["my_autopilot"] is False
 
     # The seat is an ordinary human seat in the stored setup.
@@ -183,7 +207,7 @@ async def test_tables_lists_an_open_table_and_mine_flips_after_sitting(server, r
 async def test_sitting_where_one_cannot_is_a_message_not_a_crash(server, registry, monkeypatch):
     monkeypatch.setattr(mcp, "POLL_SECONDS", 0.05)
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         result = await client.call_tool("clude_sit", {"table_id": table_id, "token": "Mustard"})
         assert "taken" in error_text(result)
         result = await client.call_tool("clude_sit", {"table_id": "nope", "token": "Scarlett"})
@@ -195,7 +219,7 @@ async def test_sitting_where_one_cannot_is_a_message_not_a_crash(server, registr
         # erroring, and says what the table is waiting for (Phase 9i).
         waiting = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
         assert waiting["status"] == "open" and waiting["pending"] is None
-        assert "deal it" in waiting["waiting"] and "clude_turn again" in waiting["waiting"]
+        assert "deal it" in waiting["waiting"] and "Call again" in waiting["waiting"]
         result = await client.call_tool("clude_answer", {"table_id": table_id, "seq": 0, "answer": None})
         assert "not been dealt" in error_text(result)
 
@@ -205,7 +229,7 @@ async def test_sitting_where_one_cannot_is_a_message_not_a_crash(server, registr
 
 async def test_a_whole_game_plays_through_the_tools(server, registry, store):
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         registry.deal(table_id)
 
@@ -216,7 +240,7 @@ async def test_a_whole_game_plays_through_the_tools(server, registry, store):
             assert "readings" not in view and "tokens" not in view
             assert view["me"]["seat"] == 0 and view["me"]["token"] == "Scarlett"
             assert set(view) >= {"events", "digest", "notepad", "note", "seats", "pending", "finished", "n_events"}
-            assert view["seats"][0].startswith(f"Scarlett: {CLAUDE} (you), 6 cards, certainty ")
+            assert view["seats"][0].startswith("Scarlett: Claude (you), 6 cards, certainty ")
             assert view["seats"][1].startswith("Mustard: character, 6 cards, certainty ") and view["seats"][1].endswith("%")
             assert view["order"].endswith("in this order: Mustard, White.")
             assert all(isinstance(line, str) for line in view["events"])
@@ -252,7 +276,7 @@ async def test_a_whole_game_plays_through_the_tools(server, registry, store):
 async def test_the_digest_folds_the_lines_that_fell_off_the_front(server, registry, monkeypatch):
     monkeypatch.setattr(mcp, "MAX_EVENTS", 5)
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         registry.deal(table_id)
         digests = []
@@ -270,7 +294,7 @@ async def test_the_digest_folds_the_lines_that_fell_off_the_front(server, regist
 
 async def test_a_stale_seq_is_refused_and_a_doubled_answer_applied_once(server, registry):
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         registry.deal(table_id)
         view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
@@ -306,7 +330,7 @@ async def test_a_stale_seq_is_refused_and_a_doubled_answer_applied_once(server, 
 
 async def test_the_view_shows_only_this_seats_hand_and_no_readings(server, registry):
     table_id = open_table(registry, extra=(SeatSpec("Peacock", "human", ANN),))
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         game = registry.deal(table_id)
         view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
@@ -318,8 +342,8 @@ async def test_the_view_shows_only_this_seats_hand_and_no_readings(server, regis
         assert (lines[card] == "Peacock") == (obs.mask.holder_of(card) == 3)
     for card in game.state.hands[0]:
         assert lines[card] == "me"
-    assert view["seats"][3].startswith(f"Peacock: {ANN}, 4 cards, certainty ")
-    assert view["seats"][0].startswith(f"Scarlett: {CLAUDE} (you), 5 cards, certainty ")
+    assert view["seats"][3].startswith("Peacock: Ann, 4 cards, certainty ")
+    assert view["seats"][0].startswith("Scarlett: Claude (you), 5 cards, certainty ")
     # Fair's fair (David, 2026-09-26): the chat seat reads every seat's
     # certainty, the same number the screen colours the name-tags with.
     numbers = [int(line.rsplit("certainty ", 1)[1].rstrip("%")) for line in view["seats"]]
@@ -333,7 +357,7 @@ def card_lines(pad: dict) -> dict:
 
 async def test_since_cuts_the_events_and_the_note_comes_only_with_zero(server, registry):
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         unwrap(await client.call_tool("clude_note", {"table_id": table_id, "text": "White has the Rope."}))
         registry.deal(table_id)
@@ -347,7 +371,7 @@ async def test_since_cuts_the_events_and_the_note_comes_only_with_zero(server, r
             )
         )
         assert first["note"] == "White has the Rope."
-        assert first["events"] and first["events"][0].startswith(f"0 (turn 1) Scarlett ({CLAUDE}) moves")
+        assert first["events"] and first["events"][0].startswith("0 (turn 1) Scarlett (Claude) moves")
         cursor = first["n_events"]
         pending = first["pending"]
         later = unwrap(
@@ -370,7 +394,7 @@ async def test_since_cuts_the_events_and_the_note_comes_only_with_zero(server, r
 
 async def test_an_answer_waits_for_the_next_decision(server, registry):
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         registry.deal(table_id)
         view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
@@ -401,7 +425,7 @@ async def test_an_answer_waits_for_the_next_decision(server, registry):
 
 async def test_accuse_folds_the_accusation_into_the_answer_before_it(server, registry):
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         registry.deal(table_id)
         asked = []
@@ -439,7 +463,7 @@ async def test_accuse_still_lands_when_a_card_is_shown_in_between(server, regist
         SeatSpec("Plum", "character", "Plum"),
     )
     table_id = registry.create(TableSetup(seats, SEED), started_by=ANN)
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         registry.deal(table_id)
         game = registry.game(table_id)
@@ -495,7 +519,7 @@ async def test_the_view_says_when_the_models_have_gone_dark(server, registry):
     looks like the table has gone mechanical for no reason -- the browser
     is told, the chat seat was not. One line, only when it is true."""
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         registry.deal(table_id)
         game = registry.game(table_id)
@@ -518,7 +542,7 @@ async def test_table_talk_does_not_stale_the_decision_waiting_on_the_seat(server
     anyone else's leave a waiting decision answerable.
     """
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         registry.deal(table_id)
         view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
@@ -545,7 +569,7 @@ async def test_the_board_comes_once_with_the_seat_and_with_a_fresh_view(server, 
     turn. It rides with `clude_sit` and with a `since=0` view (what a
     fresh conversation calls), and never on a turn."""
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         seated = unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         assert seated["board"] == mcp.BOARD_PICTURE
         assert "Legend:" in seated["board"] and "K Kitchen" in seated["board"]
@@ -570,7 +594,7 @@ async def test_the_board_comes_once_with_the_seat_and_with_a_fresh_view(server, 
 
 async def test_accuse_given_too_early_or_malformed_is_set_aside_or_refused(server, registry):
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         registry.deal(table_id)
         view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
@@ -615,7 +639,7 @@ async def test_the_notepad_records_a_pass_and_the_one_of_facts(server, registry)
     one of what it could still hold: both on the compact notepad, which
     says what the browser's rows say, names for seat numbers."""
     table_id = open_table(registry, extra=(SeatSpec("Peacock", "character", "Peacock"),))
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         game = registry.deal(table_id)
         view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
@@ -657,7 +681,7 @@ async def test_the_notepad_records_a_pass_and_the_one_of_facts(server, registry)
 
 async def test_autopilot_hands_the_seat_to_the_stand_in_and_back(server, registry):
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         registry.deal(table_id)
         view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
@@ -690,7 +714,7 @@ async def test_a_seat_gets_the_floors_numbers_and_no_characters(server, registry
     view, no `head` on `clude_sit`, and a stored setup from the first
     deploy with a ``head`` key reads back as a plain human seat."""
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         seated = unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         assert "head" not in seated and "head" not in seated["seats"][0]
         again = unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett", "head": True}))
@@ -705,7 +729,7 @@ async def test_a_seat_gets_the_floors_numbers_and_no_characters(server, registry
 
 async def test_an_ended_table_says_so(server, registry):
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         registry.deal(table_id)
         unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
@@ -720,7 +744,7 @@ async def test_an_ended_table_says_so(server, registry):
 
 async def test_the_note_survives_a_cold_rebuild_and_is_never_an_entry(server, registry, store):
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         assert unwrap(await client.call_tool("clude_note", {"table_id": table_id}))["note"] == ""
         written = unwrap(await client.call_tool("clude_note", {"table_id": table_id, "text": "Plum has the Rope."}))
@@ -744,7 +768,7 @@ async def test_the_note_survives_a_cold_rebuild_and_is_never_an_entry(server, re
 
 async def test_a_line_is_said_at_the_table_and_an_empty_one_refused(server, registry):
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         registry.deal(table_id)
         unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
@@ -775,7 +799,7 @@ async def test_toward_takes_the_move_that_ends_nearest_the_room(server, registry
     over the moves the engine offered, nearest first, and answering with
     the room makes that move, entered in the log as an ordinary one."""
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         registry.deal(table_id)
         game = registry.game(table_id)
@@ -817,7 +841,7 @@ async def test_toward_takes_the_move_that_ends_nearest_the_room(server, registry
 
 async def test_toward_an_unknown_room_is_refused_and_a_move_named_outright_still_works(server, registry):
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         registry.deal(table_id)
         game = registry.game(table_id)
@@ -868,7 +892,7 @@ async def test_a_reply_with_nothing_new_is_short_and_says_how_long_a_person_can_
     their seat."""
     monkeypatch.setattr(mcp, "POLL_SECONDS", 0.05)
     table_id = a_person_next_door(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         registry.deal(table_id)
         view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
@@ -883,7 +907,7 @@ async def test_a_reply_with_nothing_new_is_short_and_says_how_long_a_person_can_
         idle = unwrap(await client.call_tool("clude_turn", {"table_id": table_id, "since": cursor}))
         assert idle["events"] == [] and idle["pending"] is None and idle["n_events"] == cursor
         assert idle["notepad"] == "unchanged" and idle["seats"] == "unchanged"
-        assert f"Mustard ({ANN})" in idle["waiting"]
+        assert "Mustard (Ann)" in idle["waiting"]
         assert f"the floor bot plays this turn at {tables.TURN_TIMEOUT:.0f} s" in idle["waiting"]
         assert idle["me"]["hand"] and "note" not in idle and "board" not in idle
 
@@ -899,7 +923,7 @@ async def test_the_notepad_goes_out_again_only_after_something_that_can_change_i
     suggestion, a disproof, an accusation or the end may. Checked from
     every cursor in a game well under way."""
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         registry.deal(table_id)
         view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
@@ -934,7 +958,7 @@ async def test_one_call_holds_for_one_poll_at_most(server, registry, monkeypatch
     each time the table is found waiting, so the machine's speed never
     matters."""
     table_id = a_person_next_door(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         registry.deal(table_id)
         game = registry.game(table_id)
@@ -982,7 +1006,7 @@ async def test_clude_turn_waits_for_the_deal_and_goes_on_into_the_game(server, r
     used to error "not dealt yet" and leave the retrying to the model.
     The deal is done by the stand-in clock, the moment the call waits."""
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         clock = [0.0]
 
@@ -1003,7 +1027,7 @@ async def test_seat_lines_carry_hand_sizes_and_order_names_the_disprovers(server
     in its line, and who is asked to disprove its suggestions, in the
     engine's order, a seat that is out still among them."""
     table_id = open_table(registry, extra=(SeatSpec("Peacock", "character", "Peacock"),))
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         game = registry.deal(table_id)
         view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id}))
@@ -1049,7 +1073,7 @@ async def test_accuse_false_with_an_undisproved_suggestion_puts_the_question_bac
     own), where naming the envelope's suspect and weapon goes round the
     table undisproved."""
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         game = registry.deal(table_id)
         suspect, weapon, envelope_room = game.state.envelope
@@ -1094,7 +1118,7 @@ async def test_hard_mode_shows_only_the_cards_seen_or_nothing(server, registry):
     results = {}
     for level in ("shown", "none"):
         table_id = open_table(registry)
-        async with Client(server) as client:
+        async with playing(server) as client:
             seated = unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
             assert seated["my_notepad"] == "full"
             changed = unwrap(await client.call_tool(
@@ -1130,7 +1154,7 @@ async def test_hard_mode_shows_only_the_cards_seen_or_nothing(server, registry):
 
 async def test_a_bad_notepad_level_is_refused(server, registry):
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         result = await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett", "notepad": "easy"})
         assert "notepad is one of" in error_text(result)
     assert tables.viewer_seat(TableSetup.from_dict(registry.document(table_id)["setup"]), CLAUDE) is None
@@ -1139,13 +1163,157 @@ async def test_a_bad_notepad_level_is_refused(server, registry):
 async def test_the_replay_is_a_whole_url_when_the_service_knows_its_address(server, registry, monkeypatch):
     monkeypatch.setenv("CLUDE_PUBLIC_URL", "https://clude.example/")
     table_id = open_table(registry)
-    async with Client(server) as client:
+    async with playing(server) as client:
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         registry.deal(table_id)
         final = await play_out(client, table_id)
     assert final["over"]["replay"] == "https://clude.example/replay/web/0"
     assert "sign-in" in final["over"]["replay_note"]
     assert final["over"]["notepad"] == "full"
+
+
+# --- Phase 9j: every chatbot its own login, and watching ---------------------------
+
+
+async def test_every_tool_wants_a_login_and_a_wrong_one_is_refused(server, registry):
+    table_id = open_table(registry)
+    async with Client(server) as client:
+        result = await client.call_tool("clude_tables", {"login": ""})
+        assert "clude_login" in error_text(result)
+        result = await client.call_tool("clude_tables", {"login": "made-up"})
+        assert "not a clude login" in error_text(result)
+        result = await client.call_tool("clude_login", {"name": CLAUDE, "password": "wrong"})
+        assert error_text(result).endswith("Wrong name or password.")
+        result = await client.call_tool("clude_login", {"name": "nobody", "password": "pw"})
+        assert error_text(result).endswith("Wrong name or password.")
+        # Any case logs in, as at the form; the name comes back capitalised.
+        logged = unwrap(await client.call_tool("clude_login", {"name": "Claude", "password": "pw"}))
+        assert logged["you"] == "Claude" and logged["login"]
+        seated = unwrap(await client.call_tool(
+            "clude_sit", {"login": logged["login"], "table_id": table_id, "token": "Scarlett"}
+        ))
+        assert seated["my_token"] == "Scarlett"
+    setup = TableSetup.from_dict(registry.document(table_id)["setup"])
+    assert setup.seats[0] == SeatSpec("Scarlett", "human", CLAUDE), "the seat is stored under the key"
+
+
+async def test_a_login_ends_when_the_password_changes(server, registry, store):
+    async with playing(server) as client:
+        unwrap(await client.call_tool("clude_tables", {}))
+        users.set_password(store, CLAUDE, "new")
+        result = await client.call_tool("clude_tables", {})
+        assert "no longer good" in error_text(result)
+    async with playing(server, password="new") as client:
+        unwrap(await client.call_tool("clude_tables", {}))
+
+
+async def test_a_login_runs_out(app, store, monkeypatch):
+    account = users.get_user(store, CLAUDE)
+    login = mcp.issue_login(app.secret_key, account)
+    assert mcp.check_login(app.secret_key, store, login) == CLAUDE
+    with pytest.raises(mcp.ToolError, match="not a clude login"):
+        mcp.check_login("another secret", store, login)
+    monkeypatch.setattr(mcp, "LOGIN_DAYS", -1)  # every login is already past it
+    with pytest.raises(mcp.ToolError, match="run out"):
+        mcp.check_login(app.secret_key, store, login)
+
+
+async def test_too_many_wrong_passwords_lock_the_name_for_a_minute(server):
+    async with Client(server) as client:
+        for _ in range(5):
+            await client.call_tool("clude_login", {"name": CLAUDE, "password": "wrong"})
+        result = await client.call_tool("clude_login", {"name": CLAUDE, "password": "pw"})
+        assert "Too many attempts" in error_text(result)
+
+
+async def test_two_chatbots_sit_at_one_table_each_as_itself(server, registry, store, monkeypatch):
+    """Before 9j every chatbot was the account `claude`, so a second
+    could not sit where the first sat. Now each logs in as itself."""
+    monkeypatch.setattr(mcp, "POLL_SECONDS", 0.05)  # Scarlett moves first and nobody answers for her
+    users.add_user(store, "zenbot", "pw")
+    seats = (
+        SeatSpec("Scarlett", "open"), SeatSpec("Mustard", "open"), SeatSpec("White", "character", "White"),
+    )
+    table_id = registry.create(TableSetup(seats, SEED), started_by=ANN)
+    async with playing(server) as claude, playing(server, "zenbot") as zenbot:
+        unwrap(await claude.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
+        unwrap(await zenbot.call_tool("clude_sit", {"table_id": table_id, "token": "Mustard"}))
+        registry.deal(table_id)
+        view = unwrap(await zenbot.call_tool("clude_turn", {"table_id": table_id, "since": 0}))
+    assert view["me"]["token"] == "Mustard"
+    assert view["seats"][0].startswith("Scarlett: Claude, ")
+    assert view["seats"][1].startswith("Mustard: Zenbot (you), ")
+
+
+async def test_watching_a_live_table_shows_what_a_spectator_sees(server, registry):
+    """A logged-in chatbot watches as a browser spectator does: no
+    hands, no card shown in private named, every seat's certainty, and
+    its name in the players' gallery. Its own table it plays, not
+    watches."""
+    seats = (SeatSpec("Scarlett", "human", ANN), SeatSpec("Mustard", "character", "Mustard"),
+             SeatSpec("White", "character", "White"))
+    table_id = registry.create(TableSetup(seats, SEED), started_by=ANN)
+    game = registry.game(table_id) or registry.deal(table_id)
+    registry.set_autopilot(table_id, game, 0, True)
+    async with playing(server) as client:
+        first = unwrap(await client.call_tool("clude_watch", {"table_id": table_id}))
+        assert first["n_events"] > 0, "the watch did not wait for the first move"
+        assert "me" not in first and "notepad" not in first and "pending" not in first
+        assert first["seats"][0].startswith("Scarlett: Ann, 6 cards, on autopilot, certainty ")
+        assert CLAUDE in registry.watching(table_id)
+        ann_view = tables.view_payload(game, registry.document(table_id), 0, watching=registry.watching(table_id))
+        assert ann_view["watching"] == ["Claude"]
+        seen, view = list(first["events"]), first
+        for _ in range(500):
+            if view["finished"]:
+                break
+            later = unwrap(await client.call_tool("clude_watch", {"table_id": table_id, "since": view["n_events"]}))
+            assert later["n_events"] > view["n_events"] or later["finished"], "the watch did not wait for news"
+            seen += later["events"]
+            view = later
+        assert view["finished"] and view["over"]["envelope"] == list(game.state.envelope)
+        assert any("disproved it." in line for line in seen), "no refutation seen"
+        assert not any(" showed " in line for line in seen), "a private card was named to a spectator"
+
+        mine = open_table(registry)
+        unwrap(await client.call_tool("clude_sit", {"table_id": mine, "token": "Scarlett"}))
+        registry.deal(mine)
+        result = await client.call_tool("clude_watch", {"table_id": mine})
+        assert "clude_turn" in error_text(result)
+
+
+async def test_finished_games_list_and_replay_page_by_page(server, registry, monkeypatch):
+    monkeypatch.setattr(mcp, "REPLAY_PAGE", 50)
+    table_id = open_table(registry)
+    async with playing(server) as client:
+        unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
+        registry.deal(table_id)
+        await play_out(client, table_id)
+
+        listed = unwrap(await client.call_tool("clude_games", {}))
+        assert listed["run_id"] == "web" and listed["n_games"] == 1 and "web" in listed["runs"]
+        assert listed["games"][0].startswith("0: Claude, Mustard, White; ")
+
+        first = unwrap(await client.call_tool("clude_replay", {"run_id": "web", "index": 0}))
+        game = registry.game(table_id)
+        assert first["envelope"] == list(game.state.envelope)
+        assert first["seats"][0].startswith("Scarlett (Claude): a person, holding ")
+        assert first["replay"] == "/replay/web/0"
+        lines = list(first["events"])
+        cursor = first["next"]
+        while cursor is not None:
+            page = unwrap(await client.call_tool("clude_replay", {"run_id": "web", "index": 0, "since": cursor}))
+            assert "envelope" not in page
+            lines += page["events"]
+            cursor = page["next"]
+        assert len(lines) == first["n_events"]
+        assert lines[0].startswith("0 (turn 1) Scarlett (Claude) moves")
+        assert any(" showed " in line for line in lines), "a replay names the cards shown"
+
+        missing = await client.call_tool("clude_replay", {"run_id": "web", "index": 9})
+        assert "clude_games" in error_text(missing)
+        missing = await client.call_tool("clude_games", {"run_id": "nope"})
+        assert "Runs: web" in error_text(missing)
 
 
 # --- the combined app -------------------------------------------------------------------
@@ -1198,7 +1366,11 @@ async def test_the_combined_app_serves_the_lobby_behind_the_gate_and_the_endpoin
     assert combined.state.mcp is not None
     # One registry: the MCP server plays on the Flask app's own tables.
     assert combined.state.mcp.registry is combined.state.flask.extensions["tables"]
-    assert combined.state.mcp.account == "claude"
+    # Signed with the app's own session secret, so a login is as good as the form's (Phase 9j).
+    flask_app = combined.state.flask
+    account = users.get_user(flask_app.extensions["store"], CLAUDE)
+    login = mcp.issue_login(flask_app.secret_key, account)
+    assert mcp.check_login(flask_app.secret_key, flask_app.extensions["store"], login) == CLAUDE
     async with combined.router.lifespan_context(combined):
         home = await asgi(combined, "GET", "/")
         assert home["status"] == 302 and "/login" in home["headers"]["location"]

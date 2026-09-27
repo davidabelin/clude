@@ -116,7 +116,7 @@ def test_seat_labels_and_llm_memory_depth_are_saved_and_restored(tmp_path, store
     page = ann.get("/").get_data(as_text=True)
     select = page.split('id="seat-Plum">')[1].split("</select>")[0]
     assert re.findall(r'<option[^>]*>([^<]+)</option>', select) == [
-        "empty", "open", "floorbot", "me (ann)", "Plum (LLM)", "Plum (headless)",
+        "empty", "open", "floorbot", "me (Ann)", "Plum (LLM)", "Plum (headless)",
     ]
     fields = {"csrf": csrf(ann), "seed": str(SEED), "memory-Plum": "0.75"}
     fields.update({f"seat-{t}": v for t, v in SEATS.items()})
