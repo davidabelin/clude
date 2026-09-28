@@ -1,6 +1,6 @@
 # Phase 10 Plan: the shippable look \-- "engraved, not brass-plated"
 
-Status: **proposed 2026-09-20; David's answers recorded 2026-09-21.** David's brief is section 3; D1-D4 and D6 are settled in section 13\. D5 remains open until David sees the three logo alternates in 10a. Written in the shape of the other phase plans: context, what the code dictates, design, sub-phases, files, decisions, out of scope, and an "as implemented" section once the work lands.
+Status: **proposed 2026-09-20; David's answers recorded 2026-09-21; 10a drawn 2026-09-27 (section 17).** David's brief is section 3; D1-D4 and D6 are settled in section 13\. D5 remains open until David reviews the logo canvas drawn in 10a (`docs/ux/logo/index.html`). Written in the shape of the other phase plans: context, what the code dictates, design, sub-phases, files, decisions, out of scope, and an "as implemented" section once the work lands.
 
 ## 1\. Context
 
@@ -73,10 +73,14 @@ Because the payload is in the page, this is a server change: `view_payload` stop
 | "Mustard is thinking", "Peacock is writing" | Its belief bars and the red truth mark |
 | How many cards each seat holds (public from the deal) | What any other seat has proven |
 | Their own hand, their own notes, their own log | The card shown at any refutation they were not party to |
+| **Each seat's certainty tag** (9h, David's one exception: the poker face, shown to everyone) | |
+| **Each model seat's share of the table's spend** (9g) | |
 
 **Watch keeps the bars** (D1, confirmed). Watch is characters only \-- there is nobody at the table to gain from the information, and the six methods racing each other is the entire point of the screen. The bars remain in Watch and the replay; they are removed from normal play.
 
 **A character's method is hidden during normal play**, named in the replay, and visible on the lobby form to whoever sets the table up (D3, confirmed).
+
+*Amended 2026-09-27 (10a):* the two rows in bold were added to the left column for what 9g and 9h put on the seat rail after this section was written; the artboards draw them and nothing else about another seat.
 
 ### 3.3 Talk and record are two panels, never one
 
@@ -388,3 +392,94 @@ every entry.
 - Music. Sound effects are included in 10g.  
 - The IP scrub proper (renaming the characters and rooms). Phase 10 moves the *look* off the Classic game's; the names are Phase 11's question.  
 - Anything that needs a build step.
+
+## 17\. As implemented
+
+### 10a: the artboards (2026-09-27)
+
+Drawn, not coded: nothing under `clude_web/` changed. David chose to
+view them as a contact sheet in the browser rather than through a
+canvas tool, and asked for all three extras (a light twin, a wide
+board, the open table).
+
+**What was drawn.** `docs/ux/table/`: twelve `.dc.html` artboards at
+390 x 844 in gaslight dark unless stated -- the seven focus states of
+3.1 (`Show`, `End`, `Move`, `Decide`, `Beat`, `Talk`, `Board`), the
+same board moment in case-file light with Notes open (`BoardLight`),
+the three-column layout of section 6 at 1280 px (`Wide`), the open
+table before the deal (`Waiting`), the lobby (`Lobby`) and the
+omniscient replay (`Replay`). `docs/ux/logo/`: five -- the proposed
+plate wordmark with the keyhole-c (`A-Plate`), the three alternates
+(`B-Seal`, `C-Plan`, `D-Cartouche`), each at the cellar, the header
+bar and the favicon in both themes, and all four in the cellar of the
+real board at phone size (`Compare`). Each folder has a `canvas.json`
+in the shape of `docs/ux/replay/` (a brief, one note per board, a
+launch board) and an `index.html` that lays the boards out with their
+notes in iframes, so a double-click shows the whole canvas.
+
+**How.** `docs/ux/build_sketches.py` writes every file from
+`docs/ux/sketch_parts.py`, which plays seed 7007 with David at
+Scarlett and the five characters through `TableGame` exactly as a web
+table is, stops after fourteen turns and again at the end (70 turns;
+Green won; the envelope Peacock, the Rope, the Study), and keeps every
+request she was asked with the board as it stood. Her hand, her
+notepad, every seat's certainty on the 9h scale, the narration from her
+seat (`tables.describe_for`) and the movement options with their
+distance lines are the game's own. The table talk is the one invented
+thing, since no model plays in a sketch; the notes say so. Rebuild with
+`python docs/ux/build_sketches.py` from the venv; the parts are
+deterministic per seed. `docs/ux/table/engraved-sketch.css` is section
+5 verbatim as CSS custom properties -- gaslight dark on `:root`, the
+case-file light under `[data-theme="light"]`, the six suspect colours
+unchanged from `legacy.css` with an `-ink` twin each, the four faces
+(from a Google Fonts link in the sketches), the type scale, the
+spacings, `--radius` 2 px, `--lift`, the duration and easing tokens and
+the `[data-motion="off"]` switch -- plus the components of section 7 as
+far as the boards need them. It is 10b's `engraved.css` in draft; 10b
+adds the `prefers-color-scheme` query, self-hosts the fonts and removes
+the sketch-only rules.
+
+**The board.** `board_svg.board_svg` as it is today, then
+`sketch_parts.decorate` dresses it as section 8 says 10f will, with
+classed, uncoloured shapes: a `<defs>` of four floor patterns (parquet,
+tile, boards, rug) each holding a background rect, since a pattern is
+transparent where it does not draw; walls as a double rule; rivets at
+both ends of every door; an initial on every token; the logo in the
+cellar in place of the wordmark text; lit destinations as an overlay
+of squares at the request's coordinates; a dashed ring around the seat
+now thinking. Findings for 10f: the cellar is 5 x 7 cells (35), about
+75 x 105 px on a phone, which is the box every logo candidate was
+drawn to; Peacock and Plum share an initial, so those two tokens carry
+two letters (`Pe`, `Pl`); the double wall was drawn as a 3 px ink line
+with a 0.8 px brass line over it rather than an offset inner line,
+which reads engraved and needs no geometry; the floor patterns need a
+tone about two steps from the room colour to survive a phone in the
+dark theme; the room label's halo must be the pattern's background
+colour.
+
+**Reconciliation with 9g-9j**, which the plan predates: the seat rail
+during play shows public facts plus the certainty tag and the cost
+bar, and nothing else about another seat (3.2's table amended above);
+the Accuse panel that a player sets up on any turn stays reachable
+under `decide`; the per-turn clock sits at the right of the status
+line; "so-and-so is typing" is a line under Talk; "Watching: Ann" is
+the rail's foot; the Look picker stays in the header bar with two
+entries; `end` shows the debrief progress in the status line and the
+replay as the one primary choice.
+
+**Departures from the sections above.** A six on the corridor gives
+seventeen options, so the corridor squares are a compact row-column
+grid under the room buttons rather than "Corridor, row 9, column 8"
+each; six replay blocks of 21 rows do not fit a phone, so the blocks
+collapse to their tag, method, hand and three mini gauges with the
+winner's rows open; at 1280 px the seat rail runs across the top under
+the header; a show-a-card with one matching card is one button, which
+is the honest case for this deal.
+
+**Sizes.** The table canvas is about 0.8 MB and the logo canvas 1.4 MB,
+almost all of it the inline board (about 60 KB each, and the logo
+boards carry four); the cropped cellar views are trimmed by
+`sketch_parts.crop_svg`.
+
+**D5.** Open: recorded here once David has reviewed
+`docs/ux/logo/index.html`.

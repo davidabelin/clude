@@ -1,0 +1,197 @@
+{
+  "artboards": [
+    {
+      "file": "Board.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "7 · board (dark)"
+    },
+    {
+      "file": "BoardLight.dc.html",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 1040,
+      "title": "7 · board (light)"
+    },
+    {
+      "file": "Move.dc.html",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 1010,
+      "title": "3 · move"
+    },
+    {
+      "file": "Decide.dc.html",
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "4 · decide"
+    },
+    {
+      "file": "Show.dc.html",
+      "x": 1880,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "1 · show"
+    },
+    {
+      "file": "Beat.dc.html",
+      "x": 2350,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "5 · beat"
+    },
+    {
+      "file": "Talk.dc.html",
+      "x": 2820,
+      "y": 0,
+      "w": 390,
+      "h": 1030,
+      "title": "6 · talk"
+    },
+    {
+      "file": "End.dc.html",
+      "x": 3290,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "2 · end"
+    },
+    {
+      "file": "Wide.dc.html",
+      "x": 3760,
+      "y": 0,
+      "w": 1280,
+      "h": 980,
+      "title": "7 · board, wide"
+    },
+    {
+      "file": "Waiting.dc.html",
+      "x": 5120,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "the open table"
+    },
+    {
+      "file": "Lobby.dc.html",
+      "x": 5590,
+      "y": 0,
+      "w": 390,
+      "h": 1560,
+      "title": "the lobby"
+    },
+    {
+      "file": "Replay.dc.html",
+      "x": 6060,
+      "y": 0,
+      "w": 390,
+      "h": 1500,
+      "title": "the replay"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "brief",
+      "x": 0,
+      "y": -360,
+      "w": 780,
+      "text": "The table on a phone, in the Engraved look (docs/phase10-plan.md): one moment of a real game, seed 7007, six seats, David at Scarlett, Peacock and Plum with Claude in the story (the game itself was played by the methods). The seven focus states of 3.1, highest rank first: show, end, move, decide, beat, talk, board. The stage holds whatever matters most; the rail shows what it holds back. Play is blind (3.2): no seat's bars or method during play, only the certainty tag (9h) and the cost bar (9g). Record and Talk are two panels (3.3). Gaslight dark is the default (D6); one board is drawn in case-file light. Every board links engraved-sketch.css, the draft of 10b's stylesheet; the board is board_svg's own geometry, dressed as 10f will dress it."
+    },
+    {
+      "id": "note-board",
+      "x": 0,
+      "y": -190,
+      "w": 390,
+      "text": "7 · board. Nothing is happening to you: the board holds the stage, Mustard's token wears the thinking ring, the status line carries the time-out clock (9h). The seat rail is public facts only (3.2) plus the two numbers David allowed everyone: the certainty tag on each name (9h) and the cost bar on the two model seats (9g). No bars, no methods. The rail shows what it holds back: two unread lines on Talk. The Record is case-file: turn numbers in the gauge face, a hairline between turns, a brass pip where talk happened that turn."
+    },
+    {
+      "id": "note-boardlight",
+      "x": 470,
+      "y": -190,
+      "w": 390,
+      "text": "7 · board, case-file light. The same moment under a stated light preference, with Notes open: a proven holder is solid ink, a still-possible holder a screentone dot, the envelope column in the red thread. The panel scrolls in the real screen; here the board is drawn taller so the whole sheet shows."
+    },
+    {
+      "id": "note-move",
+      "x": 940,
+      "y": -190,
+      "w": 390,
+      "text": "3 · move. Your move at turn 12, a six: every legal destination is lit on the board at server-side coordinates, and the same destinations are the buttons beneath, rooms first with their distance line, corridor squares as a compact grid. The rail collapses to its tab strip; nothing can steal the buttons (3.1). Drawn taller because seventeen options is the honest case."
+    },
+    {
+      "id": "note-decide",
+      "x": 1410,
+      "y": -190,
+      "w": 390,
+      "text": "4 · decide. The suggestion form: the board shrinks to a strip, two fields, Suggest and No suggestion, and the Accuse panel folded but reachable — set up on any turn, it fires only at the accusation question (8.2's rule, kept)."
+    },
+    {
+      "id": "note-show",
+      "x": 1880,
+      "y": -190,
+      "w": 390,
+      "text": "1 · show. Peacock's suggestion spelled out as a caption in Peacock's colour over the dimmed board, and one button per card you could show. Rank 1: nothing outranks it. In this game the deal gave you one matching card; two would be two buttons."
+    },
+    {
+      "id": "note-beat",
+      "x": 2350,
+      "y": -190,
+      "w": 390,
+      "text": "5 · beat. Within 2.2 s of the refutation: the narration caption set large over the dimmed board, then it decays to rank 7. The record beneath already carries the line."
+    },
+    {
+      "id": "note-talk",
+      "x": 2820,
+      "y": -190,
+      "w": 390,
+      "text": "6 · talk. A line arrived in the last 6 s and nothing above applies: the last two balloons over the board, tails in the speakers' colours, yours right-aligned. The Talk panel: the 240-character box with its counter past 200, and 'Plum is typing' (9h). The lines themselves are invented: no model plays in a sketch."
+    },
+    {
+      "id": "note-end",
+      "x": 3290,
+      "y": -190,
+      "w": 390,
+      "text": "2 · end. The envelope on the hero plate over the board, the winner, the debrief progress in the status line, Open the replay as the one primary choice. The impact frame (the 80 ms flash to ink) has already passed."
+    },
+    {
+      "id": "note-wide",
+      "x": 3760,
+      "y": -190,
+      "w": 390,
+      "text": "7 · board at ≥ 62rem: three columns 6:4:3. Board, hand and notes; status, record and the decision; talk full height. Nothing collapses; focus changes emphasis, not the grid."
+    },
+    {
+      "id": "note-waiting",
+      "x": 5120,
+      "y": -190,
+      "w": 390,
+      "text": "The open table before the deal: the plate, one row per seat, Sit here on the open one, Deal now disabled with its reason, Leave and End. Methods are not shown here (D3): only the setup form names them."
+    },
+    {
+      "id": "note-lobby",
+      "x": 5590,
+      "y": -190,
+      "w": 390,
+      "text": "The lobby. Six picks in the settled order (empty, open, floorbot, me, LLM, headless) each naming its method (D3: the setup form may), the knobs, one primary Deal; the Tables list with its Cost column (9g); Watch; Stored games. Scrolls."
+    },
+    {
+      "id": "note-replay",
+      "x": 6060,
+      "y": -190,
+      "w": 390,
+      "text": "The replay, omniscient. Every seat's method named, its hand, its certainty tag; the winner's block open with a row per card (solid = proven, tone = belief, struck = held elsewhere, red = truth), the others collapsed to three mini gauges. The machined scrubber: brass track with ticks, an engraved plate for a thumb, Play and the speed slider (9h). Scrolls."
+    }
+  ],
+  "launch": {
+    "view": "focused",
+    "file": "Board.dc.html"
+  }
+}

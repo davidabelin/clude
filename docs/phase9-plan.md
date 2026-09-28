@@ -974,7 +974,8 @@ browser has; and capitalise people's names wherever shown. Of two ways
 to log in, a `clude_login` tool or OAuth through clude's own login page,
 he chose the tool (the password passes through the chat, which the
 "password"-grade secrecy makes acceptable). Built with the suite green
-(518 passed, 27 skipped); **not deployed**.
+(518 passed, 27 skipped); deployed the same day as revision
+`clude-00014-sqn` (the docs said "not deployed" until 10a, 2026-09-27).
 
 - **Logins.** `clude_login(name, password)` checks the account with
   `users.authenticate`, behind the app's own `RateLimit` (so the form
