@@ -184,6 +184,39 @@ def test_the_stylesheet_has_no_broken_colours(key, css):
     assert not used - defined, f"variables used but never defined in {key}: {sorted(used - defined)}"
 
 
+def test_legacy_stays_on_the_list_and_every_face_is_served():
+    """Phase 10b. Legacy is never removed (David, 2026-09-28) and is
+    still the default until 10e; Engraved is beside it, and every
+    font file its sheet names exists under static/fonts/."""
+    from clude_web import styles
+
+    assert list(styles.STYLES)[:2] == ["legacy", "engraved"]
+    assert styles.DEFAULT_STYLE == "legacy"
+    static = Path(__file__).resolve().parents[1] / "clude_web" / "static"
+    css = (static / styles.STYLES["engraved"].stylesheet).read_text(encoding="utf-8")
+    faces = re.findall(r"url\(\.\./fonts/([^)]+)\)", css)
+    assert len(faces) == 8, faces
+    for name in faces:
+        assert (static / "fonts" / name).is_file(), f"{name} is named by the sheet but missing"
+
+
+def test_engraved_names_no_duration_outside_its_tokens():
+    """Phase 10b (plan section 5.4). Every duration is a token in
+    `:root`, so `body[data-motion="off"]` and reduced motion can zero
+    them all: a literal `120ms` on a rule would keep animating under a
+    screenshot, which is the bug that cost a day in 8.1."""
+    from clude_web import styles
+
+    static = Path(__file__).resolve().parents[1] / "clude_web" / "static"
+    css = (static / styles.STYLES["engraved"].stylesheet).read_text(encoding="utf-8")
+    root = re.search(r"^:root \{(.*?)^\}", css, re.S | re.M).group(1)
+    outside = css.replace(root, "")
+    literal = [m for m in re.findall(r"\b\d*\.?\d+m?s\b", outside) if m != "0s"]
+    assert not literal, f"durations outside :root in engraved.css: {literal}"
+    assert re.search(r"--dur-move:\s*\d+ms", root), "the move duration is a token"
+    assert 'body[data-motion="off"]' in css and "prefers-reduced-motion" in css
+
+
 # --- the event frames -------------------------------------------------
 
 

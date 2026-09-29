@@ -525,3 +525,50 @@ from the same seeded game:
   deleted; their notes stay in git history.
 - Sizes: the table canvas is still about 0.8 MB; the logo canvas is
   now about 1 MB.
+
+### 10b: the token layer (2026-09-28)
+
+`static/styles/engraved.css`, beside `legacy.css` and never touching
+it, in `STYLES` as "Engraved (beta)" with Legacy still the default (D7).
+Built with the suite green.
+
+- **The tokens** are section 5 as it stands after the second round:
+  case-file light on `:root`, gaslight dark under
+  `@media (prefers-color-scheme: dark)` (D10; no attribute to set), the
+  six suspect colours unchanged with an `-ink` twin each, the board's
+  dressing under legacy.css's names, the certainty tag's stops, the
+  four faces, the type scale, the spacings, `--radius` 2 px, the
+  hairline and ink rules, the printed shadow, and the duration and
+  easing tokens. Lifted from the artboards' `engraved-sketch.css`, which
+  stays in `docs/ux/table/` as the sketches' sheet.
+- **The faces** are served from `static/fonts/`: eight Latin-subset
+  woff2 files (289 KB in all) fetched from Google Fonts and declared
+  with `@font-face`, so the app makes no third-party request; the
+  licences and sources are in `static/fonts/README.md`. Google Fonts
+  serves IBM Plex Mono as static weights, so it is three files; the
+  other three are variable.
+- **The motion kill switch:** `body[data-motion="off"]` and a
+  reduced-motion preference both zero every duration token; no rule
+  names a duration except through a token, and
+  `test_engraved_names_no_duration_outside_its_tokens` refuses one.
+  `clude_shots.py` and the browser tests' context ask for reduced
+  motion and set the attribute on every page.
+- **The screens as they are** are dressed class for class with
+  legacy.css, since 10c-10e have not moved them yet: panels with the
+  ink rule and the lift, solid-ink primary buttons and hairline quiet
+  ones, the display face on headings and the step line, the gauge face
+  on numbers, beliefs as a dot tone rather than an opacity, the status
+  line's brass rule, the wordmark in Bodoni. The cost bar is hidden
+  under this look (D9; the gauge is still built, and `clude_shots.py`
+  now waits for it to exist rather than to be visible).
+- **`clude_shots.py`** shoots every look on the list (`--look KEY` to
+  narrow), picking each from the header bar after signing in; the file
+  names carry the look.
+- **Tests:** the two stylesheet tests already ran over every look; new
+  are the duration rule, Legacy pinned on the list with its faces
+  present on disk, the web test choosing Engraved and fetching its sheet
+  and a font, and the browser test switching to Engraved, checking the
+  fonts loaded, the switch zeroed `--dur-move`, and the board painted.
+- Departure from the plan: the sheet does not restyle the templates'
+  structure (no two panels, no focus ladder, no decorated board): those
+  are 10c-10f, and the beta label says so.

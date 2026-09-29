@@ -558,13 +558,26 @@ records its choice (`users.set_style`, the `style` field, account
 document version 3), the session caches it at login, `base.html` links
 the chosen sheet and sets `<html data-style="...">`, and the header bar's
 "Look" form (`POST /style`) changes it from any page and brings that
-page back, a table mid-game included. Only Legacy exists, the look of
-Phases 8.1 to 9h frozen on 2026-09-26 before Phase 10 starts on the
-shippable look; a new look is a new file and a new entry in `STYLES`,
-never an edit of `legacy.css`, and Phase 10 makes its own the default.
-An account made before the choice, or holding a key since removed, reads
-as the default. The two stylesheet tests in `tests/test_replay_screen.py`
-run over every look on the list.
+page back, a table mid-game included. Two looks exist: Legacy, the look
+of Phases 8.1 to 9h frozen on 2026-09-26, and Engraved, Phase 10's
+"engraved, not brass-plated" (`static/styles/engraved.css`, Phase 10b,
+2026-09-28), listed as "Engraved (beta)" until 10e makes it the default
+(`docs/phase10-plan.md` D7). Legacy stays selectable from here on and
+`legacy.css` is never edited. An account made before the choice, or
+holding a key since removed, reads as the default. The stylesheet tests
+in `tests/test_replay_screen.py` run over every look on the list.
+
+Engraved is case-file light by default and gaslight dark on a device's
+dark preference (D10); its four faces are served from `static/fonts/`
+as Latin-subset woff2 files (Bodoni Moda for the wordmark, Playfair
+Display for headings and captions, Inter for the text, IBM Plex Mono
+for numbers; all under the SIL Open Font License, see
+`static/fonts/README.md`). Every duration in it is a token on `:root`,
+and `body[data-motion="off"]` or a reduced-motion preference sets them
+all to zero: `clude_shots.py` and `tests/test_browser.py` set both, so
+no screenshot lands mid-transition, and a test refuses any literal
+duration outside `:root`. In this look the per-seat cost bar is not
+shown (D9); the spend line and the Cost columns are.
 
 ## Looking at it
 
@@ -578,8 +591,11 @@ It boots the app on a spare port against a throwaway store seeded from
 real records, signs in, and writes a PNG per screen -- login, lobby,
 lobby with an LLM memory dial, run listing, Watch and Play states, a
 waiting table, and replay at its start, middle and end -- in light and
-dark and at wide and phone widths. `--out DIR` chooses where they land; `--run` and
-`--game` choose which game.
+dark, at wide and phone widths, and in every look on the list (Phase
+10b; `--look KEY`, repeatable, narrows it). The file names carry the
+look, the scheme and the width: `lobby-engraved-dark-phone.png`.
+`--out DIR` chooses where they land; `--run` and `--game` choose which
+game.
 
 `tests/test_browser.py` drives the same browser and checks what markup
 tests cannot: that every token lands where the payload says, that tokens

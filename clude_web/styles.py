@@ -8,10 +8,11 @@ and the geometry stays in one place. Each account picks a style
 mid-game included; `base.html` links the chosen sheet and marks
 ``<html data-style="...">`` so a rule can tell one look from another.
 
-Only Legacy exists: the look of Phases 8.1 to 9h, frozen on 2026-09-26
-before Phase 10 starts on the shippable look. A new look is a new file
-beside it and a new entry here, never an edit of ``legacy.css``; Phase
-10 makes its own the default and leaves Legacy on the list.
+Two looks: Legacy, the look of Phases 8.1 to 9h frozen on 2026-09-26,
+and Engraved, Phase 10's "engraved, not brass-plated", in the list as
+a beta from 10b (2026-09-28) and the default once 10e lands (D7).
+Legacy stays fully functional and selectable from here on (David,
+2026-09-28); ``legacy.css`` is never edited.
 """
 from __future__ import annotations
 
@@ -31,11 +32,13 @@ class Style:
 
 STYLES: dict = {
     "legacy": Style("legacy", "Legacy", "styles/legacy.css"),
+    "engraved": Style("engraved", "Engraved (beta)", "styles/engraved.css"),
 }
 """Every style, by key, in the order the header bar lists them."""
 
 DEFAULT_STYLE = "legacy"
-"""What an account with no choice recorded, and a signed-out page, gets."""
+"""What an account with no choice recorded, and a signed-out page, gets.
+Engraved takes over after Phase 10e (D7)."""
 
 
 def style_named(key) -> Style:

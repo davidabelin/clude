@@ -1,0 +1,8 @@
+Bodoni Moda|italic|400 900|bodoni-moda-italic-400-900.woff2|53756
+Bodoni Moda|normal|400 900|bodoni-moda-normal-400-900.woff2|46260
+Playfair Display|italic|400 900|playfair-display-italic-400-900.woff2|38804
+Playfair Display|normal|400 900|playfair-display-normal-400-900.woff2|38404
+Inter|normal|400 700|inter-normal-400-700.woff2|48256
+IBM Plex Mono|italic|400|ibm-plex-mono-italic-400.woff2|16448
+IBM Plex Mono|normal|400|ibm-plex-mono-normal-400.woff2|14708
+IBM Plex Mono|normal|500|ibm-plex-mono-normal-500.woff2|14888

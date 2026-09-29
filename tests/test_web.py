@@ -215,6 +215,19 @@ def test_every_page_wears_the_account_s_look_and_the_bar_can_change_it(app, stor
     assert away.status_code == 302 and away.headers["Location"].endswith("/")
     assert "example.com" not in away.headers["Location"]
 
+    # Engraved (Phase 10b): on the list as a beta, chosen the same way,
+    # and the page then links its sheet; the sheet and its fonts are
+    # served. Legacy stays the default until 10e (D7).
+    assert '<option value="engraved"' in page and "Engraved (beta)" in page
+    chosen = client.post("/style", data={"csrf": token, "style": "engraved", "next": "/"})
+    assert chosen.status_code == 302 and users.get_user(store, NAME)["style"] == "engraved"
+    page = client.get("/").get_data(as_text=True)
+    assert 'data-style="engraved"' in page and "styles/engraved.css" in page
+    assert client.get("/static/styles/engraved.css").status_code == 200
+    assert client.get("/static/fonts/inter-normal-400-700.woff2").status_code == 200
+    assert styles.DEFAULT_STYLE == "legacy" and "legacy" in styles.STYLES
+    client.post("/style", data={"csrf": token, "style": "legacy", "next": "/"})
+
     # An account made before there was a choice, and one whose stored
     # key has gone from the list, both read as the default.
     document = users.get_user(store, NAME)

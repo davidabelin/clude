@@ -1,0 +1,1069 @@
+/* The Engraved look (Phase 10b, 2026-09-28): "engraved, not brass-plated".
+ *
+ * The token layer of docs/phase10-plan.md section 5 as it stands after
+ * David's second round (section 13, D7-D14): case-file light by
+ * default, gaslight dark on a device's dark preference, four faces
+ * self-hosted from ../fonts/, spacing on a 4 px scale, a 2 px radius,
+ * a printed shadow with no blur, and every duration a token so one
+ * attribute switches motion off. Lifted from docs/ux/table/
+ * engraved-sketch.css, the artboards' stylesheet.
+ *
+ * This file dresses the screens as they are today, class for class with
+ * legacy.css, because 10c-10e are still to come: the two panels, the
+ * focus ladder and the decorated board arrive with their own rules
+ * here. Until 10e the look is an opt-in beta (D7); legacy.css is never
+ * edited and stays on the list.
+ *
+ * ASCII only: a stray non-ASCII character once got into a hex colour and
+ * CSS dropped the rule without a word (tests/test_replay_screen.py).
+ */
+
+/* --- faces (5.3), Latin subsets, SIL Open Font License ----------------- */
+
+@font-face {
+  font-family: "Bodoni Moda";
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url(../fonts/bodoni-moda-normal-400-900.woff2) format("woff2");
+}
+@font-face {
+  font-family: "Bodoni Moda";
+  font-style: italic;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url(../fonts/bodoni-moda-italic-400-900.woff2) format("woff2");
+}
+@font-face {
+  font-family: "Playfair Display";
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url(../fonts/playfair-display-normal-400-900.woff2) format("woff2");
+}
+@font-face {
+  font-family: "Playfair Display";
+  font-style: italic;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url(../fonts/playfair-display-italic-400-900.woff2) format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url(../fonts/inter-normal-400-700.woff2) format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(../fonts/ibm-plex-mono-normal-400.woff2) format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(../fonts/ibm-plex-mono-normal-500.woff2) format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url(../fonts/ibm-plex-mono-italic-400.woff2) format("woff2");
+}
+
+/* --- tokens ------------------------------------------------------------- */
+
+:root {
+  /* Colour: case-file light (5.1), the default (D10). */
+  --page: #E9E2D3;
+  --panel: #F5F0E4;
+  --panel-sunk: #DED6C4;
+  --edge: #C3B7A0;
+  --edge-strong: #6B5D49;
+  --ink: #14110D;
+  --ink-soft: #5A4F40;
+  --ink-faint: #8A7D6A;
+  --brass: #A97B2C;
+  --brass-bright: #C79A45;
+  --brass-dim: #7A5A21;
+  --accent: #7A2230;
+  --accent-ink: #F5F0E4;
+  --warn: #9B2226;
+  --proof: #14110D;
+  --tone: #8A7D6A;
+  --tone-size: 3px;
+
+  /* The six suspect colours do not change (5.2): legacy.css's values,
+     each with the ink that sits on its token. */
+  --suspect-scarlett: #b3243b; --suspect-scarlett-ink: #F5F0E4;
+  --suspect-mustard: #d09a1e;  --suspect-mustard-ink: #14110D;
+  --suspect-plum: #7b4397;     --suspect-plum-ink: #F5F0E4;
+  --suspect-peacock: #1d7f96;  --suspect-peacock-ink: #F5F0E4;
+  --suspect-green: #2f7d43;    --suspect-green-ink: #F5F0E4;
+  --suspect-white: #e8e6e1;    --suspect-white-ink: #14110D;
+
+  /* The board's dressing (8): names as in legacy.css. */
+  --board-void: #C3B7A0;
+  --board-room: #F5F0E4;
+  --board-corridor: #DED6C4;
+  --board-grid: #C9BFA9;
+  --board-floor: #CFC4AA;
+  --board-wall: #6B5D49;
+  --board-door: #A97B2C;
+  --board-cellar: #E9E2D3;
+  --board-label: #5A4F40;
+
+  /* The certainty tag (Phase 9h): cold through white to hot. */
+  --certainty: 0;
+  --certain-cold: #9cc1ee;
+  --certain-mid: #FFFFFF;
+  --certain-hot: #f08a95;
+  --certain-ink: #14110D;
+
+  /* Type (5.3). */
+  --font-wordmark: "Bodoni Moda", "Bodoni 72", Didot, serif;
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-gauge: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+
+  --type-gauge: 0.72rem; --lh-gauge: 1.2;
+  --type-sm: 0.85rem;    --lh-sm: 1.4;
+  --type-body: 1rem;     --lh-body: 1.5;
+  --type-beat: 1.15rem;  --lh-beat: 1.35;
+  --type-title: 1.4rem;  --lh-title: 1.2;
+  --type-hero: 2rem;     --lh-hero: 1.05;
+
+  /* Space, edge, elevation, motion (5.4). */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px; --space-7: 48px;
+  --gap: var(--space-4);
+  --radius: 2px;
+  --radius-chip: 999px;
+  --rule: 1px solid var(--edge);
+  --rule-ink: 2px solid var(--edge-strong);
+  --lift: 2px 2px 0 var(--edge-strong);
+  --dur-tick: 90ms;
+  --dur-cut: 140ms;
+  --dur-move: 220ms;
+  --dur-impact: 420ms;
+  --ease-snap: cubic-bezier(.2,.8,.2,1);
+  --ease-panel: cubic-bezier(.4,0,.2,1);
+}
+
+/* Gaslight dark (5.2), on a stated dark preference (D10). */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #121013;
+    --panel: #1B181C;
+    --panel-sunk: #0D0B0E;
+    --edge: #332E33;
+    --edge-strong: #9A9186;
+    --ink: #EDE6D8;
+    --ink-soft: #A9A090;
+    --ink-faint: #7A7263;
+    --brass: #D6A75A;
+    --brass-bright: #F0C67E;
+    --brass-dim: #8A6A2E;
+    --accent: #C2596A;
+    --accent-ink: #121013;
+    --warn: #F08A8A;
+    --proof: #EDE6D8;
+    --tone: #7A7263;
+
+    --suspect-scarlett: #e0566c; --suspect-scarlett-ink: #14110D;
+    --suspect-mustard: #e8bb4e;  --suspect-mustard-ink: #14110D;
+    --suspect-plum: #ab72c6;     --suspect-plum-ink: #14110D;
+    --suspect-peacock: #4fb2c9;  --suspect-peacock-ink: #14110D;
+    --suspect-green: #5cb473;    --suspect-green-ink: #14110D;
+    --suspect-white: #f2f0eb;    --suspect-white-ink: #14110D;
+
+    --board-void: #0D0B0E;
+    --board-room: #26212A;
+    --board-corridor: #1A171D;
+    --board-grid: #2E2931;
+    --board-floor: #4A4350;
+    --board-wall: #9A9186;
+    --board-door: #D6A75A;
+    --board-cellar: #1B181C;
+    --board-label: #A9A090;
+
+    --certain-cold: #6f9fd8;
+    --certain-mid: #ECE9E2;
+    --certain-hot: #e0687a;
+    --certain-ink: #14110D;
+  }
+}
+
+/* The motion kill switch (5.4): clude_shots.py and the browser tests
+   set the attribute, reduced motion sets it too, and no rule below
+   names a duration except through these tokens. */
+body[data-motion="off"] {
+  --dur-tick: 0s; --dur-cut: 0s; --dur-move: 0s; --dur-impact: 0s;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-tick: 0s; --dur-cut: 0s; --dur-move: 0s; --dur-impact: 0s;
+  }
+}
+
+/* --- base --------------------------------------------------------------- */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: var(--type-body) / var(--lh-body) var(--font-ui);
+}
+
+h1, h2 { font-family: var(--font-display); font-weight: 600; }
+h1 { font-size: var(--type-title); line-height: var(--lh-title); margin: 0 0 var(--space-4); }
+h2 { font-size: 1.05rem; line-height: var(--lh-title); margin: 0 0 var(--space-3); }
+
+a { color: var(--accent); }
+
+code {
+  padding: 0.1rem 0.3rem;
+  background: var(--panel-sunk);
+  border: var(--rule);
+  border-radius: var(--radius);
+  font: 0.9em var(--font-gauge);
+}
+
+.error { color: var(--warn); }
+
+.note {
+  color: var(--ink-soft);
+  font-size: var(--type-sm);
+  line-height: var(--lh-sm);
+}
+
+.crumbs {
+  margin: 0 0 var(--space-2);
+  font: var(--type-gauge) / var(--lh-gauge) var(--font-gauge);
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+.crumbs a { color: inherit; }
+
+/* --- the header bar ----------------------------------------------------- */
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  min-height: 48px;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: var(--rule-ink);
+  background: var(--panel);
+}
+
+.bar form {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.bar-right { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; justify-content: flex-end; }
+.bar .look label { margin: 0; font-size: var(--type-sm); color: var(--ink-soft); }
+.bar .look select {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--type-sm);
+}
+
+.bar .mark {
+  font: 600 1.3rem / 1 var(--font-wordmark);
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.who { color: var(--ink-soft); font-size: var(--type-sm); }
+
+main { padding: var(--gap); }
+
+/* --- panels, forms, buttons --------------------------------------------- */
+
+.panel {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: var(--space-5);
+  background: var(--panel);
+  border: var(--rule-ink);
+  border-radius: var(--radius);
+  box-shadow: var(--lift);
+}
+
+.panel.narrow { max-width: 22rem; }
+.panel.wide { max-width: 64rem; }
+
+label {
+  display: block;
+  margin: var(--space-3) 0 var(--space-1);
+  font-size: var(--type-sm);
+  color: var(--ink-soft);
+}
+
+input, select {
+  width: 100%;
+  padding: var(--space-2);
+  border: var(--rule);
+  border-radius: var(--radius);
+  background: var(--panel-sunk);
+  color: var(--ink);
+  font: inherit;
+}
+input:focus-visible, select:focus-visible, button:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 1px;
+}
+select { width: auto; padding: 0.45rem; }
+
+/* A button is a choice (7): a brass hairline, the printed shadow, and
+   pressed it loses the lift and moves 2 px. The primary one is solid
+   ink; brass is never a fill. */
+button {
+  margin-top: var(--space-4);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--ink);
+  color: var(--page);
+  font: 500 var(--type-body) / 1.25 var(--font-ui);
+  box-shadow: var(--lift);
+  cursor: pointer;
+  transition: transform var(--dur-tick) var(--ease-snap), box-shadow var(--dur-tick) var(--ease-snap);
+}
+button:hover { border-color: var(--brass); }
+button:active { transform: translate(2px, 2px); box-shadow: none; }
+button[disabled] { opacity: 0.45; box-shadow: none; cursor: not-allowed; transform: none; }
+
+button.quiet {
+  margin-top: 0;
+  min-height: 32px;
+  padding: var(--space-1) var(--space-3);
+  background: transparent;
+  border-color: var(--edge-strong);
+  color: var(--ink-soft);
+  font-size: var(--type-sm);
+  box-shadow: none;
+}
+button.quiet:hover { border-color: var(--brass); color: var(--ink); }
+
+button.warn { background: transparent; border-color: var(--warn); color: var(--warn); }
+button.warn[disabled] { opacity: 0.45; cursor: not-allowed; }
+
+/* --- the lobby ---------------------------------------------------------- */
+
+.lobby {
+  display: grid;
+  gap: var(--gap);
+  max-width: 64rem;
+  margin: 0 auto;
+}
+
+.lobby .panel { min-width: 0; max-width: none; margin: 0; }
+.lobby code { overflow-wrap: anywhere; }
+.new-game .knobs { grid-template-columns: minmax(0, 1fr) 10rem; }
+
+.cast {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: var(--space-2) var(--space-4);
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.cast legend {
+  margin-bottom: var(--space-2);
+  font: italic var(--type-sm) / var(--lh-sm) var(--font-display);
+  color: var(--ink-soft);
+}
+
+.pick {
+  display: grid;
+  grid-template-columns: auto auto auto 1fr;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: var(--rule);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: var(--type-sm);
+  cursor: pointer;
+}
+
+.pick input { width: auto; margin: 0; accent-color: var(--brass); }
+.pick .name { font-weight: 600; }
+.pick .method { font: var(--type-gauge) / var(--lh-gauge) var(--font-gauge); color: var(--ink-faint); }
+
+.knobs {
+  display: grid;
+  grid-template-columns: max-content 10rem;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.knobs label { margin: 0; }
+.knobs input[type="checkbox"] { accent-color: var(--brass); }
+
+.listing { list-style: none; margin: 0; padding: 0; }
+
+.listing li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: var(--rule);
+}
+
+.listing li:last-child { border-bottom: 0; }
+.listing.tables li a { font-weight: 600; }
+
+.run-id {
+  min-width: 15rem;
+  font: var(--type-sm) / var(--lh-sm) var(--font-gauge);
+}
+
+/* --- a run's games ------------------------------------------------------ */
+
+.games {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--type-sm);
+}
+
+.games th,
+.games td {
+  padding: var(--space-2) var(--space-2);
+  border-bottom: var(--rule);
+  text-align: left;
+}
+
+.games th {
+  font: 500 var(--type-gauge) / var(--lh-gauge) var(--font-gauge);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.games td:nth-child(4),
+.games td:nth-child(5),
+.games td:nth-child(6),
+.games th:nth-child(4),
+.games th:nth-child(5),
+.games th:nth-child(6) { text-align: right; }
+.games td.cost { font-family: var(--font-gauge); font-variant-numeric: tabular-nums; }
+
+/* --- watching a game ---------------------------------------------------- */
+
+.watch { max-width: 78rem; margin: 0 auto; }
+
+.watch-side { display: grid; gap: var(--space-3); align-content: start; }
+
+.controls { max-width: none; margin: 0; }
+
+.controls .buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+.controls .buttons form { margin: 0; }
+.controls .buttons button { margin-top: 0; }
+
+/* This turn's lines: the record's voice, a rule in the speaker's kind. */
+.turn-lines {
+  margin: 0 0 var(--space-1);
+  padding: 0;
+  list-style: none;
+  font-size: var(--type-sm);
+}
+
+.turn-lines li {
+  padding: var(--space-1) var(--space-2);
+  border-left: 3px solid var(--edge);
+  margin-bottom: var(--space-1);
+}
+
+.turn-lines li.kind-suggestion { border-left-color: var(--brass); }
+.turn-lines li.kind-accusation { border-left-color: var(--warn); }
+.turn-lines li.kind-remark { font-style: italic; color: var(--ink-soft); }
+
+.spoken {
+  margin: var(--space-2) var(--space-1) 0;
+  font: italic var(--type-beat) / var(--lh-beat) var(--font-display);
+}
+
+.seats-compact {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-2);
+}
+
+.seat.compact h2 { font-size: var(--type-sm); }
+.seat.compact .placed {
+  margin-left: auto;
+  font: var(--type-gauge) / var(--lh-gauge) var(--font-gauge);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.seat.out { opacity: 0.55; }
+
+/* The compact reading: cells for cards placed, a toned bar for a belief. */
+.gauge {
+  display: grid;
+  grid-template-columns: 4.6rem auto 1fr 2.4rem;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  font-size: var(--type-gauge);
+}
+
+.gname { font-family: var(--font-gauge); color: var(--ink-soft); }
+
+.cells { display: inline-flex; gap: 2px; }
+
+.cell {
+  width: 0.55rem;
+  height: 0.62rem;
+  border: 1px solid var(--edge-strong);
+  border-radius: 1px;
+  background: var(--panel-sunk);
+}
+
+.cell.on { background: var(--proof); border-color: var(--proof); }
+.gauge.solved .cell.on { background: var(--accent); border-color: var(--accent); }
+.gauge.solved .gname { color: var(--accent); font-weight: 700; }
+
+.sure {
+  height: 0.62rem;
+  background: var(--panel-sunk);
+  border: 1px solid var(--edge-strong);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+/* A belief is a screentone, never a solid: solid is for what is proven. */
+.sure-fill {
+  display: block;
+  height: 100%;
+  background-image: radial-gradient(var(--accent) 1.1px, transparent 1.2px);
+  background-size: var(--tone-size) var(--tone-size);
+}
+
+.pct {
+  text-align: right;
+  font-family: var(--font-gauge);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+/* No cost bar in this look (D9): the spend line and the Cost columns stay. */
+.gauge.cost { display: none; }
+
+/* --- the board ------------------------------------------------------------
+ *
+ * board_svg.py sets no colour: every shape carries a class and this block
+ * decides how it looks. The patterns, the double wall, the rivets and the
+ * initials arrive with 10f, which gives the generator the shapes.
+ */
+
+.board {
+  width: 100%;
+  height: auto;
+  display: block;
+  shape-rendering: crispEdges;
+}
+
+.board-void { fill: var(--board-void); }
+
+.board-corridor rect {
+  fill: var(--board-corridor);
+  stroke: var(--board-grid);
+  stroke-width: 0.5;
+}
+
+.board-room rect { fill: var(--board-room); }
+.board-cellar rect { fill: var(--board-cellar); }
+
+.board-mark {
+  fill: var(--board-label);
+  font: 700 13px var(--font-wordmark);
+  letter-spacing: 0.12em;
+  opacity: 0.6;
+  shape-rendering: auto;
+  pointer-events: none;
+}
+
+.board-wall {
+  stroke: var(--board-wall);
+  stroke-width: 2.5;
+  stroke-linecap: square;
+}
+
+.board-door {
+  stroke: var(--board-door);
+  stroke-width: 4;
+  stroke-linecap: butt;
+}
+
+.board-label {
+  fill: var(--board-label);
+  font: 500 9px var(--font-display);
+  letter-spacing: 0.06em;
+  shape-rendering: auto;
+  pointer-events: none;
+  stroke: var(--board-room);
+  stroke-width: 2.5;
+  paint-order: stroke;
+}
+
+.board-start {
+  fill: none;
+  stroke-width: 2;
+  opacity: 0.85;
+}
+
+.board-token {
+  stroke: var(--ink);
+  stroke-width: 1.2;
+  shape-rendering: auto;
+  paint-order: stroke;
+}
+
+.suspect-scarlett { fill: var(--suspect-scarlett); stroke: var(--suspect-scarlett); }
+.suspect-mustard  { fill: var(--suspect-mustard);  stroke: var(--suspect-mustard); }
+.suspect-plum     { fill: var(--suspect-plum);     stroke: var(--suspect-plum); }
+.suspect-peacock  { fill: var(--suspect-peacock);  stroke: var(--suspect-peacock); }
+.suspect-green    { fill: var(--suspect-green);    stroke: var(--suspect-green); }
+.suspect-white    { fill: var(--suspect-white);    stroke: var(--suspect-white); }
+
+.board-start.suspect-scarlett,
+.board-start.suspect-mustard,
+.board-start.suspect-plum,
+.board-start.suspect-peacock,
+.board-start.suspect-green,
+.board-start.suspect-white { fill: none; }
+
+.board-token.suspect-scarlett,
+.board-token.suspect-mustard,
+.board-token.suspect-plum,
+.board-token.suspect-peacock,
+.board-token.suspect-green,
+.board-token.suspect-white { stroke: var(--ink); }
+
+.board-target {
+  fill: var(--brass);
+  fill-opacity: 0.35;
+  stroke: var(--brass-bright);
+  stroke-width: 1.5;
+  cursor: pointer;
+}
+.board-target:hover { fill-opacity: 0.7; }
+
+/* --- the replay screen -------------------------------------------------- */
+
+.replay { max-width: 78rem; margin: 0 auto; }
+
+.replay-head h1 { margin-bottom: var(--space-1); }
+
+.replay-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: var(--gap);
+  align-items: start;
+}
+
+/* The stage (7): one panel, the printed shadow. */
+.replay-board {
+  position: sticky;
+  top: var(--gap);
+  padding: var(--space-2);
+  background: var(--panel);
+  border: var(--rule-ink);
+  border-radius: var(--radius);
+  box-shadow: var(--lift);
+}
+
+.replay-seats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--space-3);
+}
+
+.seat {
+  padding: var(--space-3);
+  background: var(--panel);
+  border: var(--rule-ink);
+  border-radius: var(--radius);
+}
+
+.seat h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font: 600 var(--type-body) / var(--lh-title) var(--font-display);
+}
+
+/* The certainty tag (Phase 9h): the name on a plate whose colour runs
+   cold to hot with the bits gained. */
+.seat h2.tag {
+  padding: 0.15rem var(--space-2);
+  border-radius: var(--radius);
+  color: var(--certain-ink);
+  background: color-mix(
+    in oklab,
+    color-mix(in oklab, var(--certain-cold), var(--certain-mid) calc(min(1, 2 * var(--certainty)) * 100%)),
+    var(--certain-hot) calc(max(0, 2 * var(--certainty) - 1) * 100%)
+  );
+  transition: background var(--dur-move) linear;
+}
+.seat h2.tag .who { color: inherit; opacity: 0.75; }
+
+.pip {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  display: inline-block;
+  flex: none;
+  border: 1px solid var(--ink);
+}
+
+/* The .suspect-* rules colour the board with `fill`, an SVG property an
+   HTML span ignores; the pips need their own. */
+.pip.suspect-scarlett { background: var(--suspect-scarlett); }
+.pip.suspect-mustard  { background: var(--suspect-mustard); }
+.pip.suspect-plum     { background: var(--suspect-plum); }
+.pip.suspect-peacock  { background: var(--suspect-peacock); }
+.pip.suspect-green    { background: var(--suspect-green); }
+.pip.suspect-white    { background: var(--suspect-white); }
+
+.seat .method,
+.seat .hand {
+  margin: var(--space-1) 0 0;
+  font-size: var(--type-gauge);
+  line-height: var(--lh-sm);
+  color: var(--ink-soft);
+}
+.seat .method { font-family: var(--font-gauge); }
+
+.strip {
+  margin-top: var(--space-2);
+  border-top: var(--rule);
+  padding-top: var(--space-1);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr 0.6rem;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+.row .card { color: var(--ink-soft); }
+
+.track {
+  position: relative;
+  height: 0.62rem;
+  background: var(--panel-sunk);
+  border: 1px solid var(--edge-strong);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+/* Pale = a belief, drawn as a dot tone; solid = proven. */
+.fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background-image: radial-gradient(var(--accent) 1.1px, transparent 1.2px);
+  background-size: var(--tone-size) var(--tone-size);
+  transition: width var(--dur-cut) linear;
+}
+
+.row.proven-envelope .fill { background-image: none; background-color: var(--accent); }
+.row.proven-envelope .card { color: var(--ink); font-weight: 600; }
+
+.row.proven-held { opacity: 0.45; }
+.row.proven-held .card { text-decoration: line-through; }
+
+.row .mark { width: 0.6rem; height: 0.6rem; border-radius: 50%; }
+.row .mark.truth { background: var(--warn); border: 1px solid var(--ink); }
+
+.replay-foot { margin-top: var(--gap); }
+
+/* The step line as a caption box (7): the display face, a rule in the
+   kind's colour, the printed shadow. */
+.step-line {
+  margin: 0 0 var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  min-height: 2.6rem;
+  background: var(--panel);
+  border: var(--rule-ink);
+  border-left: 6px solid var(--edge-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--lift);
+  font: italic var(--type-beat) / var(--lh-beat) var(--font-display);
+}
+
+.step-line.kind-suggestion { border-left-color: var(--brass); }
+.step-line.kind-accusation { border-left-color: var(--warn); }
+.step-line.kind-over { border-left-color: var(--accent); }
+.step-line.kind-remark { color: var(--ink-soft); }
+
+/* The scrubber: brass track, quiet steps, the counter in the gauge face. */
+.scrubber {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.scrubber #play { min-width: 4.2rem; }
+.scrubber .speed {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  font: var(--type-gauge) / var(--lh-gauge) var(--font-gauge);
+  color: var(--ink-soft);
+}
+.scrubber .speed input[type="range"] { flex: none; width: 7rem; }
+
+.scrubber button {
+  margin-top: 0;
+  min-height: 40px;
+  padding: var(--space-1) var(--space-3);
+  background: var(--panel);
+  color: var(--ink);
+  border-color: var(--edge-strong);
+  box-shadow: none;
+}
+.scrubber button[aria-pressed="true"] { background: var(--ink); color: var(--page); }
+
+.scrubber input[type="range"] { flex: 1; width: auto; padding: 0; border: 0; background: transparent; }
+input[type="range"] { accent-color: var(--brass); }
+
+.counter {
+  min-width: 5.5rem;
+  text-align: right;
+  font: var(--type-gauge) / var(--lh-gauge) var(--font-gauge);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.key { margin-top: var(--space-2); }
+
+@media (max-width: 62rem) {
+  .replay-body { grid-template-columns: minmax(0, 1fr); }
+  .replay-board { position: static; }
+}
+
+@media (max-width: 30rem) {
+  main { padding: var(--space-3); }
+  .panel { padding: var(--space-4); }
+  .lobby .knobs { grid-template-columns: minmax(0, 1fr); }
+  .lobby .cast { grid-template-columns: minmax(0, 1fr); }
+  .row { grid-template-columns: 5rem 1fr 0.6rem; font-size: 0.7rem; }
+  /* Six columns do not fit a phone: the suggestion count gives way to
+     the cost (Phase 9g). */
+  .games th:nth-child(5),
+  .games td:nth-child(5) { display: none; }
+  .bar { flex-wrap: wrap; gap: var(--space-2); }
+  .bar .look label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .bar-right { gap: var(--space-2); }
+}
+
+/* --- a table people play at --------------------------------------------- */
+
+.seats-form .seat-pick {
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto auto;
+  align-items: center;
+  align-content: start;
+  cursor: default;
+}
+.seats-form .seat-pick .pip { grid-column: 1; grid-row: 1; }
+.seats-form .seat-pick .name { grid-column: 2; grid-row: 1; margin: 0; }
+.seats-form .seat-pick select { grid-column: 1 / -1; grid-row: 2; width: 100%; margin: 0; }
+.seats-form .seat-pick .method { grid-column: 1 / -1; grid-row: 3; }
+.seat-memory { grid-column: 1 / -1; }
+.seat-memory label { margin: 0; font-size: var(--type-gauge); }
+.seat-memory input { width: 100%; }
+.knobs label.check {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.knobs label.check input { width: auto; margin: 0; }
+
+.table-open .seat-rows { list-style: none; margin: 0 0 var(--space-3); padding: 0; }
+.table-open .seat-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 48px;
+  padding: var(--space-1) 0;
+  border-bottom: var(--rule);
+}
+.table-open .seat-row .name { font-weight: 600; min-width: 5rem; }
+.table-open .seat-row .occupant { flex: 1; color: var(--ink-soft); }
+.table-open .seat-row form { margin: 0; }
+.table-open .seat-row button { margin: 0; }
+.table-open .buttons { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.table-open .buttons form { margin: 0; }
+.table-open .buttons button { margin: 0; }
+
+/* The status line: a brass rule while waiting, already aria-live. */
+.status {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--brass);
+  background: var(--panel);
+  font-weight: 600;
+  font-size: var(--type-sm);
+  line-height: var(--lh-sm);
+  min-height: 1.4em;
+}
+.status a { margin-left: var(--space-2); }
+.spend { margin: var(--space-1) 0 0; }
+
+.decision-panel { max-width: none; margin: 0; }
+.decision .options { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+.decision .options button { margin: 0; }
+.decision .field { display: block; margin: var(--space-2) 0; }
+.decision .field select { width: auto; margin-left: var(--space-2); }
+
+.accuse-panel { max-width: none; margin: 0; }
+.accuse-panel h2 { margin: 0; }
+.accuse-toggle {
+  margin: 0;
+  min-height: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+  font: 700 var(--type-body) / var(--lh-title) var(--font-display);
+  color: var(--warn);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+.accuse-toggle:active { transform: none; }
+.accuse-toggle::after { content: " \25BE"; font-size: 0.8em; }
+.accuse-toggle[aria-expanded="true"]::after { content: " \25B4"; }
+.accuse-panel.live { border-color: var(--warn); box-shadow: 2px 2px 0 var(--warn); }
+.accuse-body { margin-top: var(--space-2); }
+.accuse-body .field { display: block; margin: var(--space-2) 0; }
+.accuse-body .field select { width: auto; margin-left: var(--space-2); }
+.accuse-body .options { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+.accuse-body .options button { margin: 0; }
+
+.seat.compact.roster .who { margin-left: var(--space-1); }
+.seat.compact.mine { border-color: var(--accent); }
+
+/* The hand: chips with the lift; a shown card is ticked, never removed (7). */
+.me-panel { max-width: none; margin: 0; }
+.hand { list-style: none; margin: 0 0 var(--space-3); padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.card-chip {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--edge-strong);
+  border-radius: var(--radius-chip);
+  background: var(--panel);
+  font-size: var(--type-sm);
+  box-shadow: var(--lift);
+}
+.me-panel .buttons button { margin: 0; }
+
+.log-panel, .talk-panel { max-width: none; margin: 0; }
+
+.talk-panel .typing { margin: var(--space-1) 0 0; font: italic var(--type-gauge) / var(--lh-sm) var(--font-gauge); }
+
+details.panel > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+details.panel > summary::-webkit-details-marker { display: none; }
+details.panel > summary h2 { display: inline; margin: 0; }
+details.panel > summary::after {
+  content: "\25B4";
+  font-size: 0.75em;
+  color: var(--brass);
+  margin-left: auto;
+}
+details.panel:not([open]) > summary::after { content: "\25BE"; }
+details.panel:not([open]) > summary { margin: 0; }
+
+.watching {
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  border: 1px dashed var(--edge-strong);
+  border-radius: var(--radius);
+  background: var(--panel);
+  font: var(--type-gauge) / var(--lh-sm) var(--font-gauge);
+}
+
+/* The two logs, still one list each until 10d splits them into the
+   Record and Talk panels. */
+.log, .talk {
+  margin: 0;
+  padding: 0 0 0 1.2rem;
+  max-height: 14rem;
+  overflow-y: auto;
+  font-size: var(--type-sm);
+}
+.talk { max-height: 10rem; }
+.log li, .talk li { margin: var(--space-1) 0; }
+.log li.placeholder, .talk li.placeholder { list-style: none; margin-left: -1.2rem; color: var(--ink-faint); }
+.log li::marker, .talk li::marker { font-family: var(--font-gauge); font-size: var(--type-gauge); color: var(--ink-soft); }
+.log li.kind-suggestion { color: var(--ink); }
+.log li.kind-accusation { color: var(--warn); font-weight: 600; }
+.log li.kind-over { font-weight: 700; }
+.talk li.kind-remark { font-style: italic; color: var(--ink-soft); }
+.talk li.kind-remark.about-chat { font-style: normal; color: var(--ink); }
+.say { display: flex; gap: var(--space-2); margin-top: var(--space-2); }
+.say input { flex: 1; min-width: 0; min-height: 44px; font: inherit; padding: var(--space-2) var(--space-3); border: var(--rule-ink); background: var(--panel); }
+.say button { margin: 0; }
+
+/* Notes: the floor from your seat. Proven = solid ink, possible = a dot
+   in the tone colour, the envelope column in the red thread. */
+.notepad-panel { max-width: none; margin: 0; }
+.notepad { border-collapse: collapse; font-size: var(--type-gauge); width: 100%; }
+.notepad th, .notepad td { padding: 0.1rem 0.3rem; text-align: center; border-bottom: var(--rule); }
+.notepad th { font: 500 0.6rem / var(--lh-gauge) var(--font-gauge); letter-spacing: 0.04em; color: var(--ink-soft); }
+.notepad td.card { text-align: left; }
+.notepad tr.category th {
+  text-align: left;
+  font: italic 0.8rem / var(--lh-gauge) var(--font-display);
+  letter-spacing: 0;
+  color: var(--ink);
+  padding-top: var(--space-2);
+}
+.notepad td.holder { color: var(--proof); }
+.notepad td.holder.envelope { color: var(--accent); }
+.notepad td.maybe { color: var(--tone); }
+.notepad tr.placed td.card { color: var(--ink-faint); text-decoration: line-through; }

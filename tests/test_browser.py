@@ -40,6 +40,9 @@ NAME = "browser"
 OTHER = "second"
 PASSWORD = "browser-password"
 RUN = "browser-test"
+MOTION_OFF = "document.addEventListener('DOMContentLoaded', () => document.body.setAttribute('data-motion', 'off'));"
+"""The stylesheet's kill switch (Phase 10b): with it every duration
+token is 0s, so nothing is mid-transition when a test reads it."""
 
 
 class _Quiet(WSGIRequestHandler):
@@ -95,7 +98,11 @@ def page(served):
     problems = []
     with playwright.sync_playwright() as play:
         browser = play.chromium.launch()
-        context = browser.new_context(viewport={"width": 1440, "height": 1000})
+        # Motion off (Phase 10b): the stylesheet's durations are tokens
+        # that reduced motion and `data-motion="off"` both zero, so a
+        # screenshot or a position check never lands mid-transition.
+        context = browser.new_context(viewport={"width": 1440, "height": 1000}, reduced_motion="reduce")
+        context.add_init_script(MOTION_OFF)
         page = context.new_page()
         page.on(
             "console",
@@ -640,12 +647,25 @@ def test_play_steps_the_replay_and_pause_holds_it(page):
 
 def test_the_look_picker_applies_and_keeps_the_page(page):
     """Phase 9h. The header bar's Look form writes the account's choice
-    and brings the same page back in it."""
+    and brings the same page back in it; Phase 10b adds Engraved, whose
+    fonts are served from static/fonts/ and whose durations are zero
+    under the motion switch."""
     assert page.evaluate("() => document.documentElement.getAttribute('data-style')") == "legacy"
     assert page.locator("link[rel=stylesheet]").get_attribute("href").endswith("/static/styles/legacy.css")
     url = page.url
+    page.select_option("#style", "engraved")
+    page.click(".look button[type=submit]")
+    page.wait_for_url(url)
+    assert page.evaluate("() => document.documentElement.getAttribute('data-style')") == "engraved"
+    assert page.locator("link[rel=stylesheet]").get_attribute("href").endswith("/static/styles/engraved.css")
+    assert page.locator("#style").input_value() == "engraved"
+    page.wait_for_selector(".board-token")
+    assert page.evaluate("() => document.body.getAttribute('data-motion')") == "off"
+    assert page.evaluate("() => getComputedStyle(document.body).getPropertyValue('--dur-move').trim()") == "0s"
+    loaded = page.evaluate("() => document.fonts.ready.then(() => Array.from(document.fonts).filter(f => f.status === 'loaded').map(f => f.family))")
+    assert "Playfair Display" in loaded and "Inter" in loaded, loaded
+    assert page.evaluate("() => getComputedStyle(document.querySelector('.board-void')).fill") not in ("", "none")
     page.select_option("#style", "legacy")
     page.click(".look button[type=submit]")
     page.wait_for_url(url)
     assert page.evaluate("() => document.documentElement.getAttribute('data-style')") == "legacy"
-    assert page.locator("#style").input_value() == "legacy"

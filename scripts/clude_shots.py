@@ -53,6 +53,10 @@ SHOT_PASSWORD = "shots-password"
 
 WIDE = {"width": 1440, "height": 1000}
 PHONE = {"width": 390, "height": 844}
+MOTION_OFF = "document.addEventListener('DOMContentLoaded', () => document.body.setAttribute('data-motion', 'off'));"
+"""Sets the stylesheet's motion kill switch (Phase 10b) on every page,
+and the context asks for reduced motion too, so no screenshot lands
+mid-transition."""
 
 
 class _Quiet(WSGIRequestHandler):
@@ -139,22 +143,28 @@ def spender(app):
     return spend
 
 
-def shoot(base: str, run: str, index: int, out: Path, dark: bool, phone: bool, spend=None) -> list:
-    """Drive the app and write a PNG per screen. Returns their paths."""
+def shoot(base: str, run: str, index: int, out: Path, dark: bool, phone: bool, spend=None, looks=None) -> list:
+    """Drive the app and write a PNG per screen, for every look in
+    `looks` (default: all of `styles.STYLES`). Returns their paths."""
     from playwright.sync_api import sync_playwright
+
+    from clude_web import styles  # noqa: PLC0415
 
     out.mkdir(parents=True, exist_ok=True)
     written = []
     problems = []
+    looks = list(looks or styles.STYLES)
 
     with sync_playwright() as play:
         browser = play.chromium.launch()
         sizes = [("wide", WIDE)] + ([("phone", PHONE)] if phone else [])
         schemes = ["light"] + (["dark"] if dark else [])
 
-        for scheme in schemes:
+        for look in looks:
+          for scheme in schemes:
             for label, size in sizes:
-                context = browser.new_context(viewport=size, color_scheme=scheme)
+                context = browser.new_context(viewport=size, color_scheme=scheme, reduced_motion="reduce")
+                context.add_init_script(MOTION_OFF)
                 page = context.new_page()
                 page.on(
                     "console",
@@ -169,7 +179,7 @@ def shoot(base: str, run: str, index: int, out: Path, dark: bool, phone: bool, s
                     # a token once made every screenshot show it halfway
                     # to where the data already said it was.
                     page.wait_for_timeout(250)
-                    path = out / f"{name}-{scheme}-{label}.png"
+                    path = out / f"{name}-{look}-{scheme}-{label}.png"
                     page.screenshot(path=str(path), full_page=True)
                     written.append(path)
 
@@ -180,6 +190,12 @@ def shoot(base: str, run: str, index: int, out: Path, dark: bool, phone: bool, s
                 page.fill("#password", SHOT_PASSWORD)
                 page.click("button[type=submit]")
                 page.wait_for_url(f"{base}/")
+                # The look is the account's (Phase 9h): pick it once from
+                # the header bar and every page after wears it.
+                if page.locator("#style").input_value() != look:
+                    page.select_option("#style", look)
+                    page.click(".look button[type=submit]")
+                    page.wait_for_url(f"{base}/")
                 save("lobby")
                 page.select_option("#seat-Plum", "llm")
                 page.locator("#memory-Plum").fill("0.75")
@@ -248,7 +264,7 @@ def shoot(base: str, run: str, index: int, out: Path, dark: bool, phone: bool, s
                     page.wait_for_selector(".seat.compact.roster", timeout=20000)
                     spend(page.url.rstrip("/").split("/")[-1])
                     page.reload()
-                    page.wait_for_selector(".gauge.cost .pct", timeout=20000)
+                    page.wait_for_selector(".gauge.cost", state="attached", timeout=20000)
                     save("table-cost")
 
                     # And as a spectator: the same bar after the deduction bars.
@@ -261,7 +277,7 @@ def shoot(base: str, run: str, index: int, out: Path, dark: bool, phone: bool, s
                     page.wait_for_selector(".seat.compact .gauge", timeout=20000)
                     spend(page.url.rstrip("/").split("/")[-1])
                     page.reload()
-                    page.wait_for_selector(".gauge.cost .pct", timeout=20000)
+                    page.wait_for_selector(".gauge.cost", state="attached", timeout=20000)
                     save("table-cost-watching")
 
                 # A table waiting for players.
@@ -311,6 +327,8 @@ def main(argv=None) -> int:
     parser.add_argument("--out", default="", help="Where to write PNGs (default: a temp dir).")
     parser.add_argument("--dark", action="store_true", help="Also shoot in dark mode.")
     parser.add_argument("--phone", action="store_true", help="Also shoot at phone width.")
+    parser.add_argument("--look", action="append", default=None, metavar="KEY",
+                        help="A look to shoot (repeatable); default every look on the list.")
     args = parser.parse_args(argv)
 
     import tempfile
@@ -325,7 +343,7 @@ def main(argv=None) -> int:
         try:
             time.sleep(0.2)
             out = Path(args.out) if args.out else Path(scratch).parent / "clude-shots"
-            written = shoot(base, run, index, out, args.dark, args.phone, spend=spender(app))
+            written = shoot(base, run, index, out, args.dark, args.phone, spend=spender(app), looks=args.look)
         finally:
             server.shutdown()
     for path in written:
