@@ -5,16 +5,16 @@
       "x": 0,
       "y": 0,
       "w": 390,
-      "h": 844,
-      "title": "7 · board (dark)"
+      "h": 880,
+      "title": "7 · board (light)"
     },
     {
-      "file": "BoardLight.dc.html",
+      "file": "BoardDark.dc.html",
       "x": 470,
       "y": 0,
       "w": 390,
-      "h": 1040,
-      "title": "7 · board (light)"
+      "h": 1080,
+      "title": "7 · board (dark)"
     },
     {
       "file": "Move.dc.html",
@@ -69,7 +69,7 @@
       "x": 3760,
       "y": 0,
       "w": 1280,
-      "h": 980,
+      "h": 1000,
       "title": "7 · board, wide"
     },
     {
@@ -103,21 +103,21 @@
       "x": 0,
       "y": -360,
       "w": 780,
-      "text": "The table on a phone, in the Engraved look (docs/phase10-plan.md): one moment of a real game, seed 7007, six seats, David at Scarlett, Peacock and Plum with Claude in the story (the game itself was played by the methods). The seven focus states of 3.1, highest rank first: show, end, move, decide, beat, talk, board. The stage holds whatever matters most; the rail shows what it holds back. Play is blind (3.2): no seat's bars or method during play, only the certainty tag (9h) and the cost bar (9g). Record and Talk are two panels (3.3). Gaslight dark is the default (D6); one board is drawn in case-file light. Every board links engraved-sketch.css, the draft of 10b's stylesheet; the board is board_svg's own geometry, dressed as 10f will dress it."
+      "text": "The table on a phone, in the Engraved look (docs/phase10-plan.md): one moment of a real game, seed 7007, six seats, David at Scarlett, Peacock and Plum with Claude in the story (the game itself was played by the methods). The seven focus states of 3.1, highest rank first: show, end, move, decide, beat, talk, board. The stage holds whatever matters most; the rail shows what it holds back. Play is blind (3.2): no seat's belief bars during play, only the certainty tag (9h) and, by David's call on 2026-09-28 (D8), each character's method one-liner; no cost bar (D9). Record and Talk are two panels (3.3). Case-file light is the default (D10); one board is drawn in gaslight dark. Every board links engraved-sketch.css, the draft of 10b's stylesheet; the board is board_svg's own geometry, dressed as 10f will dress it."
     },
     {
       "id": "note-board",
       "x": 0,
       "y": -190,
       "w": 390,
-      "text": "7 · board. Nothing is happening to you: the board holds the stage, Mustard's token wears the thinking ring, the status line carries the time-out clock (9h). The seat rail is public facts only (3.2) plus the two numbers David allowed everyone: the certainty tag on each name (9h) and the cost bar on the two model seats (9g). No bars, no methods. The rail shows what it holds back: two unread lines on Talk. The Record is case-file: turn numbers in the gauge face, a hairline between turns, a brass pip where talk happened that turn."
+      "text": "7 · board, case-file light (the default, D10). Nothing is happening to you: the board holds the stage, Mustard's token wears the thinking ring, the status line carries the time-out clock (9h), the model-spend line stays (D9). The seat rail is public facts (3.2) plus the certainty tag on each name (9h) and, back by David's call (D8), each character's method under its name: the short form on the chip, the one-liner on hover. No belief bars, no cost bar (D9). The rail shows what it holds back: two unread lines on Talk. The Record is case-file: turn numbers in the gauge face, a hairline between turns, a brass pip where talk happened that turn."
     },
     {
-      "id": "note-boardlight",
+      "id": "note-boarddark",
       "x": 470,
       "y": -190,
       "w": 390,
-      "text": "7 · board, case-file light. The same moment under a stated light preference, with Notes open: a proven holder is solid ink, a still-possible holder a screentone dot, the envelope column in the red thread. The panel scrolls in the real screen; here the board is drawn taller so the whole sheet shows."
+      "text": "7 · board, gaslight dark: the same moment on a device with a dark preference, with Notes open: a proven holder is solid ink, a still-possible holder a screentone dot, the envelope column in the red thread. The panel scrolls in the real screen; here the board is drawn taller so the whole sheet shows."
     },
     {
       "id": "note-move",
@@ -173,14 +173,14 @@
       "x": 5120,
       "y": -190,
       "w": 390,
-      "text": "The open table before the deal: the plate, one row per seat, Sit here on the open one, Deal now disabled with its reason, Leave and End. Methods are not shown here (D3): only the setup form names them."
+      "text": "The open table before the deal: the plate, one row per seat, Sit here on the open one, Deal now disabled with its reason, Leave and End."
     },
     {
       "id": "note-lobby",
       "x": 5590,
       "y": -190,
       "w": 390,
-      "text": "The lobby. Six picks in the settled order (empty, open, floorbot, me, LLM, headless) each naming its method (D3: the setup form may), the knobs, one primary Deal; the Tables list with its Cost column (9g); Watch; Stored games. Scrolls."
+      "text": "The lobby. Six picks in the settled order (empty, open, floorbot, me, LLM, headless) each naming its method, the knobs, one primary Deal; the Tables list with its Cost column (kept, D9); Watch; Stored games. Scrolls."
     },
     {
       "id": "note-replay",

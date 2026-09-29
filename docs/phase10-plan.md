@@ -1,6 +1,6 @@
 # Phase 10 Plan: the shippable look \-- "engraved, not brass-plated"
 
-Status: **proposed 2026-09-20; David's answers recorded 2026-09-21; 10a drawn 2026-09-27 (section 17).** David's brief is section 3; D1-D4 and D6 are settled in section 13\. D5 remains open until David reviews the logo canvas drawn in 10a (`docs/ux/logo/index.html`). Written in the shape of the other phase plans: context, what the code dictates, design, sub-phases, files, decisions, out of scope, and an "as implemented" section once the work lands.
+Status: **proposed 2026-09-20; David's answers recorded 2026-09-21; 10a drawn 2026-09-27 and revised after his review on 2026-09-28 (section 17).** David's brief is section 3; D1-D14 are in section 13, where the second round (D7-D14) reverses D3 and D6 and adds sub-phases 10h and 10i\. D5 is narrowed to E or F in `docs/ux/logo/index.html`, David's pick pending. Written in the shape of the other phase plans: context, what the code dictates, design, sub-phases, files, decisions, out of scope, and an "as implemented" section once the work lands.
 
 ## 1\. Context
 
@@ -335,7 +335,7 @@ Answers recorded 2026-09-21. D1-D4 and D6 are settled; D5 remains unanswered unt
 
 - **D3. Is a character's method public during play?** It is a real tell: knowing Scarlett accuses early is worth something. My proposal: hidden during play, named in the replay, and visible on the lobby form to whoever sets the table up.
 
-  **Answer:** Proceed as proposed.
+  **Answer:** Proceed as proposed. *Reversed for the table screen on 2026-09-28 (D8): every agent seat's one-liner is shown.*
 
 - **D4. Display face**: Bodoni Moda or Playfair Display. Bodoni is sharper and colder, Playfair warmer and more legible small. I lean Bodoni for the wordmark and Playfair for captions if we can afford both; if three faces is the cap, Playfair does both jobs.
 
@@ -347,7 +347,20 @@ Answers recorded 2026-09-21. D1-D4 and D6 are settled; D5 remains unanswered unt
 
 - **D6. Light or dark as the default** when a device states no preference. Case-file light is the better first impression; gaslight dark is the better game.
 
-  **Answer:** Gaslight dark is default.
+  **Answer:** Gaslight dark is default. *Reversed on 2026-09-28 (D10): case-file light is the default, dark on a device's preference.*
+
+### Second round (2026-09-28), after David reviewed the 10a artboards
+
+D3 and D6 are **reversed** by D8 and D10 below; D5 is narrowed by D11.
+
+- **D7. Go-live.** Engraved appears in the Look picker after 10b, marked beta; it becomes every account's default after 10e. Legacy stays fully functional and selectable from here on (David's first point).
+- **D8. Method one-liners return to the table.** Every agent seat, headless or LLM, shows its method under its name on the seat rail, in both looks (`replay_data.seat_method`); a person and the floor bot show none. Reverses D3 for the table screen; the lobby form and the replay already named them.
+- **D9. No cost bar in the Phase 10 look.** Only the per-seat cost bar is hidden under Engraved; the table's model-spend line and the lobby and run Cost columns stay in both looks, and Legacy keeps the bar.
+- **D10. Case-file light is the default**; gaslight dark follows a device's dark preference; one Look entry, nothing to set. Reverses D6: "it makes a better first impression".
+- **D11. Logo.** A "?" in or around a keyhole, a c optional, in the cartouche style: candidates A-C dropped, E (the cartouche wordmark with a keyhole-? mark) and F (the same, the c as the question mark's dot) drawn beside D. David picks E or F; 10f builds it.
+- **D12. Contact and privacy.** The contact page links the repo's GitHub issues. The privacy page states what is kept (accounts as name and hash; game records, chat lines and costs, indefinitely; table talk and game state sent to Anthropic when a model seat plays; hosted on Google Cloud us-central1; a session cookie only, no analytics; fonts self-hosted from 10b) and that `users remove` deletes an account on request. Both public, outside the login gate; drafted in 10h, shipped in Phase 11.
+- **D13. Help before 1.0.0.** Two new sub-phases: **10h the help layer** (a Help link in the header bar; tooltips on every control, the notepad, the certainty tag and the seat rail; a first-login welcome card; a "How to play" page; the privacy and contact drafts) and **10i the two explainers** ("How the characters think" at high-school level, for high-schoolers and octogenarians alike; "The methods" as a Wikipedia featured article for the nerds, built from `docs/strategy-glossary.md` and the six modules with the measured numbers).
+- **D14. Sound (10g) stays before 1.0.0.**
 
 ## 14\. Sub-phases
 
@@ -362,8 +375,12 @@ Each leaves the suite green and is a working system on its own, per `CLAUDE.md`.
 | 10e | 3.1: `focus` in `view_payload`, `data-focus` on the table, the grid per state, the beat caption, the panel cut | Focus ladder unit-tested in Python; a browser test walks all seven states |
 | 10f | The decorated board and the logo David selects in 10a: patterns, engraved walls, threshold plates, the cellar mark, token initials | The no-colour test and the token-position tests still pass; screenshots looked at |
 | 10g | Sound effects for play, Watch, and replay (11.1): self-hosted cues, shared playback, remembered mute and volume controls. No music | Cues heard and timed against visible events; mute and preferences work; polls and replay scrubbing do not repeat cues; no private information leaks; the app remains usable without audio |
+| 10h | The help layer (D13): a Help link in the header bar; tooltips on every control, the notepad, the certainty tag and the seat rail; a first-login welcome card; a "How to play" page; the privacy and contact pages drafted (D12) | Every tooltip's text comes from one table so a test can read it; the welcome card shows once per account; the pages render under both looks |
+| 10i | The two explainers (D13): "How the characters think" at high-school level, and "The methods", a featured-article treatment of the math, CS and ML built from the glossary and the six modules, numbers included | Both pages linked from Help; the featured article's numbers match `docs/strategy-glossary.md`; both render under both looks and at 390 px |
 
-Rough size: 10a a day, 10b-10f a day each; estimate 10g after selecting the cues and assets.
+Rough size: 10a a day, 10b-10f a day each; estimate 10g after selecting the cues and assets; 10h a day; 10i two days, most of it writing.
+
+*Amended 2026-09-28 (the second round):* 10b's `:root` is case-file light with gaslight dark on a dark preference (D10), and Engraved goes into the picker as an opt-in beta, becoming the default only after 10e (D7); 10c shows every agent seat's method one-liner (D8) and hides only the cost bar (D9); 10f builds the keyhole-? candidate David picks (D11); 10h and 10i are new.
 
 ## 15\. Files
 
@@ -481,5 +498,30 @@ almost all of it the inline board (about 60 KB each, and the logo
 boards carry four); the cropped cellar views are trimmed by
 `sketch_parts.crop_svg`.
 
-**D5.** Open: recorded here once David has reviewed
-`docs/ux/logo/index.html`.
+**D5.** Narrowed on 2026-09-28 (D11): E or F, David's pick pending.
+
+### 10a, second round (2026-09-28)
+
+David reviewed both canvases and liked them; his seven points are
+D7-D14 in section 13. The artboards were revised the same day, still
+from the same seeded game:
+
+- Case-file light is every board's default (D10); the one dark twin is
+  `BoardDark` (Notes open). The sketch stylesheet's `:root` is now the
+  light block and `[data-theme="dark"]` the dark one.
+- Every character seat on the rail carries its method (D8): the short
+  form on the chip (`sketch_parts.METHOD_SHORT`: "Naive Bayes",
+  "Decision tree", "Markov chain", "Bandit ensemble", "Dempster-Shafer",
+  "Enumeration"), the full one-liner as its tooltip and in the wide
+  layout. Six chips across a phone cannot carry the full line, which is
+  a finding for 10c: chip short, tooltip long.
+- The cost bar is gone from the rail (D9); the model-spend line is
+  drawn under the board on `Board`, `BoardDark` and `Wide`.
+- The logo canvas is D, E and F (D11): `E-Keyhole` puts an escutcheon
+  plate with a "?" keyway on the cartouche; `F-Keyhole-c` draws the
+  question mark as a hook whose dot is a c (a small raised c inside the
+  bowl, tried first, vanished at every size). E is drawn into every
+  table board's cellar and header bar meanwhile. A-C's files are
+  deleted; their notes stay in git history.
+- Sizes: the table canvas is still about 0.8 MB; the logo canvas is
+  now about 1 MB.

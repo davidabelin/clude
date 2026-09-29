@@ -1,40 +1,32 @@
 {
   "artboards": [
     {
-      "file": "A-Plate.dc.html",
-      "x": 0,
-      "y": 0,
-      "w": 390,
-      "h": 844,
-      "title": "A · Plate"
-    },
-    {
-      "file": "B-Seal.dc.html",
-      "x": 470,
-      "y": 0,
-      "w": 390,
-      "h": 844,
-      "title": "B · Seal"
-    },
-    {
-      "file": "C-Plan.dc.html",
-      "x": 940,
-      "y": 0,
-      "w": 390,
-      "h": 844,
-      "title": "C · Plan"
-    },
-    {
       "file": "D-Cartouche.dc.html",
-      "x": 1410,
+      "x": 0,
       "y": 0,
       "w": 390,
       "h": 844,
       "title": "D · Cartouche"
     },
     {
+      "file": "E-Keyhole.dc.html",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "E · Keyhole"
+    },
+    {
+      "file": "F-Keyhole-c.dc.html",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "F · Keyhole-c"
+    },
+    {
       "file": "Compare.dc.html",
-      "x": 1880,
+      "x": 1410,
       "y": 0,
       "w": 390,
       "h": 900,
@@ -47,46 +39,39 @@
       "x": 0,
       "y": -360,
       "w": 780,
-      "text": "D5, the logo: the proposed plate wordmark with the keyhole-c (A) beside three alternates (B, C, D), each at its three sizes in both themes: the cellar of the real board (5 x 7 cells), the header bar's mark at 22 px, and the favicon at 32 and 16 px. All four are uncoloured, classed SVG that takes the theme like everything else; the winner drops into board_svg in 10f. No gears, no gradients, no sepia, no blur (section 4)."
-    },
-    {
-      "id": "note-a-plate",
-      "x": 0,
-      "y": -190,
-      "w": 390,
-      "text": "A · the plate wordmark — the proposed lead (section 9). 'clude' lowercase in Bodoni Moda, letter-spaced, on a hairline brass plate with four rivets; the mark is the keyhole-c, an escutcheon whose keyway is the c. For: the wordmark scales from the cellar to the header bar unchanged. Against: the keyhole is a familiar mystery signifier."
-    },
-    {
-      "id": "note-b-seal",
-      "x": 470,
-      "y": -190,
-      "w": 390,
-      "text": "B · the seal. A wax seal in the red thread with the c pressed in and an uneven edge, the wordmark beside it. For: the only candidate in colour, so it reads at 16 px by colour alone; says 'case closed'. Against: the one accent-filled surface in the app, and a red disc is a common favicon."
-    },
-    {
-      "id": "note-c-plan",
-      "x": 940,
-      "y": -190,
-      "w": 390,
-      "text": "C · the plan. The nine rooms as a 3 × 3 engraved floor plan with the c in the cellar cell and brass door ticks, the wordmark beneath. For: it is the board itself, so it is nobody's trade dress, and it says what the game is. Against: nine cells at 16 px become a grey square."
+      "text": "D5, the logo, second round (2026-09-28): David asked for a ? in or around a keyhole, a c optional, in the cartouche style he liked. D is that cartouche from the first round; E puts a keyhole-? mark on it; F draws the ? with a c for its dot. Each at its three sizes in both themes: the cellar of the real board (5 x 7 cells), the header bar's mark at 22 px, and the favicon at 32 and 16 px. All three are uncoloured, classed SVG that takes the theme like everything else; the winner drops into board_svg in 10f. No gears, no gradients, no sepia, no blur (section 4)."
     },
     {
       "id": "note-d-cartouche",
-      "x": 1410,
+      "x": 0,
       "y": -190,
       "w": 390,
-      "text": "D · the cartouche. The wordmark in a Victorian oval with a double hairline; the mark a hatched roundel with the c cut out. For: the most 'engraved' of the four; the roundel reads at any size. Against: the oval fights the cellar's 5 × 7 box."
+      "text": "D · the cartouche, as drawn in the first round and liked. The wordmark in a Victorian oval with a double hairline; the mark a hatched roundel with the c cut out. Kept beside E and F as the baseline."
+    },
+    {
+      "id": "note-e-keyhole",
+      "x": 470,
+      "y": -190,
+      "w": 390,
+      "text": "E · the keyhole-?. The cartouche wordmark, and for the mark an escutcheon plate (a round shoulder tapering to a flat foot, ink with a brass hairline inside) whose keyway is a question mark. For: it says 'mystery' and 'clue' without a magnifying glass or anybody's art, and a ? reads at 16 px. Against: a plate with a ? could be any quiz."
+    },
+    {
+      "id": "note-f-keyhole-c",
+      "x": 940,
+      "y": -190,
+      "w": 390,
+      "text": "F · the keyhole-? whose dot is a c: the question mark drawn as a hook, the name where the dot goes. For: the c ties the mark to the wordmark and still reads in the header bar. Against: at 16 px the c is a dot, so F is E there."
     },
     {
       "id": "note-compare",
-      "x": 1880,
+      "x": 1410,
       "y": -190,
       "w": 390,
-      "text": "All four in the cellar of the real board at phone size, both themes: the place the choice will be seen most. The cellar is 5 × 7 cells; at 390 px that is about 75 × 105 px."
+      "text": "D, E and F in the cellar of the real board at phone size, both themes: the place the choice will be seen most. The cellar is 5 × 7 cells; at 390 px that is about 75 × 105 px."
     }
   ],
   "launch": {
     "view": "focused",
-    "file": "A-Plate.dc.html"
+    "file": "E-Keyhole.dc.html"
   }
 }

@@ -32,19 +32,14 @@ FONTS = (
     "&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@400..700"
     "&family=IBM+Plex+Mono:wght@400;500&display=swap"
 )
-METHODS = {
-    "Scarlett": "Naive Bayes over suggestion evidence",
-    "Mustard": "Decision tree trained on self-play game logs",
-    "White": "Markov model over opponents' suggestion patterns",
-    "Green": "Bandit ensemble over the other five methods",
-    "Peacock": "Dempster-Shafer belief and plausibility",
-    "Plum": "Exact enumeration over consistent deals",
-}
+METHODS = {s: parts.method_line(s) for s in parts.INITIALS}
+"""The real one-liners, as the lobby form and the replay show them."""
+LOGO_KIND = "E"
+"""The candidate drawn into every table board's cellar and header bar."""
 # The story the artboards tell about who sits where: David at Scarlett,
 # Peacock and Plum with Claude, the rest their silent methods. The game
 # itself was played by the methods alone.
 STORY_KINDS = {"Scarlett": "you", "Mustard": "headless", "White": "headless", "Green": "headless", "Peacock": "LLM", "Plum": "LLM"}
-COST_SHARE = {"Peacock": 0.31, "Plum": 0.69}
 SUSPECT_COLOUR = {s: f"var(--suspect-{s.lower()})" for s in parts.INITIALS}
 
 
@@ -78,13 +73,13 @@ def page(body: str, css: str, theme: str, title: str) -> str:
 """
 
 
-def screen(inner: str, theme: str = "dark", focus: str = "", wide: bool = False, style: str = "") -> str:
+def screen(inner: str, theme: str = "light", focus: str = "", wide: bool = False, style: str = "") -> str:
     cls = "screen wide" if wide else "screen"
     attrs = f' data-theme="{theme}"' + (f' data-focus="{focus}"' if focus else "") + (f' style="{style}"' if style else "")
     return f'<div class="{cls}"{attrs}>\n{inner}\n</div>'
 
 
-def bar(logo: str = "A", user: str = "David") -> str:
+def bar(logo: str = LOGO_KIND, user: str = "David") -> str:
     mark = parts.logo_svg(logo, 120, 168, 22, mark_only=True)
     return (
         '<header class="bar">'
@@ -146,14 +141,17 @@ def seats_strip(moment: dict, acting: str = "", acting_word: str = "thinking", m
             word = "LLM"
         else:
             word = "headless"
-        cost = ""
-        if suspect in COST_SHARE:
-            cost = f'<span class="cost" title="${COST_SHARE[suspect] * 0.41:.2f} of $0.41 spent with Claude"><i style="width:{COST_SHARE[suspect] * 100:.0f}%"></i></span>'
+        # D8: every agent seat names its method; a person and the floor
+        # bot show none. The chip takes the short form, the full
+        # one-liner is its tooltip. D9: no cost bar in this look.
+        method = ""
+        if suspect != me:
+            method = f'<span class="method" title="{escape(METHODS[suspect])}">{parts.METHOD_SHORT[suspect]}</span>'
         out.append(
             f'<article class="{" ".join(classes)}" data-seat="{seat}">'
             f'<span class="pip suspect-{suspect.lower()}">{parts.INITIALS[suspect]}</span>'
             f"{tag(suspect, moment['certainties'][seat])}"
-            f'<span class="state">{word}</span>{cost}</article>'
+            f'{method}<span class="state">{word}</span></article>'
         )
     out.append("</div>")
     return "".join(out)
@@ -258,7 +256,7 @@ def main_block(*sections: str, wide: bool = False) -> str:
     return '<main class="table">' + "".join(sections) + "</main>"
 
 
-def wrap(name: str, title: str, body: str, theme: str = "dark", out_dir: Path = TABLE, css: str = "./engraved-sketch.css") -> None:
+def wrap(name: str, title: str, body: str, theme: str = "light", out_dir: Path = TABLE, css: str = "./engraved-sketch.css") -> None:
     (out_dir / name).write_text(page(body, css, theme, title), encoding="utf-8")
 
 
@@ -286,25 +284,27 @@ def build_table(mid: dict, end: dict) -> list:
     boards = []
 
     # 7 board: waiting on Mustard, the record open.
-    svg = parts.board(mid["positions"], logo="A", thinking="Mustard")
+    svg = parts.board(mid["positions"], logo=LOGO_KIND, thinking="Mustard")
+    spend = '<p class="note spend">Model spend $0.41 of $2.00.</p>'
     for theme, name, panel_tab, panel in (
-        ("dark", "Board.dc.html", "Record", '<h2>The record</h2>' + record_list(mid["lines"], 6, pips=(7, 11))),
-        ("light", "BoardLight.dc.html", "Notes", '<h2>Your notes</h2>' + notepad_table(mid["notepad"], mid["suspects"])),
+        ("light", "Board.dc.html", "Record", '<h2>The record</h2>' + record_list(mid["lines"], 6, pips=(7, 11))),
+        ("dark", "BoardDark.dc.html", "Notes", '<h2>Your notes</h2>' + notepad_table(mid["notepad"], mid["suspects"])),
     ):
         body = screen(
             bar()
             + main_block(
                 status("Waiting for Mustard to move.", clock="47 s left"),
                 stage(svg),
+                spend,
                 seats_strip(mid, acting="Mustard", acting_word="moving"),
                 rail(panel_tab, panel, talk=2, record=False, foot="Watching: Ann"),
             ),
             theme=theme,
             focus="board",
-            style="min-height: 1040px" if theme == "light" else "",
+            style="min-height: 1080px" if theme == "dark" else "",
         )
         wrap(name, f"Table · {panel_tab}", body, theme)
-        boards.append((name, 390, 1040 if theme == "light" else 844, f"7 · board ({theme})"))
+        boards.append((name, 390, 1080 if theme == "dark" else 880, f"7 · board ({theme})"))
 
     # 3 move: Scarlett's move at turn 12, every option lit.
     options = move_req["request"]["options"]
@@ -321,7 +321,7 @@ def build_table(mid: dict, end: dict) -> list:
         bar()
         + main_block(
             status("Your move.", "yours", clock="82 s left"),
-            stage(parts.board(move_req["positions"], logo="A", lit=options)),
+            stage(parts.board(move_req["positions"], logo=LOGO_KIND, lit=options)),
             dock,
             rail("Record", minimized=True, talk=2, record=True),
         ),
@@ -343,7 +343,7 @@ def build_table(mid: dict, end: dict) -> list:
         bar()
         + main_block(
             status(f"You are in the {room}. Make a suggestion?", "yours", clock="76 s left"),
-            stage(parts.board(suggest_req["positions"], logo="A"), cls="strip", over="")
+            stage(parts.board(suggest_req["positions"], logo=LOGO_KIND), cls="strip", over="")
             .replace("</section>", f'<div><p class="title">In the {room}</p><p class="note">Nobody else is here. A suggestion calls its suspect in.</p></div></section>'),
             seats_strip(mid, acting="Scarlett", acting_word="you"),
             dock,
@@ -368,7 +368,7 @@ def build_table(mid: dict, end: dict) -> list:
         bar()
         + main_block(
             status(f"{asker} named cards you hold. Show one.", "yours", clock="88 s left"),
-            stage(parts.board(show_req["positions"], logo="A"), cls="dimmed", over=f'<div class="over">{beat(caption, f"Turn {show_req['turn'] + 1} · suggestion", asker)}</div>'),
+            stage(parts.board(show_req["positions"], logo=LOGO_KIND), cls="dimmed", over=f'<div class="over">{beat(caption, f"Turn {show_req['turn'] + 1} · suggestion", asker)}</div>'),
             dock,
             rail("Record", minimized=True, talk=2, record=True),
         ),
@@ -383,7 +383,7 @@ def build_table(mid: dict, end: dict) -> list:
         bar()
         + main_block(
             status("Waiting for Plum to move."),
-            stage(parts.board(show_req["positions"], logo="A"), cls="dimmed", over=f'<div class="over">{beat(escape(resolved["text"]), f"Turn {resolved['turn']} · refutation", asker)}</div>'),
+            stage(parts.board(show_req["positions"], logo=LOGO_KIND), cls="dimmed", over=f'<div class="over">{beat(escape(resolved["text"]), f"Turn {resolved['turn']} · refutation", asker)}</div>'),
             seats_strip(mid, acting="Plum"),
             rail("Record", '<h2>The record</h2>' + record_list(mid["lines"][: resolved["i"] + 1], 5, pips=(7, 11)), talk=2),
         ),
@@ -400,7 +400,7 @@ def build_table(mid: dict, end: dict) -> list:
         bar()
         + main_block(
             status("The table is talking."),
-            stage(parts.board(mid["positions"], logo="A"), cls="dimmed", over=f'<div class="over bottom">{balloons}</div>'),
+            stage(parts.board(mid["positions"], logo=LOGO_KIND), cls="dimmed", over=f'<div class="over bottom">{balloons}</div>'),
             seats_strip(mid),
             rail("Talk", panel, talk=0, record=True),
         ),
@@ -426,7 +426,7 @@ def build_table(mid: dict, end: dict) -> list:
         bar()
         + main_block(
             status(f"{end['winner']} wins. Plum is writing up notes on the game.", "warn"),
-            stage(parts.board(end["positions"], logo="A"), cls="dimmed", over=f'<div class="over">{over_plate}</div>'),
+            stage(parts.board(end["positions"], logo=LOGO_KIND), cls="dimmed", over=f'<div class="over">{over_plate}</div>'),
             seats_strip(end, acting=end["winner"], acting_word="won"),
             dock,
             rail("Record", minimized=True, talk=4, record=True),
@@ -449,6 +449,7 @@ def build_table(mid: dict, end: dict) -> list:
     col2 = (
         '<div class="col">'
         + status("Waiting for Mustard to move.", clock="47 s left")
+        + spend
         + '<div class="section" style="box-shadow:none"><h2 style="font-size:1rem">The record</h2>'
         + record_list(mid["lines"], 9, pips=(7, 11))
         + "</div>"
@@ -467,7 +468,7 @@ def build_table(mid: dict, end: dict) -> list:
     )
     body = screen(bar() + main_block(seats_strip(mid, acting="Mustard", acting_word="moving") + col1 + col2 + col3), focus="board", wide=True)
     wrap("Wide.dc.html", "Table · wide", body)
-    boards.append(("Wide.dc.html", 1280, 980, "7 · board, wide"))
+    boards.append(("Wide.dc.html", 1280, 1000, "7 · board, wide"))
 
     # Waiting for players.
     rows = []
@@ -582,7 +583,7 @@ def build_table(mid: dict, end: dict) -> list:
         '<main class="table">'
         + '<p class="crumbs"><a href="#">Lobby</a> › web › game 3</p>'
         + f'<p class="title">Game 3</p><p class="note">6 seats, {end["turns"]} turns, seed {SEED}. {end["winner"]} won. It was <strong>{s}, {card(w)}, {r}</strong>.</p>'
-        + stage(parts.board(end["positions"], logo="A"))
+        + stage(parts.board(end["positions"], logo=LOGO_KIND))
         + beat(escape(step["text"]), f"Step 58 · turn {step['turn']}", step["text"].split(" ")[0] if step["text"].split(" ")[0] in parts.INITIALS else "")
         + scrubber
         + '<div class="replay-seats">' + "".join(blocks) + "</div>"
@@ -601,8 +602,8 @@ def tables_categories():
 
 
 TABLE_NOTES = {
-    "Board.dc.html": "7 · board. Nothing is happening to you: the board holds the stage, Mustard's token wears the thinking ring, the status line carries the time-out clock (9h). The seat rail is public facts only (3.2) plus the two numbers David allowed everyone: the certainty tag on each name (9h) and the cost bar on the two model seats (9g). No bars, no methods. The rail shows what it holds back: two unread lines on Talk. The Record is case-file: turn numbers in the gauge face, a hairline between turns, a brass pip where talk happened that turn.",
-    "BoardLight.dc.html": "7 · board, case-file light. The same moment under a stated light preference, with Notes open: a proven holder is solid ink, a still-possible holder a screentone dot, the envelope column in the red thread. The panel scrolls in the real screen; here the board is drawn taller so the whole sheet shows.",
+    "Board.dc.html": "7 · board, case-file light (the default, D10). Nothing is happening to you: the board holds the stage, Mustard's token wears the thinking ring, the status line carries the time-out clock (9h), the model-spend line stays (D9). The seat rail is public facts (3.2) plus the certainty tag on each name (9h) and, back by David's call (D8), each character's method under its name: the short form on the chip, the one-liner on hover. No belief bars, no cost bar (D9). The rail shows what it holds back: two unread lines on Talk. The Record is case-file: turn numbers in the gauge face, a hairline between turns, a brass pip where talk happened that turn.",
+    "BoardDark.dc.html": "7 · board, gaslight dark: the same moment on a device with a dark preference, with Notes open: a proven holder is solid ink, a still-possible holder a screentone dot, the envelope column in the red thread. The panel scrolls in the real screen; here the board is drawn taller so the whole sheet shows.",
     "Move.dc.html": "3 · move. Your move at turn 12, a six: every legal destination is lit on the board at server-side coordinates, and the same destinations are the buttons beneath, rooms first with their distance line, corridor squares as a compact grid. The rail collapses to its tab strip; nothing can steal the buttons (3.1). Drawn taller because seventeen options is the honest case.",
     "Decide.dc.html": "4 · decide. The suggestion form: the board shrinks to a strip, two fields, Suggest and No suggestion, and the Accuse panel folded but reachable — set up on any turn, it fires only at the accusation question (8.2's rule, kept).",
     "Show.dc.html": "1 · show. Peacock's suggestion spelled out as a caption in Peacock's colour over the dimmed board, and one button per card you could show. Rank 1: nothing outranks it. In this game the deal gave you one matching card; two would be two buttons.",
@@ -610,17 +611,16 @@ TABLE_NOTES = {
     "Talk.dc.html": "6 · talk. A line arrived in the last 6 s and nothing above applies: the last two balloons over the board, tails in the speakers' colours, yours right-aligned. The Talk panel: the 240-character box with its counter past 200, and 'Plum is typing' (9h). The lines themselves are invented: no model plays in a sketch.",
     "End.dc.html": "2 · end. The envelope on the hero plate over the board, the winner, the debrief progress in the status line, Open the replay as the one primary choice. The impact frame (the 80 ms flash to ink) has already passed.",
     "Wide.dc.html": "7 · board at ≥ 62rem: three columns 6:4:3. Board, hand and notes; status, record and the decision; talk full height. Nothing collapses; focus changes emphasis, not the grid.",
-    "Waiting.dc.html": "The open table before the deal: the plate, one row per seat, Sit here on the open one, Deal now disabled with its reason, Leave and End. Methods are not shown here (D3): only the setup form names them.",
-    "Lobby.dc.html": "The lobby. Six picks in the settled order (empty, open, floorbot, me, LLM, headless) each naming its method (D3: the setup form may), the knobs, one primary Deal; the Tables list with its Cost column (9g); Watch; Stored games. Scrolls.",
+    "Waiting.dc.html": "The open table before the deal: the plate, one row per seat, Sit here on the open one, Deal now disabled with its reason, Leave and End.",
+    "Lobby.dc.html": "The lobby. Six picks in the settled order (empty, open, floorbot, me, LLM, headless) each naming its method, the knobs, one primary Deal; the Tables list with its Cost column (kept, D9); Watch; Stored games. Scrolls.",
     "Replay.dc.html": "The replay, omniscient. Every seat's method named, its hand, its certainty tag; the winner's block open with a row per card (solid = proven, tone = belief, struck = held elsewhere, red = truth), the others collapsed to three mini gauges. The machined scrubber: brass track with ticks, an engraved plate for a thumb, Play and the speed slider (9h). Scrolls.",
 }
 
 LOGO_NOTES = {
-    "A-Plate.dc.html": "A · the plate wordmark — the proposed lead (section 9). 'clude' lowercase in Bodoni Moda, letter-spaced, on a hairline brass plate with four rivets; the mark is the keyhole-c, an escutcheon whose keyway is the c. For: the wordmark scales from the cellar to the header bar unchanged. Against: the keyhole is a familiar mystery signifier.",
-    "B-Seal.dc.html": "B · the seal. A wax seal in the red thread with the c pressed in and an uneven edge, the wordmark beside it. For: the only candidate in colour, so it reads at 16 px by colour alone; says 'case closed'. Against: the one accent-filled surface in the app, and a red disc is a common favicon.",
-    "C-Plan.dc.html": "C · the plan. The nine rooms as a 3 × 3 engraved floor plan with the c in the cellar cell and brass door ticks, the wordmark beneath. For: it is the board itself, so it is nobody's trade dress, and it says what the game is. Against: nine cells at 16 px become a grey square.",
-    "D-Cartouche.dc.html": "D · the cartouche. The wordmark in a Victorian oval with a double hairline; the mark a hatched roundel with the c cut out. For: the most 'engraved' of the four; the roundel reads at any size. Against: the oval fights the cellar's 5 × 7 box.",
-    "Compare.dc.html": "All four in the cellar of the real board at phone size, both themes: the place the choice will be seen most. The cellar is 5 × 7 cells; at 390 px that is about 75 × 105 px.",
+    "D-Cartouche.dc.html": "D · the cartouche, as drawn in the first round and liked. The wordmark in a Victorian oval with a double hairline; the mark a hatched roundel with the c cut out. Kept beside E and F as the baseline.",
+    "E-Keyhole.dc.html": "E · the keyhole-?. The cartouche wordmark, and for the mark an escutcheon plate (a round shoulder tapering to a flat foot, ink with a brass hairline inside) whose keyway is a question mark. For: it says 'mystery' and 'clue' without a magnifying glass or anybody's art, and a ? reads at 16 px. Against: a plate with a ? could be any quiz.",
+    "F-Keyhole-c.dc.html": "F · the keyhole-? whose dot is a c: the question mark drawn as a hook, the name where the dot goes. For: the c ties the mark to the wordmark and still reads in the header bar. Against: at 16 px the c is a dot, so F is E there.",
+    "Compare.dc.html": "D, E and F in the cellar of the real board at phone size, both themes: the place the choice will be seen most. The cellar is 5 × 7 cells; at 390 px that is about 75 × 105 px.",
 }
 
 
@@ -630,7 +630,7 @@ LOGO_NOTES = {
 def build_logo(mid: dict) -> list:
     boards = []
     crop = "216 216 168 216"  # cols 9-16, rows 9-18: the cellar and its neighbours
-    for kind in "ABCD":
+    for kind in "DEF":
         halves = []
         for theme in ("dark", "light"):
             cropped = parts.board(mid["positions"], logo=kind, viewbox=crop, crop=True)
@@ -652,7 +652,8 @@ def build_logo(mid: dict) -> list:
                 f'<div style="display:flex;flex-direction:column;gap:10px;min-width:0">{nav}{favicons}<p class="note">At phone size:</p><div class="stage" style="padding:3px;width:150px">{thumb}</div></div>'
                 "</section>"
             )
-        title = f'<div style="padding:14px 16px 6px"><p class="title">{kind} · {parts.NAMES[kind]}</p><p class="note">{"The proposed lead" if kind == "A" else "Alternate"}: at the cellar, in the header bar, as the favicon, and on the phone board.</p></div>'
+        lead = {"D": "The cartouche from the first round", "E": "The keyhole-?, on the cartouche", "F": "The keyhole-? with a c for its dot"}[kind]
+        title = f'<div style="padding:14px 16px 6px"><p class="title">{kind} · {parts.NAMES[kind]}</p><p class="note">{lead}: at the cellar, in the header bar, as the favicon, and on the phone board.</p></div>'
         body = screen(title + "".join(halves))
         wrap(f"{kind}-{parts.NAMES[kind]}.dc.html", f"Logo {kind}", body, out_dir=LOGO, css="../table/engraved-sketch.css")
         boards.append((f"{kind}-{parts.NAMES[kind]}.dc.html", 390, 844, f"{kind} · {parts.NAMES[kind]}"))
@@ -661,10 +662,10 @@ def build_logo(mid: dict) -> list:
     for theme in ("dark", "light"):
         cells = "".join(
             f'<div><p class="note" style="margin-bottom:4px">{k} · {parts.NAMES[k]}</p><div class="stage" style="padding:3px">{parts.board(mid["positions"], logo=k)}</div></div>'
-            for k in "ABCD"
+            for k in "DEF"
         )
         grids.append(f'<section data-theme="{theme}" style="background:var(--page);color:var(--ink);padding:12px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px">{cells}</section>')
-    body = screen('<div style="padding:14px 16px 6px"><p class="title">Compare</p><p class="note">The four in the cellar of the real board at phone size, both themes.</p></div>' + "".join(grids), style="min-height: 900px")
+    body = screen('<div style="padding:14px 16px 6px"><p class="title">Compare</p><p class="note">D, E and F in the cellar of the real board at phone size, both themes.</p></div>' + "".join(grids), style="min-height: 900px")
     wrap("Compare.dc.html", "Logo · compare", body, out_dir=LOGO, css="../table/engraved-sketch.css")
     boards.append(("Compare.dc.html", 390, 900, "Compare"))
     return boards
@@ -727,14 +728,15 @@ TABLE_BRIEF = (
     "The table on a phone, in the Engraved look (docs/phase10-plan.md): one moment of a real game, seed 7007, six seats, David at Scarlett, "
     "Peacock and Plum with Claude in the story (the game itself was played by the methods). The seven focus states of 3.1, highest rank first: "
     "show, end, move, decide, beat, talk, board. The stage holds whatever matters most; the rail shows what it holds back. "
-    "Play is blind (3.2): no seat's bars or method during play, only the certainty tag (9h) and the cost bar (9g). "
-    "Record and Talk are two panels (3.3). Gaslight dark is the default (D6); one board is drawn in case-file light. "
+    "Play is blind (3.2): no seat's belief bars during play, only the certainty tag (9h) and, by David's call on 2026-09-28 (D8), each character's method one-liner; no cost bar (D9). "
+    "Record and Talk are two panels (3.3). Case-file light is the default (D10); one board is drawn in gaslight dark. "
     "Every board links engraved-sketch.css, the draft of 10b's stylesheet; the board is board_svg's own geometry, dressed as 10f will dress it."
 )
 LOGO_BRIEF = (
-    "D5, the logo: the proposed plate wordmark with the keyhole-c (A) beside three alternates (B, C, D), each at its three sizes in both themes: "
+    "D5, the logo, second round (2026-09-28): David asked for a ? in or around a keyhole, a c optional, in the cartouche style he liked. "
+    "D is that cartouche from the first round; E puts a keyhole-? mark on it; F draws the ? with a c for its dot. Each at its three sizes in both themes: "
     "the cellar of the real board (5 x 7 cells), the header bar's mark at 22 px, and the favicon at 32 and 16 px. "
-    "All four are uncoloured, classed SVG that takes the theme like everything else; the winner drops into board_svg in 10f. "
+    "All three are uncoloured, classed SVG that takes the theme like everything else; the winner drops into board_svg in 10f. "
     "No gears, no gradients, no sepia, no blur (section 4)."
 )
 
@@ -747,7 +749,7 @@ def main() -> None:
     boards = build_table(mid, end)
     write_canvas(TABLE, boards, TABLE_NOTES, TABLE_BRIEF, "Board.dc.html")
     logos = build_logo(mid)
-    write_canvas(LOGO, logos, LOGO_NOTES, LOGO_BRIEF, "A-Plate.dc.html")
+    write_canvas(LOGO, logos, LOGO_NOTES, LOGO_BRIEF, "E-Keyhole.dc.html")
     print(f"table: {len(boards)} artboards; logo: {len(logos)} artboards; seed {SEED}, {mid['turns']} turns mid-game, {end['turns']} at the end, {end['winner']} won")
 
 

@@ -314,6 +314,41 @@ def keyhole(cx: float, cy: float, s: float) -> str:
     )
 
 
+def keyhole_q(cx: float, cy: float, s: float, with_c: bool = False) -> str:
+    """The keyhole-?: an escutcheon plate (a round shoulder tapering to a
+    flat foot) whose keyway is a question mark; with `with_c`, a small
+    raised c sits in the bowl of the ?. `s` is the height (D11)."""
+    w, h = s * 0.78, s
+    top = cy - h / 2
+    r = w / 2
+    path = (
+        f"M{cx - r:.1f} {top + r:.1f} A{r:.1f} {r:.1f} 0 0 1 {cx + r:.1f} {top + r:.1f} "
+        f"L{cx + w * 0.4:.1f} {top + h:.1f} L{cx - w * 0.4:.1f} {top + h:.1f} Z"
+    )
+    out = (
+        f'<path class="logo-ink" d="{path}"/>'
+        f'<path class="logo-brass-line" d="{path}" transform="translate({cx} {cy}) scale(0.86) translate({-cx} {-cy})"/>'
+    )
+    if not with_c:
+        return out + (
+            f'<text class="logo-hole logo-q" x="{cx}" y="{cy + s * 0.05:.1f}" font-size="{s * 0.7:.1f}" '
+            'text-anchor="middle" dominant-baseline="central">?</text>'
+        )
+    # F: the question mark drawn as a hook, and its dot is the c.
+    q = s * 0.6
+    r = q * 0.26
+    hook = (
+        f"M{cx - r:.1f} {cy - q * 0.24:.1f} "
+        f"A{r:.1f} {r:.1f} 0 1 1 {cx + r * 0.55:.1f} {cy - q * 0.02:.1f} "
+        f"Q{cx:.1f} {cy + q * 0.06:.1f} {cx:.1f} {cy + q * 0.16:.1f}"
+    )
+    return out + (
+        f'<path class="logo-hole-stroke" d="{hook}" stroke-width="{q * 0.16:.1f}"/>'
+        f'<text class="logo-hole logo-c" x="{cx}" y="{cy + q * 0.42:.1f}" font-size="{q * 0.36:.1f}" '
+        'text-anchor="middle" dominant-baseline="central">c</text>'
+    )
+
+
 def seal(cx: float, cy: float, r: float) -> str:
     """A wax seal: an uneven edge, a ring, the c pressed in."""
     points = []
@@ -397,12 +432,16 @@ def logo_group(kind: str, w: float = 120, h: float = 168) -> str:
     if kind == "C":
         s = w * 0.7
         return plan(cx - s / 2, h * 0.12, s) + wordmark(cx, h * 0.8, h * 0.105)
-    if kind == "D":
+    if kind in "DEF":
         ry = h * 0.15
         rx = w * 0.46
         cy = h * 0.68
+        if kind == "D":
+            mark = roundel(cx, h * 0.24, w * 0.19)
+        else:
+            mark = keyhole_q(cx, h * 0.26, h * 0.36, with_c=(kind == "F"))
         return (
-            roundel(cx, h * 0.24, w * 0.19)
+            mark
             + f'<ellipse class="logo-plate" cx="{cx}" cy="{cy:.1f}" rx="{rx:.1f}" ry="{ry:.1f}"/>'
             + f'<ellipse class="logo-plate-ink" cx="{cx}" cy="{cy:.1f}" rx="{rx:.1f}" ry="{ry:.1f}"/>'
             + f'<ellipse class="logo-brass-line" cx="{cx}" cy="{cy:.1f}" rx="{rx - 3:.1f}" ry="{ry - 3:.1f}"/>'
@@ -423,6 +462,8 @@ def mark_group(kind: str, s: float = 40) -> str:
         return plan(s * 0.05, s * 0.05, s * 0.9)
     if kind == "D":
         return roundel(c, c, s * 0.46)
+    if kind in "EF":
+        return keyhole_q(c, c, s * 0.94, with_c=(kind == "F"))
     raise ValueError(kind)
 
 
@@ -438,4 +479,25 @@ def logo_svg(kind: str, w: float, h: float, px: float, mark_only: bool = False) 
     )
 
 
-NAMES = {"A": "Plate", "B": "Seal", "C": "Plan", "D": "Cartouche"}
+NAMES = {"A": "Plate", "B": "Seal", "C": "Plan", "D": "Cartouche", "E": "Keyhole", "F": "Keyhole-c"}
+"""A-C were the first round's candidates (2026-09-27), dropped by David
+on 2026-09-28 for the cartouche; D, E and F are the second round."""
+
+METHOD_SHORT = {
+    "Scarlett": "Naive Bayes",
+    "Mustard": "Decision tree",
+    "White": "Markov chain",
+    "Green": "Bandit ensemble",
+    "Peacock": "Dempster-Shafer",
+    "Plum": "Enumeration",
+}
+"""The one-liners (`replay_data.seat_method`) cut to fit a phone's seat
+chip; the full line is the chip's tooltip and the wide layout's text."""
+
+
+def method_line(suspect: str) -> str:
+    """The method one-liner behind a character, as the lobby form and
+    the replay show it (D8: back on the table for every agent seat)."""
+    from clude_web import replay_data
+
+    return replay_data.seat_method(suspect)

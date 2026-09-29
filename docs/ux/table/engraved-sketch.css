@@ -5,9 +5,10 @@
  * docs/ux/logo/ need them. Shared by every artboard so they agree with
  * each other, and the draft 10b lifts into static/styles/engraved.css.
  *
- * Gaslight dark is the default (D6); the case-file light theme applies
- * under [data-theme="light"]. Here that is an attribute on the artboard;
- * 10b adds the prefers-color-scheme media query around the same block.
+ * Case-file light is the default (D10, 2026-09-28, reversing D6); the
+ * gaslight dark theme applies under [data-theme="dark"]. Here that is an
+ * attribute on the artboard; 10b adds the prefers-color-scheme media
+ * query around the same block.
  * Variable names already in use (legacy.css) keep their names.
  *
  * The four faces come from a Google Fonts link in each artboard; 10b
@@ -15,6 +16,81 @@
  */
 
 :root {
+  /* --- colour: case-file light (5.1), the default (D10) --------------- */
+  --page: #E9E2D3;
+  --panel: #F5F0E4;
+  --panel-sunk: #DED6C4;
+  --edge: #C3B7A0;
+  --edge-strong: #6B5D49;
+  --ink: #14110D;
+  --ink-soft: #5A4F40;
+  --ink-faint: #8A7D6A;
+  --brass: #A97B2C;
+  --brass-bright: #C79A45;
+  --brass-dim: #7A5A21;
+  --accent: #7A2230;
+  --accent-ink: #F5F0E4;
+  --warn: #9B2226;
+  --proof: #14110D;
+  --tone: #8A7D6A;
+  --tone-size: 3px;
+
+  --suspect-scarlett: #b3243b; --suspect-scarlett-ink: #F5F0E4;
+  --suspect-mustard: #d09a1e;  --suspect-mustard-ink: #14110D;
+  --suspect-plum: #7b4397;     --suspect-plum-ink: #F5F0E4;
+  --suspect-peacock: #1d7f96;  --suspect-peacock-ink: #F5F0E4;
+  --suspect-green: #2f7d43;    --suspect-green-ink: #F5F0E4;
+  --suspect-white: #e8e6e1;    --suspect-white-ink: #14110D;
+
+  --board-void: #C3B7A0;
+  --board-room: #F5F0E4;
+  --board-corridor: #DED6C4;
+  --board-grid: #C9BFA9;
+  --board-floor: #CFC4AA;
+  --board-wall: #6B5D49;
+  --board-door: #A97B2C;
+  --board-cellar: #E9E2D3;
+  --board-label: #5A4F40;
+
+  --certainty: 0;
+  --certain-cold: #9cc1ee;
+  --certain-mid: #FFFFFF;
+  --certain-hot: #f08a95;
+  --certain-ink: #14110D;
+
+  /* --- type (5.3) ------------------------------------------------------ */
+  --font-wordmark: "Bodoni Moda", "Bodoni 72", Didot, serif;
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-ui: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-gauge: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+
+  --type-gauge: 0.72rem; --lh-gauge: 1.2;
+  --type-sm: 0.85rem;    --lh-sm: 1.4;
+  --type-body: 1rem;     --lh-body: 1.5;
+  --type-beat: 1.15rem;  --lh-beat: 1.35;
+  --type-title: 1.4rem;  --lh-title: 1.2;
+  --type-hero: 2rem;     --lh-hero: 1.05;
+
+  /* --- space, edge, elevation, motion (5.4) --------------------------- */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px; --space-7: 48px;
+  --gap: var(--space-4);
+  --radius: 2px;
+  --radius-chip: 999px;
+  --rule: 1px solid var(--edge);
+  --rule-ink: 2px solid var(--edge-strong);
+  --lift: 2px 2px 0 var(--edge-strong);
+  --dur-tick: 90ms;
+  --dur-cut: 140ms;
+  --dur-move: 220ms;
+  --dur-impact: 420ms;
+  --ease-snap: cubic-bezier(.2,.8,.2,1);
+  --ease-panel: cubic-bezier(.4,0,.2,1);
+}
+
+/* Gaslight dark (5.2), on a stated dark preference (D10; 10b adds the
+   prefers-color-scheme query around this block). */
+[data-theme="dark"] {
   /* --- colour: gaslight dark (5.2) ------------------------------------ */
   --page: #121013;
   --panel: #1B181C;
@@ -60,77 +136,6 @@
   --certain-cold: #6f9fd8;
   --certain-mid: #ECE9E2;
   --certain-hot: #e0687a;
-  --certain-ink: #14110D;
-
-  /* --- type (5.3) ------------------------------------------------------ */
-  --font-wordmark: "Bodoni Moda", "Bodoni 72", Didot, serif;
-  --font-display: "Playfair Display", Georgia, serif;
-  --font-ui: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-gauge: "IBM Plex Mono", ui-monospace, Consolas, monospace;
-
-  --type-gauge: 0.72rem; --lh-gauge: 1.2;
-  --type-sm: 0.85rem;    --lh-sm: 1.4;
-  --type-body: 1rem;     --lh-body: 1.5;
-  --type-beat: 1.15rem;  --lh-beat: 1.35;
-  --type-title: 1.4rem;  --lh-title: 1.2;
-  --type-hero: 2rem;     --lh-hero: 1.05;
-
-  /* --- space, edge, elevation, motion (5.4) --------------------------- */
-  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
-  --space-5: 24px; --space-6: 32px; --space-7: 48px;
-  --gap: var(--space-4);
-  --radius: 2px;
-  --radius-chip: 999px;
-  --rule: 1px solid var(--edge);
-  --rule-ink: 2px solid var(--edge-strong);
-  --lift: 2px 2px 0 var(--edge-strong);
-  --dur-tick: 90ms;
-  --dur-cut: 140ms;
-  --dur-move: 220ms;
-  --dur-impact: 420ms;
-  --ease-snap: cubic-bezier(.2,.8,.2,1);
-  --ease-panel: cubic-bezier(.4,0,.2,1);
-}
-
-/* Case-file light (5.1), on a stated preference. */
-[data-theme="light"] {
-  --page: #E9E2D3;
-  --panel: #F5F0E4;
-  --panel-sunk: #DED6C4;
-  --edge: #C3B7A0;
-  --edge-strong: #6B5D49;
-  --ink: #14110D;
-  --ink-soft: #5A4F40;
-  --ink-faint: #8A7D6A;
-  --brass: #A97B2C;
-  --brass-bright: #C79A45;
-  --brass-dim: #7A5A21;
-  --accent: #7A2230;
-  --accent-ink: #F5F0E4;
-  --warn: #9B2226;
-  --proof: #14110D;
-  --tone: #8A7D6A;
-
-  --suspect-scarlett: #b3243b; --suspect-scarlett-ink: #F5F0E4;
-  --suspect-mustard: #d09a1e;  --suspect-mustard-ink: #14110D;
-  --suspect-plum: #7b4397;     --suspect-plum-ink: #F5F0E4;
-  --suspect-peacock: #1d7f96;  --suspect-peacock-ink: #F5F0E4;
-  --suspect-green: #2f7d43;    --suspect-green-ink: #F5F0E4;
-  --suspect-white: #e8e6e1;    --suspect-white-ink: #14110D;
-
-  --board-void: #C3B7A0;
-  --board-room: #F5F0E4;
-  --board-corridor: #DED6C4;
-  --board-grid: #C9BFA9;
-  --board-floor: #CFC4AA;
-  --board-wall: #6B5D49;
-  --board-door: #A97B2C;
-  --board-cellar: #E9E2D3;
-  --board-label: #5A4F40;
-
-  --certain-cold: #9cc1ee;
-  --certain-mid: #FFFFFF;
-  --certain-hot: #f08a95;
   --certain-ink: #14110D;
 }
 
@@ -436,6 +441,13 @@ main.table {
 .seat.compact.me { border-color: var(--accent); }
 .seat.compact.acting { border-color: var(--brass); box-shadow: var(--lift); }
 .seat.compact.out { opacity: 0.5; }
+.seat .method {
+  font: 400 0.5rem / 1.15 var(--font-gauge);
+  color: var(--ink-faint);
+  letter-spacing: 0.01em;
+  white-space: normal;
+  overflow-wrap: normal;
+}
 .seat .state {
   font: 400 0.58rem / 1.2 var(--font-gauge);
   color: var(--ink-soft);
@@ -741,6 +753,9 @@ main.table {
 .logo-c { font-family: var(--font-wordmark); font-weight: 700; fill: var(--ink); }
 .logo-c.on-seal { fill: var(--accent-ink); }
 .logo-hole.logo-c { fill: var(--page); }
+.logo-q { font-family: var(--font-display); font-weight: 700; fill: var(--ink); }
+.logo-hole.logo-q { fill: var(--page); }
+.logo-c.raised { fill: var(--ink); }
 .logo-room { fill: var(--panel-sunk); stroke: var(--ink); stroke-width: 1; }
 .logo-room.cellar { fill: var(--page); stroke: var(--brass); }
 
@@ -843,3 +858,4 @@ main.table {
 .logo-seal-ring { fill: none; stroke: var(--accent-ink); stroke-width: 0.8; opacity: 0.7; }
 .logo-door { fill: none; stroke: var(--brass); stroke-width: 1.4; }
 .logo-hatched { fill: url(#hatch); }
+.logo-hole-stroke { fill: none; stroke: var(--page); stroke-linecap: round; stroke-linejoin: round; }

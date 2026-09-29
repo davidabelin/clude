@@ -103,8 +103,13 @@ David at Scarlett, stopped at fourteen turns and at the end) over
 `docs/ux/table/engraved-sketch.css`, section 5's token layer as CSS
 and the draft of 10b's `engraved.css`; the board is `board_svg`'s own
 geometry dressed as 10f will dress it, the generator untouched. Each
-canvas opens from its `index.html` in any browser. David reviews them
-and settles D5; `docs/phase10-plan.md` 17 has the findings.
+canvas opens from its `index.html` in any browser. David reviewed them
+on 2026-09-28 and liked them; his seven points became D7-D14 (below)
+and the artboards were revised the same day: case-file light the
+default, every character's method under its name on the seat rail, no
+cost bar, and the logo canvas narrowed to the cartouche with a
+keyhole-? mark (E) or the same with the c as the question mark's dot
+(F), his pick pending. `docs/phase10-plan.md` 13 and 17.
 
 Suite: 518 passed, 27 skipped, about three minutes with `-n auto`; 25
 more under `CLUDE_WEB_BROWSER=1`. (Three debrief tests turned out to
@@ -120,7 +125,7 @@ fail on a fast machine before 9h: reactions are now immediate there.)
 | 8.2 | Human players | done: 8.2a-c built 2026-09-18 (the table driver and `play --human`; the table on the web with open seats, autopilot, cold rebuild and "characters remember"); 8.2d deployed and live-checked 2026-09-19, the cold rebuild 0.1 s on a 3-turn table (`docs/phase8-plan.md` 12, `docs/web.md`) |
 | 8.3 | The rest of chat: the model on the web under a spend cap, human chat, off-turn talk with pacing, debriefs after web games | done: 8.3a-c built 2026-09-19 on fake backends, the key deployed and one live table played the same day (two model seats, chat, "remember"; $0.34, no fallbacks); 8.3d closed Phase 8 (`docs/phase8-plan.md` 12) |
 | 9 | A seat over MCP: a Claude in a chat window (claude.ai) plays one seat of a live table through an MCP server mounted beside the Flask app, on the same `TableRegistry` | built. 9a the plan and the renumbering (2026-09-20); 9b the server and the combined ASGI app, 9c deployed with the secret and the `claude` account, both 2026-09-21, and the first live game from the chat that evening; 9d the eight fixes after the second live game and 9e David's follow-ups, both 2026-09-22 and deployed that evening; 9f the chat seat's report after the third live game and 9g what a game cost (both 2026-09-25, deployed that day), 9h five tweaks in one sweep (2026-09-26 and deployed that evening; typing, the turn time-out and speed mode, the certainty tag, the animated replay, the Legacy style); 9i the chat seat's five requests after table `5019abeb0a` (2026-09-26; waiting for the deal, the held-back pass, hand sizes and disproof order, hard mode, a whole replay URL; deployed that evening) and 9j every chatbot its own login, watching over MCP, and names capitalised (2026-09-27, deployed that day as `clude-00014-sqn`) -- `docs/phase9-plan.md` 8, `docs/phase9h-plan.md` |
-| 10 | In-depth UX: the shippable look, "engraved, not brass-plated" | in progress. `docs/phase10-plan.md` proposed 2026-09-20, David's answers recorded 2026-09-21: D1-D4 and D6 settled; 10a the artboards drawn 2026-09-27 (`docs/ux/table/`, `docs/ux/logo/`), D5 (the logo) open until he reviews them; 10b-10g not started (was Phase 9 until 2026-09-20) |
+| 10 | In-depth UX: the shippable look, "engraved, not brass-plated" | in progress. `docs/phase10-plan.md` proposed 2026-09-20, David's answers recorded 2026-09-21 (D1-D4, D6); 10a the artboards drawn 2026-09-27 (`docs/ux/table/`, `docs/ux/logo/`) and revised 2026-09-28 after his review (D7-D14), D5 narrowed to E or F; 10b-10g as planned and 10h the help layer and 10i the two explainers added, all before 1.0.0; none started (was Phase 9 until 2026-09-20) |
 | 11 | Tweak, polish, release: clean-up and close, then version 1.0.0, released to family and friends, and planning in versions, not phases | not started (was Phase 10) |
 
 Where things stand:
@@ -418,6 +423,23 @@ it; `docs/phase-plan.md` has the disposition of every file.
   by the per-turn time-out of 2026-09-26, below), and a
   seat that is out is answered by it; a table is not dealt until every
   open seat is taken, since an open seat is reserved for someone.
+- **Phase 10's second round (2026-09-28), after the 10a review.**
+  Legacy stays fully functional and selectable from here on. Engraved
+  enters the Look picker after 10b as an opt-in beta and becomes the
+  default after 10e (D7). Every agent seat's method one-liner returns
+  to the table's seat rail, in both looks; people and the floor bot
+  show none (D8, reversing D3 for the table). Only the per-seat cost
+  bar is hidden in the Phase 10 look; the spend line and the Cost
+  columns stay, and Legacy keeps the bar (D9). Case-file light is the
+  default, gaslight dark on a device's dark preference, nothing to set
+  (D10, reversing D6). The logo is a "?" keyhole in the cartouche
+  style, E or F, drawn before 10f builds it (D11). Contact is the
+  repo's GitHub issues; privacy states what is kept and that `users
+  remove` deletes an account; both pages public, drafted in 10h,
+  shipped in Phase 11 (D12). The help layer (10h) and the two
+  explainer pages, one at high-school level and one a featured-article
+  treatment of the methods (10i), ship before 1.0.0 (D13), and so does
+  sound (D14).
 - **Phase 9h's four calls (2026-09-26).** The time-out is per turn:
   90 s on a decision (30 s at a speed table, a lobby checkbox), then
   the floor bot plays the rest of that turn and the seat stays the
@@ -567,8 +589,11 @@ choices made from the code -- the MCP transport stateless with JSON
 responses, the SDK's localhost-only Host check switched off (the secret
 is the guard), and asgiref's Flask bridge run off its one-thread lane.
 
-**Phase 10** (`docs/phase10-plan.md` 13): D5, the logo, is open until
-David sees the three alternates in 10a. D1-D4 and D6 are settled.
+**Phase 10** (`docs/phase10-plan.md` 13): D5, the logo, is narrowed to
+E (the cartouche with a keyhole-? mark) or F (the same, the c as the
+question mark's dot) in `docs/ux/logo/index.html`; David's pick is
+pending. D1-D14 are otherwise settled (D3 and D6 reversed on
+2026-09-28).
 
 **Phase 8** left none; its assumptions stood through its close
 (`docs/phase8-plan.md` 9): the floor bot as the autopilot stand-in,
@@ -598,6 +623,7 @@ costs, as the characters do. Resolved 2026-09-26: Phase 9h's four calls
 everyone on the bits-gained scale, speed mode as a lobby checkbox).
 Resolved 2026-09-27: MCP players log in as web players do, with a
 `clude_login` tool; they may watch and replay; names are capitalised.
+Resolved 2026-09-28: Phase 10's second round, D7-D14 above.
 
 ## Working with David
 
