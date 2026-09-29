@@ -982,6 +982,8 @@ input[type="range"] { accent-color: var(--brass); }
 
 .seat.compact.roster .who { margin-left: var(--space-1); }
 .seat.compact.mine { border-color: var(--accent); }
+/* The seat the table waits on wears the brass rule and the lift (10c). */
+.seat.compact.acting { border-color: var(--brass); box-shadow: var(--lift); }
 
 /* The hand: chips with the lift; a shown card is ticked, never removed (7). */
 .me-panel { max-width: none; margin: 0; }
@@ -994,6 +996,8 @@ input[type="range"] { accent-color: var(--brass); }
   font-size: var(--type-sm);
   box-shadow: var(--lift);
 }
+.card-chip.shown { border-style: dashed; color: var(--ink-soft); box-shadow: none; }
+.card-chip.shown::after { content: " \2713"; color: var(--brass); }
 .me-panel .buttons button { margin: 0; }
 
 .log-panel, .talk-panel { max-width: none; margin: 0; }
@@ -1063,7 +1067,23 @@ details.panel:not([open]) > summary { margin: 0; }
   color: var(--ink);
   padding-top: var(--space-2);
 }
-.notepad td.holder { color: var(--proof); }
-.notepad td.holder.envelope { color: var(--accent); }
-.notepad td.maybe { color: var(--tone); }
+/* The screen writes a glyph into each cell (a square for a proven
+   holder, a dot for a possible one) and legacy.css colours it. Here the
+   glyph is hidden and the cell draws its own mark: solid ink for a
+   proof, a screentone for a possibility, the envelope in the red thread. */
+.notepad td.holder, .notepad td.maybe { font-size: 0; line-height: 0; }
+.notepad td.holder::before, .notepad td.maybe::before {
+  content: "";
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  vertical-align: middle;
+}
+.notepad td.holder::before { background: var(--proof); }
+.notepad td.holder.envelope::before { background: var(--accent); }
+.notepad td.maybe::before {
+  background-image: radial-gradient(var(--tone) 0.7px, transparent 0.8px);
+  background-size: var(--tone-size) var(--tone-size);
+}
 .notepad tr.placed td.card { color: var(--ink-faint); text-decoration: line-through; }
+.notepad tr.solved td.card { color: var(--accent); font-weight: 600; }

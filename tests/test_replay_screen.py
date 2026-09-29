@@ -145,20 +145,30 @@ def test_the_board_is_well_formed_xml():
     assert root.tag.endswith("svg")
 
 
-def _stylesheets() -> list:
-    """Every style's stylesheet, as (key, text): the tests below hold
-    for each look on the list (Phase 9h), not just the first."""
+def _style_keys() -> list:
+    """Every look on the list (Phase 9h): the tests below hold for each,
+    not just the first. Keys only: a parameter holding the stylesheet's
+    text put 32 KB into the test id, and Windows refuses an environment
+    variable (pytest's PYTEST_CURRENT_TEST) that long."""
+    from clude_web import styles
+
+    return list(styles.STYLES)
+
+
+def _stylesheet(key: str) -> str:
+    """The text of one look's stylesheet."""
     from clude_web import styles
 
     static = Path(__file__).resolve().parents[1] / "clude_web" / "static"
-    return [(key, (static / style.stylesheet).read_text(encoding="utf-8")) for key, style in styles.STYLES.items()]
+    return (static / styles.STYLES[key].stylesheet).read_text(encoding="utf-8")
 
 
-@pytest.mark.parametrize("key,css", _stylesheets())
-def test_every_class_the_board_uses_is_styled(key, css):
+@pytest.mark.parametrize("key", _style_keys())
+def test_every_class_the_board_uses_is_styled(key):
     """board_svg.py sets no colour, so a class with no rule is an
     invisible shape. The stylesheet must also stay ASCII: a Devanagari
     digit once made it into a hex colour, which CSS silently ignores."""
+    css = _stylesheet(key)
     svg = board_svg.board_svg({"Scarlett": "Hall", "Plum": Square(7, 4)})
     used = {
         name
@@ -171,11 +181,12 @@ def test_every_class_the_board_uses_is_styled(key, css):
     assert not unstyled, f"classes with no rule in {key}: {unstyled}"
 
 
-@pytest.mark.parametrize("key,css", _stylesheets())
-def test_the_stylesheet_has_no_broken_colours(key, css):
+@pytest.mark.parametrize("key", _style_keys())
+def test_the_stylesheet_has_no_broken_colours(key):
     """CSS fails silently: a malformed value is dropped and the shape
     renders with whatever it inherited, which is exactly how `#b4a
     territory` and a Devanagari digit both got as far as a screenshot."""
+    css = _stylesheet(key)
     malformed = re.findall(r"--[a-z-]+:\s*#[0-9a-fA-F]*[^0-9a-fA-F;\s][^;]*;", css)
     assert not malformed, f"malformed colour values in {key}: {malformed}"
 

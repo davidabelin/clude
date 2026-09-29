@@ -526,8 +526,14 @@
   function renderHand(me) {
     if (!hand || !me) return;
     while (hand.firstChild) hand.removeChild(hand.firstChild);
+    var shown = me.shown || {};
     me.hand.forEach(function (card) {
-      hand.appendChild(el("li", "card-chip", card.replace("_", " ")));
+      /* A card you have shown is ticked, never removed (plan 7): the
+         other seat knows it now, and so should you at a glance. */
+      var seen = Object.prototype.hasOwnProperty.call(shown, card);
+      var chip = el("li", "card-chip" + (seen ? " shown" : ""), card.replace("_", " "));
+      if (seen) chip.title = "shown to " + shown[card];
+      hand.appendChild(chip);
     });
     if (myToken) myToken.textContent = "(" + me.token + (me.active ? "" : ", out") + ")";
     var strikesLine = document.getElementById("strikes");
@@ -548,14 +554,19 @@
     }
   }
 
-  /* Who else is at the table, for someone playing at it: the names and
-     nothing more. The deduction bars are for someone watching -- at a
-     real table nobody can see how close another player is to solving it
-     -- so the server sends no readings to a seated viewer and this draws
-     the roster instead (David, 2026-09-22). */
+  /* Who else is at the table, for someone playing at it: public facts
+     and nothing more (plan 3.2). The deduction bars are for someone
+     watching -- at a real table nobody can see how close another player
+     is to solving it -- so the server sends no readings to a seated
+     viewer and this draws the roster instead (David, 2026-09-22): the
+     name, a character's method (back by David's call, D8), how many
+     cards the seat holds, whether it is in, out or on autopilot, the
+     certainty tag (9h), and a mark on the seat the table waits on. */
   function renderRoster(payload) {
+    var acting = payload.waiting ? payload.waiting.seat : (payload.pending ? payload.pending.seat : null);
     (payload.seats || []).forEach(function (spec) {
-      var article = el("article", "seat compact roster" + (spec.active ? "" : " out") + (spec.me ? " mine" : ""));
+      var article = el("article", "seat compact roster"
+        + (spec.active ? "" : " out") + (spec.me ? " mine" : "") + (spec.seat === acting ? " acting" : ""));
       article.setAttribute("data-seat", spec.seat);
       var h2 = el("h2");
       h2.appendChild(el("span", "pip suspect-" + spec.token.toLowerCase()));
@@ -568,11 +579,14 @@
       else if (spec.name !== spec.token) who = "(" + spec.name + ")";
       if (who) h2.appendChild(el("span", "who", who));
       article.appendChild(tag(h2, spec.certainty));
-      var marks = [];
-      if (!spec.active) marks.push("out, accused wrongly");
-      if (spec.autopilot) marks.push("autopilot");
-      else if (spec.strikes) marks.push("timed out \u00d7" + spec.strikes);
-      if (marks.length) article.appendChild(el("p", "method", marks.join(" · ")));
+      var facts = [];
+      if (spec.method) facts.push(spec.method);
+      if (spec.cards) facts.push(spec.cards + (spec.cards === 1 ? " card" : " cards"));
+      if (!spec.active) facts.push("out, accused wrongly");
+      if (spec.autopilot) facts.push("autopilot");
+      else if (spec.strikes) facts.push("timed out ×" + spec.strikes);
+      if (spec.seat === acting && spec.active) facts.push(spec.me ? "your decision" : "deciding");
+      if (facts.length) article.appendChild(el("p", "method", facts.join(" · ")));
       var bar = costBar(payload, spec.seat);
       if (bar) article.appendChild(bar);
       seatsBox.appendChild(article);

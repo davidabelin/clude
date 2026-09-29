@@ -198,11 +198,19 @@ def test_a_dealt_table_opens_on_the_play_view(ann, app):
     assert payload["me"]["seat"] == 0 and payload["me"]["token"] == "Scarlett"
     assert len(payload["me"]["hand"]) == 5 or len(payload["me"]["hand"]) == 4
     assert 0.0 < payload["seats"][0].pop("certainty") < 1.0, "a person's own hand already narrows the field"
+    assert sum(s["cards"] for s in payload["seats"]) == 18
+    assert payload["seats"][0].pop("cards") == len(payload["me"]["hand"])
     assert payload["seats"][0] == {
         "seat": 0, "token": "Scarlett", "label": ANN, "name": "Scarlett (Ann)", "kind": "human",
-        "active": True, "autopilot": False, "strikes": 0, "me": True,
+        "method": "", "active": True, "autopilot": False, "strikes": 0, "me": True,
     }
     assert [s["kind"] for s in payload["seats"]] == ["human", "character", "character", "floor"]
+    # Public facts (Phase 10c, plan 3.2): a character names its method
+    # (D8), a person and the floor bot do not; every seat's hand size is
+    # public from the deal; nothing of what a seat has proven or believes.
+    assert payload["seats"][1]["method"].startswith("Decision tree") and payload["seats"][3]["method"] == ""
+    assert not any(key in s for s in payload["seats"] for key in ("groups", "placed", "belief", "proven"))
+    assert payload["me"]["shown"] == {}
     assert len(payload["notepad"]) == 21 and all(r["holder"] in (0, None, "envelope", 1, 2, 3) for r in payload["notepad"])
     mine = {r["card"] for r in payload["notepad"] if r["holder"] == 0}
     assert mine == set(payload["me"]["hand"]), "my own cards are proven mine on the notepad"
@@ -226,7 +234,11 @@ def test_a_seated_player_gets_no_deduction_bars_and_a_spectator_does(ann, cat):
     belief per poll.
     """
     table_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
-    assert poll(ann, table_id)["readings"] is None
+    # Absent, not null (Phase 10c): the payload sits in the page, so what
+    # a seated player must not learn is not sent at all.
+    assert "readings" not in poll(ann, table_id)
+    page = ann.get(f"/tables/{table_id}").get_data(as_text=True)
+    assert '"readings"' not in page
     watching = poll(cat, table_id)
     assert watching["readings"] is not None
     assert [r["seat"] for r in watching["readings"]] == [0, 1, 2]
@@ -690,6 +702,36 @@ def test_a_player_who_is_out_is_answered_by_the_stand_in(app, store, ann):
     shown = [e for e in game.entries if e["seat"] == 0 and e["decision"] == "card_to_show" and e["by"] == "autopilot"]
     assert shown, "the stand-in never showed a card for the player who was out"
     assert not (registry.document(table_id).get("autopilot") or {}).get("0")
+
+
+def test_a_card_the_player_has_shown_is_listed_with_who_saw_it(app, ann):
+    """Phase 10c (plan 7): a shown card is ticked in the hand, never
+    removed, so `me.shown` maps each card the viewer has shown to the
+    seat it was last shown to; the roster marks the seat the table
+    waits on and never says what a seat believes."""
+    tables.WORK_INTERVAL = 0.0
+    table_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
+    payload = poll(ann, table_id)
+    assert payload["me"]["shown"] == {}
+    showed = None
+    steps = 0
+    while showed is None and not payload["finished"] and steps < 3000:
+        steps += 1
+        pending = payload["pending"]
+        if pending is None:
+            payload = work(ann, table_id)
+            continue
+        if payload["waiting"]:
+            assert payload["waiting"]["seat"] == 0
+        if pending["kind"] == "card_to_show":
+            showed = (pending["candidates"][0], pending["shown_to_name"])
+        payload = answer(ann, table_id, pending["seq"], simple_answer(pending))
+    assert showed is not None, "the game never asked the person for a card"
+    card, to = showed
+    assert payload["me"]["shown"][card] == to
+    assert card in payload["me"]["hand"], "the card stays in the hand"
+    assert "readings" not in payload
+    assert all(set(s) >= {"method", "cards"} for s in payload["seats"])
 
 
 def test_unknown_tables_are_404(ann):

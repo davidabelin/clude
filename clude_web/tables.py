@@ -610,6 +610,11 @@ def view_payload(
     # seats: this one number is the poker face). Cached per event, so
     # a poll pays for it once per move, not once per page.
     certainties = game.certainties() if hasattr(game, "certainties") else []
+    # Public facts about every seat (Phase 10c, plan 3.2): who sits
+    # there, how many cards it holds (public from the deal), whether it
+    # is in, out or on autopilot, its certainty (9h), and for a
+    # character its method one-liner, back on the table by David's call
+    # (D8, 2026-09-28). Never what it has proven or believes.
     seats = [
         {
             "seat": seat,
@@ -617,6 +622,8 @@ def view_payload(
             "label": game.labels[seat],
             "name": names[seat],
             "kind": game.kinds[seat],
+            "method": replay_data.seat_method(game.labels[seat]) if game.kinds[seat] in ("character", "llm") else "",
+            "cards": len(game.state.hands.get(seat, ())),
             "active": bool(snap.active[seat]),
             "autopilot": bool(autopilot.get(str(seat))),
             "strikes": int(strikes.get(str(seat), 0)),
@@ -677,6 +684,14 @@ def view_payload(
             "seat": viewer,
             "token": game.suspects[viewer],
             "hand": sorted(game.state.hands[viewer]),
+            # The cards this seat has shown so far, each with the last
+            # seat it was shown to (Phase 10c): a shown card is ticked in
+            # the hand, never removed.
+            "shown": {
+                s.card_shown: names[s.suggester]
+                for s in game.state.suggestion_log
+                if s.refuter == viewer and s.card_shown is not None
+            },
             "active": bool(snap.active[viewer]),
             "autopilot": bool(autopilot.get(str(viewer))),
             "strikes": int(strikes.get(str(viewer), 0)),
@@ -723,7 +738,7 @@ def view_payload(
             },
         )
 
-    return {
+    payload = {
         "id": document.get("id"),
         "llm": llm,
         "status": "finished" if snap.finished else "playing",
@@ -762,12 +777,6 @@ def view_payload(
         "timeout": timeout,
         "me": me,
         "notepad": pad,
-        # Deduction bars are for someone watching, not for someone
-        # playing: at the table you see the board, the log, your hand and
-        # your own notepad, and of the other seats only who they are
-        # (David, 2026-09-22). Skipping them also spares a fresh belief
-        # per poll, which for Plum is most of a second.
-        "readings": None if viewer is not None else game.readings(),
         # Who is watching without a seat, for the people playing. Empty
         # unless somebody is there, so the gallery is absent from the
         # screen rather than sitting there saying nobody (Phase 9e).
@@ -779,6 +788,16 @@ def view_payload(
         "over": over,
         "remember": game.setup.remember,
     }
+    # Deduction bars are for someone watching, not for someone playing:
+    # at the table you see the board, the log, your hand and your own
+    # notepad, and of the other seats only public facts (David,
+    # 2026-09-22; plan 3.2). The key is absent for a seated viewer, not
+    # null (Phase 10c): the payload is in the page, so what is not sent
+    # is what is not there. Skipping them also spares a fresh belief per
+    # poll, which for Plum is most of a second.
+    if viewer is None:
+        payload["readings"] = game.readings()
+    return payload
 
 
 def _node_of(data):

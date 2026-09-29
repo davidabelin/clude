@@ -299,13 +299,18 @@ outside the login gate.
 who is proven to hold it and which holders are still possible. Every
 cludebot gets the same sheet, so the person does too (David, 2026-09-18).
 
-**The other seats**, to someone *playing*, are a plain roster: the
-token, who holds it (a name, `(LLM)`, `(headless)`, `floorbot`), and
-whether it is out or on autopilot. No deduction bars. At a real table
-nobody can see how close another player is to solving it, so a seated
-viewer gets `readings: null` (David, 2026-09-22, after game
-`7075f3ae29`); it also spares a fresh belief per poll, most of a second
-for Plum. Someone *watching* -- a spectator at a table, or the Watch
+**The other seats**, to someone *playing*, are a roster of public
+facts (Phase 10c, `docs/phase10-plan.md` 3.2): the token, who holds it
+(a name, `(LLM)`, `(headless)`, `floorbot`), a character's method
+one-liner (D8), how many cards it holds, whether it is out or on
+autopilot, its certainty tag (9h), and a mark on the seat the table
+waits on. No deduction bars. At a real table nobody can see how close
+another player is to solving it, so a seated viewer's payload has no
+`readings` key at all (David, 2026-09-22, after game `7075f3ae29`;
+absent rather than null since 10c, because the payload sits in the
+page); it also spares a fresh belief per poll, most of a second for
+Plum. The viewer's own hand marks each card they have shown, with whom
+to (`me.shown`); a shown card is ticked, never removed. Someone *watching* -- a spectator at a table, or the Watch
 screen -- still sees Watch's compact bar for each seat: cards placed and
 how sure its method is per category (David, 2026-09-18), with a human
 seat showing what its floor has placed and no confidence.

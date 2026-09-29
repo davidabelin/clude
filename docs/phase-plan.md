@@ -527,7 +527,14 @@ while the names stay.
   test asserts the key is absent, not merely unrendered), methods
   hidden during play and named in the replay and on the setup form
   (D3), the seat rail rebuilt on public facts, the notepad and hand
-  restyled.
+  restyled. **Done 2026-09-28**, with D8 in place of D3: the key is
+  absent for a seated player; every seat carries its method one-liner
+  (characters only) and its hand size; the rail marks the seat the
+  table waits on; a shown card is ticked in the hand; the notepad's
+  marks are solid ink and screentone under Engraved, Legacy untouched
+  (`docs/phase10-plan.md` 17). Deployed with 10b the same day as
+  `clude-00016-65z`. Deployed with 10b the same day as
+  `clude-00016-65z`.
 - **10d, two panels.** Record and Talk split, balloons with the
   speaker's colour on the tail, the 240-character box with its
   counter, turn numbers in the margin in the gauge face.

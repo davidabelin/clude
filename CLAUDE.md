@@ -13,15 +13,16 @@ phase's plan doc ends with an "as implemented" section that records what
 was actually built and where it departed from the plan: trust that over
 the plan sections above it, and over this file if they disagree.
 
-## Status (2026-09-27)
+## Status (2026-09-28)
 
 Phases 1-8 are done, committed and deployed. Phase 9, a seat over MCP,
 is built and live: 9a-9j (9f and 9g in revision `clude-00011-t7g`,
 2026-09-25; 9h in `clude-00012-bqr`, 9i in `clude-00013-x95` and 9j in
-`clude-00014-sqn`, 2026-09-26 and 2026-09-27). Phase 10 has started:
-**10a, the artboards, is drawn and waiting for David's review** (D5,
-the logo, is decided there); 10b-10g are not started. Phase 11 is
-untouched.
+`clude-00014-sqn`, 2026-09-26 and 2026-09-27). Phase 10 is under way:
+10a, the artboards, drawn and reviewed (D5, the logo, narrowed to E or
+F, David's pick pending); **10b, the token layer, and 10c, play is
+blind, built and live together in `clude-00016-65z` (2026-09-28)**;
+10d-10i not started. Phase 11 is untouched.
 
 Each phase's record is the "as implemented" section of its plan doc
 (`docs/phase5-plan.md` to `docs/phase9-plan.md`; Phases 1-4 in
@@ -112,7 +113,7 @@ keyhole-? mark (E) or the same with the c as the question mark's dot
 (F), his pick pending. `docs/phase10-plan.md` 13 and 17.
 
 **Phase 10b (2026-09-28), the token layer**, built with the suite
-green and **not deployed**: `static/styles/engraved.css` beside
+green: `static/styles/engraved.css` beside
 Legacy, in the Look picker as "Engraved (beta)" with Legacy still the
 default until 10e (D7); case-file light by default, gaslight dark on a
 device's dark preference; the four faces served from `static/fonts/`
@@ -123,7 +124,20 @@ screens dressed class for class until 10c-10e move them; the cost bar
 hidden in this look (D9). `clude_shots.py` shoots every look
 (`--look`), file names carrying it. `docs/phase10-plan.md` 17.
 
-Suite: 518 passed, 27 skipped, about three minutes with `-n auto`; 25
+**Phase 10c (2026-09-28), play is blind**, built with the suite green:
+`readings` is absent from a seated player's payload, not null (a test
+asserts the key is not sent and not in the page); every seat carries
+its method one-liner (characters and LLM seats, D8) and its hand size,
+and the roster marks the seat the table waits on; a card the viewer has
+shown is ticked in the hand (`me.shown`), never removed; under Engraved
+the notepad's marks are solid ink and screentone, Legacy untouched.
+10b and 10c went out together as revision `clude-00016-65z` on
+2026-09-28, the stylesheet and a font fetched from the service
+afterwards. (The stylesheet tests now parametrise on the look's key:
+with the sheet's text in the test id, Windows refused pytest's
+`PYTEST_CURRENT_TEST` variable as longer than 32767 characters.)
+
+Suite: 523 passed, 27 skipped, about three minutes with `-n auto`; 25
 more under `CLUDE_WEB_BROWSER=1`. (Three debrief tests turned out to
 fail on a fast machine before 9h: reactions are now immediate there.)
 
@@ -137,7 +151,7 @@ fail on a fast machine before 9h: reactions are now immediate there.)
 | 8.2 | Human players | done: 8.2a-c built 2026-09-18 (the table driver and `play --human`; the table on the web with open seats, autopilot, cold rebuild and "characters remember"); 8.2d deployed and live-checked 2026-09-19, the cold rebuild 0.1 s on a 3-turn table (`docs/phase8-plan.md` 12, `docs/web.md`) |
 | 8.3 | The rest of chat: the model on the web under a spend cap, human chat, off-turn talk with pacing, debriefs after web games | done: 8.3a-c built 2026-09-19 on fake backends, the key deployed and one live table played the same day (two model seats, chat, "remember"; $0.34, no fallbacks); 8.3d closed Phase 8 (`docs/phase8-plan.md` 12) |
 | 9 | A seat over MCP: a Claude in a chat window (claude.ai) plays one seat of a live table through an MCP server mounted beside the Flask app, on the same `TableRegistry` | built. 9a the plan and the renumbering (2026-09-20); 9b the server and the combined ASGI app, 9c deployed with the secret and the `claude` account, both 2026-09-21, and the first live game from the chat that evening; 9d the eight fixes after the second live game and 9e David's follow-ups, both 2026-09-22 and deployed that evening; 9f the chat seat's report after the third live game and 9g what a game cost (both 2026-09-25, deployed that day), 9h five tweaks in one sweep (2026-09-26 and deployed that evening; typing, the turn time-out and speed mode, the certainty tag, the animated replay, the Legacy style); 9i the chat seat's five requests after table `5019abeb0a` (2026-09-26; waiting for the deal, the held-back pass, hand sizes and disproof order, hard mode, a whole replay URL; deployed that evening) and 9j every chatbot its own login, watching over MCP, and names capitalised (2026-09-27, deployed that day as `clude-00014-sqn`) -- `docs/phase9-plan.md` 8, `docs/phase9h-plan.md` |
-| 10 | In-depth UX: the shippable look, "engraved, not brass-plated" | in progress. `docs/phase10-plan.md` proposed 2026-09-20, David's answers recorded 2026-09-21 (D1-D4, D6); 10a the artboards drawn 2026-09-27 (`docs/ux/table/`, `docs/ux/logo/`) and revised 2026-09-28 after his review (D7-D14), D5 narrowed to E or F; 10b the token layer built 2026-09-28 (Engraved as an opt-in beta beside Legacy, the faces self-hosted, the motion switch), to deploy; 10c-10g as planned and 10h the help layer and 10i the two explainers added, all before 1.0.0 (was Phase 9 until 2026-09-20) |
+| 10 | In-depth UX: the shippable look, "engraved, not brass-plated" | in progress. `docs/phase10-plan.md` proposed 2026-09-20, David's answers recorded 2026-09-21 (D1-D4, D6); 10a the artboards drawn 2026-09-27 (`docs/ux/table/`, `docs/ux/logo/`) and revised 2026-09-28 after his review (D7-D14), D5 narrowed to E or F; 10b the token layer and 10c play-is-blind built 2026-09-28 (Engraved as an opt-in beta beside Legacy, the faces self-hosted, the motion switch; `readings` absent for a seated player, methods and hand sizes on the rail, shown cards ticked), deployed together that day as `clude-00016-65z`; 10d-10g as planned and 10h the help layer and 10i the two explainers added, all before 1.0.0 (was Phase 9 until 2026-09-20) |
 | 11 | Tweak, polish, release: clean-up and close, then version 1.0.0, released to family and friends, and planning in versions, not phases | not started (was Phase 10) |
 
 Where things stand:

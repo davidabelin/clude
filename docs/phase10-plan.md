@@ -530,7 +530,8 @@ from the same seeded game:
 
 `static/styles/engraved.css`, beside `legacy.css` and never touching
 it, in `STYLES` as "Engraved (beta)" with Legacy still the default (D7).
-Built with the suite green.
+Built with the suite green; deployed with 10c as `clude-00016-65z` on
+2026-09-28.
 
 - **The tokens** are section 5 as it stands after the second round:
   case-file light on `:root`, gaslight dark under
@@ -572,3 +573,44 @@ Built with the suite green.
 - Departure from the plan: the sheet does not restyle the templates'
   structure (no two panels, no focus ladder, no decorated board): those
   are 10c-10f, and the beta label says so.
+
+### 10c: play is blind (2026-09-28)
+
+Section 3.2 as amended by D8 and D9, in both looks. Built with the
+suite green (523 passed, 27 skipped) and deployed with 10b as
+`clude-00016-65z` on 2026-09-28; the stylesheet and a font were
+fetched from the service afterwards, and `clude_shots.py` shot every
+screen in both looks before the deploy.
+
+- **`readings` is absent** from a seated player's payload, not null:
+  `view_payload` adds the key only for a spectator, and the test that
+  used to assert `None` now asserts the key is not in the poll and the
+  string `"readings"` is not in the page. The bars were already off a
+  seated player's screen since 2026-09-22; this closes the view-source
+  gap the plan named. Spectators and Watch keep them (D1).
+- **The seat rail on public facts.** Every seat in the payload now
+  carries `method` (the one-liner from `replay_data.seat_method` for a
+  character or LLM seat, empty for a person or the floor bot; D8) and
+  `cards` (its hand size, public from the deal). `renderRoster` in
+  `table.js` draws the name, the method, the card count, out or
+  autopilot or the time-out strikes, and marks the seat the table waits
+  on ("deciding", or "your decision", with an `acting` class the
+  Engraved sheet gives a brass rule and the lift). Nothing of what a
+  seat has proven or believes, and a test asserts no such key is sent.
+- **The hand:** `me.shown` maps each card the viewer has shown to the
+  seat it was last shown to, from the suggestion log; a shown chip gets
+  the `shown` class and a tooltip, and in Engraved a dashed edge and a
+  brass tick. It is never removed (7).
+- **The notepad** keeps its markup (a square glyph for a proven holder,
+  a dot for a possible one, which Legacy colours as before); Engraved
+  hides the glyph and draws the cell's own mark, solid ink for a proof,
+  a screentone dot for a possibility, the envelope column in the red
+  thread, a solved row in the accent. `legacy.css` is untouched.
+- Nothing changed for the lobby form or the replay: both already named
+  the methods (D3 as amended).
+- A test fix found by the full suite: the two stylesheet tests in
+  `tests/test_replay_screen.py` were parametrised on each sheet's text,
+  which put the 32 KB of `engraved.css` into the test id; on Windows
+  pytest then failed to set `PYTEST_CURRENT_TEST`, an environment
+  variable capped at 32767 characters. They now parametrise on the
+  look's key and read the sheet inside the test.
