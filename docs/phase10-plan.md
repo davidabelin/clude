@@ -1,6 +1,6 @@
 # Phase 10 Plan: the shippable look \-- "engraved, not brass-plated"
 
-Status: **proposed 2026-09-20; David's answers recorded 2026-09-21; 10a drawn 2026-09-27 and revised after his review on 2026-09-28 (section 17).** David's brief is section 3; D1-D14 are in section 13, where the second round (D7-D14) reverses D3 and D6 and adds sub-phases 10h and 10i\. D5 is narrowed to E or F in `docs/ux/logo/index.html`, David's pick pending. Written in the shape of the other phase plans: context, what the code dictates, design, sub-phases, files, decisions, out of scope, and an "as implemented" section once the work lands.
+Status: **proposed 2026-09-20; David's answers recorded 2026-09-21; 10a drawn 2026-09-27 and revised after his review on 2026-09-28; 10b-10c built 2026-09-28; 10d-10g built 2026-09-29 (section 17).** David's brief is section 3; D1-D16 are in section 13, where the second round (D7-D14) reverses D3 and D6 and adds sub-phases 10h and 10i, and the third (D15-D16, 2026-09-29) makes the two themes choosable by name. D5 is settled: candidate E. Written in the shape of the other phase plans: context, what the code dictates, design, sub-phases, files, decisions, out of scope, and an "as implemented" section once the work lands.
 
 ## 1\. Context
 
@@ -323,7 +323,7 @@ Short, restrained effects support the table's actions: a turn-ready cue, a movem
 
 ## 13\. David's decisions
 
-Answers recorded 2026-09-21. D1-D4 and D6 are settled; D5 remains unanswered until David reviews the alternates.
+Answers recorded 2026-09-21. D1-D4 and D6 were settled then; D5 waited for the alternates and was settled on 2026-09-29 (E).
 
 - **D1. Watch keeps the bars?** My proposal: yes \-- nobody is at the table, and the six methods racing is what Watch is for. Play loses them, the replay keeps them.
 
@@ -343,7 +343,7 @@ Answers recorded 2026-09-21. D1-D4 and D6 are settled; D5 remains unanswered unt
 
 - **D5. Logo**: is the plate wordmark plus the keyhole-c the direction, or do you want the three alternates drawn first?
 
-  **Answer:** Unanswered. Let me see the alternates first.
+  **Answer:** Unanswered. Let me see the alternates first. *Narrowed to E or F on 2026-09-28 (D11); **E** on 2026-09-29, the cartouche with the keyhole-? mark, built in 10f.*
 
 - **D6. Light or dark as the default** when a device states no preference. Case-file light is the better first impression; gaslight dark is the better game.
 
@@ -361,6 +361,12 @@ D3 and D6 are **reversed** by D8 and D10 below; D5 is narrowed by D11.
 - **D12. Contact and privacy.** The contact page links the repo's GitHub issues. The privacy page states what is kept (accounts as name and hash; game records, chat lines and costs, indefinitely; table talk and game state sent to Anthropic when a model seat plays; hosted on Google Cloud us-central1; a session cookie only, no analytics; fonts self-hosted from 10b) and that `users remove` deletes an account on request. Both public, outside the login gate; drafted in 10h, shipped in Phase 11.
 - **D13. Help before 1.0.0.** Two new sub-phases: **10h the help layer** (a Help link in the header bar; tooltips on every control, the notepad, the certainty tag and the seat rail; a first-login welcome card; a "How to play" page; the privacy and contact drafts) and **10i the two explainers** ("How the characters think" at high-school level, for high-schoolers and octogenarians alike; "The methods" as a Wikipedia featured article for the nerds, built from `docs/strategy-glossary.md` and the six modules with the measured numbers).
 - **D14. Sound (10g) stays before 1.0.0.**
+
+### Third round (2026-09-29), before 10d
+
+- **D5 settled: E**, the cartouche wordmark under the keyhole with a "?" keyway.
+- **D15. The two themes are choosable by name.** The Look picker offers "Case file light" and "Gaslight dark" beside Engraved as the device has it, and Legacy. Amends D10, which had one Engraved entry and nothing to set; D10's default (light, dark on a device's preference) is the automatic entry's behaviour and still every unchosen account's look.
+- **D16. Two cosmetic points in the red thread** (the colour of the wordmark and Accuse): the time-out clock's seconds, bright red for the last ten; and the Notes panel's category headings, Suspects, Weapons and Rooms.
 
 ## 14\. Sub-phases
 
@@ -614,3 +620,130 @@ screen in both looks before the deploy.
   pytest then failed to set `PYTEST_CURRENT_TEST`, an environment
   variable capped at 32767 characters. They now parametrise on the
   look's key and read the sheet inside the test.
+
+### 10d-10g, with David's third round (2026-09-29)
+
+Built in one day with the suite green (537 passed, 31 skipped; the 29
+browser tests pass under `CLUDE_WEB_BROWSER=1`), not yet deployed. Two
+things shape all four sub-phases:
+
+- **Two markups, one script.** `legacy.css` is never edited, so Legacy
+  cannot style anything new. `table.html` therefore has an Engraved
+  branch (the stage and the rail) and keeps the markup Legacy was frozen
+  with in the other; `board_svg` dresses the board only when asked; and
+  `table.js` gates each Phase 10 behaviour on `<html data-style>` not
+  being `legacy`. Each `Style` in `clude_web.styles` now says whether it
+  is `engraved` and which `theme` it fixes. Legacy's screens are as they
+  were, plus the favicon and the sound control, which work in both.
+- **The looks (D15).** `STYLES` is Engraved (auto), Case file light,
+  Gaslight dark and Legacy, the first three on one sheet; a fixed theme
+  sets `<html data-theme>`, and `engraved.css` carries the dark tokens
+  twice, under the device's preference unless the look fixes light, and
+  under `:root[data-theme="dark"]` (a test keeps the two blocks
+  identical). **Engraved is the default (D7)**: `DEFAULT_STYLE` is
+  `engraved`. Version 3 accounts had `legacy` written into them unasked,
+  so `users` version 4 records `style_chosen`, a stored `legacy` without
+  it reads as no choice, and `add_user` writes no look at all; the
+  session key is renamed (`style` to `look`) so a session from before
+  falls through to the new default. Someone who had deliberately picked
+  Legacy from the bar before today reads as unchosen and gets Engraved;
+  they can pick it again.
+
+**D16, the red thread.** The status line's clock is now its own element
+(`.clock`), in `--accent`, and `--alarm` (a brighter red, with a dark
+twin) for the last ten seconds; only the clock is rewritten each
+second. The notepad's category headings are `--accent`, capitalised by
+the sheet. An envelope row is marked `solved` and no longer struck
+through.
+
+**10d, the Record and Talk (3.3).** `view_payload` decides the split:
+every event carries `panel` (`talk` for every `RemarkEvent`, `record`
+for the rest), `seat` (whose event it is, `replay_data.event_actor`)
+and, for a remark, `line`, the words without the speaker in front. The
+Record prints each turn's number once in the gauge-face margin (CSS
+`attr(data-turn)` on a turn's first line, so a line's text is
+unchanged), with a hairline between turns; Talk is balloons, yours on
+the right, the speaker's colour on the edge and tail (the name stays in
+ink: Mustard's and White's colours are illegible as text on paper, and
+White's colour becomes the soft ink); a record line on a turn with talk
+gets the speech pip, which opens Talk there and flashes the balloon.
+The say box counts from 200 characters and stops at 240. Tests: the two
+panels hold disjoint events whose union is the log, remarks only in
+Talk; a hostile line is data in the page, never markup.
+
+**10e, the focus ladder (3.1).** `tables.focus_for(pending, finished)`
+ranks what the server can see (`show`, `end`, `move`, `decide`,
+`board`) and the payload carries it as `focus`; `table.js` lays the two
+it cannot see over `board`: `beat` for 2.2 s after a suggestion or an
+accusation arrives, `talk` for 6 s after a line. A decision of the
+viewer's locks both out, except the accusation's impact frame (rank 2).
+The stage is one panel with an overlay: the caption box (the speaker's
+colour as its rule, the accusation in the hero size and
+`aria-live="assertive"`), the last two balloons, or the riveted end
+plate (the envelope, the winner). A focus change is a panel cut, a
+clip from the right at `--dur-cut`; the accusation flashes the stage to
+ink at `--dur-impact`, and with motion off it is still an 80 ms flash
+to opacity (`--dur-flash`, the one duration the switch leaves alone).
+Esc ends a beat or talk early. The layout is section 6's: on a phone one
+column (status, stage, the decision under the thumb, the seat chips,
+the tab strip Talk / Record / Hand / Notes with one panel open, each tab
+showing what it holds back -- a count on Talk, a dot on Record, the
+hand's size on Hand), the empty "Not your decision" panel dropped and
+the board shrunk to a strip under `decide`; from 36rem two columns with
+the stage sticky and every panel open; from 62rem the seats across the
+top and the Record and Talk side by side. The seat chips carry the
+pip with the initial, the name on its certainty, the method's short
+form (`replay_data.METHOD_SHORT`, the one-liner on hover), one word of
+state and the card count; the board marks the seat now thinking with a
+dashed ring, and says where every token is in its `aria-label`
+(`where` in the payload). A refused answer shakes the decision once.
+Tests: the ladder in Python, and a browser test that plays seed 11 and
+sees all seven states.
+
+**10f, the decorated board and the logo (8, 9).** `board_svg(...,
+dressed=True)` adds a `<defs>` of the four floor patterns (the sheet
+picks one per room and colours it), a brass hairline over every wall, a
+rivet at each end of every door, an initial on every token (`Pe` and
+`Pl` for the two P's), and the logo in the cellar; undressed it is
+byte for byte the old board. The views ask for it through the viewer's
+look. The logo is candidate E, ported from `docs/ux/sketch_parts.py`
+into `clude_web/logo.py`: the cellar's cartouche, the header bar's mark
+beside the wordmark under Engraved, and `static/favicon.svg` (the one
+drawing with its own colours, since a tab has no stylesheet; a test
+keeps the file equal to `logo.favicon_svg()`). Tokens glide at
+`--dur-move`; an initial moves by a CSS transform, since a text
+element's x and y cannot be transitioned. Lit destinations are squares
+at the server's coordinates, a room's larger and dashed (`size` in each
+movement option), pulsing once; they stay one per button.
+
+**10g, sound (11.1).** Four cues synthesised by `scripts/make_sounds.py`
+from sines and a seeded noise, standard library only, 108 KB in all:
+`tick` (a relay's click: a move, or a suggestion nobody disproved),
+`turn` (a desk bell: a decision just became yours), `refute` (a card
+snapped down) and `accent` (a struck plate: an accusation, the end). No
+music. `static/sound.js` plays them: muted until turned on from the
+header bar's Sound button (with a volume slider once on), both
+remembered on the device; one cue per batch of new events, the loudest;
+a cue within 150 ms of another dropped unless it outranks it. The cue is
+made from the event alone (`replay_data.event_cue`), so every viewer
+hears the same one for the same line. The table cues only what is new
+since its last paint (so no poll, reload or first paint makes a sound;
+talk is silent); the replay only when Play reaches a step, never the
+scrubber; Watch plays its turn's loudest cue once when the page arrives
+from Next turn, not on a reload (`data-cue` and a key in session
+storage). The cues were checked by measurement (length, level, decay,
+pitch), not yet by ear. Tests: the files are short mono WAVs, the
+default is off, the preference survives a reload, and the silences
+above hold in a browser (`window.cludeSound.played`).
+
+**Found on the way.** Five browser tests had been failing since Phase
+9j, expecting `browser` where names are now shown capitalised; fixed.
+The first tab-badge code matched the wrong badge, because `#screen`
+carries a `data-tab` too; the phone test caught it. The Record's turn
+number once printed twice when a batch held two lines of one turn.
+
+**Departures.** The replay keeps its layout (the collapsible seat
+blocks of the 10a artboard are not built) and gains only the dressed
+board and sound; the `show` caption names the asker and the cards you
+hold, since the request does not carry the suggestion itself; on a
+phone the header bar wraps to two rows with the Sound button in it.

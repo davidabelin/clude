@@ -88,7 +88,7 @@ from clude_agents import AGENT_SPECS, build_agent
 from clude_agents.bandit import RevealedOutcome
 from clude_core import engine
 from clude_core.domain import ALL_CARDS, ROOMS, SUSPECTS, WEAPONS
-from clude_core.events import GameOverEvent, SuggestionEvent
+from clude_core.events import GameOverEvent, RemarkEvent, SuggestionEvent
 from clude_llm.backend import DEFAULT_MODEL
 from clude_llm.metered import Ledger, MeteredBackend
 from clude_storage import GameRecord, Logbook, SeatRecord
@@ -560,6 +560,41 @@ def notepad(game, viewer: int) -> list:
     return rows
 
 
+FOCUS_RANKS = ("show", "end", "move", "decide", "beat", "talk", "board")
+"""The focus ladder of plan 3.1, highest first: what holds the stage.
+`focus_for` decides the ranks the server can see (`show`, `end`,
+`move`, `decide`, `board`); the page lays `beat` and `talk` over
+`board` for 2.2 s and 6 s after a line arrives, since only it knows
+when that was."""
+
+
+def focus_for(pending: Optional[dict], finished: bool) -> str:
+    """The rank of the focus ladder the server decides (plan 3.1).
+
+    `pending` is the viewer's own decision, or None. A card to show
+    outranks the end, which outranks the viewer's move and then their
+    other decisions; with none of those the board holds the stage and
+    the page may lay a beat or talk over it. The stage never changes
+    under the viewer's hand: with a decision of theirs pending the page
+    lays nothing over it but the accusation's impact frame.
+    """
+    if pending is not None and pending.get("kind") == "card_to_show":
+        return "show"
+    if finished:
+        return "end"
+    if pending is not None and pending.get("kind") == "movement":
+        return "move"
+    if pending is not None:
+        return "decide"
+    return "board"
+
+
+def place_name(node) -> str:
+    """Where a token stands, in words, for the board's spoken label
+    (plan 12): a room by name, anything else as the corridor."""
+    return f"the {node}" if isinstance(node, str) else "the corridor"
+
+
 def viewer_seat(setup: TableSetup, me: Optional[str]) -> Optional[int]:
     """The seat `me` (an account key) holds at this table, or None."""
     if not me:
@@ -623,6 +658,7 @@ def view_payload(
             "name": names[seat],
             "kind": game.kinds[seat],
             "method": replay_data.seat_method(game.labels[seat]) if game.kinds[seat] in ("character", "llm") else "",
+            "method_short": replay_data.seat_method_short(game.labels[seat]) if game.kinds[seat] in ("character", "llm") else "",
             "cards": len(game.state.hands.get(seat, ())),
             "active": bool(snap.active[seat]),
             "autopilot": bool(autopilot.get(str(seat))),
@@ -633,6 +669,12 @@ def view_payload(
         for seat, token in enumerate(game.suspects)
     ]
     points = board_svg.token_points({game.suspects[seat]: node for seat, node in snap.positions.items()})
+    # Talk and the record are two panels, never one (plan 3.3, Phase
+    # 10d): every RemarkEvent goes to Talk and everything else to the
+    # Record, decided here so the split is one rule with a test. `line`
+    # is what a balloon says without the speaker's name in front; `seat`
+    # is whose event it is, for the balloon's colour and the beat's
+    # rule; `cue` is the sound it makes (10g).
     events = [
         {
             "i": index,
@@ -640,6 +682,10 @@ def view_payload(
             "kind": kind,
             "about": getattr(event, "about", None),
             "text": text,
+            "panel": "talk" if isinstance(event, RemarkEvent) else "record",
+            "seat": replay_data.event_actor(event),
+            "line": event.text if isinstance(event, RemarkEvent) else None,
+            "cue": replay_data.event_cue(event),
         }
         for index, event in enumerate(game.events[:snap.n_events])
         if index >= since
@@ -655,8 +701,14 @@ def view_payload(
             pending = dict(request)
             pending["seq"] = snap.seq
             if request["kind"] == "movement":
+                # `size` is the side of the lit square the Engraved board
+                # draws there (Phase 10f): a cell, or half as much again
+                # for a room, so the geometry stays on this side.
                 pending["options"] = [
-                    dict(option, x=x, y=y, distances=_distance_line(node))
+                    dict(
+                        option, x=x, y=y, distances=_distance_line(node),
+                        size=board_svg.CELL * (1.5 if isinstance(node, str) else 1),
+                    )
                     for option in request["options"]
                     for node in [_node_of(option["to"])]
                     for x, y in [board_svg.node_centre(node)]
@@ -749,9 +801,16 @@ def view_payload(
         "n_events": snap.n_events,
         "seats": seats,
         "tokens": {token: [round(x, 1), round(y, 1)] for token, (x, y) in points.items()},
+        # Where each token stands, in words, for the board's spoken label
+        # (plan 12, Phase 10e): public, since every token is on the board.
+        "where": {game.suspects[seat]: place_name(node) for seat, node in snap.positions.items()},
         "events": events,
         "pending": pending,
         "waiting": waiting,
+        # What holds the stage (plan 3.1, Phase 10e): the server's ranks
+        # of the focus ladder; the page lays the beat and talk over
+        # `board` itself.
+        "focus": focus_for(pending, bool(snap.finished)),
         # Work is due while the bots play, while a model seat decides,
         # while a line waits to be said -- and once a person's time is up
         # (Phase 9h): only `work` plays the timed-out turn, so the page

@@ -1,18 +1,24 @@
 <!DOCTYPE html>
 {% set style = current_style() %}
-<html lang="en" data-style="{{ style.key }}">
+<html lang="en" data-style="{{ style.key }}"{% if style.theme %} data-theme="{{ style.theme }}"{% endif %}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}clude{% endblock %}</title>
   <meta name="csrf" content="{{ csrf_token() }}">
   <link rel="stylesheet" href="{{ url_for('static', filename=style.stylesheet) }}">
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
 </head>
 <body>
   <header class="bar">
+    {% if style.engraved %}
+    <a class="mark" href="{{ url_for('main.index') }}">{{ logo_mark|safe }}<span>clude</span></a>
+    {% else %}
     <a class="mark" href="{{ url_for('main.index') }}">clude</a>
+    {% endif %}
     {% if session.get('user') %}
       <div class="bar-right">
+        {% block sound %}{% endblock %}
         {# The look (Phase 9h): the account's choice, changed from any page, a table mid-game included. #}
         <form method="post" action="{{ url_for('auth.style') }}" class="look">
           <input type="hidden" name="csrf" value="{{ csrf_token() }}">

@@ -161,7 +161,10 @@ def shoot(base: str, run: str, index: int, out: Path, dark: bool, phone: bool, s
         schemes = ["light"] + (["dark"] if dark else [])
 
         for look in looks:
-          for scheme in schemes:
+          # A look that fixes its theme (Case file light, Gaslight dark)
+          # looks the same under either device preference: one pass.
+          fixed = styles.style_named(look).theme
+          for scheme in ([fixed] if fixed else schemes):
             for label, size in sizes:
                 context = browser.new_context(viewport=size, color_scheme=scheme, reduced_motion="reduce")
                 context.add_init_script(MOTION_OFF)

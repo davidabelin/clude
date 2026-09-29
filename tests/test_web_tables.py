@@ -202,7 +202,7 @@ def test_a_dealt_table_opens_on_the_play_view(ann, app):
     assert payload["seats"][0].pop("cards") == len(payload["me"]["hand"])
     assert payload["seats"][0] == {
         "seat": 0, "token": "Scarlett", "label": ANN, "name": "Scarlett (Ann)", "kind": "human",
-        "method": "", "active": True, "autopilot": False, "strikes": 0, "me": True,
+        "method": "", "method_short": "", "active": True, "autopilot": False, "strikes": 0, "me": True,
     }
     assert [s["kind"] for s in payload["seats"]] == ["human", "character", "character", "floor"]
     # Public facts (Phase 10c, plan 3.2): a character names its method
@@ -815,3 +815,132 @@ def test_two_tables_finishing_keep_greens_learning(store):
     after_two = Logbook(store, "Green").method()
     assert after_two["games"] == 2, "the second finish overwrote the first's learning"
     assert after_two["arms"] != method_memory.empty_memory("state")["arms"]
+
+
+# --- Phase 10d-10g: the two panels, the focus ladder, the cues -------------
+
+
+def test_talk_and_the_record_hold_disjoint_events_and_a_hostile_line_runs_nothing(app, ann):
+    """Phase 10d (plan 3.3): talk and the record are two panels, never
+    one. The server puts every event in exactly one: every remark in
+    Talk, everything else in the Record, so the two are disjoint and
+    together are the whole log. A balloon's `line` is the words alone,
+    and a hostile one is data in the page, never markup."""
+    table_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
+    game = app.extensions["tables"].game(table_id)
+    hostile = '</script><script>alert("x")</script>'
+    game.remark(0, hostile, "chat")
+    seen = {}
+
+    def keep(payload):
+        for event in poll(ann, table_id)["events"]:
+            seen[event["i"]] = event
+
+    final = play_out(app, table_id, {ANN: ann}, on_payload=keep)
+    keep(final)
+    events = [seen[i] for i in sorted(seen)]
+    assert [e["i"] for e in events] == list(range(len(events))), "every event reached the screen"
+    talk = {e["i"] for e in events if e["panel"] == "talk"}
+    record = {e["i"] for e in events if e["panel"] == "record"}
+    assert talk and record and not talk & record and talk | record == set(seen)
+    assert all(seen[i]["kind"] == "remark" for i in talk)
+    assert not any(seen[i]["kind"] == "remark" for i in record)
+    said = next(e for e in events if e["panel"] == "talk" and e["seat"] == 0)
+    assert said["line"] == hostile and said["text"].endswith("”") and said["turn"] >= 0
+    assert all(e["line"] is None for e in events if e["panel"] == "record")
+    assert all(e["seat"] in (0, 1, 2, None) for e in events)
+
+    live = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
+    app.extensions["tables"].game(live).remark(0, hostile, "chat")
+    page = ann.get(f"/tables/{live}").get_data(as_text=True)
+    assert "<script>alert" not in page and "</script><script>" not in page
+
+
+def test_the_focus_ladder_ranks_what_the_server_can_see():
+    """Phase 10e (plan 3.1): a card to show outranks the end, which
+    outranks the viewer's move and then their other decisions; with none
+    of those the board holds the stage (and the page may lay a beat or
+    talk over it)."""
+    assert tables.FOCUS_RANKS == ("show", "end", "move", "decide", "beat", "talk", "board")
+    assert tables.focus_for({"kind": "card_to_show"}, finished=False) == "show"
+    assert tables.focus_for({"kind": "card_to_show"}, finished=True) == "show"
+    assert tables.focus_for(None, finished=True) == "end"
+    assert tables.focus_for({"kind": "movement"}, finished=False) == "move"
+    assert tables.focus_for({"kind": "suggestion"}, finished=False) == "decide"
+    assert tables.focus_for({"kind": "accusation"}, finished=False) == "decide"
+    assert tables.focus_for(None, finished=False) == "board"
+
+
+def test_the_payload_carries_the_focus_the_places_and_the_lit_squares(app, ann, cat):
+    """Phase 10e-10f. The viewer's own move puts the stage on `move`,
+    each option carrying the side of its lit square; a spectator's stage
+    is the board; every token's place is named for the board's spoken
+    label; at the end everyone's focus is `end`."""
+    table_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
+    tables.WORK_INTERVAL, saved = 0.0, tables.WORK_INTERVAL
+    try:
+        payload = poll(ann, table_id)
+        while payload["pending"] is None:
+            payload = work(ann, table_id)
+    finally:
+        tables.WORK_INTERVAL = saved
+    assert payload["pending"]["kind"] == "movement" and payload["focus"] == "move"
+    for option in payload["pending"]["options"]:
+        assert option["size"] == (36.0 if option["room"] else 24)
+    assert poll(cat, table_id)["focus"] == "board", "a spectator has no decision to hold the stage"
+    where = payload["where"]
+    assert set(where) == {"Scarlett", "Mustard", "White"}
+    assert all(place == "the corridor" or place[4:] in ROOMS for place in where.values())
+    final = play_out(app, table_id, {ANN: ann})
+    assert final["focus"] == "end" and poll(cat, table_id)["focus"] == "end"
+    assert [s["method_short"] for s in final["seats"]] == ["", "Decision tree", "Markov chain"]
+
+
+def test_a_cue_is_the_same_for_every_viewer_and_follows_the_line(app, ann, cat):
+    """Phase 10g (plan 11.1). Every event names its sound, made from the
+    event alone: the seat that saw the card and the spectator who did
+    not hear the same cue for every line, so a cue never says more than
+    its line does. Talk is silent; the loudest cue of a batch wins."""
+    from clude_web import replay_data
+
+    table_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
+    play_out(app, table_id, {ANN: ann})
+    game = app.extensions["tables"].game(table_id)
+    names = tables.seat_names(game)
+    mine = [tables.describe_for(e, game, names, 0) for e in game.events]
+    theirs = [tables.describe_for(e, game, names, None) for e in game.events]
+    cues = [replay_data.event_cue(e) for e in game.events]
+    assert mine != theirs, "the seat that was shown cards reads more than the spectator"
+    kinds = {kind: set() for kind, _ in mine}
+    for (kind, _), cue in zip(mine, cues):
+        kinds[kind].add(cue)
+    assert kinds["move"] == {"tick"} and kinds["over"] == {"accent"}
+    assert kinds.get("accusation", {"accent"}) == {"accent"}
+    assert kinds["suggestion"] <= {"tick", "refute"}
+    for event, cue in zip(game.events, cues):
+        if isinstance(event, SuggestionEvent):
+            assert cue == ("refute" if event.suggestion.refuter is not None else "tick")
+    assert replay_data.loudest_cue(["tick", None, "refute", "tick"]) == "refute"
+    assert replay_data.loudest_cue(["tick", "accent", "refute"]) == "accent"
+    assert replay_data.loudest_cue([None, None]) is None
+
+
+def test_the_table_screen_wears_its_look_and_offers_sound(app, ann):
+    """Phase 10d-10g. Under Engraved (the default since 10e) the table
+    is the stage and the rail -- the overlay, the tab strip, the four
+    rail panels, the say box's counter -- on a dressed board, with the
+    sound control in the header; under Legacy it is the markup Legacy was
+    frozen with, on the plain board, and sound works there too."""
+    table_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
+    page = ann.get(f"/tables/{table_id}").get_data(as_text=True)
+    for part in ('id="screen"', 'id="stage"', 'id="over"', 'id="end-plate"', 'id="tabs"',
+                 'data-tab="talk"', 'data-tab="record"', 'data-tab="hand"', 'data-tab="notes"',
+                 'id="say-count"', 'id="sound-toggle"', "board-engraved", "board-initial", "sound.js"):
+        assert part in page, part
+    assert 'data-focus="' in page and "The record" in page
+
+    ann.post("/style", data={"csrf": csrf(ann), "style": "legacy", "next": "/"})
+    legacy = ann.get(f"/tables/{table_id}").get_data(as_text=True)
+    assert 'id="screen"' not in legacy and "board-engraved" not in legacy and "board-initial" not in legacy
+    assert 'class="replay-body"' in legacy and "The game so far" in legacy
+    assert 'id="sound-toggle"' in legacy and "sound.js" in legacy

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{% if open_table %}Waiting for players{% else %}Table &middot; turn {{ payload.turns }}{% endif %}{% endblock %}
+{% block sound %}{% if not open_table %}{% include "_sound.html" %}{% endif %}{% endblock %}
 {% block content %}
 <div class="watch table{% if viewer is none %} spectating{% endif %}" id="table" data-id="{{ table_id }}">
 
@@ -62,8 +63,111 @@
     <p class="note">{% if setup.open_seats %}The table is dealt once every open seat is taken. {% endif %}Send the others this page's address.</p>
   </section>
 
+  {% elif current_style().engraved %}
+
+  {# Phase 10d-10e: the stage and the rail (plan 3.1, 3.3, 6). The main
+     column holds the status, the stage and the decision; the side
+     column the four rail panels, which a phone shows one at a time
+     under the tab strip. The stage's overlay carries the beat caption,
+     the last balloons and the end plate, filled by table.js. #}
+  <div class="screen" id="screen" data-focus="{{ payload.focus }}" data-tab="record">
+    <div class="col col-main">
+      <p class="status" id="status" aria-live="polite"></p>
+      <section class="stage" id="stage">
+        {{ board|safe }}
+        <div class="over" id="over" hidden>
+          <p class="beat" id="beat" hidden></p>
+          <ol class="talk talk-over" id="talk-over" aria-hidden="true" hidden></ol>
+          <div class="plate hero" id="end-plate" hidden>
+            <span class="rivet tl"></span><span class="rivet tr"></span><span class="rivet bl"></span><span class="rivet br"></span>
+            <p class="kicker">The envelope</p>
+            <p class="envelope" id="envelope"></p>
+            <p class="winner" id="winner"></p>
+          </div>
+        </div>
+      </section>
+      {% if payload and payload.llm %}<p class="note spend" id="spend"></p>{% endif %}
+      {% if viewer is not none %}
+      <div class="panel controls decision-panel" id="dock">
+        <h2 id="decision-title">Your decision</h2>
+        <div class="decision" id="decision"></div>
+        <p class="error" id="error" role="alert" hidden></p>
+      </div>
+      <div class="panel accuse-panel" id="accuse-panel">
+        <h2><button type="button" class="accuse-toggle" id="accuse-toggle" aria-expanded="false" aria-controls="accuse-body">Accuse</button></h2>
+        <div class="accuse-body" id="accuse-body" hidden>
+          <p class="note" id="accuse-hint"></p>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="seats" id="seats"></div>
+
+    <nav class="tabs" id="tabs" aria-label="Table panels">
+      <button type="button" class="tab" data-tab="talk" aria-pressed="false">Talk <span class="badge" hidden></span></button>
+      <button type="button" class="tab" data-tab="record" aria-pressed="false">Record <span class="dot" hidden></span></button>
+      {% if viewer is not none %}
+      <button type="button" class="tab" data-tab="hand" aria-pressed="false">Hand <span class="badge" hidden></span></button>
+      <button type="button" class="tab" data-tab="notes" aria-pressed="false">Notes</button>
+      {% endif %}
+    </nav>
+
+    <div class="col col-side">
+      <details class="panel talk-panel" data-tab="talk" open>
+        <summary><h2>Table talk</h2></summary>
+        <ol class="talk" id="talk" aria-live="polite"></ol>
+        <p class="note typing" id="typing" aria-live="polite" hidden></p>
+        {% if viewer is not none %}
+        <form id="say-form" class="say" autocomplete="off">
+          <span class="box">
+            <input id="say-text" name="text" maxlength="240" placeholder="Say something at the table" aria-label="Say something at the table" aria-describedby="say-count">
+            <span class="count" id="say-count" aria-live="polite" hidden></span>
+          </span>
+          <button type="submit" class="quiet">Say</button>
+        </form>
+        {% endif %}
+      </details>
+
+      <details class="panel log-panel" data-tab="record" open>
+        <summary><h2>The record</h2></summary>
+        <ol class="log record" id="log"></ol>
+      </details>
+
+      {% if viewer is not none %}
+      <details class="panel me-panel" data-tab="hand" open>
+        <summary><h2>Your hand <span class="who" id="my-token"></span></h2></summary>
+        <ul class="hand" id="hand"></ul>
+        <p class="note" id="strikes" hidden></p>
+        <div class="buttons"><button type="button" class="quiet" id="autopilot"></button></div>
+      </details>
+
+      <details class="panel notepad-panel" data-tab="notes" open>
+        <summary><h2>Your notes</h2></summary>
+        <p class="note">What the deduction floor has established from your seat: solid ink is a proven holder, a dot a holder still possible. Every cludebot has the same sheet.</p>
+        <table class="notepad" id="notepad"></table>
+      </details>
+
+      <p class="rail-foot watching" id="watching" hidden></p>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if viewer is none %}
+  <p class="note key">
+    Each seat shows how many of the 21 cards it has placed and how sure its
+    own method is of its best guess in each category; its name sits on its
+    certainty, blue for clueless through white to red for certain. {{ limitation }}
+  </p>
+  {% endif %}
+
+  <script id="table-data" type="application/json">{{ payload_json|safe }}</script>
+  <script src="{{ url_for('static', filename='sound.js') }}"></script>
+  <script src="{{ url_for('static', filename='table.js') }}"></script>
+
   {% else %}
 
+  {# Legacy (Phase 9h): the markup the look was frozen with. #}
   <div class="replay-body">
     <section class="replay-board">
       {{ board|safe }}
@@ -134,6 +238,7 @@
   {% endif %}
 
   <script id="table-data" type="application/json">{{ payload_json|safe }}</script>
+  <script src="{{ url_for('static', filename='sound.js') }}"></script>
   <script src="{{ url_for('static', filename='table.js') }}"></script>
   {% endif %}
 </div>

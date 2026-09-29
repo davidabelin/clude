@@ -22,12 +22,20 @@
   var playButton = document.getElementById("play");
   var speed = document.getElementById("speed");
 
-  /* suspect -> its circle on the board, looked up once. */
+  /* suspect -> its circle on the board, and its initial on a dressed
+     board (Phase 10f), looked up once. */
   var tokens = {};
+  var initials = {};
   Array.prototype.forEach.call(
     document.querySelectorAll(".board-token"),
     function (circle) {
       tokens[circle.getAttribute("data-suspect")] = circle;
+    }
+  );
+  Array.prototype.forEach.call(
+    document.querySelectorAll(".board-initial"),
+    function (text) {
+      initials[text.getAttribute("data-suspect")] = text;
     }
   );
 
@@ -79,6 +87,9 @@
       if (!circle) return;
       circle.setAttribute("cx", frame.tokens[suspect][0]);
       circle.setAttribute("cy", frame.tokens[suspect][1]);
+      /* An initial moves by transform, so it glides with its disc. */
+      var letter = initials[suspect];
+      if (letter) letter.style.transform = "translate(" + frame.tokens[suspect][0] + "px, " + frame.tokens[suspect][1] + "px)";
     });
 
     stepLine.textContent = frame.text;
@@ -162,6 +173,9 @@
     var next = Number(scrub.value) + 1;
     if (next >= frames.length) { pause(); return; }
     go(next);
+    /* Sound (Phase 10g): only Play reaching a step makes one; the
+       scrubber, the arrow keys and the first paint stay silent. */
+    if (window.cludeSound && frames[next].cue) window.cludeSound.play(frames[next].cue);
     if (next >= frames.length - 1) { pause(); return; }
     playTimer = window.setTimeout(stepForward, stepMs());
   }

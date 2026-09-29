@@ -49,11 +49,17 @@ family and friends, so convenience beats secrecy here (David,
 change once, after their first login (`clude_web.auth.password`); after
 that only `clude_cli.py users passwd` can change it."""
 
-DOCUMENT_VERSION = 3
+DOCUMENT_VERSION = 4
 """1 was the first shape; 2 added `password_prompted`; 3 added `style`
-(Phase 9h). A version 1 account simply reads as never having been
-offered the change, and an account without `style` as on the default
-look."""
+(Phase 9h); 4 added `style_chosen` (Phase 10e). A version 1 account
+simply reads as never having been offered the change, and an account
+without `style` as on the default look.
+
+Version 3 wrote the default, ``legacy``, into every new account as if
+it had been chosen, so when the default moved to Engraved (D7) nobody
+would have seen it. A stored ``legacy`` without `style_chosen` therefore
+reads as no choice at all; any other stored key could only have been
+picked from the header bar, and stands."""
 
 
 def normalise(name: str) -> str:
@@ -149,7 +155,6 @@ def add_user(store, name: str, password: str = DEFAULT_PASSWORD) -> dict:
         "password_hash": generate_password_hash(password),
         "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "password_prompted": False,
-        "style": styles.DEFAULT_STYLE,
     }
     store.put_doc(user_key(key), document)
     return document
@@ -187,11 +192,23 @@ def mark_password_prompted(store, name: str) -> dict:
     return document
 
 
+def chosen_style(document):
+    """The key of the look this account chose from the header bar, or
+    None if it never chose one: no key, a key no longer on the list, or
+    the ``legacy`` that version 3 wrote in unasked (`DOCUMENT_VERSION`)."""
+    document = document or {}
+    key = str(document.get("style") or "").strip().lower()
+    if not styles.is_style(key):
+        return None
+    if key == "legacy" and not document.get("style_chosen"):
+        return None
+    return key
+
+
 def style_of(document) -> str:
-    """The key of the look this account chose (Phase 9h): the default
-    for an account made before there was a choice, and for a stored key
-    no longer on the list."""
-    return styles.style_named((document or {}).get("style")).key
+    """The key of the look this account wears (Phase 9h): its choice,
+    or the default when it has made none."""
+    return styles.style_named(chosen_style(document)).key
 
 
 def set_style(store, name: str, key: str) -> dict:
@@ -208,6 +225,8 @@ def set_style(store, name: str, key: str) -> dict:
     if not styles.is_style(key):
         raise ValueError(f"no such style: {key!r}")
     document["style"] = styles.style_named(key).key
+    document["style_chosen"] = True
+    document["version"] = DOCUMENT_VERSION
     store.put_doc(user_key(name), document)
     return document
 

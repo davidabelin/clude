@@ -81,6 +81,9 @@ class EventFrame:
         How many suggestions have resolved by now, which is the index
         into the belief frames -- the join between the two halves, since
         tokens move per event but beliefs only change per suggestion.
+    cue : str or None
+        The sound the step makes when Play reaches it (`event_cue`,
+        Phase 10g).
     """
 
     index: int
@@ -89,6 +92,7 @@ class EventFrame:
     text: str
     positions: dict
     k: int
+    cue: str | None = None
 
 
 def suggestion_line(suggestion, suspects, reveal: bool = True) -> str:
@@ -186,6 +190,7 @@ def event_frames(record) -> list:
                 text=text,
                 positions=dict(positions),
                 k=k,
+                cue=event_cue(event),
             )
         )
     return frames
@@ -196,6 +201,69 @@ def seat_method(label: str) -> str:
     subtitle. A bot seat has none."""
     spec = AGENT_SPECS.get(label)
     return getattr(spec, "description", "") if spec else ""
+
+
+METHOD_SHORT = {
+    "Scarlett": "Naive Bayes",
+    "Mustard": "Decision tree",
+    "White": "Markov chain",
+    "Green": "Bandit ensemble",
+    "Peacock": "Dempster-Shafer",
+    "Plum": "Enumeration",
+}
+"""`seat_method` cut to fit a phone's seat chip (10a's artboards, Phase
+10e): six chips across 390 px cannot carry the one-liner, which stays
+the chip's tooltip and the wide layout's text."""
+
+
+def seat_method_short(label: str) -> str:
+    """The short form of a seat's method, or empty for a seat with none."""
+    return METHOD_SHORT.get(label, "") if label in AGENT_SPECS else ""
+
+
+def event_actor(event):
+    """The seat an event belongs to -- who moved, suggested, accused or
+    spoke, or who won -- or None (a game nobody won)."""
+    if isinstance(event, MoveEvent):
+        return event.player
+    if isinstance(event, SuggestionEvent):
+        return event.suggestion.suggester
+    if isinstance(event, AccusationEvent):
+        return event.accusation.accuser
+    if isinstance(event, RemarkEvent):
+        return event.seat
+    if isinstance(event, GameOverEvent):
+        return event.winner
+    return None
+
+
+def event_cue(event):
+    """The sound an event makes (Phase 10g, plan 11.1), or None: a tick
+    for a move and for a suggestion nobody could disprove, the
+    refutation cue for one somebody did, the accent for an accusation
+    and for the end. Talk is silent. Made from the event alone, never
+    from who saw which card, so a cue tells nobody more than the line
+    it goes with."""
+    if isinstance(event, MoveEvent):
+        return "tick"
+    if isinstance(event, SuggestionEvent):
+        return "refute" if event.suggestion.refuter is not None else "tick"
+    if isinstance(event, (AccusationEvent, GameOverEvent)):
+        return "accent"
+    return None
+
+
+CUE_RANK = {"tick": 0, "turn": 1, "refute": 2, "accent": 3}
+"""Which cue wins when several land at once (`static/sound.js` ranks
+them the same way): the accent over a refutation over the turn cue
+over a tick."""
+
+
+def loudest_cue(cues):
+    """The one cue a batch of events makes, or None if none makes any:
+    several at once would be noise (plan 11.1)."""
+    heard = [cue for cue in cues if cue in CUE_RANK]
+    return max(heard, key=CUE_RANK.__getitem__) if heard else None
 
 
 def seat_certainty(label: str, belief, obs) -> float:
@@ -355,6 +423,7 @@ def screen_payload(record, trace: dict) -> dict:
                 "kind": frame.kind,
                 "text": frame.text,
                 "k": frame.k,
+                "cue": frame.cue,
                 "tokens": {
                     suspect: [round(v, 2) for v in point]
                     for suspect, point in board_svg.token_points(frame.positions).items()

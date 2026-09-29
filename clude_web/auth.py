@@ -40,10 +40,13 @@ SESSION_OFFER = "password_offer"
 password offer. Held in the session rather than read from the store on
 every request, and set from the account at login."""
 
-SESSION_STYLE = "style"
+SESSION_STYLE = "look"
 """Session key holding the key of the look this account chose (Phase
 9h), set from the account at login and again when it is changed, so no
-request reads the store for it."""
+request reads the store for it; absent when the account has chosen
+none, so the page wears the default. Was ``style`` until Phase 10e,
+when a session from before then carried the old default as if chosen;
+renaming it lets those sessions fall through to the new default."""
 
 
 def public(view):
@@ -168,7 +171,9 @@ def login():
     session.clear()  # a new session id and a new CSRF token on every login
     session[SESSION_USER] = account["name"]
     session[SESSION_OFFER] = users.needs_password_offer(account)
-    session[SESSION_STYLE] = users.style_of(account)
+    chosen = users.chosen_style(account)
+    if chosen:
+        session[SESSION_STYLE] = chosen
     csrf_token()
     return redirect(url_for("main.index"))
 

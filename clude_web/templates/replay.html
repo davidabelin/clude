@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ record.run_id }} game {{ record.game_index }}{% endblock %}
+{% block sound %}{% include "_sound.html" %}{% endblock %}
 {% block content %}
 <div class="replay" data-frames="{{ n_frames }}">
 
@@ -73,5 +74,6 @@
 
 </div>
 <script id="replay-data" type="application/json">{{ payload|safe }}</script>
+<script src="{{ url_for('static', filename='sound.js') }}"></script>
 <script src="{{ url_for('static', filename='replay.js') }}"></script>
 {% endblock %}

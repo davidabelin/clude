@@ -10,12 +10,22 @@ No colour is set here either: every shape carries a class and
 `static/style.css` colours it, which is what lets Phase 10 restyle the
 board without touching this module (`docs/phase8.1-plan.md` 1).
 
+Dressed (Phase 10f, plan section 8), the board gains shapes and still
+no paint: four floor patterns in a `<defs>` whose children carry
+classes (the stylesheet picks a pattern per room and colours it), a
+brass hairline inside every wall, a rivet at each end of every door, an
+initial on every token, and the logo in the cellar where the wordmark
+was. An Engraved look asks for it; Legacy's sheet has no rules for any
+of it, so Legacy gets the board it was frozen with.
+
 Imports no Flask, so it can be tested and rendered on its own.
 """
 from __future__ import annotations
 
 from clude_core import board
 from clude_core.board import Square
+
+from . import logo
 
 CELL = 24
 """Side of one grid cell, in SVG user units. The viewBox scales, so this
@@ -30,6 +40,28 @@ SUSPECT_SLUG = {
     "White": "white",
 }
 """Suspect -> the class suffix that colours its token and start square."""
+
+INITIALS = {"Scarlett": "S", "Mustard": "M", "White": "W", "Green": "G", "Peacock": "Pe", "Plum": "Pl"}
+"""The letter on a dressed token, so the six are told apart without
+colour (plan 12). Peacock and Plum share a P, so both carry two (10a)."""
+
+FLOOR_PATTERNS = (
+    "<defs>"
+    '<pattern id="tone-parquet" patternUnits="userSpaceOnUse" width="8" height="8">'
+    '<rect class="tone-bg" width="8" height="8"/><path class="tone-line" d="M0 4 L4 0 M4 8 L8 4"/></pattern>'
+    '<pattern id="tone-tile" patternUnits="userSpaceOnUse" width="8" height="8">'
+    '<rect class="tone-bg" width="8" height="8"/><path class="tone-line" d="M0 0.3 H8 M0.3 0 V8"/></pattern>'
+    '<pattern id="tone-boards" patternUnits="userSpaceOnUse" width="24" height="6">'
+    '<rect class="tone-bg" width="24" height="6"/><path class="tone-line" d="M0 5.7 H24 M12 0 V6"/></pattern>'
+    '<pattern id="tone-rug" patternUnits="userSpaceOnUse" width="8" height="8">'
+    '<rect class="tone-bg" width="8" height="8"/>'
+    '<circle class="tone-dot" cx="2" cy="2" r="0.7"/><circle class="tone-dot" cx="6" cy="6" r="0.7"/></pattern>'
+    "</defs>"
+)
+"""The four floors of plan 8 -- parquet, tile, boards, rug -- at a pitch
+that survives a phone. Each holds a background rect, since a pattern is
+transparent wherever it does not draw (10a); the stylesheet chooses a
+floor per room and colours both halves."""
 
 _DOOR_PAIRS = frozenset((cell, square) for _room, cell, square in board.DOORS)
 """Every (door cell, corridor square) pair, to leave a gap in the room's
@@ -171,7 +203,19 @@ def token_points(tokens: dict) -> dict:
     return points
 
 
-def board_svg(tokens=None, *, title="The board") -> str:
+def cellar_box() -> tuple:
+    """(x, y, width, height) of the cellar in board units: 5 x 7 cells."""
+    rows = [c.row for c in board.CELLAR]
+    cols = [c.col for c in board.CELLAR]
+    return (
+        min(cols) * CELL,
+        min(rows) * CELL,
+        (max(cols) - min(cols) + 1) * CELL,
+        (max(rows) - min(rows) + 1) * CELL,
+    )
+
+
+def board_svg(tokens=None, *, title="The board", dressed=False) -> str:
     """The board as one SVG string.
 
     Parameters
@@ -182,6 +226,9 @@ def board_svg(tokens=None, *, title="The board") -> str:
         `suspects_in_play`. Tokens sharing a room are fanned out.
     title : str
         The SVG's accessible title.
+    dressed : bool
+        Phase 10f's decoration (the module docstring): what an Engraved
+        look asks for. Off, the drawing is exactly the board of 8.1-10e.
 
     Returns
     -------
@@ -191,14 +238,16 @@ def board_svg(tokens=None, *, title="The board") -> str:
     """
     width, height = board.N_COLS * CELL, board.N_ROWS * CELL
     out = [
-        f'<svg class="board" viewBox="0 0 {width} {height}" '
+        f'<svg class="board{" board-engraved" if dressed else ""}" viewBox="0 0 {width} {height}" '
         f'role="img" aria-label="{_escape(title)}" '
         'xmlns="http://www.w3.org/2000/svg">',
         f"<title>{_escape(title)}</title>",
-        # Behind everything, so the cells no one can stand on read as
-        # off-board rather than as the page showing through.
-        f'<rect class="board-void" x="0" y="0" width="{width}" height="{height}"/>',
     ]
+    if dressed:
+        out.append(FLOOR_PATTERNS)
+    # Behind everything, so the cells no one can stand on read as
+    # off-board rather than as the page showing through.
+    out.append(f'<rect class="board-void" x="0" y="0" width="{width}" height="{height}"/>')
 
     out.append('<g class="board-corridor">')
     for square in sorted(board.CORRIDOR):
@@ -210,25 +259,31 @@ def board_svg(tokens=None, *, title="The board") -> str:
     for square in sorted(board.CELLAR):
         x, y = _xy(square)
         out.append(f'<rect x="{x}" y="{y}" width="{CELL}" height="{CELL}"/>')
-    if board.CELLAR:
+    if board.CELLAR and dressed:
+        # The logo in the middle of the board (plan 8, D5).
+        x, y, w, h = cellar_box()
+        out.append(f'<g class="board-logo" transform="translate({x} {y})">{logo.cellar(w, h)}</g>')
+    elif board.CELLAR:
         rows = [c.row for c in board.CELLAR]
         cols = [c.col for c in board.CELLAR]
         cx = (sum(cols) / len(cols) + 0.5) * CELL
         cy = (sum(rows) / len(rows) + 0.5) * CELL
-        # The middle of the board carries a logo in Phase 10; until then
-        # the wordmark keeps the cellar from reading as a hole.
+        # Undressed, the wordmark keeps the cellar from reading as a hole.
         out.append(
             f'<text class="board-mark" x="{cx}" y="{cy}" '
             'text-anchor="middle" dominant-baseline="middle">clude</text>'
         )
     out.append("</g>")
 
+    inner = []
     for room in sorted(board.ROOM_CELLS):
         out.append(f'<g class="board-room" data-room="{_escape(room)}">')
         for cell in sorted(board.ROOM_CELLS[room]):
             x, y = _xy(cell)
             out.append(f'<rect x="{x}" y="{y}" width="{CELL}" height="{CELL}"/>')
-        out.extend(_room_outline(room))
+        walls = _room_outline(room)
+        out.extend(walls)
+        inner.extend(wall.replace('class="board-wall"', 'class="board-wall-inner"') for wall in walls)
         cx, cy = label_anchor(room)
         out.append(
             f'<text class="board-label" x="{cx}" y="{cy}" '
@@ -236,8 +291,25 @@ def board_svg(tokens=None, *, title="The board") -> str:
         )
         out.append("</g>")
 
-    for room, cell, square in board.DOORS:
-        out.append(_door_marker(room, cell, square))
+    if dressed:
+        # Walls as a double rule: the ink line, a brass hairline over it
+        # (10a found this reads engraved and needs no offset geometry).
+        out.append('<g class="board-walls-inner">')
+        out.extend(inner)
+        out.append("</g>")
+
+    doors = [_door_marker(room, cell, square) for room, cell, square in board.DOORS]
+    out.extend(doors)
+    if dressed:
+        # Doors as threshold plates: the brass bar and a rivet at each end.
+        out.append('<g class="board-rivets">')
+        for door in doors:
+            x1, y1, x2, y2 = (
+                door.split(f'{name}="')[1].split('"')[0] for name in ("x1", "y1", "x2", "y2")
+            )
+            out.append(f'<circle class="board-rivet" cx="{x1}" cy="{y1}" r="1.7"/>')
+            out.append(f'<circle class="board-rivet" cx="{x2}" cy="{y2}" r="1.7"/>')
+        out.append("</g>")
 
     for suspect, square in sorted(board.START_SQUARES.items()):
         x, y = _xy(square)
@@ -260,6 +332,15 @@ def board_svg(tokens=None, *, title="The board") -> str:
             f'cx="{cx}" cy="{cy}" r="{CELL * 0.36}"><title>'
             f"{_escape(suspect)}</title></circle>"
         )
+        if dressed:
+            # Placed by a CSS transform rather than x and y, so it can
+            # glide with its disc (a text element's x and y cannot be
+            # transitioned); the pages move both.
+            out.append(
+                f'<text class="board-initial suspect-{slug}" data-suspect="{_escape(suspect)}" '
+                f'x="0" y="0" style="transform: translate({cx}px, {cy}px)" aria-hidden="true">'
+                f"{_escape(INITIALS.get(suspect, suspect[:1]))}</text>"
+            )
 
     out.append("</svg>")
     return "\n".join(out)

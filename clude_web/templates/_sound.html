@@ -1,0 +1,9 @@
+{# The sound control (Phase 10g, plan 11.1): off until the viewer turns
+   it on, the volume beside it once on; static/sound.js remembers both
+   on this device. Only on the pages that make sound: the table, Watch
+   and the replay. The slider's width is inline because legacy.css,
+   never edited, stretches every input across its container. #}
+<div class="sound" id="sound-controls">
+  <button type="button" class="quiet" id="sound-toggle" aria-pressed="false">Sound off</button>
+  <input type="range" id="sound-volume" min="0" max="100" value="60" aria-label="Sound volume" style="width: 6rem; padding: 0;" hidden>
+</div>

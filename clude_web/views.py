@@ -28,7 +28,7 @@ from clude_storage import GameRecord
 from clude_training.table import TableError, TableSetup
 
 from . import board_svg, replay_data, tables, users, watch
-from .auth import current_user
+from .auth import current_style, current_user
 
 bp = Blueprint("main", __name__)
 
@@ -47,6 +47,12 @@ LOBBY_FETCHES = 10
 storage client's connection pool, which holds 10 per host. Measured from
 Orbit, 10 threads read 39 summaries in 0.7 s where 16 took 1.2 s, the
 extra threads opening and throwing away connections."""
+
+
+def _board(positions: dict, title: str) -> str:
+    """The board for this page in the viewer's look: dressed for an
+    Engraved one (Phase 10f), as frozen for Legacy."""
+    return board_svg.board_svg(positions, title=title, dressed=current_style().engraved)
 
 
 def embed_json(payload: dict) -> Markup:
@@ -248,9 +254,9 @@ def replay(run_id, index_):
         payload=embed_json(payload),
         # Drawn at the start squares so every token circle exists in the
         # document; the scrubber moves them rather than redrawing the board.
-        board=board_svg.board_svg(
+        board=_board(
             {s: board.start_position(s) for s in suspects},
-            title=f"{run_id} game {index_}",
+            f"{run_id} game {index_}",
         ),
         suspects=suspects,
         n_frames=len(payload["frames"]),
@@ -369,7 +375,7 @@ def _table_page(table_id: str):
                 },
             )
         ),
-        board=board_svg.board_svg(positions, title="The table"),
+        board=_board(positions, "The table"),
         limitation=replay_data.TRACE_LIMITATION,
     )
 
@@ -386,10 +392,13 @@ def _watch_page(table_id: str, game, document: dict):
             game=game,
             setup=game.setup,
             document=document,
-            board=board_svg.board_svg(positions, title="The game in progress"),
+            board=_board(positions, "The game in progress"),
             readings=game.readings(),
             lines=game.turn_lines(),
             spoken=game.last_suggestion(),
+            # The turn's loudest sound, played once by static/sound.js
+            # when the page arrives from Next turn (Phase 10g).
+            cue=replay_data.loudest_cue(replay_data.event_cue(e) for e in game.turn_events()),
             limitation=replay_data.TRACE_LIMITATION,
         )
 

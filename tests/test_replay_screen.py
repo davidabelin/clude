@@ -145,6 +145,57 @@ def test_the_board_is_well_formed_xml():
     assert root.tag.endswith("svg")
 
 
+def test_a_dressed_board_adds_shapes_and_still_no_paint():
+    """Phase 10f (plan 8). Dressed, the board gains the four floor
+    patterns, a brass line inside every wall, a rivet at each end of
+    every door, an initial on every token where the token stands, and
+    the logo in the cellar in place of the wordmark -- every shape
+    classed, none coloured, the whole still well-formed."""
+    tokens = {"Scarlett": "Hall", "Plum": Square(7, 4), "Peacock": "Hall"}
+    plain = board_svg.board_svg(tokens)
+    dressed = board_svg.board_svg(tokens, dressed=True)
+    ET.fromstring(dressed)
+
+    for pattern in ("tone-parquet", "tone-tile", "tone-boards", "tone-rug"):
+        assert f'id="{pattern}"' in dressed and pattern not in plain
+    walls = plain.count('class="board-wall"')
+    assert dressed.count('class="board-wall"') == walls == dressed.count('class="board-wall-inner"')
+    assert dressed.count('class="board-rivet"') == 2 * len(board.DOORS)
+    assert 'class="board-mark"' not in dressed and 'class="board-logo"' in dressed
+    assert "board-engraved" in dressed and "board-engraved" not in plain
+    assert not re.search(r'(fill|stroke)="(?!none)', dressed.replace('fill="none"', "")), "a colour in the drawing"
+
+    points = board_svg.token_points(tokens)
+    for suspect, (x, y) in points.items():
+        letter = board_svg.INITIALS[suspect]
+        assert f'data-suspect="{suspect}" x="0" y="0" style="transform: translate({x}px, {y}px)" aria-hidden="true">{letter}</text>' in dressed
+    assert board_svg.INITIALS["Peacock"] != board_svg.INITIALS["Plum"], "two P's told apart"
+    # Undressed, the board is exactly the one Legacy was frozen with.
+    for extra in ("board-initial", "board-rivet", "board-wall-inner", "<defs>", "board-logo", "logo-"):
+        assert extra not in plain
+
+
+def test_the_logo_is_the_keyhole_question_mark_in_every_place_it_goes():
+    """D5, candidate E (David, 2026-09-29): the keyhole with a "?"
+    keyway, above the cartouche wordmark in the cellar; the keyhole
+    alone in the header bar and the favicon. Uncoloured except the
+    favicon, which has no stylesheet, and whose file is the one
+    `logo.favicon_svg` writes."""
+    from clude_web import logo
+
+    cellar = logo.cellar(120, 168)
+    assert ">?</text>" in cellar and ">clude</text>" in cellar and "ellipse" in cellar
+    mark = logo.mark_svg(22)
+    ET.fromstring(mark)
+    assert ">?</text>" in mark and "clude" not in mark and 'aria-hidden="true"' in mark
+    assert "fill=" not in cellar + mark and "#" not in cellar + mark
+    favicon = Path(__file__).resolve().parents[1] / "clude_web" / "static" / "favicon.svg"
+    assert favicon.read_text(encoding="utf-8") == logo.favicon_svg(), (
+        "regenerate static/favicon.svg from clude_web.logo.favicon_svg()"
+    )
+    ET.fromstring(logo.favicon_svg())
+
+
 def _style_keys() -> list:
     """Every look on the list (Phase 9h): the tests below hold for each,
     not just the first. Keys only: a parameter holding the stylesheet's
@@ -166,10 +217,16 @@ def _stylesheet(key: str) -> str:
 @pytest.mark.parametrize("key", _style_keys())
 def test_every_class_the_board_uses_is_styled(key):
     """board_svg.py sets no colour, so a class with no rule is an
-    invisible shape. The stylesheet must also stay ASCII: a Devanagari
-    digit once made it into a hex colour, which CSS silently ignores."""
+    invisible shape -- on the board each look actually gets, dressed for
+    an Engraved one (Phase 10f). The stylesheet must also stay ASCII: a
+    Devanagari digit once made it into a hex colour, which CSS silently
+    ignores."""
+    from clude_web import styles
+
     css = _stylesheet(key)
-    svg = board_svg.board_svg({"Scarlett": "Hall", "Plum": Square(7, 4)})
+    svg = board_svg.board_svg(
+        {"Scarlett": "Hall", "Plum": Square(7, 4)}, dressed=styles.STYLES[key].engraved
+    )
     used = {
         name
         for group in re.findall(r'class="([^"]+)"', svg)
@@ -196,19 +253,40 @@ def test_the_stylesheet_has_no_broken_colours(key):
 
 
 def test_legacy_stays_on_the_list_and_every_face_is_served():
-    """Phase 10b. Legacy is never removed (David, 2026-09-28) and is
-    still the default until 10e; Engraved is beside it, and every
-    font file its sheet names exists under static/fonts/."""
+    """Phase 10b. Legacy is never removed (David, 2026-09-28); Engraved
+    is the default from 10e (D7), as the device has it or fixed light or
+    dark by name (David, 2026-09-29), all three on one sheet; and every
+    font file that sheet names exists under static/fonts/."""
     from clude_web import styles
 
-    assert list(styles.STYLES)[:2] == ["legacy", "engraved"]
-    assert styles.DEFAULT_STYLE == "legacy"
+    assert list(styles.STYLES) == ["engraved", "casefile", "gaslight", "legacy"]
+    assert styles.DEFAULT_STYLE == "engraved"
+    assert [styles.STYLES[k].theme for k in ("engraved", "casefile", "gaslight")] == ["", "light", "dark"]
+    assert {styles.STYLES[k].stylesheet for k in ("engraved", "casefile", "gaslight")} == {"styles/engraved.css"}
+    assert not styles.STYLES["legacy"].engraved and styles.STYLES["legacy"].stylesheet == "styles/legacy.css"
     static = Path(__file__).resolve().parents[1] / "clude_web" / "static"
     css = (static / styles.STYLES["engraved"].stylesheet).read_text(encoding="utf-8")
     faces = re.findall(r"url\(\.\./fonts/([^)]+)\)", css)
     assert len(faces) == 8, faces
     for name in faces:
         assert (static / "fonts" / name).is_file(), f"{name} is named by the sheet but missing"
+
+
+def test_a_fixed_theme_gets_the_same_dark_tokens_as_the_device():
+    """The dark tokens are written twice -- once for a device that asks
+    for dark, once for the "Gaslight dark" look -- because CSS cannot
+    share one block between a media query and a selector. They must not
+    drift apart; and a fixed light look must be exempt from the query."""
+    css = _stylesheet("engraved")
+    by_device = re.search(r':root:not\(\[data-theme="light"\]\) \{(.*?)\n  \}', css, re.S)
+    by_name = re.search(r':root\[data-theme="dark"\] \{(.*?)\n\}', css, re.S)
+    assert by_device and by_name
+
+    def tokens(block):
+        return sorted(line.strip() for line in block.group(1).splitlines() if line.strip())
+
+    assert tokens(by_device) == tokens(by_name)
+    assert "--alarm:" in by_name.group(1), "the clock's last-ten-seconds red has a dark twin"
 
 
 def test_engraved_names_no_duration_outside_its_tokens():
@@ -226,6 +304,10 @@ def test_engraved_names_no_duration_outside_its_tokens():
     assert not literal, f"durations outside :root in engraved.css: {literal}"
     assert re.search(r"--dur-move:\s*\d+ms", root), "the move duration is a token"
     assert 'body[data-motion="off"]' in css and "prefers-reduced-motion" in css
+    # Every animation and transition runs on a token (10e-10f): the panel
+    # cut, the impact frame, the lit squares' pulse, a token's glide.
+    for rule in re.findall(r"(?:animation|transition):[^;]+;", outside):
+        assert "var(--dur-" in rule, f"a motion without a duration token: {rule}"
 
 
 # --- the event frames -------------------------------------------------
@@ -239,6 +321,11 @@ def test_every_event_gets_a_frame_with_a_line_and_a_board():
     assert all(frame.text for frame in frames)
     assert all(frame.positions for frame in frames)
     assert [f.index for f in frames] == list(range(len(frames)))
+    # Each step names the sound Play makes on reaching it (Phase 10g),
+    # the same cue the table gives the same event.
+    assert [f.cue for f in frames] == [replay_data.event_cue(e) for e in record.events]
+    assert {f.cue for f in frames if f.kind == "move"} == {"tick"}
+    assert {f.cue for f in frames if f.kind in ("over", "accusation")} <= {"accent"}
 
 
 def test_the_last_frame_matches_the_finished_game():

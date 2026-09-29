@@ -194,56 +194,105 @@ def test_every_page_wears_the_account_s_look_and_the_bar_can_change_it(app, stor
     `next` is refused."""
     from clude_web import styles, users
 
+    # Engraved as the device has it is the default since 10e (D7): no
+    # theme is forced, and the sheet follows the device (D10).
     sign_in(client)
     page = client.get("/").get_data(as_text=True)
-    assert 'data-style="legacy"' in page and "styles/legacy.css" in page
-    assert 'action="/style"' in page and '<option value="legacy" selected>Legacy</option>' in page
-    assert users.style_of(users.get_user(store, NAME)) == "legacy"
-    assert styles.style_named("no-such-look").key == styles.DEFAULT_STYLE
+    assert 'data-style="engraved"' in page and "styles/engraved.css" in page
+    assert "data-theme=" not in page
+    assert 'action="/style"' in page and '<option value="engraved" selected>Engraved (auto)</option>' in page
+    assert users.style_of(users.get_user(store, NAME)) == "engraved"
+    assert users.chosen_style(users.get_user(store, NAME)) is None
+    assert styles.style_named("no-such-look").key == styles.DEFAULT_STYLE == "engraved"
+    assert client.get("/static/styles/engraved.css").status_code == 200
+    assert client.get("/static/fonts/inter-normal-400-700.woff2").status_code == 200
 
     token = csrf_from(client)
     bad = client.post("/style", data={"csrf": token, "style": "brass", "next": "/"})
-    assert bad.status_code == 400 and users.get_user(store, NAME)["style"] == "legacy"
+    assert bad.status_code == 400 and "style" not in users.get_user(store, NAME)
 
     ok = client.post("/style", data={"csrf": token, "style": "legacy", "next": "/replay/web-test/0?x=1"})
     assert ok.status_code == 302 and ok.headers["Location"].endswith("/replay/web-test/0?x=1")
     assert users.get_user(store, NAME)["style"] == "legacy"
+    assert users.chosen_style(users.get_user(store, NAME)) == "legacy", "chosen from the bar, it sticks"
     with client.session_transaction() as session:
-        assert session["style"] == "legacy"
+        assert session["look"] == "legacy"
+    page = client.get("/").get_data(as_text=True)
+    assert 'data-style="legacy"' in page and "styles/legacy.css" in page
 
     away = client.post("/style", data={"csrf": token, "style": "legacy", "next": "https://example.com/"})
     assert away.status_code == 302 and away.headers["Location"].endswith("/")
     assert "example.com" not in away.headers["Location"]
 
-    # Engraved (Phase 10b): on the list as a beta, chosen the same way,
-    # and the page then links its sheet; the sheet and its fonts are
-    # served. Legacy stays the default until 10e (D7).
-    assert '<option value="engraved"' in page and "Engraved (beta)" in page
-    chosen = client.post("/style", data={"csrf": token, "style": "engraved", "next": "/"})
-    assert chosen.status_code == 302 and users.get_user(store, NAME)["style"] == "engraved"
-    page = client.get("/").get_data(as_text=True)
-    assert 'data-style="engraved"' in page and "styles/engraved.css" in page
-    assert client.get("/static/styles/engraved.css").status_code == 200
-    assert client.get("/static/fonts/inter-normal-400-700.woff2").status_code == 200
-    assert styles.DEFAULT_STYLE == "legacy" and "legacy" in styles.STYLES
-    client.post("/style", data={"csrf": token, "style": "legacy", "next": "/"})
+    # The two themes by name (David, 2026-09-29): the same sheet, the
+    # theme fixed on the html element whatever the device prefers.
+    for key, title, theme in (("casefile", "Case file light", "light"), ("gaslight", "Gaslight dark", "dark")):
+        assert f'<option value="{key}"' in page and title in page
+        client.post("/style", data={"csrf": token, "style": key, "next": "/"})
+        themed = client.get("/").get_data(as_text=True)
+        assert f'data-style="{key}"' in themed and f'data-theme="{theme}"' in themed
+        assert "styles/engraved.css" in themed
 
-    # An account made before there was a choice, and one whose stored
-    # key has gone from the list, both read as the default.
+    # An account made before there was a choice, one whose stored key
+    # has gone from the list, and one that version 3 gave `legacy`
+    # without asking all read as the default.
     document = users.get_user(store, NAME)
     del document["style"]
     store.put_doc(users.user_key(NAME), document)
-    assert users.style_of(users.get_user(store, NAME)) == "legacy"
-    users.set_style(store, NAME, "legacy")
+    assert users.style_of(users.get_user(store, NAME)) == "engraved"
     document["style"] = "gone"
     store.put_doc(users.user_key(NAME), document)
-    assert users.style_of(users.get_user(store, NAME)) == "legacy"
+    assert users.style_of(users.get_user(store, NAME)) == "engraved"
+    document["style"], document["version"] = "legacy", 3
+    document.pop("style_chosen", None)
+    store.put_doc(users.user_key(NAME), document)
+    assert users.style_of(users.get_user(store, NAME)) == "engraved"
     with pytest.raises(ValueError):
         users.set_style(store, NAME, "gone")
 
     # Signed out, the login page still has a look, and no picker.
     out = app.test_client().get("/login").get_data(as_text=True)
-    assert "styles/legacy.css" in out and 'action="/style"' not in out
+    assert "styles/engraved.css" in out and 'action="/style"' not in out
+
+
+def test_the_sound_cues_are_served_short_and_start_muted(client):
+    """Phase 10g (plan 11.1). Four self-hosted cues, each a short mono
+    WAV; the shared player is served and remembers an off-by-default
+    preference; the lobby has no sound control, since nothing there
+    makes a sound. No music: nothing runs longer than a second and a half."""
+    import io
+    import wave
+
+    sign_in(client)
+    for name in ("tick", "turn", "refute", "accent"):
+        response = client.get(f"/static/sounds/{name}.wav")
+        assert response.status_code == 200, name
+        with wave.open(io.BytesIO(response.get_data())) as clip:
+            assert (clip.getnchannels(), clip.getsampwidth(), clip.getframerate()) == (1, 2, 22050)
+            assert 0.05 <= clip.getnframes() / clip.getframerate() <= 1.5, name
+    script = client.get("/static/sound.js").get_data(as_text=True)
+    assert 'read(KEY_ON) === "1"' in script, "sound is off until the viewer turns it on"
+    for name in ("tick", "turn", "refute", "accent"):
+        assert name in script
+    assert 'id="sound-toggle"' not in client.get("/").get_data(as_text=True)
+
+
+def test_the_header_bar_wears_the_keyhole_under_engraved_only(client):
+    """Phase 10f (D5, E). An Engraved look puts the keyhole mark beside
+    the wordmark; Legacy keeps its plain word. Every look links the
+    favicon, which is served."""
+    sign_in(client)
+    engraved = client.get("/").get_data(as_text=True)
+    bar = engraved.split('<header class="bar">')[1].split("</header>")[0]
+    assert '<svg class="logo"' in bar and "<span>clude</span>" in bar
+    assert 'rel="icon"' in engraved
+    assert client.get("/static/favicon.svg").status_code == 200
+    token = csrf_from(client)
+    client.post("/style", data={"csrf": token, "style": "legacy", "next": "/"})
+    legacy = client.get("/").get_data(as_text=True)
+    bar = legacy.split('<header class="bar">')[1].split("</header>")[0]
+    assert '<svg class="logo"' not in bar and ">clude</a>" in bar
+    assert 'rel="icon"' in legacy
 
 
 def test_the_login_page_itself_is_reachable(client):

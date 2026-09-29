@@ -22,7 +22,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from clude_storage import open_store
 
-from . import auth, config, styles, tables, users, views
+from . import auth, config, logo, styles, tables, users, views
 
 __all__ = ["create_app"]
 
@@ -110,6 +110,8 @@ def create_app(settings=None) -> Flask:
     app.jinja_env.globals["csrf_token"] = auth.csrf_token
     app.jinja_env.globals["current_style"] = auth.current_style
     app.jinja_env.globals["styles"] = styles.STYLES
+    # The header bar's mark under an Engraved look (Phase 10f, D5).
+    app.jinja_env.globals["logo_mark"] = logo.mark_svg()
     # A person's name as shown: capitalised, whatever the key (Phase 9j).
     app.jinja_env.filters["person"] = users.display_name
     app.before_request(auth.require_session)

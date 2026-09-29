@@ -81,6 +81,7 @@
 
 :root {
   /* Colour: case-file light (5.1), the default (D10). */
+  color-scheme: light;
   --page: #E9E2D3;
   --panel: #F5F0E4;
   --panel-sunk: #DED6C4;
@@ -95,6 +96,7 @@
   --accent: #7A2230;
   --accent-ink: #F5F0E4;
   --warn: #9B2226;
+  --alarm: #D0142C;
   --proof: #14110D;
   --tone: #8A7D6A;
   --tone-size: 3px;
@@ -152,13 +154,20 @@
   --dur-cut: 140ms;
   --dur-move: 220ms;
   --dur-impact: 420ms;
+  /* The one duration the switch leaves alone: with motion off an
+     accusation still flashes, briefly, to opacity (plan 11). */
+  --dur-flash: 80ms;
   --ease-snap: cubic-bezier(.2,.8,.2,1);
   --ease-panel: cubic-bezier(.4,0,.2,1);
 }
 
-/* Gaslight dark (5.2), on a stated dark preference (D10). */
+/* Gaslight dark (5.2): on a stated dark preference unless the look
+   fixes light (D10), and always when it fixes dark -- the looks "Case
+   file light" and "Gaslight dark" set <html data-theme> (David,
+   2026-09-29). The two blocks must stay identical; a test compares them. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --page: #121013;
     --panel: #1B181C;
     --panel-sunk: #0D0B0E;
@@ -173,6 +182,7 @@
     --accent: #C2596A;
     --accent-ink: #121013;
     --warn: #F08A8A;
+    --alarm: #FF4D5E;
     --proof: #EDE6D8;
     --tone: #7A7263;
 
@@ -198,6 +208,48 @@
     --certain-hot: #e0687a;
     --certain-ink: #14110D;
   }
+}
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #121013;
+    --panel: #1B181C;
+    --panel-sunk: #0D0B0E;
+    --edge: #332E33;
+    --edge-strong: #9A9186;
+    --ink: #EDE6D8;
+    --ink-soft: #A9A090;
+    --ink-faint: #7A7263;
+    --brass: #D6A75A;
+    --brass-bright: #F0C67E;
+    --brass-dim: #8A6A2E;
+    --accent: #C2596A;
+    --accent-ink: #121013;
+    --warn: #F08A8A;
+    --alarm: #FF4D5E;
+    --proof: #EDE6D8;
+    --tone: #7A7263;
+
+    --suspect-scarlett: #e0566c; --suspect-scarlett-ink: #14110D;
+    --suspect-mustard: #e8bb4e;  --suspect-mustard-ink: #14110D;
+    --suspect-plum: #ab72c6;     --suspect-plum-ink: #14110D;
+    --suspect-peacock: #4fb2c9;  --suspect-peacock-ink: #14110D;
+    --suspect-green: #5cb473;    --suspect-green-ink: #14110D;
+    --suspect-white: #f2f0eb;    --suspect-white-ink: #14110D;
+
+    --board-void: #0D0B0E;
+    --board-room: #26212A;
+    --board-corridor: #1A171D;
+    --board-grid: #2E2931;
+    --board-floor: #4A4350;
+    --board-wall: #9A9186;
+    --board-door: #D6A75A;
+    --board-cellar: #1B181C;
+    --board-label: #A9A090;
+
+    --certain-cold: #6f9fd8;
+    --certain-mid: #ECE9E2;
+    --certain-hot: #e0687a;
+    --certain-ink: #14110D;
 }
 
 /* The motion kill switch (5.4): clude_shots.py and the browser tests
@@ -581,8 +633,9 @@ button.warn[disabled] { opacity: 0.45; cursor: not-allowed; }
 /* --- the board ------------------------------------------------------------
  *
  * board_svg.py sets no colour: every shape carries a class and this block
- * decides how it looks. The patterns, the double wall, the rivets and the
- * initials arrive with 10f, which gives the generator the shapes.
+ * decides how it looks. Dressed (10f, plan 8), the generator adds shapes
+ * and still no paint: floor patterns, the double wall, door rivets, an
+ * initial on every token and the logo in the cellar.
  */
 
 .board {
@@ -677,6 +730,97 @@ button.warn[disabled] { opacity: 0.45; cursor: not-allowed; }
   cursor: pointer;
 }
 .board-target:hover { fill-opacity: 0.7; }
+
+/* The dressed board (10f). Four floors over nine rooms: the stylesheet
+   picks a pattern per room and colours the pattern's own shapes, so the
+   generator still paints nothing. */
+.board-room[data-room="Library"] rect,
+.board-room[data-room="Study"] rect,
+.board-room[data-room="Hall"] rect { fill: url(#tone-parquet); }
+.board-room[data-room="Kitchen"] rect,
+.board-room[data-room="Conservatory"] rect { fill: url(#tone-tile); }
+.board-room[data-room="Billiard"] rect,
+.board-room[data-room="Dining"] rect { fill: url(#tone-boards); }
+.board-room[data-room="Lounge"] rect,
+.board-room[data-room="Ballroom"] rect { fill: url(#tone-rug); }
+.tone-bg { fill: var(--board-room); }
+.tone-line { fill: none; stroke: var(--board-floor); stroke-width: 0.8; }
+.tone-dot { fill: var(--board-floor); }
+
+/* Walls as a double rule: the ink, a brass hairline over it. */
+.board-engraved .board-wall { stroke-width: 3; }
+.board-walls-inner { pointer-events: none; }
+.board-wall-inner { stroke: var(--brass); stroke-width: 0.8; stroke-linecap: square; }
+
+/* Doors as threshold plates: the brass bar and a rivet at each end. */
+.board-rivets { pointer-events: none; }
+.board-rivet { fill: var(--brass-dim); stroke: var(--board-wall); stroke-width: 0.5; shape-rendering: auto; }
+
+/* Every token carries its initial in the ink that sits on its colour,
+   so the six are told apart without colour (plan 12). A token glides at
+   --dur-move; the switch and reduced motion make that 0s. */
+.board-initial {
+  font: 700 9px var(--font-ui);
+  text-anchor: middle;
+  dominant-baseline: central;
+  shape-rendering: auto;
+  pointer-events: none;
+  stroke: none;
+  transition: transform var(--dur-move) var(--ease-panel);
+}
+.board-initial.suspect-scarlett { fill: var(--suspect-scarlett-ink); stroke: none; }
+.board-initial.suspect-mustard  { fill: var(--suspect-mustard-ink);  stroke: none; }
+.board-initial.suspect-plum     { fill: var(--suspect-plum-ink);     stroke: none; }
+.board-initial.suspect-peacock  { fill: var(--suspect-peacock-ink);  stroke: none; }
+.board-initial.suspect-green    { fill: var(--suspect-green-ink);    stroke: none; }
+.board-initial.suspect-white    { fill: var(--suspect-white-ink);    stroke: none; }
+.board-engraved .board-token {
+  transition: cx var(--dur-move) var(--ease-panel), cy var(--dur-move) var(--ease-panel);
+}
+
+/* The logo in the cellar (D5, candidate E). The keyway is cut through
+   to the cellar's floor, whatever colour that is in the theme. */
+.board-logo { pointer-events: none; shape-rendering: auto; }
+.logo-ink { fill: var(--ink); }
+.logo-brass-line { fill: none; stroke: var(--brass); stroke-width: 0.8; }
+.logo-plate { fill: var(--panel); stroke: var(--brass); stroke-width: 1; }
+.logo-plate-ink { fill: none; stroke: var(--edge-strong); stroke-width: 1.5; }
+.logo-word { font-family: var(--font-wordmark); font-weight: 600; letter-spacing: 0.08em; fill: var(--ink); }
+.logo-hole { fill: var(--page); }
+.logo-q { font-family: var(--font-display); font-weight: 700; }
+.board-logo .logo-hole { fill: var(--board-cellar); }
+
+/* Lit destinations (plan 8): squares at the server's coordinates, a
+   room's larger and dashed, pulsing once as they appear, then at rest. */
+.board-target.lit {
+  fill: var(--brass);
+  fill-opacity: 0.22;
+  stroke: var(--brass-bright);
+  stroke-width: 1.5;
+  shape-rendering: auto;
+  animation: lit-pulse calc(var(--dur-tick) * 2) var(--ease-snap) 1;
+}
+.board-target.lit.room { stroke-dasharray: 3 2; fill-opacity: 0.12; }
+.board-target.lit:hover { fill-opacity: 0.5; }
+@keyframes lit-pulse {
+  from { stroke-width: 4; }
+  to { stroke-width: 1.5; }
+}
+
+/* The seat now thinking (10e): a dashed ring, drawn by table.js. */
+.board-thinking {
+  fill: none;
+  stroke: var(--brass-bright);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 2;
+  shape-rendering: auto;
+  pointer-events: none;
+}
+
+/* The header bar's mark beside the wordmark. */
+.bar .mark { display: inline-flex; align-items: center; gap: var(--space-2); }
+.bar .mark svg { display: block; flex: none; }
+.bar .logo-hole { fill: var(--panel); }
 
 /* --- the replay screen -------------------------------------------------- */
 
@@ -1031,27 +1175,471 @@ details.panel:not([open]) > summary { margin: 0; }
   font: var(--type-gauge) / var(--lh-sm) var(--font-gauge);
 }
 
-/* The two logs, still one list each until 10d splits them into the
-   Record and Talk panels. */
+/* --- the table: the Record and Talk (plan 3.3, 10d) -------------------- */
+
+[hidden] { display: none !important; }
+
 .log, .talk {
   margin: 0;
-  padding: 0 0 0 1.2rem;
-  max-height: 14rem;
+  padding: 0;
+  list-style: none;
+  max-height: 22rem;
   overflow-y: auto;
   font-size: var(--type-sm);
 }
-.talk { max-height: 10rem; }
-.log li, .talk li { margin: var(--space-1) 0; }
-.log li.placeholder, .talk li.placeholder { list-style: none; margin-left: -1.2rem; color: var(--ink-faint); }
-.log li::marker, .talk li::marker { font-family: var(--font-gauge); font-size: var(--type-gauge); color: var(--ink-soft); }
-.log li.kind-suggestion { color: var(--ink); }
-.log li.kind-accusation { color: var(--warn); font-weight: 600; }
-.log li.kind-over { font-weight: 700; }
-.talk li.kind-remark { font-style: italic; color: var(--ink-soft); }
-.talk li.kind-remark.about-chat { font-style: normal; color: var(--ink); }
-.say { display: flex; gap: var(--space-2); margin-top: var(--space-2); }
+.log li.placeholder, .talk li.placeholder { display: block; margin: var(--space-1) 0; color: var(--ink-faint); }
+
+/* The Record: case-file. The turn number in the margin, in the gauge
+   face, once per turn (table.js marks a turn's first line); a hairline
+   between turns; the per-viewer line, never the omniscient one. */
+.record li {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: baseline;
+  margin: 0;
+  padding: var(--space-1) 0;
+  line-height: 1.45;
+}
+.record li::before {
+  content: "";
+  grid-column: 1;
+  font: 400 var(--type-gauge) / 1.7 var(--font-gauge);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  text-align: right;
+}
+.record li.turn-start { border-top: var(--rule); padding-top: var(--space-2); }
+.record li.turn-start:first-child { border-top: 0; }
+.record li.turn-start::before { content: attr(data-turn); }
+.record li.kind-move { color: var(--ink-soft); }
+.record li.kind-suggestion { color: var(--ink); }
+.record li.kind-accusation { color: var(--warn); font-weight: 600; }
+.record li.kind-over { font-weight: 700; }
+
+/* The speech pip: talk happened on this turn; it opens Talk there. */
+.pip-talk {
+  margin: 0;
+  min-height: 0;
+  padding: 0 var(--space-1);
+  background: none;
+  border: 0;
+  box-shadow: none;
+  color: var(--brass);
+  font-size: 0.8em;
+  line-height: 1;
+}
+.pip-talk:hover { color: var(--brass-bright); }
+.pip-talk:active { transform: none; }
+
+/* Talk: balloons with a real tail in the speaker's colour, yours on the
+   right. The name stays in ink (Mustard's and White's colours are not
+   legible as text on paper); the colour is the balloon's edge and tail. */
+.talk { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-1) var(--space-1) var(--space-3); }
+.talk li.balloon {
+  position: relative;
+  align-self: flex-start;
+  max-width: 88%;
+  margin: 0 0 var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 1.5px solid var(--ink);
+  border-left: 4px solid var(--speaker);
+  border-radius: 10px;
+  background: var(--panel);
+  line-height: 1.4;
+  --speaker: var(--edge-strong);
+}
+.talk li.balloon::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  bottom: -9px;
+  border: 7px solid transparent;
+  border-top: 9px solid var(--speaker);
+  border-bottom: 0;
+}
+.balloon .speaker {
+  display: block;
+  margin-bottom: 2px;
+  font: 600 0.7rem / 1.2 var(--font-ui);
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+}
+.balloon .when { margin-left: var(--space-1); font: 400 0.62rem / 1 var(--font-gauge); color: var(--ink-faint); }
+.balloon .said { display: block; overflow-wrap: anywhere; }
+.talk li.balloon.mine { align-self: flex-end; background: var(--panel-sunk); border-left-width: 1.5px; border-right: 4px solid var(--speaker); --speaker: var(--accent); }
+.talk li.balloon.mine::after { left: auto; right: 14px; }
+.balloon.reaction .said { font-style: italic; }
+.talk li.balloon.flash { animation: flash calc(var(--dur-impact) * 3) var(--ease-panel) 1; }
+@keyframes flash {
+  from { box-shadow: 0 0 0 3px var(--brass-bright); }
+  to { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* The speaker's colour, for a balloon and for the beat's rule. White's
+   own colour vanishes on paper, so it takes the soft ink. */
+[data-suspect="scarlett"] { --speaker: var(--suspect-scarlett); }
+[data-suspect="mustard"]  { --speaker: var(--suspect-mustard); }
+[data-suspect="plum"]     { --speaker: var(--suspect-plum); }
+[data-suspect="peacock"]  { --speaker: var(--suspect-peacock); }
+[data-suspect="green"]    { --speaker: var(--suspect-green); }
+[data-suspect="white"]    { --speaker: var(--ink-soft); }
+
+/* The say box: 240 characters, a counter past 200 (plan 7). */
+.say { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-2); }
+.say .box { position: relative; flex: 1; display: flex; min-width: 0; }
 .say input { flex: 1; min-width: 0; min-height: 44px; font: inherit; padding: var(--space-2) var(--space-3); border: var(--rule-ink); background: var(--panel); }
+.say .box:has(.count:not([hidden])) input { padding-right: 4.6rem; }
+.say .count {
+  position: absolute;
+  right: var(--space-2);
+  top: 50%;
+  transform: translateY(-50%);
+  font: 400 var(--type-gauge) / 1 var(--font-gauge);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  pointer-events: none;
+}
+.say .count.over { color: var(--warn); font-weight: 600; }
 .say button { margin: 0; }
+
+/* --- the table: the stage, the rail, the focus ladder (plan 3.1, 6; 10e) --
+ *
+ * Mobile first. On a phone the screen is one column: the status, the
+ * stage, the decision under the thumb, the seats, then the rail as a tab
+ * strip with one panel open beneath it. From 36rem the stage takes a
+ * sticky left column and every rail panel shows on the right; from 62rem
+ * the rail splits into the Record and Talk side by side and the seats
+ * run across the top. `data-focus` swaps what the stage holds.
+ */
+
+.screen { display: flex; flex-direction: column; gap: var(--space-3); }
+.screen .col { display: contents; }
+.screen .status { order: 1; margin: 0; }
+.screen .stage { order: 2; }
+.screen .spend { order: 3; margin: 0; }
+.screen .decision-panel { order: 4; }
+.screen .accuse-panel { order: 5; }
+.screen .seats { order: 6; }
+.screen .tabs { order: 7; }
+.screen .col-side > .panel { order: 8; }
+.screen .rail-foot { order: 9; }
+.screen .panel { padding: var(--space-3) var(--space-4); }
+
+/* One rail panel at a time on a phone; the tab strip names them. */
+.screen[data-tab="talk"] .col-side > .panel:not([data-tab="talk"]),
+.screen[data-tab="record"] .col-side > .panel:not([data-tab="record"]),
+.screen[data-tab="hand"] .col-side > .panel:not([data-tab="hand"]),
+.screen[data-tab="notes"] .col-side > .panel:not([data-tab="notes"]) { display: none; }
+.screen .col-side > details.panel > summary { display: none; }
+
+.status.yours { border-left-color: var(--accent); }
+.status.over { border-left-color: var(--brass); }
+
+/* The time-out clock in the red thread, bright red for the last ten
+   seconds (David, 2026-09-29). */
+.status .clock {
+  font: 600 var(--type-sm) / 1 var(--font-gauge);
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.status .clock.urgent { color: var(--alarm); font-weight: 700; }
+
+/* The stage: one panel, its contents swapped by focus. */
+.stage {
+  position: relative;
+  padding: var(--space-2);
+  background: var(--panel);
+  border: var(--rule-ink);
+  border-radius: var(--radius);
+  box-shadow: var(--lift);
+}
+.stage .board { max-height: 58vh; }
+.stage.dimmed .board { opacity: 0.28; }
+.stage .over {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  overflow: hidden;
+}
+.stage .over.bottom { justify-content: flex-end; }
+.stage .over .talk { max-height: none; overflow: visible; padding: 0; }
+
+/* A panel cut, not a fade (plan 11): the stage clips in from the right. */
+.stage.cut { animation: panel-cut var(--dur-cut) var(--ease-panel) 1; }
+@keyframes panel-cut {
+  from { clip-path: inset(0 0 0 100%); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+/* The one impact frame, for the accusation: the stage flashes to ink.
+   With motion off it is a plain flash to opacity; it still registers. */
+.stage.impact { animation: impact var(--dur-impact) var(--ease-panel) 1; }
+@keyframes impact {
+  0%, 20% { background: var(--ink); }
+  100% { background: var(--panel); }
+}
+body[data-motion="off"] .stage.impact { animation: impact-plain var(--dur-flash) linear 1; }
+@media (prefers-reduced-motion: reduce) {
+  .stage.impact { animation: impact-plain var(--dur-flash) linear 1; }
+}
+@keyframes impact-plain {
+  from { opacity: 0.35; }
+  to { opacity: 1; }
+}
+
+/* The narration caption (plan 7): a caption box, the speaker's colour as
+   its left rule; the accusation lands in the hero size. */
+.beat {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--panel);
+  border: var(--rule-ink);
+  border-left: 6px solid var(--speaker, var(--edge-strong));
+  box-shadow: var(--lift);
+  font: italic var(--type-beat) / var(--lh-beat) var(--font-display);
+  color: var(--ink);
+}
+.beat .turn {
+  display: block;
+  margin-bottom: var(--space-1);
+  font: 500 var(--type-gauge) / 1.2 var(--font-gauge);
+  font-style: normal;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.beat.accusation { border-left-color: var(--warn); font-size: var(--type-hero); line-height: var(--lh-hero); }
+.beat.accusation .turn { color: var(--warn); }
+
+/* The plate: the riveted frame of the game-over card. */
+.plate {
+  position: relative;
+  padding: var(--space-4) var(--space-5);
+  background: var(--panel);
+  border: var(--rule-ink);
+  box-shadow: var(--lift);
+}
+.plate.hero { text-align: center; padding: var(--space-5) var(--space-5) var(--space-4); }
+.plate .rivet {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brass);
+  box-shadow: inset 1px 1px 0 var(--brass-bright), inset -1px -1px 0 var(--brass-dim);
+}
+.plate .rivet.tl { top: 5px; left: 5px; }
+.plate .rivet.tr { top: 5px; right: 5px; }
+.plate .rivet.bl { bottom: 5px; left: 5px; }
+.plate .rivet.br { bottom: 5px; right: 5px; }
+.plate .kicker {
+  margin: 0;
+  font: 500 var(--type-gauge) / 1.2 var(--font-gauge);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.plate .envelope { margin: var(--space-2) 0; font: 700 var(--type-hero) / var(--lh-hero) var(--font-display); }
+.plate .envelope small { display: block; font: italic 400 var(--type-sm) / 1.4 var(--font-display); color: var(--ink-soft); }
+.plate .winner { margin: 0; font: italic var(--type-beat) / var(--lh-beat) var(--font-display); color: var(--accent); }
+
+/* The decision (plan 7): choice buttons with a brass hairline and the
+   printed shadow; two lines allowed, never an ellipsis. The thumb owns
+   the bottom third, so on a phone this sits right under the stage. */
+.decision-panel h2 { font-size: var(--type-title); }
+.decision .options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.decision .options.stack { grid-template-columns: minmax(0, 1fr); }
+.decision .options.squares { grid-template-columns: repeat(auto-fill, minmax(4.4rem, 1fr)); }
+.decision .options button,
+.decision .options a.choice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  min-height: 44px;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--brass);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink);
+  text-align: left;
+  text-decoration: none;
+  box-shadow: var(--lift);
+}
+.decision .options button small,
+.decision .options a.choice small {
+  font: 400 var(--type-gauge) / 1.3 var(--font-gauge);
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+.decision .options .primary,
+.decision .options a.choice.primary { background: var(--ink); color: var(--page); border-color: var(--ink); }
+.decision .options .primary small,
+.decision .options a.choice.primary small { color: var(--page); opacity: 0.75; }
+.decision .options .quiet,
+.decision .options a.choice.quiet { border-color: var(--edge-strong); color: var(--ink-soft); box-shadow: none; font-size: var(--type-body); }
+.decision .options .passage { border-style: double; border-width: 3px; }
+.decision .options.squares button { align-items: center; font: 500 var(--type-sm) / 1 var(--font-gauge); font-variant-numeric: tabular-nums; }
+.decision .options button:hover { border-color: var(--brass-bright); }
+.decision .options .primary:hover { border-color: var(--brass); }
+.decision.refused { animation: shake calc(var(--dur-tick) * 2) linear 1; }
+@keyframes shake {
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+/* The seats (plan 7): chips on public facts only (3.2), the certainty
+   tag on the name (9h), the method's short form under it (D8). Six
+   across a phone. A spectator gets the reading blocks instead. */
+.screen .seats { display: grid; grid-template-columns: repeat(auto-fit, minmax(3.4rem, 1fr)); gap: var(--space-1); }
+.screen .seats.readings { grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: var(--space-2); }
+.screen .seats .seat.roster {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  padding: var(--space-1) 3px;
+  border: var(--rule);
+  border-radius: var(--radius);
+  background: var(--panel);
+  text-align: center;
+  line-height: 1.2;
+}
+.screen .seats .seat.roster.mine { border-color: var(--accent); }
+.screen .seats .seat.roster.acting { border-color: var(--brass); box-shadow: var(--lift); }
+.screen .seats .seat.roster .pip { width: 1.15rem; height: 1.15rem; display: inline-flex; align-items: center; justify-content: center; font: 700 0.6rem / 1 var(--font-ui); }
+.pip.suspect-scarlett { color: var(--suspect-scarlett-ink); }
+.pip.suspect-mustard  { color: var(--suspect-mustard-ink); }
+.pip.suspect-plum     { color: var(--suspect-plum-ink); }
+.pip.suspect-peacock  { color: var(--suspect-peacock-ink); }
+.pip.suspect-green    { color: var(--suspect-green-ink); }
+.pip.suspect-white    { color: var(--suspect-white-ink); }
+.screen .seats .seat.roster h2 {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 1px 3px;
+  font: 600 0.72rem / 1.25 var(--font-ui);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.screen .seats .seat.roster .method { margin: 0; font: 400 0.55rem / 1.15 var(--font-gauge); color: var(--ink-faint); }
+.screen .seats .seat.roster .state,
+.screen .seats .seat.roster .cards { font: 400 0.6rem / 1.2 var(--font-gauge); color: var(--ink-soft); }
+.screen .seats .seat.roster .cards { color: var(--ink-faint); }
+.screen .seats .seat.roster.acting .state { color: var(--ink); font-weight: 500; }
+
+/* The tab strip (plan 6): one panel at a time on a phone; each tab says
+   what it holds back, a count on Talk and a dot on Record. */
+.tabs {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  border: var(--rule-ink);
+  background: var(--panel);
+}
+.tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: 44px;
+  margin: 0;
+  padding: 0 var(--space-1);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink-soft);
+  font: 500 var(--type-sm) / 1 var(--font-ui);
+}
+.tab:hover { color: var(--ink); border-color: transparent; border-bottom-color: var(--edge-strong); }
+.tab:active { transform: none; }
+.tab.active { color: var(--ink); border-bottom-color: var(--brass); }
+.badge {
+  padding: 2px 5px;
+  border: 1px solid var(--brass);
+  border-radius: var(--radius-chip);
+  font: 500 0.62rem / 1 var(--font-gauge);
+  color: var(--brass);
+}
+.tabs .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+.rail-foot { margin: 0; }
+
+/* Focus on a phone: deciding shrinks the board to a strip, so the form
+   and the board both fit above the thumb; with nothing of the viewer's
+   to decide, the empty decision panel gives way (the status line
+   already says whose turn it is). */
+.screen[data-focus="decide"] .stage .board { width: auto; height: 26vh; max-width: 100%; margin: 0 auto; }
+.screen[data-focus="board"] .decision-panel,
+.screen[data-focus="beat"] .decision-panel:not(:has(.options)),
+.screen[data-focus="talk"] .decision-panel { display: none; }
+
+/* Tablet: two columns, 5:4, the stage sticky on the left, every rail
+   panel open on the right. */
+@media (min-width: 36rem) {
+  .screen {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 4fr);
+    grid-template-areas: "main seats" "main side";
+    grid-template-rows: auto 1fr;
+    align-items: start;
+    gap: var(--space-4);
+  }
+  .screen .col { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
+  .screen .col-main { grid-area: main; position: sticky; top: var(--space-3); }
+  .screen .seats { grid-area: seats; }
+  .screen .col-side { grid-area: side; }
+  .screen .tabs { display: none; }
+  .screen[data-tab] .col-side > .panel[data-tab] { display: block; }
+  .screen .col-side > details.panel > summary { display: flex; }
+  .screen[data-focus="decide"] .stage .board { width: 100%; height: auto; }
+  .screen[data-focus] .decision-panel { display: block; }
+}
+
+/* Wide: nothing collapses; focus changes emphasis, not the grid. The
+   seats run across the top, the Record and Talk side by side. */
+@media (min-width: 62rem) {
+  .screen {
+    grid-template-columns: minmax(0, 6fr) minmax(0, 7fr);
+    grid-template-areas: "seats seats" "main side";
+  }
+  .screen .seats:not(.readings) { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+  .screen .col-side {
+    display: grid;
+    grid-template-columns: minmax(0, 4fr) minmax(0, 3fr);
+    grid-template-areas: "record talk" "hand talk" "notes talk" "foot talk";
+    align-items: start;
+    gap: var(--space-3);
+  }
+  .screen .col-side > .log-panel { grid-area: record; }
+  .screen .col-side > .talk-panel { grid-area: talk; align-self: stretch; }
+  .screen .col-side > .me-panel { grid-area: hand; }
+  .screen .col-side > .notepad-panel { grid-area: notes; }
+  .screen .col-side > .rail-foot { grid-area: foot; }
+  .screen .talk { max-height: 70vh; }
+  .stage .board { max-height: none; }
+  .screen[data-focus="move"] .stage,
+  .screen[data-focus="decide"] .decision-panel,
+  .screen[data-focus="show"] .decision-panel { border-color: var(--brass); }
+}
 
 /* Notes: the floor from your seat. Proven = solid ink, possible = a dot
    in the tone colour, the envelope column in the red thread. */
@@ -1060,11 +1648,14 @@ details.panel:not([open]) > summary { margin: 0; }
 .notepad th, .notepad td { padding: 0.1rem 0.3rem; text-align: center; border-bottom: var(--rule); }
 .notepad th { font: 500 0.6rem / var(--lh-gauge) var(--font-gauge); letter-spacing: 0.04em; color: var(--ink-soft); }
 .notepad td.card { text-align: left; }
+/* The category headings in the red thread, the wordmark's and the
+   Accuse panel's colour (David, 2026-09-29). */
 .notepad tr.category th {
   text-align: left;
-  font: italic 0.8rem / var(--lh-gauge) var(--font-display);
-  letter-spacing: 0;
-  color: var(--ink);
+  font: italic 600 0.85rem / var(--lh-gauge) var(--font-display);
+  letter-spacing: 0.02em;
+  text-transform: capitalize;
+  color: var(--accent);
   padding-top: var(--space-2);
 }
 /* The screen writes a glyph into each cell (a square for a proven
@@ -1086,4 +1677,6 @@ details.panel:not([open]) > summary { margin: 0; }
   background-size: var(--tone-size) var(--tone-size);
 }
 .notepad tr.placed td.card { color: var(--ink-faint); text-decoration: line-through; }
-.notepad tr.solved td.card { color: var(--accent); font-weight: 600; }
+/* A card proven to be in the envelope is the answer, not a card ruled
+   out: the red thread, never struck through. */
+.notepad tr.solved td.card { color: var(--accent); font-weight: 600; text-decoration: none; }

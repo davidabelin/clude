@@ -321,7 +321,7 @@ def test_lobby_seat_modes_and_memory_dial(page):
     assert page.locator("#watch-remember").is_checked()
     assert not page.locator('.seat-pick:has(#seat-Scarlett) .method').is_visible()
     assert page.locator("#seat-Plum option").all_text_contents() == [
-        "empty", "open", "floorbot", "me (browser)", "Plum (LLM)", "Plum (headless)",
+        "empty", "open", "floorbot", "me (Browser)", "Plum (LLM)", "Plum (headless)",
     ]
     assert not page.locator("#memory-Plum").is_visible()
     page.select_option("#seat-Plum", "llm")
@@ -374,7 +374,7 @@ def test_clicking_a_target_plays_the_move(page):
         arg=before, timeout=20000,
     )
     lines = page.locator("#log li:not(.placeholder)").all_inner_texts()
-    assert any("Scarlett (browser) moves to" in line for line in lines)
+    assert any("Scarlett (Browser) moves to" in line for line in lines)
     assert page.locator(".board-target").count() == 0 or page.inner_text("#status") != "Your move."
 
 
@@ -500,7 +500,7 @@ def test_the_table_page_never_names_a_card_shown_between_others(page):
     lines = page.locator("#log li.kind-suggestion").all_inner_texts()
     for line in lines:
         if " showed " in line:
-            assert line.startswith("Scarlett (browser) suggests") or "(browser) showed" in line, line
+            assert line.startswith("Scarlett (Browser) suggests") or "(Browser) showed" in line, line
 
 
 def test_each_seat_tab_shows_its_share_of_the_cost_only_at_a_model_table(page):
@@ -508,16 +508,19 @@ def test_each_seat_tab_shows_its_share_of_the_cost_only_at_a_model_table(page):
     table has spent with Claude, for someone playing and for someone
     watching; none at a table with no model seat. The model here never
     answers, so every share is 0%."""
+    # Attached, not visible: Engraved, the default since 10e, builds the
+    # bar and hides it (D9); Legacy shows it.
     _deal_table(page, {"Scarlett": "me", "Plum": "llm", "White": "character",
                        "Green": "empty", "Peacock": "empty", "Mustard": "empty"})
-    page.wait_for_selector(".seat.compact.roster .gauge.cost", timeout=20000)
+    page.wait_for_selector(".seat.compact.roster .gauge.cost", state="attached", timeout=20000)
     assert page.locator(".seat.compact .gauge.cost").count() == 3
     assert page.locator(".gauge.cost .pct").all_inner_texts() == ["0%"] * 3
+    assert not page.locator(".gauge.cost").first.is_visible(), "Engraved shows no cost bar (D9)"
 
     # Watching a model table, the bar comes after each seat's deduction bars.
     _deal_table(page, {"Scarlett": "floor", "Plum": "llm", "White": "character",
                        "Green": "empty", "Peacock": "empty", "Mustard": "empty"})
-    page.wait_for_selector(".seat.compact .gauge.cost", timeout=20000)
+    page.wait_for_selector(".seat.compact .gauge.cost", state="attached", timeout=20000)
     assert page.locator(".seat.compact.roster").count() == 0, "a spectator got the roster"
     assert page.locator(".seat.compact .gauge.cost").count() == 3
     assert page.locator(".seat.compact .gauge:last-child").evaluate_all(
@@ -572,7 +575,7 @@ def test_so_and_so_is_typing_shows_at_the_other_seat(page):
         "() => { const t = document.getElementById('typing'); return t && !t.hidden && t.textContent.includes('is typing'); }",
         timeout=20000,
     )
-    assert other.inner_text("#typing").startswith("Scarlett (browser) is typing")
+    assert other.inner_text("#typing").startswith("Scarlett (Browser) is typing")
     assert page.locator("#typing").is_hidden(), "the typist saw their own name"
 
     page.click("#say-form button[type=submit]")
@@ -599,7 +602,7 @@ def test_a_turn_the_person_lets_time_out_is_played_from_their_own_page(page):
         tables.TURN_TIMEOUT = saved
     assert "s left before the floor bot moves for you" in page.inner_text("#status")
     page.wait_for_function(
-        "() => Array.from(document.querySelectorAll('#log li')).some(li => li.textContent.includes('Scarlett (browser) moves'))",
+        "() => Array.from(document.querySelectorAll('#log li')).some(li => li.textContent.includes('Scarlett (Browser) moves'))",
         timeout=20000,
     )
     page.wait_for_function("() => !document.getElementById('strikes').hidden", timeout=20000)
@@ -645,27 +648,220 @@ def test_play_steps_the_replay_and_pause_holds_it(page):
     assert page.inner_text("#play") == "Play", "a key on the scrubber pauses"
 
 
-def test_the_look_picker_applies_and_keeps_the_page(page):
-    """Phase 9h. The header bar's Look form writes the account's choice
-    and brings the same page back in it; Phase 10b adds Engraved, whose
-    fonts are served from static/fonts/ and whose durations are zero
-    under the motion switch."""
-    assert page.evaluate("() => document.documentElement.getAttribute('data-style')") == "legacy"
-    assert page.locator("link[rel=stylesheet]").get_attribute("href").endswith("/static/styles/legacy.css")
+def _pick_look(page, key):
     url = page.url
-    page.select_option("#style", "engraved")
+    page.select_option("#style", key)
     page.click(".look button[type=submit]")
     page.wait_for_url(url)
+    page.wait_for_selector(".board-token")
+
+
+def _page_colour(page):
+    return page.evaluate("() => getComputedStyle(document.body).backgroundColor")
+
+
+def test_the_look_picker_applies_and_keeps_the_page(page):
+    """Phase 9h. The header bar's Look form writes the account's choice
+    and brings the same page back in it. Engraved is the default since
+    10e (D7), its fonts served from static/fonts/ and its durations zero
+    under the motion switch; "Case file light" and "Gaslight dark" fix
+    the theme whatever the device prefers (David, 2026-09-29); Legacy is
+    still there."""
     assert page.evaluate("() => document.documentElement.getAttribute('data-style')") == "engraved"
     assert page.locator("link[rel=stylesheet]").get_attribute("href").endswith("/static/styles/engraved.css")
     assert page.locator("#style").input_value() == "engraved"
-    page.wait_for_selector(".board-token")
     assert page.evaluate("() => document.body.getAttribute('data-motion')") == "off"
     assert page.evaluate("() => getComputedStyle(document.body).getPropertyValue('--dur-move').trim()") == "0s"
     loaded = page.evaluate("() => document.fonts.ready.then(() => Array.from(document.fonts).filter(f => f.status === 'loaded').map(f => f.family))")
     assert "Playfair Display" in loaded and "Inter" in loaded, loaded
     assert page.evaluate("() => getComputedStyle(document.querySelector('.board-void')).fill") not in ("", "none")
-    page.select_option("#style", "legacy")
-    page.click(".look button[type=submit]")
-    page.wait_for_url(url)
+    light = _page_colour(page)  # the context prefers light: case-file
+
+    _pick_look(page, "gaslight")
+    assert page.evaluate("() => document.documentElement.getAttribute('data-theme')") == "dark"
+    assert _page_colour(page) == "rgb(18, 16, 19)", "gaslight's page on a light device"
+    _pick_look(page, "casefile")
+    assert _page_colour(page) == light
+    page.emulate_media(color_scheme="dark")
+    assert _page_colour(page) == light, "case file light stays light on a dark device"
+    _pick_look(page, "engraved")
+    assert _page_colour(page) == "rgb(18, 16, 19)", "the automatic look follows the device"
+    page.emulate_media(color_scheme="light")
+
+    _pick_look(page, "legacy")
     assert page.evaluate("() => document.documentElement.getAttribute('data-style')") == "legacy"
+    assert page.locator("link[rel=stylesheet]").get_attribute("href").endswith("/static/styles/legacy.css")
+    _pick_look(page, "engraved")
+
+
+# --- Phase 10d-10g ------------------------------------------------------
+
+FOCI = ("show", "end", "move", "decide", "beat", "talk", "board")
+
+WATCH_FOCUS = """() => {
+    window.__foci = [document.getElementById('screen').getAttribute('data-focus')];
+    new MutationObserver(() => window.__foci.push(document.getElementById('screen').getAttribute('data-focus')))
+        .observe(document.getElementById('screen'), { attributes: true, attributeFilter: ['data-focus'] });
+}"""
+
+
+def _phone(page):
+    """The same account on a phone-sized page, errors collected."""
+    context = page.context.browser.new_context(
+        viewport={"width": 390, "height": 844}, reduced_motion="reduce"
+    )
+    context.add_init_script(MOTION_OFF)
+    phone = context.new_page()
+    phone.on("console", lambda m: page.problems.append(m.text) if m.type == "error" else None)
+    phone.on("pageerror", lambda e: page.problems.append(str(e)))
+    phone.goto(f"{page.base}/login")
+    phone.fill("#name", NAME)
+    phone.fill("#password", PASSWORD)
+    phone.click("button[type=submit]")
+    phone.wait_for_url(f"{page.base}/")
+    phone.base = page.base
+    return phone
+
+
+def test_on_a_phone_the_rail_is_tabs_and_talk_is_balloons(page):
+    """Phase 10d-10e (plan 3.3, 6). On a phone the rail is a tab strip
+    with one panel open; each tab says what it holds back; your own line
+    is a balloon on the right; a record line on a turn with talk carries
+    the pip that opens Talk there; the Record numbers each turn once."""
+    phone = _phone(page)
+    _deal_table(phone, {"Scarlett": "me", "Mustard": "character", "White": "character",
+                        "Green": "empty", "Peacock": "empty", "Plum": "empty"})
+    phone.wait_for_selector(".board-target", timeout=20000)
+    assert phone.locator("#tabs").is_visible()
+    visible = [p for p in ("talk", "record", "hand", "notes")
+               if phone.locator(f'.col-side > [data-tab="{p}"]').is_visible()]
+    assert visible == ["record"], visible
+    assert phone.inner_text('.tab[data-tab="hand"] .badge') == str(phone.locator("#hand li").count())
+
+    phone.click('.tab[data-tab="talk"]')
+    assert phone.locator(".talk-panel").is_visible() and not phone.locator(".log-panel").is_visible()
+    phone.fill("#say-text", "x" * 210)
+    assert phone.inner_text("#say-count") == "210 / 240"
+    phone.fill("#say-text", "Anyone been in the Study?")
+    assert phone.locator("#say-count").is_hidden()
+    phone.click("#say-form button[type=submit]")
+    phone.wait_for_selector("#talk li.balloon.mine", timeout=20000)
+    assert phone.inner_text("#talk li.balloon.mine .speaker").startswith("You")
+    assert phone.inner_text("#talk li.balloon.mine .said") == "Anyone been in the Study?"
+
+    phone.locator(".board-target").first.click()
+    phone.wait_for_function(
+        "() => !document.querySelector('.tab[data-tab=\"record\"] .dot').hidden", timeout=20000
+    )
+    phone.click('.tab[data-tab="record"]')
+    assert phone.locator('.tab[data-tab="record"] .dot').is_hidden(), "opening the tab clears its dot"
+    phone.wait_for_selector("#log .pip-talk", timeout=20000)
+    turns = phone.locator("#log li.turn-start").evaluate_all("ls => ls.map(l => l.dataset.turn)")
+    assert len(turns) == len(set(turns)), "a turn numbered twice in the margin"
+    phone.locator("#log .pip-talk").first.click()
+    assert phone.locator(".talk-panel").is_visible()
+    phone.context.close()
+
+
+def test_the_stage_never_changes_under_the_player_s_hand(page):
+    """Phase 10e (plan 3.1). With the viewer's move pending the stage
+    holds the board with its destinations lit, and a line of talk does
+    not take it away; once the move is made, a beat or talk may hold the
+    stage, and Esc hands it back."""
+    _deal_table(page, {"Scarlett": "me", "Mustard": "character", "White": "character",
+                       "Green": "empty", "Peacock": "empty", "Plum": "empty"})
+    page.wait_for_selector(".board-target", timeout=20000)
+    assert page.get_attribute("#screen", "data-focus") == "move"
+    assert page.locator("#over").is_hidden()
+    assert page.locator(".board-target.lit").count() == page.locator(".decision .options button").count()
+    page.fill("#say-text", "Nobody move.")
+    page.click("#say-form button[type=submit]")
+    page.wait_for_selector("#talk li.balloon", timeout=20000)
+    assert page.get_attribute("#screen", "data-focus") == "move", "talk took the stage from a decision"
+
+    page.locator(".board-target").first.click()
+    page.wait_for_function("() => document.getElementById('screen').dataset.focus !== 'move'", timeout=20000)
+    if page.get_attribute("#screen", "data-focus") in ("beat", "talk"):
+        assert page.locator("#over").is_visible()
+        page.keyboard.press("Escape")
+        assert page.get_attribute("#screen", "data-focus") in ("board", "move", "decide", "show", "end")
+
+
+def test_a_game_walks_the_stage_through_all_seven_focus_states(page):
+    """Phase 10e's check (plan 14): play a table and watch `data-focus`
+    take every rank of the ladder -- the viewer's move and decisions, a
+    card to show, the beat after a suggestion, a line of talk, the board
+    while the others play, and the end with its plate."""
+    from clude_web import tables
+
+    saved = tables.WORK_INTERVAL
+    tables.WORK_INTERVAL = 0.3
+    try:
+        _deal_table(page, {"Scarlett": "me", "Mustard": "character", "White": "character",
+                           "Green": "character", "Peacock": "empty", "Plum": "empty"}, seed="11")
+        page.wait_for_selector("#screen", timeout=20000)
+        page.evaluate(WATCH_FOCUS)
+        said = False
+        for _ in range(900):
+            foci = set(page.evaluate("() => window.__foci"))
+            focus = page.get_attribute("#screen", "data-focus")
+            if focus == "end" or foci >= set(FOCI):
+                break
+            if focus in ("move", "decide", "show") and page.locator(".decision .options button").count():
+                page.locator(".decision .options button").first.click()
+            elif focus == "board" and not said:
+                page.fill("#say-text", "Somebody here is very fond of the Conservatory.")
+                page.click("#say-form button[type=submit]")
+                said = True
+            elif {"beat", "talk", "show"} <= foci and page.inner_text("#autopilot") == "Let the floor bot play for me":
+                page.click("#autopilot")
+            page.wait_for_timeout(250)
+        page.wait_for_function("() => document.getElementById('screen').dataset.focus === 'end'", timeout=60000)
+    finally:
+        tables.WORK_INTERVAL = saved
+    foci = set(page.evaluate("() => window.__foci"))
+    assert foci == set(FOCI), sorted(set(FOCI) - foci)
+    assert page.locator("#end-plate").is_visible()
+    assert page.inner_text("#winner").endswith(".")
+
+
+def test_sound_starts_muted_is_remembered_and_never_repeats_a_cue(page):
+    """Phase 10g (plan 11.1). Off until turned on; the choice survives a
+    reload; the first paint, a reload, talk and a hand on the replay's
+    scrubber make no sound; play at the table does, and so does Play."""
+    _deal_table(page, {"Scarlett": "me", "Mustard": "character", "White": "character",
+                       "Green": "empty", "Peacock": "empty", "Plum": "empty"})
+    page.wait_for_selector(".board-target", timeout=20000)
+    assert page.inner_text("#sound-toggle") == "Sound off"
+    assert page.locator("#sound-volume").is_hidden()
+    assert page.evaluate("() => window.cludeSound.played.length") == 0
+
+    page.click("#sound-toggle")
+    assert page.get_attribute("#sound-toggle", "aria-pressed") == "true"
+    assert page.locator("#sound-volume").is_visible()
+    assert page.evaluate("() => window.cludeSound.played") == ["tick"], "the toggle answers with a tick"
+    page.reload()
+    page.wait_for_selector(".board-target", timeout=20000)
+    assert page.inner_text("#sound-toggle") == "Sound on", "the choice was forgotten"
+    assert page.evaluate("() => window.cludeSound.played") == [], "a reload made a sound"
+
+    page.fill("#say-text", "Quiet, please.")
+    page.click("#say-form button[type=submit]")
+    page.wait_for_selector("#talk li.balloon", timeout=20000)
+    assert page.evaluate("() => window.cludeSound.played") == [], "talk made a sound"
+
+    page.locator(".board-target").first.click()
+    page.wait_for_function("() => window.cludeSound.played.length > 0", timeout=30000)
+    assert set(page.evaluate("() => window.cludeSound.played")) <= {"tick", "turn", "refute", "accent"}
+
+    page.goto(f"{page.base}/replay/{RUN}/0")
+    page.wait_for_selector(".board-token")
+    page.keyboard.press("End")
+    page.keyboard.press("Home")
+    assert page.evaluate("() => window.cludeSound.played") == [], "scrubbing made a sound"
+    page.fill("#speed", "100")
+    page.click("#play")
+    page.wait_for_function("() => window.cludeSound.played.length > 0", timeout=20000)
+    page.click("#play")
+    page.click("#sound-toggle")
+    assert page.inner_text("#sound-toggle") == "Sound off"

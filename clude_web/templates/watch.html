@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Watching &middot; turn {{ game.turns }}{% endblock %}
+{% block sound %}{% include "_sound.html" %}{% endblock %}
 {% block content %}
-<div class="watch">
+{# data-cue: this turn's loudest sound, played once by sound.js (10g). #}
+<div class="watch" data-cue="{{ cue or '' }}" data-cue-key="{{ watch_id }}:{{ game.turns }}">
 
   <header class="replay-head">
     <p class="crumbs"><a href="{{ url_for('main.index') }}">Lobby</a> &rsaquo; watching</p>
@@ -88,4 +90,5 @@
     red for certain. {{ limitation }}
   </p>
 </div>
+<script src="{{ url_for('static', filename='sound.js') }}"></script>
 {% endblock %}

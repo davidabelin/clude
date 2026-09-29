@@ -130,16 +130,17 @@ Alongside it:
 | `clude_web/watch.py` | Watch as a table with nobody human at it: the all-bot form and the names the Watch screen speaks. |
 | `clude_web/views.py` | The lobby, a run's games, the replay, Watch, and the table routes (page, poll, work, answer, sit, deal, autopilot). |
 | `clude_web/templates/` | Jinja templates; `base.html` is the shell, `table.html` the table. |
-| `clude_web/styles.py` | The looks a player can choose between (Phase 9h): one stylesheet each, Legacy the only one and the default. |
+| `clude_web/styles.py` | The looks a player can choose between (Phase 9h): Engraved as the device has it (the default), Case file light, Gaslight dark, and Legacy. |
 | `clude_web/static/styles/legacy.css` | The Legacy style, frozen 2026-09-26: every colour a variable, light and dark. |
-| `clude_web/static/table.js` | The table screen: polls, fires bot work, draws the decision and posts the answer; writes only text into the page. |
+| `clude_web/static/styles/engraved.css` | The Engraved look (Phase 10): the token layer, both themes, the stage and rail, the dressed board. |
+| `clude_web/logo.py` | The logo (D5, candidate E), uncoloured SVG for the cellar and the header bar, and the favicon's source. |
+| `clude_web/static/table.js` | The table screen: polls, fires bot work, draws the decision and posts the answer; under Engraved also the stage's focus ladder, the rail's tabs, balloons and the Record's margin; writes only text into the page. |
+| `clude_web/static/sound.js`, `static/sounds/` | Sound effects (Phase 10g): four cues made by `scripts/make_sounds.py`, off until a viewer turns them on. |
 
-The stylesheet is plain on purpose. Typography, ornament, the decorated
-board and its logo, and motion are Phase 10; what is there now is the colour
-system those screens will inherit, declared once for light and once for
-dark. Since Phase 9h it is the *Legacy* style, one of a list (`styles.py`),
-and Phase 10's look is a second file beside it rather than an edit of it
-("Looks", below).
+The first stylesheet was plain on purpose, a colour system for Phase 10
+to inherit. Since Phase 9h it is the *Legacy* style, one of a list
+(`styles.py`), and Phase 10's look is a second file beside it rather
+than an edit of it ("Looks", below).
 
 ## The board and the replay data
 
@@ -556,24 +557,38 @@ every open after that reads the cache and is immediate.
 
 ## Looks
 
-A look is one stylesheet under `static/styles/` (`clude_web/styles.py`,
-Phase 9h): its colours, type, sizes and the board's dressing;
-`board_svg.py` draws the geometry and sets no colour. Each account
-records its choice (`users.set_style`, the `style` field, account
-document version 3), the session caches it at login, `base.html` links
-the chosen sheet and sets `<html data-style="...">`, and the header bar's
-"Look" form (`POST /style`) changes it from any page and brings that
-page back, a table mid-game included. Two looks exist: Legacy, the look
-of Phases 8.1 to 9h frozen on 2026-09-26, and Engraved, Phase 10's
-"engraved, not brass-plated" (`static/styles/engraved.css`, Phase 10b,
-2026-09-28), listed as "Engraved (beta)" until 10e makes it the default
-(`docs/phase10-plan.md` D7). Legacy stays selectable from here on and
-`legacy.css` is never edited. An account made before the choice, or
-holding a key since removed, reads as the default. The stylesheet tests
-in `tests/test_replay_screen.py` run over every look on the list.
+A look is a stylesheet under `static/styles/` and, for Phase 10's,
+the screens that go with it (`clude_web/styles.py`, Phase 9h): its
+colours, type, sizes and the board's dressing; `board_svg.py` draws the
+geometry and sets no colour. Each account records its choice
+(`users.set_style`, the `style` and `style_chosen` fields, account
+document version 4), the session caches it at login (the `look` key),
+`base.html` links the chosen sheet and sets `<html data-style="...">`
+and, for a look that fixes one, `data-theme`; the header bar's "Look"
+form (`POST /style`) changes it from any page and brings that page
+back, a table mid-game included.
 
-Engraved is case-file light by default and gaslight dark on a device's
-dark preference (D10); its four faces are served from `static/fonts/`
+Four looks, in the bar's order (`docs/phase10-plan.md` D7, D10, D15):
+**Engraved (auto)**, Phase 10's "engraved, not brass-plated", case-file
+light unless the device prefers dark, and the default since 10e;
+**Case file light** and **Gaslight dark**, the same look with the theme
+fixed by name; and **Legacy**, the look of Phases 8.1 to 9h frozen on
+2026-09-26. Legacy stays selectable and `legacy.css` is never edited, so
+it keeps the markup it was frozen with: `table.html` has an Engraved
+branch and a Legacy one, `board_svg` dresses the board only for an
+Engraved look (`dressed=True`, Phase 10f), and `table.js` gates the
+Phase 10 behaviours on `data-style`. An account with no choice, one
+holding a key since removed, and a version 3 account whose `legacy` was
+written in by `add_user` rather than chosen all read as the default. The
+stylesheet tests in `tests/test_replay_screen.py` run over every look.
+
+Under Engraved the table is a stage and a rail (Phase 10d-10e,
+`docs/phase10-plan.md` 17): the server's `focus` says what holds the
+stage, the page lays a beat or talk over the board for a moment, and on
+a phone the rail is four tabs. The board is dressed: floor patterns, a
+double wall, door rivets, token initials and the logo in the cellar.
+
+Engraved's four faces are served from `static/fonts/`
 as Latin-subset woff2 files (Bodoni Moda for the wordmark, Playfair
 Display for headings and captions, Inter for the text, IBM Plex Mono
 for numbers; all under the SIL Open Font License, see
@@ -583,6 +598,24 @@ all to zero: `clude_shots.py` and `tests/test_browser.py` set both, so
 no screenshot lands mid-transition, and a test refuses any literal
 duration outside `:root`. In this look the per-seat cost bar is not
 shown (D9); the spend line and the Cost columns are.
+
+## Sound
+
+The table, Watch and the replay can make four short sounds (Phase 10g,
+`docs/phase10-plan.md` 11.1): a tick for a move, the refutation cue, a
+bell when a decision becomes yours, an accent for an accusation and the
+end. No music. They are off until a viewer presses Sound in the header
+bar, which remembers the choice and the volume on that device
+(`static/sound.js`). A cue comes only from something new on the screen,
+once: never from a poll, a reload, talk or the replay's scrubber, and a
+batch of events makes one sound. The files are made, not recorded:
+
+```powershell
+& .venv\Scripts\python.exe scripts\make_sounds.py
+```
+
+writes `static/sounds/*.wav` from recipes in that script (standard
+library only), the same on every run.
 
 ## Looking at it
 
