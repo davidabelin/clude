@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Privacy{% endblock %}
+{% block content %}
+{# D12's privacy page, drafted 2026-09-29 ahead of 10h. Public: it can
+   be read before signing in. #}
+<div class="panel narrow">
+  <h1>Privacy</h1>
+  <p>clude is a game for family and friends. This is everything it keeps, and where.</p>
+
+  <h2>Your account</h2>
+  <p>Your name, a hash of your password (never the password itself), and the look you picked.
+     Accounts are made by hand; nobody signs up.</p>
+
+  <h2>The games</h2>
+  <p>Every game played here is kept, with no end date: who sat where, every move,
+     suggestion, accusation and card shown, what was said at the table, and what the
+     model seats cost. Anyone signed in can replay a finished game.</p>
+  <p>The characters remember. After a game a character may write notes about it,
+     how you played included, and read them back at later tables.</p>
+
+  <h2>Who else sees it</h2>
+  <p>When a table has a character played by Claude, what that seat can see of the game,
+     the table talk and its notes are sent to Anthropic's API to choose its moves and lines.
+     A Claude in a chat window that plays a seat reads the table the same way a player does.</p>
+  <p>clude runs on Google Cloud, in the United States: the app on Cloud Run (us-central1),
+     the games and accounts in Cloud Storage.</p>
+
+  <h2>Cookies and your device</h2>
+  <p>One cookie, to keep you signed in. No analytics, no advertising, nothing from a third
+     party: even the fonts are served by clude. Your browser keeps a few settings of yours on
+     your own device, such as whether sound is on.</p>
+
+  <h2>Leaving</h2>
+  <p>Ask through <a href="{{ contact_url }}" rel="noopener">Contact</a> and your account is
+     deleted. The games you played stay in the record, under your name.</p>
+</div>
+{% endblock %}

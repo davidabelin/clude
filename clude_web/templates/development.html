@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}development{% endblock %}
+{% block content %}
+{# The development folder (2026-09-29): every stored run but practice,
+   each opening its table of games. #}
+<div class="panel wide">
+  <p class="crumbs"><a href="{{ url_for('main.index') }}">Lobby</a> &rsaquo; development</p>
+  <h1>development</h1>
+  <p class="note">Reading <code>{{ store }}</code>. The runs behind the measurements: open one to replay any of its games.</p>
+  {% if runs %}
+    <ul class="listing">
+      {% for r in runs %}
+        <li>
+          <a class="run-id" href="{{ url_for('main.run', run_id=r.run_id) }}">{{ r.run_id }}</a>
+          <span class="note">
+            {{ r.n_games }} game{{ '' if r.n_games == 1 else 's' }}
+            {% if r.player_counts %}&middot; {{ r.player_counts|join('/') }} seats{% endif %}
+            {% if r.roster %}&middot; {{ r.roster|map('person')|join(', ') }}{% endif %}
+            {% if current_style().costs and r.cost is not none %}&middot; ${{ '%.2f'|format(r.cost) }} with Claude{% endif %}
+          </span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="note">No development runs in this store.</p>
+  {% endif %}
+</div>
+{% endblock %}

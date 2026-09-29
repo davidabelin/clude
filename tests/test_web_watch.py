@@ -344,6 +344,20 @@ def test_a_second_game_gets_the_next_index(client, store):
 
     assert store.list_games("web") == [0, 1]
     assert store.get_run("web")["n_games"] == 2
+    # Each game's wall time, from the deal to the finish (2026-09-29).
+    for line in store.get_run("web")["games"]:
+        assert 0 <= line["wall_seconds"] < 120
+
+
+def test_a_table_dealt_before_the_deal_was_stamped_has_no_wall_time():
+    from datetime import datetime, timezone
+
+    from clude_web import tables
+
+    now = datetime(2026, 9, 29, 12, 30, tzinfo=timezone.utc)
+    assert tables.wall_seconds({}, now) is None
+    assert tables.wall_seconds({"dealt": "garbled"}, now) is None
+    assert tables.wall_seconds({"dealt": "2026-09-29T12:00:00+00:00"}, now) == 1800.0
 
 
 def test_the_lobby_lists_games_in_progress_and_played(client, store):
@@ -354,10 +368,11 @@ def test_the_lobby_lists_games_in_progress_and_played(client, store):
     client.post(f"/watch/{watch_id}/end", data={"csrf": csrf(client)})
     page = client.get("/").get_data(as_text=True)
     assert f"/watch/{watch_id}" not in page, "a finished game is still listed as in progress"
-    assert "/runs/web" in page
+    assert 'href="/practice"' in page and "1 game played here" in page
 
-    run_page = client.get("/runs/web").get_data(as_text=True)
-    assert "/replay/web/0" in run_page
+    for path in ("/practice", "/runs/web"):
+        run_page = client.get(path).get_data(as_text=True)
+        assert "/replay/web/0" in run_page and "<h1>practice</h1>" in run_page
 
 
 def test_an_unknown_game_or_run_is_a_404(client):

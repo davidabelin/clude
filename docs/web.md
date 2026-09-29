@@ -128,17 +128,19 @@ Alongside it:
 | `clude_web/tables.py` | Tables people play at (Phase 8.2): the registry that stores, drives and rebuilds every game, the form, and the view of a game from one seat. |
 | `clude_web/chat.py` | Off-turn talk (Phase 8.3b): the reaction queue, the participation draw, the pacing and the caps. |
 | `clude_web/watch.py` | Watch as a table with nobody human at it: the all-bot form and the names the Watch screen speaks. |
-| `clude_web/views.py` | The lobby, a run's games, the replay, Watch, and the table routes (page, poll, work, answer, sit, deal, autopilot). |
+| `clude_web/views.py` | The lobby, the Stored games folders and a run's games, the replay, Watch, the table routes (page, poll, work, answer, sit, deal, autopilot), and the privacy page and Wikiclude's placeholder. |
 | `clude_web/templates/` | Jinja templates; `base.html` is the shell, `table.html` the table. |
-| `clude_web/styles.py` | The looks a player can choose between (Phase 9h): Engraved as the device has it (the default), Case file light, Gaslight dark, and Legacy. |
-| `clude_web/static/styles/legacy.css` | The Legacy style, frozen 2026-09-26: every colour a variable, light and dark. |
+| `clude_web/styles.py` | The looks a player can choose between (Phase 9h): Case-file light (the default), Gaslight dark, and Developer (was Legacy). |
+| `clude_web/static/styles/legacy.css` | The Developer look's sheet, Legacy's frozen 2026-09-26: every colour a variable, light and dark. |
+| `clude_web/static/styles/chrome.css` | What every look shares, loaded after its sheet: the header bar's wooden question mark and the footer. |
+| `clude_web/static/questionmark-wood.png` | The wooden question mark, the way into Wikiclude, made from `questionmark.png` by `scripts/make_wood_button.py`. |
 | `clude_web/static/styles/engraved.css` | The Engraved look (Phase 10): the token layer, both themes, the stage and rail, the dressed board. |
 | `clude_web/logo.py` | The logo (D5, candidate E), uncoloured SVG for the cellar and the header bar, and the favicon's source. |
 | `clude_web/static/table.js` | The table screen: polls, fires bot work, draws the decision and posts the answer; under Engraved also the stage's focus ladder, the rail's tabs, balloons and the Record's margin; writes only text into the page. |
 | `clude_web/static/sound.js`, `static/sounds/` | Sound effects (Phase 10g): four cues made by `scripts/make_sounds.py`, off until a viewer turns them on. |
 
 The first stylesheet was plain on purpose, a colour system for Phase 10
-to inherit. Since Phase 9h it is the *Legacy* style, one of a list
+to inherit. Since Phase 9h it is the *Legacy* style (the *Developer* look since 2026-09-29), one of a list
 (`styles.py`), and Phase 10's look is a second file beside it rather
 than an edit of it ("Looks", below).
 
@@ -209,11 +211,20 @@ be shown on the screen rather than hidden.
   and optionally a seed, and step through it a turn at a time on the
   Watch screen. Nothing here can call a model, so nothing here costs
   money.
-- **Stored games.** Every run in the store, the web app's own run (`web`)
-  first. It is read from each run's summary, which already carries every
-  game's seats, winner and length, so the lobby opens no game record at
-  all: 51 runs list in about 0.3 s on Orbit. `/runs/<run_id>` lists that
-  run's games, each a link to its replay.
+- **Stored games.** Two folders (David, 2026-09-29): **practice**, the
+  games played at clude's tables (the store's `web` run, its key
+  unchanged; `/practice`), and **development**, every other run -- the
+  arenas, sweeps, ladders and fixtures (`/development`). The lobby reads
+  one summary, practice's, and only counts the development runs; the
+  development page reads every run's summary in parallel, which already
+  carries every game's seats, winner and length, so no game record is
+  opened: 51 runs list in about 0.3 s on Orbit. A run's page
+  (`/runs/<run_id>`) is its table of games, each a link to its replay:
+  Game, Seats, Winner, Turns, Suggestions, Wall time, and Cost in the
+  Developer look only. Wall time runs from the deal (`dealt` on the table
+  document) to the finish and is kept on the game's summary line as
+  `wall_seconds`; games stored before 2026-09-29, and every arena game,
+  leave it blank.
 
 ## A table
 
@@ -441,9 +452,10 @@ of the bill -- over the first nine web games with model seats, 38% of
 it ($1.69 of $4.40). Then it goes on the table document
 (`llm.spent`, `llm.seats`, `llm.final`), on the record (`cost`, and
 `cost` on each model seat), and on the game's line in the web run's
-summary, which the lobby's list of games shows as its Cost column
-(a dash for a game with no model seat), with the run's total under
-"Stored games". Ending a table that is still writing its entries
+summary, which a run's games table shows as its Cost column (a dash
+for a game with no model seat), with the run's total above it and the
+practice folder's in the lobby -- all three in the Developer look only
+(2026-09-29). Ending a table that is still writing its entries
 records what it spent so far. Games recorded before 9g are priced from
 the daily ledgers, with no split by seat, by `tables costs`
 (`docs/cli.md`).
@@ -568,19 +580,31 @@ and, for a look that fixes one, `data-theme`; the header bar's "Look"
 form (`POST /style`) changes it from any page and brings that page
 back, a table mid-game included.
 
-Four looks, in the bar's order (`docs/phase10-plan.md` D7, D10, D15):
-**Engraved (auto)**, Phase 10's "engraved, not brass-plated", case-file
-light unless the device prefers dark, and the default since 10e;
-**Case file light** and **Gaslight dark**, the same look with the theme
-fixed by name; and **Legacy**, the look of Phases 8.1 to 9h frozen on
-2026-09-26. Legacy stays selectable and `legacy.css` is never edited, so
-it keeps the markup it was frozen with: `table.html` has an Engraved
-branch and a Legacy one, `board_svg` dresses the board only for an
-Engraved look (`dressed=True`, Phase 10f), and `table.js` gates the
-Phase 10 behaviours on `data-style`. An account with no choice, one
+Three looks, in the bar's order (`docs/phase10-plan.md` D17, David,
+2026-09-29): **Case-file light**, the default, and **Gaslight dark**,
+Phase 10's "engraved, not brass-plated" in its two themes, each fixing
+`data-theme` whatever the device prefers; and **Developer**, which was
+Legacy, the look of Phases 8.1 to 9h frozen on 2026-09-26. "Engraved
+(auto)", which followed the device, is gone: on a dark device it was
+Gaslight dark. Developer differs in content as well as dress: it alone
+shows what a stored game cost. `legacy.css` is still never edited, so
+Developer keeps the markup Legacy was frozen with: `table.html` has an
+Engraved branch and a Developer one, `board_svg` dresses the board only
+for an Engraved look (`dressed=True`, Phase 10f), and `table.js` gates
+the Phase 10 behaviours on `data-style`. An account with no choice, one
 holding a key since removed, and a version 3 account whose `legacy` was
-written in by `add_user` rather than chosen all read as the default. The
+written in by `add_user` rather than chosen all read as the default; a
+`legacy` or `engraved` chosen from the bar reads as Developer or
+Gaslight dark (`styles.RENAMED`), in a session as in an account. The
 stylesheet tests in `tests/test_replay_screen.py` run over every look.
+
+What every look shares is `chrome.css`, loaded after the look's sheet
+and using only tokens both sheets define: the header bar's wooden
+question mark, which leads to Wikiclude (`/wiki`, a placeholder for
+now), and the footer on every page -- Privacy (`/privacy`, public like
+the login page, D12's draft), Contact (the repo's GitHub issues) and
+Wikiclude, and the copyleft mark (`static/copyleft.svg`, used as a mask
+so it takes the text's colour) with "2026 AIX Laboratories".
 
 Under Engraved the table is a stage and a rail (Phase 10d-10e,
 `docs/phase10-plan.md` 17): the server's `focus` says what holds the
@@ -597,7 +621,7 @@ and `body[data-motion="off"]` or a reduced-motion preference sets them
 all to zero: `clude_shots.py` and `tests/test_browser.py` set both, so
 no screenshot lands mid-transition, and a test refuses any literal
 duration outside `:root`. In this look the per-seat cost bar is not
-shown (D9); the spend line and the Cost columns are.
+shown (D9), nor the Cost columns (D17); the table's spend line is.
 
 ## Sound
 

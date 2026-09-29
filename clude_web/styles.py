@@ -8,22 +8,22 @@ and the geometry stays in one place. Each account picks a style
 mid-game included; `base.html` links the chosen sheet and marks
 ``<html data-style="...">`` so a rule can tell one look from another.
 
-Two stylesheets: Legacy, the look of Phases 8.1 to 9h frozen on
-2026-09-26, and Engraved, Phase 10's "engraved, not brass-plated", in
-the list as a beta from 10b (2026-09-28) and the default from 10e
-(2026-09-29, D7). Legacy stays fully functional and selectable from
-here on (David, 2026-09-28); ``legacy.css`` is never edited.
+Three looks since 2026-09-29 (David's fourth round, D17): Case-file
+light, the default, and Gaslight dark, Phase 10's "engraved, not
+brass-plated" in its two themes on one sheet, each fixing
+``<html data-theme="...">``; and Developer, which was Legacy, the look
+of Phases 8.1 to 9h frozen on 2026-09-26. ``legacy.css`` is still never
+edited; Developer differs from the other two in content as well as
+dress (a game's cost is shown only there).
 
-Engraved comes three ways (David, 2026-09-29): as the device has it,
-case-file light unless it asks for dark (D10), or fixed by name as Case
-file light or Gaslight dark. The three share one sheet; a fixed one
-sets ``<html data-theme="...">`` and the sheet obeys it over the
-device's preference.
+"Engraved (auto)", which followed the device, is gone: on a dark device
+it was Gaslight dark, and David could not tell them apart. A key stored
+or held in a session from before is read through `RENAMED`.
 
 A look is `engraved` when it wears the Phase 10 screens: the table's
-stage and rail, the decorated board, the header bar's mark. Legacy
-keeps the markup it was frozen with, since its sheet has no rules for
-anything newer and never will.
+stage and rail, the decorated board, the header bar's mark. Developer
+keeps the markup Legacy was frozen with, since its sheet has no rules
+for anything newer and never will.
 """
 from __future__ import annotations
 
@@ -35,35 +35,47 @@ class Style:
     """One look: its key (stored on the account and set as
     ``data-style``), its title (the header bar's word for it), its
     stylesheet (a path under ``static/``), its fixed theme (``"light"``,
-    ``"dark"``, or empty to follow the device) and whether it wears the
-    Phase 10 screens."""
+    ``"dark"``, or empty to leave it to the sheet), whether it wears
+    the Phase 10 screens, and whether it shows what a stored game cost
+    (the Developer look only, D17)."""
 
     key: str
     title: str
     stylesheet: str
     theme: str = ""
     engraved: bool = False
+    costs: bool = False
 
 
 STYLES: dict = {
-    "engraved": Style("engraved", "Engraved (auto)", "styles/engraved.css", engraved=True),
-    "casefile": Style("casefile", "Case file light", "styles/engraved.css", theme="light", engraved=True),
+    "casefile": Style("casefile", "Case-file light", "styles/engraved.css", theme="light", engraved=True),
     "gaslight": Style("gaslight", "Gaslight dark", "styles/engraved.css", theme="dark", engraved=True),
-    "legacy": Style("legacy", "Legacy", "styles/legacy.css"),
+    "developer": Style("developer", "Developer", "styles/legacy.css", costs=True),
 }
 """Every style, by key, in the order the header bar lists them."""
 
-DEFAULT_STYLE = "engraved"
-"""What an account with no choice recorded, and a signed-out page, gets:
-Engraved as the device has it, since 10e (D7, D10)."""
+DEFAULT_STYLE = "casefile"
+"""What an account with no choice recorded, and a signed-out page, gets
+(David, 2026-09-29, D17)."""
+
+RENAMED: dict = {"legacy": "developer", "engraved": "gaslight"}
+"""Keys a look had before, and the look each is now: Legacy renamed
+Developer, and Engraved (auto) folded into Gaslight dark (D17)."""
+
+
+def canonical(key) -> str:
+    """`key` normalised, and brought forward if it names a look by an
+    older key (`RENAMED`)."""
+    key = str(key or "").strip().lower()
+    return RENAMED.get(key, key)
 
 
 def style_named(key) -> Style:
     """The style for `key`, or the default for an unknown or missing
     one: a stored key from a style since removed must still render."""
-    return STYLES.get(str(key or "").strip().lower(), STYLES[DEFAULT_STYLE])
+    return STYLES.get(canonical(key), STYLES[DEFAULT_STYLE])
 
 
 def is_style(key) -> bool:
-    """Whether `key` names a style on the list."""
+    """Whether `key` names a style on the list, by its current key."""
     return str(key or "").strip().lower() in STYLES

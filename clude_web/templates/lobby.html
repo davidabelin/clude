@@ -137,24 +137,22 @@
 
   <section class="panel">
     <h2>Stored games</h2>
-    <p class="note">Reading <code>{{ store }}</code>. Open a run to replay any of its games.</p>
-    {% if runs %}
-      <ul class="listing">
-        {% for r in runs %}
-          <li>
-            <a class="run-id" href="{{ url_for('main.run', run_id=r.run_id) }}">{{ r.run_id }}</a>
-            <span class="note">
-              {{ r.n_games }} game{{ '' if r.n_games == 1 else 's' }}
-              {% if r.player_counts %}&middot; {{ r.player_counts|join('/') }} seats{% endif %}
-              {% if r.roster %}&middot; {{ r.roster|map('person')|join(', ') }}{% endif %}
-              {% if r.cost is not none %}&middot; ${{ '%.2f'|format(r.cost) }} with Claude{% endif %}
-            </span>
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <p class="note">No stored games here yet. Deal one above and it will be kept.</p>
-    {% endif %}
+    <p class="note">Reading <code>{{ store }}</code>. Open a folder, then any game as a replay.</p>
+    {% set practice = folders['practice'] %}
+    {% set development = folders['development'] %}
+    <ul class="listing folders">
+      <li>
+        <a class="run-id" href="{{ url_for('main.practice') }}">practice</a>
+        <span class="note">
+          {% if practice.n_games %}{{ practice.n_games }} game{{ '' if practice.n_games == 1 else 's' }} played here{% else %}no games played here yet{% endif %}
+          {% if current_style().costs and practice.cost is not none %}&middot; ${{ '%.2f'|format(practice.cost) }} with Claude{% endif %}
+        </span>
+      </li>
+      <li>
+        <a class="run-id" href="{{ url_for('main.development') }}">development</a>
+        <span class="note">{{ development.n_runs }} run{{ '' if development.n_runs == 1 else 's' }}: the arenas, sweeps and ladders</span>
+      </li>
+    </ul>
   </section>
 
 </div>

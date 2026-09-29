@@ -112,8 +112,12 @@ def create_app(settings=None) -> Flask:
     app.jinja_env.globals["styles"] = styles.STYLES
     # The header bar's mark under an Engraved look (Phase 10f, D5).
     app.jinja_env.globals["logo_mark"] = logo.mark_svg()
+    # The footer's Contact link, on every page (D12).
+    app.jinja_env.globals["contact_url"] = views.CONTACT_URL
     # A person's name as shown: capitalised, whatever the key (Phase 9j).
     app.jinja_env.filters["person"] = users.display_name
+    # A game's wall time in the games table (2026-09-29).
+    app.jinja_env.filters["wall_time"] = views.wall_time
     app.before_request(auth.require_session)
     app.register_blueprint(auth.bp)
     app.register_blueprint(views.bp)

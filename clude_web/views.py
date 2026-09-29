@@ -28,7 +28,7 @@ from clude_storage import GameRecord
 from clude_training.table import TableError, TableSetup
 
 from . import board_svg, replay_data, tables, users, watch
-from .auth import current_style, current_user
+from .auth import current_style, current_user, public
 
 bp = Blueprint("main", __name__)
 
@@ -41,6 +41,9 @@ DEFAULT_SEATS: dict = {
 }
 """The table form's starting occupants: you as Scarlett against three
 characters, a four-seat game."""
+
+CONTACT_URL = "https://github.com/davidabelin/clude/issues"
+"""Where the footer's Contact goes: the repo's GitHub issues (D12)."""
 
 LOBBY_FETCHES = 10
 """How many run summaries the lobby reads at once (`run_listing`): the
@@ -79,6 +82,56 @@ def _me() -> str:
     """The signed-in account's key: the label a human seat is recorded
     under, and what `SeatRecord.label` and a logbook are keyed by."""
     return users.normalise(current_user())
+
+
+PRACTICE = "practice"
+"""The Stored games folder of games played at clude's tables: the
+store's ``web`` run (`tables.WEB_RUN`) under the name David gave it
+(2026-09-29). The store's key is unchanged."""
+
+DEVELOPMENT = "development"
+"""The Stored games folder holding every other run: the arenas, the
+sweeps, the ladders, the fixtures (David, 2026-09-29)."""
+
+
+def folder_of(run_id: str) -> str:
+    """The Stored games folder a run is shown under."""
+    return PRACTICE if run_id == tables.WEB_RUN else DEVELOPMENT
+
+
+def run_title(run_id: str) -> str:
+    """A run's name as shown: the practice run by its folder's name."""
+    return PRACTICE if run_id == tables.WEB_RUN else run_id
+
+
+def folders(store) -> dict:
+    """The lobby's two folders: how many games practice holds and what
+    they spent with Claude, and how many runs are under development.
+    Reads one summary, the practice run's; the development runs are
+    only counted, and read when their folder is opened."""
+    try:
+        practice = store.get_run(tables.WEB_RUN)
+    except KeyError:
+        practice = {}
+    games = practice.get("games", [])
+    return {
+        PRACTICE: {"n_games": practice.get("n_games", len(games)), "cost": run_cost(games)},
+        DEVELOPMENT: {"n_runs": sum(1 for run_id in store.list_runs() if run_id != tables.WEB_RUN)},
+    }
+
+
+def wall_time(seconds) -> str:
+    """A game's wall time as the games table shows it: ``"42 s"``,
+    ``"17 min"``, ``"1 h 05 min"``; empty when it was not recorded."""
+    if seconds is None:
+        return ""
+    seconds = max(0, int(round(float(seconds))))
+    if seconds < 60:
+        return f"{seconds} s"
+    minutes = int(round(seconds / 60))
+    if minutes < 60:
+        return f"{minutes} min"
+    return f"{minutes // 60} h {minutes % 60:02d} min"
 
 
 def run_listing(store) -> list:
@@ -185,7 +238,7 @@ def _lobby(error=None, form=None, status=200, table_error=None, table_form=None)
             user=current_user(),
             me=me,
             store=_store().describe(),
-            runs=run_listing(_store()),
+            folders=folders(_store()),
             tables=_table_listing(me),
             characters=characters,
             chosen=set(form.get("characters", [])),
@@ -213,6 +266,34 @@ def index():
     return _lobby()
 
 
+@bp.get("/privacy")
+@public
+def privacy():
+    """What clude keeps and where (D12): public, so it can be read
+    before signing in. Drafted 2026-09-29, ahead of 10h."""
+    return render_template("privacy.html")
+
+
+@bp.get("/wiki")
+def wiki():
+    """Wikiclude's front door: a placeholder until the pages are written
+    (David, 2026-09-29: "don't start this yet")."""
+    return render_template("wiki.html")
+
+
+@bp.get("/practice")
+def practice():
+    """The practice folder: every game played at clude's tables."""
+    return run(tables.WEB_RUN)
+
+
+@bp.get("/development")
+def development():
+    """The development folder: every other run, each a table of games."""
+    runs = [r for r in run_listing(_store()) if r["run_id"] != tables.WEB_RUN]
+    return render_template("development.html", runs=runs, store=_store().describe())
+
+
 @bp.get("/runs/<run_id>")
 def run(run_id):
     """One run's games, each a way into its replay."""
@@ -224,6 +305,8 @@ def run(run_id):
     return render_template(
         "run.html",
         run_id=run_id,
+        title=run_title(run_id),
+        folder=folder_of(run_id),
         summary=summary,
         games=games,
         cost=run_cost(games),
@@ -259,6 +342,7 @@ def replay(run_id, index_):
             f"{run_id} game {index_}",
         ),
         suspects=suspects,
+        run_title=run_title(run_id),
         n_frames=len(payload["frames"]),
     )
 

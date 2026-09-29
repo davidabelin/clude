@@ -37,7 +37,7 @@ from clude_training.table import SeatSpec, TableSetup
 from clude_web import mcp, tables
 from tests.test_debrief import DEBRIEF
 from tests.test_web_llm import make_app
-from tests.test_web_tables import ANN, login, new_table, play_out, poll, work
+from tests.test_web_tables import ANN, csrf, login, new_table, play_out, poll, work
 
 SEED = 11
 MODEL = "claude-opus-5"
@@ -158,7 +158,11 @@ def test_the_cost_is_recorded_last_after_every_logbook_entry(app, store, ann):
         serial = Logbook(store, label).serials()[-1]
         assert "cost" not in store.get_doc(entry_key(label, serial))
 
-    # The lobby's list of games shows it, and the lobby the run's total.
+    # The practice folder's games table shows it, and the lobby the
+    # folder's total -- in the Developer look only (2026-09-29).
+    page = ann.get("/runs/web").get_data(as_text=True)
+    assert f"${total:.2f}" not in page and "Spent with Claude in all" not in page
+    ann.post("/style", data={"csrf": csrf(ann), "style": "developer", "next": "/"})
     page = ann.get("/runs/web").get_data(as_text=True)
     assert f"${total:.2f}" in page and "Spent with Claude in all" in page
     assert f"${total:.2f} with Claude" in ann.get("/").get_data(as_text=True)
@@ -182,6 +186,7 @@ def test_a_game_with_no_model_seat_records_no_cost(app, store, ann):
     raw = store.get_game(ref["run_id"], ref["index"])
     assert "cost" not in raw and all("cost" not in seat for seat in raw["seats"])
     assert "cost" not in _line(store, document)
+    ann.post("/style", data={"csrf": csrf(ann), "style": "developer", "next": "/"})
     page = ann.get("/runs/web").get_data(as_text=True)
     assert "no LLM seat, or not recorded" in page and "Spent with Claude in all" not in page
 

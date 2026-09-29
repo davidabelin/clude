@@ -59,7 +59,12 @@ Version 3 wrote the default, ``legacy``, into every new account as if
 it had been chosen, so when the default moved to Engraved (D7) nobody
 would have seen it. A stored ``legacy`` without `style_chosen` therefore
 reads as no choice at all; any other stored key could only have been
-picked from the header bar, and stands."""
+picked from the header bar, and stands.
+
+The looks' keys changed on 2026-09-29 (D17) without a new version: a
+stored ``legacy`` chosen from the bar reads as Developer and a stored
+``engraved`` as Gaslight dark (`styles.RENAMED`), and the next choice
+writes the new key."""
 
 
 def normalise(name: str) -> str:
@@ -193,16 +198,16 @@ def mark_password_prompted(store, name: str) -> dict:
 
 
 def chosen_style(document):
-    """The key of the look this account chose from the header bar, or
-    None if it never chose one: no key, a key no longer on the list, or
-    the ``legacy`` that version 3 wrote in unasked (`DOCUMENT_VERSION`)."""
+    """The key of the look this account chose from the header bar, by
+    its current name (`styles.RENAMED`), or None if it never chose one:
+    no key, a key no longer on the list, or the ``legacy`` that version 3
+    wrote in unasked (`DOCUMENT_VERSION`)."""
     document = document or {}
-    key = str(document.get("style") or "").strip().lower()
-    if not styles.is_style(key):
+    stored = str(document.get("style") or "").strip().lower()
+    if stored == "legacy" and not document.get("style_chosen"):
         return None
-    if key == "legacy" and not document.get("style_chosen"):
-        return None
-    return key
+    key = styles.canonical(stored)
+    return key if styles.is_style(key) else None
 
 
 def style_of(document) -> str:

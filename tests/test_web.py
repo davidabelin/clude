@@ -173,12 +173,12 @@ def test_set_password_replaces_the_hash(store):
 # --- the gate ---------------------------------------------------------
 
 
-def test_every_route_but_login_redirects_without_a_session(app, client):
+def test_every_route_but_login_and_privacy_redirects_without_a_session(app, client):
     """Written over the app's whole url map, so a route added in steps 3
     to 5 is covered the day it appears."""
     checked = 0
     for rule in app.url_map.iter_rules():
-        if rule.endpoint in {"static", "auth.login"} or "GET" not in rule.methods:
+        if rule.endpoint in {"static", "auth.login", "main.privacy"} or "GET" not in rule.methods:
             continue
         response = client.get(rule.rule)
         assert response.status_code == 302, f"{rule.rule} was reachable"
@@ -191,47 +191,46 @@ def test_every_page_wears_the_account_s_look_and_the_bar_can_change_it(app, stor
     """Phase 9h. The chosen style is linked on every page and named on
     the html element; the header bar's form changes it for the account
     and sends the player back where they were; a bad key or a foreign
-    `next` is refused."""
+    `next` is refused. Three looks since 2026-09-29 (D17)."""
     from clude_web import styles, users
 
-    # Engraved as the device has it is the default since 10e (D7): no
-    # theme is forced, and the sheet follows the device (D10).
+    # Case-file light is the default, its theme fixed on the html element.
     sign_in(client)
     page = client.get("/").get_data(as_text=True)
-    assert 'data-style="engraved"' in page and "styles/engraved.css" in page
-    assert "data-theme=" not in page
-    assert 'action="/style"' in page and '<option value="engraved" selected>Engraved (auto)</option>' in page
-    assert users.style_of(users.get_user(store, NAME)) == "engraved"
+    assert 'data-style="casefile"' in page and 'data-theme="light"' in page and "styles/engraved.css" in page
+    assert 'action="/style"' in page and '<option value="casefile" selected>Case-file light</option>' in page
+    picker = page.split('<select id="style"')[1].split("</select>")[0]
+    assert picker.count("<option value=") == 3
+    assert "Engraved" not in picker and "Legacy" not in picker
+    assert users.style_of(users.get_user(store, NAME)) == "casefile"
     assert users.chosen_style(users.get_user(store, NAME)) is None
-    assert styles.style_named("no-such-look").key == styles.DEFAULT_STYLE == "engraved"
+    assert styles.style_named("no-such-look").key == styles.DEFAULT_STYLE == "casefile"
     assert client.get("/static/styles/engraved.css").status_code == 200
     assert client.get("/static/fonts/inter-normal-400-700.woff2").status_code == 200
 
     token = csrf_from(client)
     bad = client.post("/style", data={"csrf": token, "style": "brass", "next": "/"})
     assert bad.status_code == 400 and "style" not in users.get_user(store, NAME)
+    old = client.post("/style", data={"csrf": token, "style": "legacy", "next": "/"})
+    assert old.status_code == 400, "only the current keys are offered"
 
-    ok = client.post("/style", data={"csrf": token, "style": "legacy", "next": "/replay/web-test/0?x=1"})
+    ok = client.post("/style", data={"csrf": token, "style": "developer", "next": "/replay/web-test/0?x=1"})
     assert ok.status_code == 302 and ok.headers["Location"].endswith("/replay/web-test/0?x=1")
-    assert users.get_user(store, NAME)["style"] == "legacy"
-    assert users.chosen_style(users.get_user(store, NAME)) == "legacy", "chosen from the bar, it sticks"
+    assert users.get_user(store, NAME)["style"] == "developer"
+    assert users.chosen_style(users.get_user(store, NAME)) == "developer", "chosen from the bar, it sticks"
     with client.session_transaction() as session:
-        assert session["look"] == "legacy"
+        assert session["look"] == "developer"
     page = client.get("/").get_data(as_text=True)
-    assert 'data-style="legacy"' in page and "styles/legacy.css" in page
+    assert 'data-style="developer"' in page and "styles/legacy.css" in page and "data-theme=" not in page
 
-    away = client.post("/style", data={"csrf": token, "style": "legacy", "next": "https://example.com/"})
+    away = client.post("/style", data={"csrf": token, "style": "developer", "next": "https://example.com/"})
     assert away.status_code == 302 and away.headers["Location"].endswith("/")
     assert "example.com" not in away.headers["Location"]
 
-    # The two themes by name (David, 2026-09-29): the same sheet, the
-    # theme fixed on the html element whatever the device prefers.
-    for key, title, theme in (("casefile", "Case file light", "light"), ("gaslight", "Gaslight dark", "dark")):
-        assert f'<option value="{key}"' in page and title in page
-        client.post("/style", data={"csrf": token, "style": key, "next": "/"})
-        themed = client.get("/").get_data(as_text=True)
-        assert f'data-style="{key}"' in themed and f'data-theme="{theme}"' in themed
-        assert "styles/engraved.css" in themed
+    client.post("/style", data={"csrf": token, "style": "gaslight", "next": "/"})
+    themed = client.get("/").get_data(as_text=True)
+    assert 'data-style="gaslight"' in themed and 'data-theme="dark"' in themed
+    assert "styles/engraved.css" in themed and "Gaslight dark" in themed
 
     # An account made before there was a choice, one whose stored key
     # has gone from the list, and one that version 3 gave `legacy`
@@ -239,14 +238,24 @@ def test_every_page_wears_the_account_s_look_and_the_bar_can_change_it(app, stor
     document = users.get_user(store, NAME)
     del document["style"]
     store.put_doc(users.user_key(NAME), document)
-    assert users.style_of(users.get_user(store, NAME)) == "engraved"
+    assert users.style_of(users.get_user(store, NAME)) == "casefile"
     document["style"] = "gone"
     store.put_doc(users.user_key(NAME), document)
-    assert users.style_of(users.get_user(store, NAME)) == "engraved"
+    assert users.style_of(users.get_user(store, NAME)) == "casefile"
     document["style"], document["version"] = "legacy", 3
     document.pop("style_chosen", None)
     store.put_doc(users.user_key(NAME), document)
-    assert users.style_of(users.get_user(store, NAME)) == "engraved"
+    assert users.style_of(users.get_user(store, NAME)) == "casefile"
+    # The old keys, chosen: Legacy is Developer, Engraved Gaslight dark.
+    document["style_chosen"] = True
+    store.put_doc(users.user_key(NAME), document)
+    assert users.chosen_style(users.get_user(store, NAME)) == "developer"
+    document["style"] = "engraved"
+    store.put_doc(users.user_key(NAME), document)
+    assert users.chosen_style(users.get_user(store, NAME)) == "gaslight"
+    with client.session_transaction() as session:
+        session["look"] = "legacy"  # a session from before the rename
+    assert 'data-style="developer"' in client.get("/").get_data(as_text=True)
     with pytest.raises(ValueError):
         users.set_style(store, NAME, "gone")
 
@@ -279,8 +288,8 @@ def test_the_sound_cues_are_served_short_and_start_muted(client):
 
 def test_the_header_bar_wears_the_keyhole_under_engraved_only(client):
     """Phase 10f (D5, E). An Engraved look puts the keyhole mark beside
-    the wordmark; Legacy keeps its plain word. Every look links the
-    favicon, which is served."""
+    the wordmark; Developer keeps Legacy's plain word. Every look links
+    the favicon, which is served."""
     sign_in(client)
     engraved = client.get("/").get_data(as_text=True)
     bar = engraved.split('<header class="bar">')[1].split("</header>")[0]
@@ -288,7 +297,7 @@ def test_the_header_bar_wears_the_keyhole_under_engraved_only(client):
     assert 'rel="icon"' in engraved
     assert client.get("/static/favicon.svg").status_code == 200
     token = csrf_from(client)
-    client.post("/style", data={"csrf": token, "style": "legacy", "next": "/"})
+    client.post("/style", data={"csrf": token, "style": "developer", "next": "/"})
     legacy = client.get("/").get_data(as_text=True)
     bar = legacy.split('<header class="bar">')[1].split("</header>")[0]
     assert '<svg class="logo"' not in bar and ">clude</a>" in bar
@@ -575,10 +584,71 @@ def test_the_lobby_leads_to_a_stored_replay(app, store, client):
     sign_in(client)
 
     lobby = client.get("/").get_data(as_text=True)
+    development = client.get("/development").get_data(as_text=True)
     run_page = client.get("/runs/web-test").get_data(as_text=True)
 
-    assert "/runs/web-test" in lobby
+    # Two folders (2026-09-29): every run but practice is under development.
+    assert "/practice" in lobby and "/development" in lobby and "/runs/web-test" not in lobby
+    assert "/runs/web-test" in development
     assert "/replay/web-test/0" in run_page
+    assert 'href="/development">development</a>' in run_page
+
+
+def test_the_games_table_has_wall_time_and_shows_cost_to_the_developer_only(app, store, client):
+    """David's columns (2026-09-29): Game, Seats, Winner, Turns,
+    Suggestions, Wall time, and Cost only in the Developer look. Wall
+    time is blank for a game stored before it was recorded."""
+    from clude_web import views
+
+    record = stored_game(store)
+    line = {
+        "seed": 5, "n_players": record.n_players, "labels": ["floor"] * record.n_players,
+        "winner_label": None, "turns": record.turns, "n_suggestions": record.n_suggestions,
+        "n_accusations": record.n_accusations, "hit_cap": False, "cost": 0.4321,
+    }
+    summary = store.get_run("web-test")
+    summary["games"] = [{"game_index": 0, **line, "wall_seconds": 1234.5}, {"game_index": 1, **line}]
+    store.put_run("web-test", summary)
+    sign_in(client)
+
+    page = client.get("/runs/web-test").get_data(as_text=True)
+    head = page.split("<thead>")[1].split("</thead>")[0]
+    assert [cell.split("</th>")[0] for cell in head.split("<th>")[1:]] == [
+        "Game", "Seats", "Winner", "Turns", "Suggestions", "Wall time",
+    ]
+    walls = [cell.split("</td>")[0] for cell in page.split('<td class="wall">')[1:]]
+    assert walls == ["21 min", ""]
+    assert "$0.43" not in page
+
+    client.post("/style", data={"csrf": csrf_from(client), "style": "developer", "next": "/"})
+    page = client.get("/runs/web-test").get_data(as_text=True)
+    assert "<th>Wall time</th><th>Cost</th>" in page and "$0.43" in page
+
+    assert [views.wall_time(s) for s in (None, 42, 59.4, 61, 3569, 3600, 3900)] == [
+        "", "42 s", "59 s", "1 min", "59 min", "1 h 00 min", "1 h 05 min",
+    ]
+
+
+def test_the_footer_links_privacy_contact_and_wikiclude_on_every_page(app, client):
+    """2026-09-29. The footer is on every page, signed in or not; the
+    privacy page is public (D12), Wikiclude is a placeholder behind the
+    login, and the header bar's wooden question mark leads to it."""
+    anonymous = app.test_client()
+    login = anonymous.get("/login").get_data(as_text=True)
+    foot = login.split('<footer class="foot">')[1].split("</footer>")[0]
+    assert 'href="/privacy"' in foot and 'href="/wiki"' in foot
+    assert "github.com/davidabelin/clude/issues" in foot and "2026 AIX Laboratories" in foot
+    privacy = anonymous.get("/privacy")
+    assert privacy.status_code == 200 and "Anthropic" in privacy.get_data(as_text=True)
+    assert anonymous.get("/wiki").status_code == 302
+    for path in ("/static/copyleft.svg", "/static/questionmark-wood.png", "/static/styles/chrome.css"):
+        assert anonymous.get(path).status_code == 200, path
+
+    sign_in(client)
+    lobby = client.get("/").get_data(as_text=True)
+    bar = lobby.split('<header class="bar">')[1].split("</header>")[0]
+    assert '<a class="wiki-button" href="/wiki"' in bar and "questionmark-wood.png" in bar
+    assert "Wikiclude" in client.get("/wiki").get_data(as_text=True)
 
 
 # --- the factory ------------------------------------------------------

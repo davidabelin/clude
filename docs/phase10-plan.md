@@ -1,6 +1,6 @@
 # Phase 10 Plan: the shippable look \-- "engraved, not brass-plated"
 
-Status: **proposed 2026-09-20; David's answers recorded 2026-09-21; 10a drawn 2026-09-27 and revised after his review on 2026-09-28; 10b-10c built 2026-09-28; 10d-10g built 2026-09-29 (section 17).** David's brief is section 3; D1-D16 are in section 13, where the second round (D7-D14) reverses D3 and D6 and adds sub-phases 10h and 10i, and the third (D15-D16, 2026-09-29) makes the two themes choosable by name. D5 is settled: candidate E. Written in the shape of the other phase plans: context, what the code dictates, design, sub-phases, files, decisions, out of scope, and an "as implemented" section once the work lands.
+Status: **proposed 2026-09-20; David's answers recorded 2026-09-21; 10a drawn 2026-09-27 and revised after his review on 2026-09-28; 10b-10c built 2026-09-28; 10d-10g built 2026-09-29, and David's fourth round the same day (section 17).** David's brief is section 3; D1-D20 are in section 13, where the second round (D7-D14) reverses D3 and D6 and adds sub-phases 10h and 10i, the third (D15-D16, 2026-09-29) makes the two themes choosable by name, and the fourth (D17-D20, the same afternoon) cuts the looks to three, splits Stored games into two folders, adds the footer, and turns 10i into Wikiclude. D5 is settled: candidate E. Written in the shape of the other phase plans: context, what the code dictates, design, sub-phases, files, decisions, out of scope, and an "as implemented" section once the work lands.
 
 ## 1\. Context
 
@@ -368,6 +368,13 @@ D3 and D6 are **reversed** by D8 and D10 below; D5 is narrowed by D11.
 - **D15. The two themes are choosable by name.** The Look picker offers "Case file light" and "Gaslight dark" beside Engraved as the device has it, and Legacy. Amends D10, which had one Engraved entry and nothing to set; D10's default (light, dark on a device's preference) is the automatic entry's behaviour and still every unchosen account's look.
 - **D16. Two cosmetic points in the red thread** (the colour of the wordmark and Accuse): the time-out clock's seconds, bright red for the last ten; and the Notes panel's category headings, Suspects, Weapons and Rooms.
 
+### Fourth round (2026-09-29), after 10d-10g
+
+- **D17. Three looks.** "Engraved (auto)" and "Gaslight dark" could not be told apart on a dark device, so they are one, called Gaslight dark. Legacy is renamed **Developer**, and will differ in content as well as style (a game's cost is shown only there). The default is **Case-file light**, with the hyphen. So the Look picker offers Case-file light, Gaslight dark, Developer. Amends D7, D10 and D15.
+- **D18. Stored games in two folders.** The `web` run is shown as **practice**; every other run (arenas, sweeps, ladders, fixtures) goes under **development**. Below them, the table of games as a run shows it now, with the columns Game / Seats / Winner / Turns / Suggestions / Wall time / Cost: wall time new, blank where it was not recorded; Cost only in the Developer look.
+- **D19. A header and footer** with links to privacy, contact and the wiki. A wooden remake of `static/questionmark.png`, lit the same way with the same push-button feel, links to the wiki pages -- on trial there, not *the* logo. `static/copyleft.svg` marks everything "2026 AIX Laboratories".
+- **D20. Wikiclude**, not started ("be ready"): an interlinked set of Wikipedia-style pages built mostly from the documentation we already have -- the LLM personalities, the ML and heuristic methods, everything in the docs, and later the ML classwork archive in the AIX repo. One article serves both audiences 10i was to split between (the high-schoolers and grandparents, the senior engineers and scientists). Replaces D13's two explainers.
+
 ## 14\. Sub-phases
 
 Each leaves the suite green and is a working system on its own, per `CLAUDE.md`.
@@ -382,7 +389,7 @@ Each leaves the suite green and is a working system on its own, per `CLAUDE.md`.
 | 10f | The decorated board and the logo David selects in 10a: patterns, engraved walls, threshold plates, the cellar mark, token initials | The no-colour test and the token-position tests still pass; screenshots looked at |
 | 10g | Sound effects for play, Watch, and replay (11.1): self-hosted cues, shared playback, remembered mute and volume controls. No music | Cues heard and timed against visible events; mute and preferences work; polls and replay scrubbing do not repeat cues; no private information leaks; the app remains usable without audio |
 | 10h | The help layer (D13): a Help link in the header bar; tooltips on every control, the notepad, the certainty tag and the seat rail; a first-login welcome card; a "How to play" page; the privacy and contact pages drafted (D12) | Every tooltip's text comes from one table so a test can read it; the welcome card shows once per account; the pages render under both looks |
-| 10i | The two explainers (D13): "How the characters think" at high-school level, and "The methods", a featured-article treatment of the math, CS and ML built from the glossary and the six modules, numbers included | Both pages linked from Help; the featured article's numbers match `docs/strategy-glossary.md`; both render under both looks and at 390 px |
+| 10i | *Replaced by Wikiclude (D20), not yet started.* Was: the two explainers (D13): "How the characters think" at high-school level, and "The methods", a featured-article treatment of the math, CS and ML built from the glossary and the six modules, numbers included | Both pages linked from Help; the featured article's numbers match `docs/strategy-glossary.md`; both render under both looks and at 390 px |
 
 Rough size: 10a a day, 10b-10f a day each; estimate 10g after selecting the cues and assets; 10h a day; 10i two days, most of it writing.
 
@@ -747,3 +754,58 @@ blocks of the 10a artboard are not built) and gains only the dressed
 board and sound; the `show` caption names the asker and the cards you
 hold, since the request does not carry the suggestion itself; on a
 phone the header bar wraps to two rows with the Sound button in it.
+
+### David's fourth round (2026-09-29): three looks, two folders, the footer
+
+Built the same afternoon as D17-D20 were given, with the suite green
+(539 passed, 31 skipped; the 29 browser tests pass under
+`CLUDE_WEB_BROWSER=1`), not yet deployed.
+
+**The looks (D17).** `STYLES` is `casefile` ("Case-file light", the
+default), `gaslight` ("Gaslight dark") and `developer` ("Developer",
+on `legacy.css`, never edited). Both Engraved looks fix `data-theme`,
+so `engraved.css` lost its device-preference dark block, and the test
+that kept the two dark blocks equal became one that keeps the dark
+block to tokens the light `:root` defines. Keys changed without a new
+account version: `styles.RENAMED` reads a stored or session `legacy` as
+`developer` and `engraved` as `gaslight` (a version 3 `legacy` written
+in unasked still reads as no choice), and the bar accepts only the new
+keys. `table.js` gates on `data-style` not being `developer`. A new
+`Style.costs`, true only for Developer, is the one content difference
+so far.
+
+**Stored games (D18).** Display only: the store's keys are unchanged,
+so the `web` run, every replay URL and the MCP tools' `run_id` still
+work. The lobby lists two folders, **practice** (`/practice`, the `web`
+run's table under that name; `/runs/web` shows the same) and
+**development** (`/development`, the run listing the lobby used to
+show, less `web`); a run's crumbs and a replay's heading name the
+folder. The lobby now reads one summary, practice's, and only counts the
+rest. The games table's columns are David's; the Cost column, the run's
+total and the folder's total in the lobby show in the Developer look
+only. **Wall time** is new: `_deal` stamps `dealt` on the table
+document, and the finish writes `wall_seconds` (deal to finish) on the
+game's summary line; tables dealt before, and every arena run, leave it
+blank.
+
+**The header and footer (D19).** `static/styles/chrome.css`, loaded
+after any look's sheet and using only tokens both define (a test checks
+it against each), dresses the header bar's wooden question mark (the
+last thing in the bar, 32 px, linking to `/wiki`) and a footer on every
+page: Privacy, Contact, Wikiclude and the copyleft mark with "2026 AIX
+Laboratories". The mark is `copyleft.svg` used as a CSS mask, so it
+takes the text's colour in either theme. The wooden button is made by
+`scripts/make_wood_button.py` from `questionmark.png`: each pixel keeps
+its brightness relative to its part (face, bezel, glyph) and shades a
+procedural grain -- honey oak on the face, walnut on the bezel, a
+boxwood inlay for the "?" -- in a browser canvas through Playwright,
+since there is no imaging library here; the source's faint square
+shadow is dropped. **Privacy** is D12's page, drafted now rather than
+in 10h: public like the login page (the gate test exempts it), stating
+what is kept, who else sees it, the one cookie and how to leave.
+**Contact** links the repo's GitHub issues, which only people with
+access to the repository can open if it is private. **Wikiclude** is a
+placeholder page behind the login.
+
+**Not done.** Wikiclude itself (D20). The phone's header bar wraps the
+wooden button onto its own row on pages without the Sound button.

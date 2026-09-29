@@ -11,9 +11,9 @@
  * destinations of a move come as coordinates worked out server-side from
  * `clude_core.board`, as the replay's do.
  *
- * Two looks share this script (`clude_web.styles`). Legacy keeps the
- * screen it was frozen with; an Engraved look (`<html data-style>` other
- * than "legacy") wears Phase 10's: Talk as balloons and the Record with
+ * Every look shares this script (`clude_web.styles`). Developer keeps
+ * the screen Legacy was frozen with; an Engraved look (`<html
+ * data-style>` other than "developer") wears Phase 10's: Talk as balloons and the Record with
  * its turn margin (10d), the stage that the focus ladder hands to
  * whatever matters most and the rail's tabs (10e), the dressed board
  * (10f). Sound (10g) is the same in both.
@@ -27,7 +27,7 @@
   var urls = data.urls || {};
   var csrfMeta = document.querySelector('meta[name="csrf"]');
   var csrf = csrfMeta ? csrfMeta.getAttribute("content") : "";
-  var engraved = document.documentElement.getAttribute("data-style") !== "legacy";
+  var engraved = document.documentElement.getAttribute("data-style") !== "developer";
 
   var status = document.getElementById("status");
   var title = document.getElementById("title");

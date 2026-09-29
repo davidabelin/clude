@@ -52,8 +52,9 @@ renaming it lets those sessions fall through to the new default."""
 def public(view):
     """Mark a view reachable without a session.
 
-    Only the login page wears this. It is an explicit opt-out so that
-    forgetting it leaves a new route private rather than open.
+    Only the login page and the privacy page (D12) wear this. It is an
+    explicit opt-out so that forgetting it leaves a new route private
+    rather than open.
     """
     view.is_public = True
     return view

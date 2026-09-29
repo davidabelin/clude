@@ -508,8 +508,8 @@ def test_each_seat_tab_shows_its_share_of_the_cost_only_at_a_model_table(page):
     table has spent with Claude, for someone playing and for someone
     watching; none at a table with no model seat. The model here never
     answers, so every share is 0%."""
-    # Attached, not visible: Engraved, the default since 10e, builds the
-    # bar and hides it (D9); Legacy shows it.
+    # Attached, not visible: Case-file light, the default, builds the
+    # bar and hides it (D9); Developer shows it.
     _deal_table(page, {"Scarlett": "me", "Plum": "llm", "White": "character",
                        "Green": "empty", "Peacock": "empty", "Mustard": "empty"})
     page.wait_for_selector(".seat.compact.roster .gauge.cost", state="attached", timeout=20000)
@@ -662,36 +662,37 @@ def _page_colour(page):
 
 def test_the_look_picker_applies_and_keeps_the_page(page):
     """Phase 9h. The header bar's Look form writes the account's choice
-    and brings the same page back in it. Engraved is the default since
-    10e (D7), its fonts served from static/fonts/ and its durations zero
-    under the motion switch; "Case file light" and "Gaslight dark" fix
-    the theme whatever the device prefers (David, 2026-09-29); Legacy is
-    still there."""
-    assert page.evaluate("() => document.documentElement.getAttribute('data-style')") == "engraved"
-    assert page.locator("link[rel=stylesheet]").get_attribute("href").endswith("/static/styles/engraved.css")
-    assert page.locator("#style").input_value() == "engraved"
+    and brings the same page back in it. Three looks since 2026-09-29
+    (D17): Case-file light the default, its fonts served from
+    static/fonts/ and its durations zero under the motion switch;
+    Gaslight dark; each fixed whatever the device prefers; and
+    Developer, which was Legacy."""
+    assert page.evaluate("() => document.documentElement.getAttribute('data-style')") == "casefile"
+    assert page.locator("link[rel=stylesheet]").first.get_attribute("href").endswith("/static/styles/engraved.css")
+    assert page.locator("#style").input_value() == "casefile"
+    assert page.locator("#style option").all_inner_texts() == ["Case-file light", "Gaslight dark", "Developer"]
     assert page.evaluate("() => document.body.getAttribute('data-motion')") == "off"
     assert page.evaluate("() => getComputedStyle(document.body).getPropertyValue('--dur-move').trim()") == "0s"
     loaded = page.evaluate("() => document.fonts.ready.then(() => Array.from(document.fonts).filter(f => f.status === 'loaded').map(f => f.family))")
     assert "Playfair Display" in loaded and "Inter" in loaded, loaded
     assert page.evaluate("() => getComputedStyle(document.querySelector('.board-void')).fill") not in ("", "none")
-    light = _page_colour(page)  # the context prefers light: case-file
+    light = _page_colour(page)
+    page.emulate_media(color_scheme="dark")
+    assert _page_colour(page) == light, "case-file light stays light on a dark device"
 
     _pick_look(page, "gaslight")
     assert page.evaluate("() => document.documentElement.getAttribute('data-theme')") == "dark"
-    assert _page_colour(page) == "rgb(18, 16, 19)", "gaslight's page on a light device"
-    _pick_look(page, "casefile")
-    assert _page_colour(page) == light
-    page.emulate_media(color_scheme="dark")
-    assert _page_colour(page) == light, "case file light stays light on a dark device"
-    _pick_look(page, "engraved")
-    assert _page_colour(page) == "rgb(18, 16, 19)", "the automatic look follows the device"
+    assert _page_colour(page) == "rgb(18, 16, 19)"
     page.emulate_media(color_scheme="light")
+    assert _page_colour(page) == "rgb(18, 16, 19)", "gaslight dark stays dark on a light device"
 
-    _pick_look(page, "legacy")
-    assert page.evaluate("() => document.documentElement.getAttribute('data-style')") == "legacy"
-    assert page.locator("link[rel=stylesheet]").get_attribute("href").endswith("/static/styles/legacy.css")
-    _pick_look(page, "engraved")
+    _pick_look(page, "developer")
+    assert page.evaluate("() => document.documentElement.getAttribute('data-style')") == "developer"
+    assert page.locator("link[rel=stylesheet]").first.get_attribute("href").endswith("/static/styles/legacy.css")
+    # The shared chrome in every look: the wooden button, the footer's mark.
+    assert page.locator(".wiki-button img").evaluate("img => img.naturalWidth") == 128
+    assert page.locator(".copyleft-mark").bounding_box()["width"] > 0
+    _pick_look(page, "casefile")
 
 
 # --- Phase 10d-10g ------------------------------------------------------

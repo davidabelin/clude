@@ -7,6 +7,7 @@
   <title>{% block title %}clude{% endblock %}</title>
   <meta name="csrf" content="{{ csrf_token() }}">
   <link rel="stylesheet" href="{{ url_for('static', filename=style.stylesheet) }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles/chrome.css') }}">
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
 </head>
 <body>
@@ -36,11 +37,21 @@
           <span class="who">{{ session['user']|person }}</span>
           <button type="submit" class="quiet">Sign out</button>
         </form>
+        {# The wooden question mark (2026-09-29): the way into Wikiclude, on trial here; not the logo. #}
+        <a class="wiki-button" href="{{ url_for('main.wiki') }}" title="Wikiclude"><img src="{{ url_for('static', filename='questionmark-wood.png') }}" alt="Wikiclude" width="32" height="32"></a>
       </div>
     {% endif %}
   </header>
   <main>
     {% block content %}{% endblock %}
   </main>
+  <footer class="foot">
+    <nav aria-label="About clude">
+      <a href="{{ url_for('main.privacy') }}">Privacy</a>
+      <a href="{{ contact_url }}" rel="noopener">Contact</a>
+      <a href="{{ url_for('main.wiki') }}">Wikiclude</a>
+    </nav>
+    <p class="copyleft"><span class="copyleft-mark" role="img" aria-label="Copyleft"></span> 2026 AIX Laboratories</p>
+  </footer>
 </body>
 </html>

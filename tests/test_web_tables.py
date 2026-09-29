@@ -926,11 +926,12 @@ def test_a_cue_is_the_same_for_every_viewer_and_follows_the_line(app, ann, cat):
 
 
 def test_the_table_screen_wears_its_look_and_offers_sound(app, ann):
-    """Phase 10d-10g. Under Engraved (the default since 10e) the table
-    is the stage and the rail -- the overlay, the tab strip, the four
-    rail panels, the say box's counter -- on a dressed board, with the
-    sound control in the header; under Legacy it is the markup Legacy was
-    frozen with, on the plain board, and sound works there too."""
+    """Phase 10d-10g. Under an Engraved look (Case-file light, the
+    default) the table is the stage and the rail -- the overlay, the tab
+    strip, the four rail panels, the say box's counter -- on a dressed
+    board, with the sound control in the header; under Developer it is
+    the markup Legacy was frozen with, on the plain board, and sound
+    works there too."""
     table_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
     page = ann.get(f"/tables/{table_id}").get_data(as_text=True)
     for part in ('id="screen"', 'id="stage"', 'id="over"', 'id="end-plate"', 'id="tabs"',
@@ -939,7 +940,7 @@ def test_the_table_screen_wears_its_look_and_offers_sound(app, ann):
         assert part in page, part
     assert 'data-focus="' in page and "The record" in page
 
-    ann.post("/style", data={"csrf": csrf(ann), "style": "legacy", "next": "/"})
+    ann.post("/style", data={"csrf": csrf(ann), "style": "developer", "next": "/"})
     legacy = ann.get(f"/tables/{table_id}").get_data(as_text=True)
     assert 'id="screen"' not in legacy and "board-engraved" not in legacy and "board-initial" not in legacy
     assert 'class="replay-body"' in legacy and "The game so far" in legacy

@@ -1068,6 +1068,7 @@ class TableRegistry:
         document["setup"] = setup.to_dict()
         document["memory"] = self._snapshot(setup) if setup.remember else None
         document["status"] = "playing"
+        document["dealt"] = _now()  # the start of the game's wall time
         game = WebGame(setup, self._prepare(setup, document["memory"]), self._backend_factory(document))
         game.table_id = document["id"]
         with self._lock:
@@ -1646,7 +1647,7 @@ class TableRegistry:
             index = max(self.store.list_games(WEB_RUN), default=-1) + 1
             record = self.record(game, WEB_RUN, index)
             self.store.put_game(WEB_RUN, index, record.to_dict())
-            add_to_web_run(self.store, record, game.setup.max_turns)
+            add_to_web_run(self.store, record, game.setup.max_turns, wall_seconds(document))
             if game.setup.remember:
                 self._remember(game, record)
         ref = {"run_id": WEB_RUN, "index": index}
@@ -1758,9 +1759,24 @@ def record_cost(store, run_id: str, index: int, total: float, seats: Optional[di
     return record
 
 
-def add_to_web_run(store, record: GameRecord, max_turns: int) -> None:
+def wall_seconds(document: dict, now: Optional[datetime] = None) -> Optional[float]:
+    """Seconds from a table's deal to `now` (default: this moment), or
+    None for a table dealt before the deal was stamped (2026-09-29)."""
+    dealt = document.get("dealt")
+    if not dealt:
+        return None
+    try:
+        start = datetime.fromisoformat(dealt)
+    except ValueError:
+        return None
+    return max(0.0, ((now or datetime.now(timezone.utc)) - start).total_seconds())
+
+
+def add_to_web_run(store, record: GameRecord, max_turns: int, wall: Optional[float] = None) -> None:
     """Append one game to the web run's summary, in the same shape the
-    arena writes, so the lobby lists it with no special case."""
+    arena writes, so the lobby lists it with no special case; `wall` is
+    the game's wall time in seconds, from the deal to the finish, kept
+    as ``wall_seconds`` when known."""
     try:
         summary = store.get_run(WEB_RUN)
     except KeyError:
@@ -1788,6 +1804,7 @@ def add_to_web_run(store, record: GameRecord, max_turns: int) -> None:
             "n_accusations": record.n_accusations,
             "hit_cap": record.winner is None and record.turns >= max_turns,
             **({"cost": record.cost} if record.cost is not None else {}),
+            **({"wall_seconds": round(float(wall), 1)} if wall is not None else {}),
         }
     )
     summary["games"].sort(key=lambda g: g["game_index"])

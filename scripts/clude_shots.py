@@ -161,7 +161,7 @@ def shoot(base: str, run: str, index: int, out: Path, dark: bool, phone: bool, s
         schemes = ["light"] + (["dark"] if dark else [])
 
         for look in looks:
-          # A look that fixes its theme (Case file light, Gaslight dark)
+          # A look that fixes its theme (Case-file light, Gaslight dark)
           # looks the same under either device preference: one pass.
           fixed = styles.style_named(look).theme
           for scheme in ([fixed] if fixed else schemes):
@@ -206,6 +206,12 @@ def shoot(base: str, run: str, index: int, out: Path, dark: bool, phone: bool, s
 
                 page.goto(f"{base}/runs/{run}")
                 save("run")
+                # The development folder and the footer's privacy page
+                # (2026-09-29).
+                page.goto(f"{base}/development")
+                save("development")
+                page.goto(f"{base}/privacy")
+                save("privacy")
 
                 # A watched game a few turns in: Scarlett, Plum and Green
                 # at four seats, so one seat is a floor bot.

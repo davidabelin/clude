@@ -21,8 +21,10 @@ is built and live: 9a-9j (9f and 9g in revision `clude-00011-t7g`,
 `clude-00014-sqn`, 2026-09-26 and 2026-09-27). Phase 10 is under way:
 10a, the artboards, drawn and reviewed; 10b, the token layer, and 10c,
 play is blind, built and live together in `clude-00016-65z`
-(2026-09-28); **10d-10g built 2026-09-29, not yet deployed** (below);
-10h-10i not started. Phase 11 is untouched.
+(2026-09-28); **10d-10g built 2026-09-29**, committed, and David's
+fourth round (D17-D20) built the same day, neither yet deployed (below);
+10h not started, 10i become Wikiclude (D20), not started. Phase 11 is
+untouched.
 
 Each phase's record is the "as implemented" section of its plan doc
 (`docs/phase5-plan.md` to `docs/phase9-plan.md`; Phases 1-4 in
@@ -156,7 +158,27 @@ per new event. Legacy keeps its frozen markup throughout (a template
 branch, an undressed board, gated script). Five browser tests had been
 failing since 9j on capitalised names; fixed. `docs/phase10-plan.md` 17.
 
-Suite: 537 passed, 31 skipped, about four minutes with `-n auto`; 29
+**David's fourth round (2026-09-29), built, not yet deployed.** **Three
+looks** (D17): Case-file light, the default, and Gaslight dark (which
+absorbed "Engraved (auto)"), each fixing its theme; and **Developer**,
+which was Legacy, on the untouched `legacy.css`, the only look that
+shows costs (`Style.costs`). Old keys read through `styles.RENAMED`.
+**Stored games** (D18) as two folders, display only (store keys
+unchanged): **practice** (the `web` run, `/practice`) and
+**development** (every other run, `/development`); the games table's
+columns Game / Seats / Winner / Turns / Suggestions / Wall time / Cost,
+wall time recorded from now on (`dealt` on the table document,
+`wall_seconds` on the summary line), Cost in Developer only. **A footer
+and a header button** (D19, `static/styles/chrome.css`, shared by every
+look): Privacy (`/privacy`, public, D12's draft pulled forward), Contact
+(GitHub issues), Wikiclude (`/wiki`, a placeholder), the copyleft mark
+with "2026 AIX Laboratories"; and the wooden question mark
+(`static/questionmark-wood.png`, made by `scripts/make_wood_button.py`
+from `questionmark.png`) in the header bar, leading to Wikiclude, on
+trial, not the logo. **Wikiclude** (D20) is the next writing job, not
+started. `docs/phase10-plan.md` 13 and 17.
+
+Suite: 539 passed, 31 skipped, about four minutes with `-n auto`; 29
 more under `CLUDE_WEB_BROWSER=1`, all passing. (Three debrief tests
 turned out to fail on a fast machine before 9h: reactions are now
 immediate there.)
@@ -171,7 +193,7 @@ immediate there.)
 | 8.2 | Human players | done: 8.2a-c built 2026-09-18 (the table driver and `play --human`; the table on the web with open seats, autopilot, cold rebuild and "characters remember"); 8.2d deployed and live-checked 2026-09-19, the cold rebuild 0.1 s on a 3-turn table (`docs/phase8-plan.md` 12, `docs/web.md`) |
 | 8.3 | The rest of chat: the model on the web under a spend cap, human chat, off-turn talk with pacing, debriefs after web games | done: 8.3a-c built 2026-09-19 on fake backends, the key deployed and one live table played the same day (two model seats, chat, "remember"; $0.34, no fallbacks); 8.3d closed Phase 8 (`docs/phase8-plan.md` 12) |
 | 9 | A seat over MCP: a Claude in a chat window (claude.ai) plays one seat of a live table through an MCP server mounted beside the Flask app, on the same `TableRegistry` | built. 9a the plan and the renumbering (2026-09-20); 9b the server and the combined ASGI app, 9c deployed with the secret and the `claude` account, both 2026-09-21, and the first live game from the chat that evening; 9d the eight fixes after the second live game and 9e David's follow-ups, both 2026-09-22 and deployed that evening; 9f the chat seat's report after the third live game and 9g what a game cost (both 2026-09-25, deployed that day), 9h five tweaks in one sweep (2026-09-26 and deployed that evening; typing, the turn time-out and speed mode, the certainty tag, the animated replay, the Legacy style); 9i the chat seat's five requests after table `5019abeb0a` (2026-09-26; waiting for the deal, the held-back pass, hand sizes and disproof order, hard mode, a whole replay URL; deployed that evening) and 9j every chatbot its own login, watching over MCP, and names capitalised (2026-09-27, deployed that day as `clude-00014-sqn`) -- `docs/phase9-plan.md` 8, `docs/phase9h-plan.md` |
-| 10 | In-depth UX: the shippable look, "engraved, not brass-plated" | in progress. `docs/phase10-plan.md` proposed 2026-09-20, David's answers recorded 2026-09-21 (D1-D4, D6); 10a the artboards drawn 2026-09-27 (`docs/ux/table/`, `docs/ux/logo/`) and revised 2026-09-28 after his review (D7-D14); 10b the token layer and 10c play-is-blind built 2026-09-28 (Engraved as an opt-in beta beside Legacy, the faces self-hosted, the motion switch; `readings` absent for a seated player, methods and hand sizes on the rail, shown cards ticked), deployed together that day as `clude-00016-65z`; 10d-10g built 2026-09-29 with the third round (D5 = E, D15-D16): Record and Talk, the focus ladder and the phone's tabs, the dressed board and logo, sound; Engraved the default; not yet deployed; 10h the help layer and 10i the two explainers still to come, both before 1.0.0 (was Phase 9 until 2026-09-20) |
+| 10 | In-depth UX: the shippable look, "engraved, not brass-plated" | in progress. `docs/phase10-plan.md` proposed 2026-09-20, David's answers recorded 2026-09-21 (D1-D4, D6); 10a the artboards drawn 2026-09-27 (`docs/ux/table/`, `docs/ux/logo/`) and revised 2026-09-28 after his review (D7-D14); 10b the token layer and 10c play-is-blind built 2026-09-28 (Engraved as an opt-in beta beside Legacy, the faces self-hosted, the motion switch; `readings` absent for a seated player, methods and hand sizes on the rail, shown cards ticked), deployed together that day as `clude-00016-65z`; 10d-10g built 2026-09-29 with the third round (D5 = E, D15-D16): Record and Talk, the focus ladder and the phone's tabs, the dressed board and logo, sound; Engraved the default; and the fourth round the same day (D17-D20): three looks (Case-file light the default, Gaslight dark, Developer), Stored games as practice and development with wall time, the footer and the wooden question mark; neither yet deployed; 10h the help layer and Wikiclude (D20, replacing 10i's two explainers) still to come, both before 1.0.0 (was Phase 9 until 2026-09-20) |
 | 11 | Tweak, polish, release: clean-up and close, then version 1.0.0, released to family and friends, and planning in versions, not phases | not started (was Phase 10) |
 
 Where things stand:
@@ -493,6 +515,22 @@ it; `docs/phase-plan.md` has the disposition of every file.
   single entry). The time-out clock's seconds and the Notes panel's
   category headings are in the red of the wordmark and Accuse, the clock
   bright red for its last ten seconds (D16).
+- **Phase 10's fourth round (2026-09-29), after 10d-10g.** Three looks:
+  Case-file light (with the hyphen) the default, Gaslight dark
+  absorbing "Engraved (auto)", and Legacy renamed Developer, which will
+  differ in content too -- the Cost column only there (D17). Stored
+  games in two folders, practice (the `web` run) and development
+  (everything else), each opening the table of games with the columns
+  Game / Seats / Winner / Turns / Suggestions / Wall time / Cost, wall
+  time blank where not recorded (D18). A footer with privacy, contact and
+  wiki links and the copyleft "2026 AIX Laboratories"; a wooden remake
+  of the question-mark button leading to the wiki, on trial, not the
+  logo (D19). **Wikiclude** (D20, "don't start this yet! just, be
+  ready"): interlinked Wikipedia-style articles built mostly from the
+  docs -- the personalities, the methods, everything in `docs/`, later
+  the ML classwork archive in the AIX repo -- each article written for
+  both audiences at once (high-schoolers and grandparents, engineers and
+  scientists); replaces D13's two explainers.
 - **Phase 9h's four calls (2026-09-26).** The time-out is per turn:
   90 s on a decision (30 s at a speed table, a lobby checkbox), then
   the floor bot plays the rest of that turn and the seat stays the
@@ -561,14 +599,16 @@ Built; the detail is in `docs/architecture.md`.
   the view of a game from one seat, the model seats and their metering),
   `chat` (off-turn talk: the reaction queue and its pacing), `watch`
   (Watch as a table with nobody human at it), `styles` (the looks a
-  player can choose between: Engraved auto, Case file light, Gaslight
-  dark, Legacy; Phase 9h, 10e), `logo` (logo E as uncoloured SVG, and
+  player can choose between: Case-file light, Gaslight dark, Developer;
+  Phase 9h, 10e, D17), `logo` (logo E as uncoloured SVG, and
   the favicon's source; 10f), `mcp` (Phase 9: the ten
   tools a chatbot in a chat window logs in with, plays a seat and watches
   through, built by `build_server` over any registry, the compact `seat_view` it reads,
   and `combined_app`, Flask and the endpoint in one ASGI app under a
   secret path), `views`, templates,
-  one stylesheet per look under `static/styles/`, `replay.js`, `table.js`
+  one stylesheet per look under `static/styles/` plus `chrome.css`
+  that every look shares (the header's wooden question mark and the
+  footer), `replay.js`, `table.js`
   and `sound.js` (10g; the cues in `static/sounds/`, made by
   `scripts/make_sounds.py`).
   Imports every other package; nothing imports it (`docs/web.md`).
@@ -576,7 +616,9 @@ Built; the detail is in `docs/architecture.md`.
   with Watch and pinned to the CLI by a test.
 - `scripts/clude_cli.py` -- the maintainer CLI (`play --human` seats
   you from the terminal); `scripts/clude_shots.py` screenshots every
-  screen; `scripts/clude_live_check.py` plays a table on the deployed
+  screen; `scripts/make_sounds.py` and `scripts/make_wood_button.py`
+  make the sound cues and the wooden question mark;
+  `scripts/clude_live_check.py` plays a table on the deployed
   service, wrapped by `scripts/live_check.bat`; `scripts/deploy.bat` is
   the deploy command; `tests/` -- pytest.
 - `Dockerfile`, `requirements-web.txt`, `.gcloudignore`,
@@ -646,10 +688,11 @@ choices made from the code -- the MCP transport stateless with JSON
 responses, the SDK's localhost-only Host check switched off (the secret
 is the guard), and asgiref's Flask bridge run off its one-thread lane.
 
-**Phase 10** (`docs/phase10-plan.md` 13): none open. D1-D16 are settled
-(D3 and D6 reversed on 2026-09-28, D10 amended by D15 on 2026-09-29).
-Deploying 10d-10g waits for David's word: it makes Engraved every
-unchosen account's look on the live service.
+**Phase 10** (`docs/phase10-plan.md` 13): none open. D1-D20 are settled
+(D3 and D6 reversed on 2026-09-28, D10 amended by D15 and D7, D10 and
+D15 by D17 on 2026-09-29). Deploying 10d-10g and the fourth round waits
+for David's word: it makes Case-file light every unchosen account's look
+on the live service.
 
 **Phase 8** left none; its assumptions stood through its close
 (`docs/phase8-plan.md` 9): the floor bot as the autopilot stand-in,
@@ -681,7 +724,8 @@ Resolved 2026-09-27: MCP players log in as web players do, with a
 `clude_login` tool; they may watch and replay; names are capitalised.
 Resolved 2026-09-28: Phase 10's second round, D7-D14 above. Resolved
 2026-09-29: the logo is E (D5); the themes choosable by name (D15); the
-clock and the Notes headings in red (D16).
+clock and the Notes headings in red (D16); and the fourth round, D17-D20
+above.
 
 ## Working with David
 
@@ -792,8 +836,9 @@ clock and the Notes headings in red (D16).
   questions.
 - `docs/phase10-plan.md` -- Phase 10, the shippable look: typography,
   ornament, the decorated board and its logo, motion, the six-seat
-  layouts, case-file styling, sound in 10g. Proposed 2026-09-20; D1-D16
-  settled; 10a-10g built, section 17 the record.
+  layouts, case-file styling, sound in 10g. Proposed 2026-09-20; D1-D20
+  settled; 10a-10g and the fourth round built, section 17 the record;
+  Wikiclude (D20) next.
 - `docs/strategy-glossary.md` -- each method in plain language; the
   benchmark, dial sweeps, tuned presets, and the Phase 6 measurements.
 - `docs/llm-wrapper.md` -- how a model pilots a character; credentials;

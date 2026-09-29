@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}{{ record.run_id }} game {{ record.game_index }}{% endblock %}
+{% block title %}{{ run_title }} game {{ record.game_index }}{% endblock %}
 {% block sound %}{% include "_sound.html" %}{% endblock %}
 {% block content %}
 <div class="replay" data-frames="{{ n_frames }}">
 
   <header class="replay-head">
-    <h1>{{ record.run_id }} &middot; game {{ record.game_index }}</h1>
+    <h1><a href="{{ url_for('main.run', run_id=record.run_id) }}">{{ run_title }}</a> &middot; game {{ record.game_index }}</h1>
     <p class="note">
       {{ record.n_players }} seats, {{ record.turns }} turns, seed {{ record.seed }}.
       {% if record.winner is not none %}

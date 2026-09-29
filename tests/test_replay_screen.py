@@ -252,41 +252,61 @@ def test_the_stylesheet_has_no_broken_colours(key):
     assert not used - defined, f"variables used but never defined in {key}: {sorted(used - defined)}"
 
 
-def test_legacy_stays_on_the_list_and_every_face_is_served():
-    """Phase 10b. Legacy is never removed (David, 2026-09-28); Engraved
-    is the default from 10e (D7), as the device has it or fixed light or
-    dark by name (David, 2026-09-29), all three on one sheet; and every
-    font file that sheet names exists under static/fonts/."""
+def test_three_looks_and_every_face_is_served():
+    """David, 2026-09-29 (D17): Case-file light (the default) and
+    Gaslight dark on one sheet, each fixing its theme, and Developer,
+    which was Legacy, on the sheet frozen in 9h and the only look that
+    shows costs; every font file the Engraved sheet names exists under
+    static/fonts/."""
     from clude_web import styles
 
-    assert list(styles.STYLES) == ["engraved", "casefile", "gaslight", "legacy"]
-    assert styles.DEFAULT_STYLE == "engraved"
-    assert [styles.STYLES[k].theme for k in ("engraved", "casefile", "gaslight")] == ["", "light", "dark"]
-    assert {styles.STYLES[k].stylesheet for k in ("engraved", "casefile", "gaslight")} == {"styles/engraved.css"}
-    assert not styles.STYLES["legacy"].engraved and styles.STYLES["legacy"].stylesheet == "styles/legacy.css"
+    assert list(styles.STYLES) == ["casefile", "gaslight", "developer"]
+    assert [styles.STYLES[k].title for k in styles.STYLES] == ["Case-file light", "Gaslight dark", "Developer"]
+    assert styles.DEFAULT_STYLE == "casefile"
+    assert [styles.STYLES[k].theme for k in ("casefile", "gaslight")] == ["light", "dark"]
+    assert {styles.STYLES[k].stylesheet for k in ("casefile", "gaslight")} == {"styles/engraved.css"}
+    developer = styles.STYLES["developer"]
+    assert not developer.engraved and developer.stylesheet == "styles/legacy.css" and developer.costs
+    assert not any(styles.STYLES[k].costs for k in ("casefile", "gaslight"))
+    assert styles.style_named("legacy") is developer and styles.style_named("engraved").key == "gaslight"
     static = Path(__file__).resolve().parents[1] / "clude_web" / "static"
-    css = (static / styles.STYLES["engraved"].stylesheet).read_text(encoding="utf-8")
+    css = (static / styles.STYLES["casefile"].stylesheet).read_text(encoding="utf-8")
     faces = re.findall(r"url\(\.\./fonts/([^)]+)\)", css)
     assert len(faces) == 8, faces
     for name in faces:
         assert (static / "fonts" / name).is_file(), f"{name} is named by the sheet but missing"
 
 
-def test_a_fixed_theme_gets_the_same_dark_tokens_as_the_device():
-    """The dark tokens are written twice -- once for a device that asks
-    for dark, once for the "Gaslight dark" look -- because CSS cannot
-    share one block between a media query and a selector. They must not
-    drift apart; and a fixed light look must be exempt from the query."""
-    css = _stylesheet("engraved")
-    by_device = re.search(r':root:not\(\[data-theme="light"\]\) \{(.*?)\n  \}', css, re.S)
-    by_name = re.search(r':root\[data-theme="dark"\] \{(.*?)\n\}', css, re.S)
-    assert by_device and by_name
+def test_gaslight_dark_redefines_only_tokens_the_light_theme_has():
+    """Every Engraved look fixes its theme, so the sheet has one dark
+    block, under ``data-theme="dark"``, and no device preference (the
+    auto look it served is gone, D17). A token only the dark block
+    defines would be missing from Case-file light."""
+    css = _stylesheet("casefile")
+    assert "prefers-color-scheme" not in css
+    root = re.search(r"^:root \{(.*?)^\}", css, re.S | re.M).group(1)
+    dark = re.search(r':root\[data-theme="dark"\] \{(.*?)\n\}', css, re.S).group(1)
+    light_tokens = set(re.findall(r"(--[a-z-]+)\s*:", root))
+    dark_tokens = set(re.findall(r"(--[a-z-]+)\s*:", dark))
+    assert dark_tokens and not dark_tokens - light_tokens, sorted(dark_tokens - light_tokens)
+    assert "--alarm" in dark_tokens, "the clock's last-ten-seconds red has a dark twin"
 
-    def tokens(block):
-        return sorted(line.strip() for line in block.group(1).splitlines() if line.strip())
 
-    assert tokens(by_device) == tokens(by_name)
-    assert "--alarm:" in by_name.group(1), "the clock's last-ten-seconds red has a dark twin"
+def test_the_shared_chrome_uses_only_tokens_every_look_defines():
+    """The header's wooden question mark and the footer (2026-09-29) are
+    dressed by chrome.css, loaded after whichever look's sheet; it may
+    only use tokens every sheet defines, and like them stays ASCII."""
+    from clude_web import styles
+
+    static = Path(__file__).resolve().parents[1] / "clude_web" / "static"
+    chrome = (static / "styles" / "chrome.css").read_text(encoding="utf-8")
+    assert chrome.isascii()
+    used = set(re.findall(r"var\((--[a-z-]+)\)", chrome))
+    assert used
+    for key in styles.STYLES:
+        defined = set(re.findall(r"(--[a-z-]+)\s*:", _stylesheet(key)))
+        assert not used - defined, f"{key} lacks {sorted(used - defined)}"
+    assert not re.search(r"(?:animation|transition):", chrome)
 
 
 def test_engraved_names_no_duration_outside_its_tokens():
@@ -297,7 +317,7 @@ def test_engraved_names_no_duration_outside_its_tokens():
     from clude_web import styles
 
     static = Path(__file__).resolve().parents[1] / "clude_web" / "static"
-    css = (static / styles.STYLES["engraved"].stylesheet).read_text(encoding="utf-8")
+    css = (static / styles.STYLES["casefile"].stylesheet).read_text(encoding="utf-8")
     root = re.search(r"^:root \{(.*?)^\}", css, re.S | re.M).group(1)
     outside = css.replace(root, "")
     literal = [m for m in re.findall(r"\b\d*\.?\d+m?s\b", outside) if m != "0s"]

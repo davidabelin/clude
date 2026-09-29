@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Wikiclude{% endblock %}
+{% block content %}
+{# Wikiclude's front door, a placeholder (David, 2026-09-29: "don't start
+   this yet! just, be ready"). The articles come from the docs. #}
+<div class="panel narrow">
+  <h1>Wikiclude</h1>
+  <p>Coming soon: an encyclopaedia of clude. The six characters and how each one thinks,
+     the methods behind them, the board and the rules, and what the games have shown.</p>
+  <p class="note">Every article is written for everyone at once: the story first, the
+     mathematics after.</p>
+  <p><a href="{{ url_for('main.index') }}">Back to the lobby</a></p>
+</div>
+{% endblock %}

@@ -2,7 +2,7 @@
  *
  * The token layer of docs/phase10-plan.md section 5 as it stands after
  * David's second round (section 13, D7-D14): case-file light by
- * default, gaslight dark on a device's dark preference, four faces
+ * default, gaslight dark when the look says so (D17), four faces
  * self-hosted from ../fonts/, spacing on a 4 px scale, a 2 px radius,
  * a printed shadow with no blur, and every duration a token so one
  * attribute switches motion off. Lifted from docs/ux/table/
@@ -161,54 +161,9 @@
   --ease-panel: cubic-bezier(.4,0,.2,1);
 }
 
-/* Gaslight dark (5.2): on a stated dark preference unless the look
-   fixes light (D10), and always when it fixes dark -- the looks "Case
-   file light" and "Gaslight dark" set <html data-theme> (David,
-   2026-09-29). The two blocks must stay identical; a test compares them. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --page: #121013;
-    --panel: #1B181C;
-    --panel-sunk: #0D0B0E;
-    --edge: #332E33;
-    --edge-strong: #9A9186;
-    --ink: #EDE6D8;
-    --ink-soft: #A9A090;
-    --ink-faint: #7A7263;
-    --brass: #D6A75A;
-    --brass-bright: #F0C67E;
-    --brass-dim: #8A6A2E;
-    --accent: #C2596A;
-    --accent-ink: #121013;
-    --warn: #F08A8A;
-    --alarm: #FF4D5E;
-    --proof: #EDE6D8;
-    --tone: #7A7263;
-
-    --suspect-scarlett: #e0566c; --suspect-scarlett-ink: #14110D;
-    --suspect-mustard: #e8bb4e;  --suspect-mustard-ink: #14110D;
-    --suspect-plum: #ab72c6;     --suspect-plum-ink: #14110D;
-    --suspect-peacock: #4fb2c9;  --suspect-peacock-ink: #14110D;
-    --suspect-green: #5cb473;    --suspect-green-ink: #14110D;
-    --suspect-white: #f2f0eb;    --suspect-white-ink: #14110D;
-
-    --board-void: #0D0B0E;
-    --board-room: #26212A;
-    --board-corridor: #1A171D;
-    --board-grid: #2E2931;
-    --board-floor: #4A4350;
-    --board-wall: #9A9186;
-    --board-door: #D6A75A;
-    --board-cellar: #1B181C;
-    --board-label: #A9A090;
-
-    --certain-cold: #6f9fd8;
-    --certain-mid: #ECE9E2;
-    --certain-hot: #e0687a;
-    --certain-ink: #14110D;
-  }
-}
+/* Gaslight dark (5.2), when the look fixes it: both looks on this sheet
+   set <html data-theme>, so the device's preference no longer decides
+   (David, 2026-09-29, D17: "Engraved (auto)" folded into Gaslight dark). */
 :root[data-theme="dark"] {
     color-scheme: dark;
     --page: #121013;
