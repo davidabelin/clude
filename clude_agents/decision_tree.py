@@ -299,6 +299,68 @@ def render_tree(node: _TreeNode, indent: str = "  ") -> str:
     return "\n".join(lines)
 
 
+# Leaf bands for `mermaid_tree`, as (exclusive upper bound, class name),
+# ascending: how sure Mustard is at that leaf, four steps from dismissed
+# to near-certain.
+_LEAF_BANDS: tuple = ((0.10, "cold"), (0.35, "cool"), (0.65, "warm"), (1.01, "hot"))
+
+# Short labels for the diagram, keyed by `FEATURE_NAMES`: the full names
+# make Mermaid's boxes wide enough to push the tree past any screen.
+_SHORT_NAMES: dict = {
+    "possible_holders_frac": "holders",
+    "or_constraint_involvement": "or-constraints",
+    "times_named_unrefuted": "named unrefuted",
+    "times_named_total": "named",
+    "turn_fraction": "turn",
+    "category_size_frac": "category size",
+    "distinct_namers": "namers",
+    "named_beside_located": "beside located",
+}
+
+
+def mermaid_tree(node: _TreeNode, direction: str = "TD") -> str:
+    """Render a tree as a Mermaid `flowchart`, one node per line.
+
+    Internal nodes are boxes labelled ``feature <= threshold`` under
+    `_SHORT_NAMES`, with the true branch drawn as "yes"; leaves show the
+    prediction and the training rows that reached them, banded into four
+    classes by `_LEAF_BANDS` so the tree's confident corners are visible
+    at a glance. The output is the fenced block's contents, without the
+    fence, so a caller can drop it into Markdown or an HTML page.
+    """
+    lines: list = [f"flowchart {direction}"]
+    classes: dict = {}
+    counter = 0
+
+    def walk(n: _TreeNode) -> str:
+        nonlocal counter
+        counter += 1
+        node_id = f"n{counter}"
+        if n.is_leaf:
+            band = next(name for bound, name in _LEAF_BANDS if n.prediction < bound)
+            classes.setdefault(band, []).append(node_id)
+            lines.append(f'    {node_id}("{n.prediction:.3f}<br/>n={n.n_samples}")')
+            return node_id
+        name = _SHORT_NAMES[FEATURE_NAMES[n.feature_index]]
+        threshold = f"{n.threshold:.2f}".rstrip("0").rstrip(".")
+        lines.append(f'    {node_id}["{name} &le; {threshold}<br/>n={n.n_samples}"]')
+        left = walk(n.left)
+        lines.append(f"    {node_id} -- yes --> {left}")
+        right = walk(n.right)
+        lines.append(f"    {node_id} -- no --> {right}")
+        return node_id
+
+    walk(node)
+    lines.append("    classDef hot fill:#8c2f16,stroke:#3c1206,color:#fff")
+    lines.append("    classDef warm fill:#c88a2c,stroke:#6b4610,color:#1a1208")
+    lines.append("    classDef cool fill:#2f4f6b,stroke:#16283a,color:#eaf0f6")
+    lines.append("    classDef cold fill:#e8e4d8,stroke:#8d8878,color:#22201a")
+    for _bound, band in _LEAF_BANDS:
+        if classes.get(band):
+            lines.append(f"    class {','.join(classes[band])} {band}")
+    return "\n".join(lines)
+
+
 _ROWS_CACHE: dict = {}
 _TREE_CACHE: dict = {}
 

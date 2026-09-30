@@ -369,6 +369,18 @@ at work -- with `--smoothing-m 0` the minimum is exactly 0.000 again.
 threshold (n=rows)` with the true branch first. `--bot` picks the
 regime for both training and evaluation games.
 
+`--mermaid PATH` writes the same tree as a diagram: a standalone HTML
+page at `PATH`, with the belief pipeline above it and the diagram's
+source in a `<details>`. Mermaid is the vendored copy in
+`docs/ux/vendor` (its README has the version and licence), reached
+relative to `PATH`, so the page draws offline.
+`docs/ux/mustard/index.html` is that page for the default
+hyperparameters -- generated, so regenerate it rather than editing it.
+With no `PATH`, `--mermaid` prints a fenced ```mermaid block on stdout
+instead, to paste into Markdown. Feature names are shortened and leaves
+banded into four colours by how sure they are, cold (under 0.10)
+through hot (over 0.65).
+
 The held-out block is `benchmark` restricted to this tree plus the
 uniform baseline, so "does this setting help" is one command. It warns
 if the evaluation seeds overlap the training seeds. Note that the
