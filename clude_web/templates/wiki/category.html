@@ -1,0 +1,22 @@
+{% extends "wiki/layout.html" %}
+{% block wiki_title %}Category: {{ category }}{% endblock %}
+{% block page %}
+<header class="wiki-head" id="top">
+  <h1><span class="wiki-space">Category:</span> {{ category }}</h1>
+  <p class="wiki-from">From Wikiclude, the encyclopaedia of clude</p>
+</header>
+<p>{{ members|length }} page{{ '' if members|length == 1 else 's' }} in this category.</p>
+<ul class="wiki-list">
+  {% for page in members %}
+  <li><a class="wl" href="{{ url_for('main.wiki_page', title=page.slug) }}">{{ page.title }}</a>{% if page.is_stub %} <span class="tag">stub</span>{% endif %}{% if page.short %} <span class="wiki-short">{{ page.short }}</span>{% endif %}</li>
+  {% endfor %}
+</ul>
+<div class="wiki-cats">
+  All categories:
+  <ul>
+    {% for name in wiki.category_names() %}
+    <li>{% if name == category %}<strong class="selflink">{{ name }}</strong>{% else %}<a class="wl" href="{{ url_for('main.wiki_page', title='Category:' ~ name.replace(' ', '_')) }}">{{ name }}</a>{% endif %}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

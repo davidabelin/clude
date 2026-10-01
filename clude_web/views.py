@@ -1,5 +1,5 @@
-"""The app's own pages: the lobby, a run's games, the replay, Watch, and
-the tables people play at (Phase 8.2).
+"""The app's own pages: the lobby, a run's games, the replay, Watch, the
+tables people play at (Phase 8.2), and Wikiclude (D20).
 
 `docs/phase8.1-plan.md` 3.2 has what the first screens are for and
 `docs/phase8-plan.md` 3.2-3.4 the table; `docs/web.md` how to use them.
@@ -28,6 +28,8 @@ from clude_storage import GameRecord
 from clude_training.table import TableError, TableSetup
 
 from . import board_svg, replay_data, tables, users, watch
+from .wiki import figures as wiki_figures
+from .wiki import key_of as wiki_key
 from .auth import current_style, current_user, public
 
 bp = Blueprint("main", __name__)
@@ -274,11 +276,92 @@ def privacy():
     return render_template("privacy.html")
 
 
+# --- Wikiclude (D20, docs/wikiclude-plan.md) ------------------------------
+
+
+def _wiki():
+    return current_app.extensions["wiki"]
+
+
+def _wiki_page(template: str, **context):
+    """A wiki page, with what every one of them shows: the counts for
+    the side panel and the category list."""
+    book = _wiki()
+    return render_template(template, wiki=book, counts=book.counts(), **context)
+
+
 @bp.get("/wiki")
+@public
 def wiki():
-    """Wikiclude's front door: a placeholder until the pages are written
-    (David, 2026-09-29: "don't start this yet")."""
-    return render_template("wiki.html")
+    """Wikiclude's Main Page: the featured article, "Did you know" and
+    the way into every category. Public, like the privacy page (David,
+    2026-10-01): the encyclopaedia shows no game's state."""
+    book = _wiki()
+    return _wiki_page("wiki/main.html", featured=book.featured(), hooks=book.did_you_know())
+
+
+@bp.get("/wiki/<path:title>")
+@public
+def wiki_page(title):
+    """An article, or one of the pages a wiki keeps about itself:
+    ``Category:``, ``Figure:`` and ``Special:`` (AllPages, Random,
+    WantedPages, WhatLinksHere, Search)."""
+    book = _wiki()
+    space, _, name = title.partition(":")
+    if space == "Category" and name:
+        members = book.categories.get(name.replace("_", " "))
+        if members is None:
+            return _wiki_missing(title)
+        return _wiki_page("wiki/category.html", category=name.replace("_", " "), members=members)
+    if space == "Figure" and name:
+        try:
+            figure = wiki_figures.figure(name)
+        except KeyError:
+            return _wiki_missing(title)
+        return _wiki_page("wiki/figure.html", figure=figure, uses=book.figure_uses(name))
+    if space == "Special":
+        return _wiki_special(name)
+    article, redirected = book.get(title)
+    if article is None:
+        return _wiki_missing(title)
+    return _wiki_page(
+        "wiki/article.html", article=article, redirected=redirected,
+        navboxes=[book.navboxes[n] for n in article.navboxes],
+    )
+
+
+def _wiki_special(name: str):
+    book = _wiki()
+    page, _, rest = name.partition("/")
+    if page == "AllPages":
+        return _wiki_page("wiki/special.html", special="all", pages=book.pages())
+    if page == "Random":
+        article = book.random()
+        return redirect(url_for("main.wiki_page", title=article.slug) if article else url_for("main.wiki"))
+    if page == "WantedPages":
+        wanted = sorted(book.wanted.items(), key=lambda item: (-item[1], item[0].casefold()))
+        return _wiki_page("wiki/special.html", special="wanted", wanted=wanted)
+    if page == "WhatLinksHere" and rest:
+        article, _ = book.get(rest)
+        if article is None:
+            return _wiki_missing(rest)
+        return _wiki_page("wiki/special.html", special="links", article=article, pages=book.linking_to(article))
+    if page == "Search":
+        query = request.args.get("q", "").strip()[:80]
+        exact, _ = book.get(query) if query else (None, "")
+        if exact is not None and request.args.get("go") != "0":
+            return redirect(url_for("main.wiki_page", title=exact.slug))
+        return _wiki_page("wiki/special.html", special="search", query=query, hits=book.search(query))
+    return _wiki_missing("Special:" + name)
+
+
+def _wiki_missing(title: str):
+    """No such page: say so, say whether anything links to it, and
+    offer what a search for its name finds."""
+    book = _wiki()
+    name = " ".join(title.replace("_", " ").split())[:80]
+    wanted = next((n for w, n in book.wanted.items() if wiki_key(w) == wiki_key(name)), 0)
+    return _wiki_page("wiki/special.html", special="missing", name=name, wanted=wanted, hits=book.search(name)), 404
 
 
 @bp.get("/practice")

@@ -1,0 +1,520 @@
+/* Wikiclude (D20, docs/wikiclude-plan.md): a Wikipedia page's layout in
+ * clude's own dress. Loaded on wiki pages only, after the look's sheet
+ * and chrome.css, and shared by all three looks, so it follows
+ * chrome.css's rules:
+ *
+ * - legacy.css is never edited, so nothing here may rely on a token
+ *   only engraved.css defines. Such a token is always read with a
+ *   fallback, once, into a --w-* token on .wiki; the rules below use
+ *   only --w-* and the tokens every sheet defines (--ink, --ink-soft,
+ *   --page, --panel, --edge, --accent, --accent-ink, --warn, and the
+ *   six --suspect-* colours).
+ * - No transitions or animations: an Engraved sheet's durations are
+ *   tokens its motion switch zeroes, and this sheet has none to switch.
+ * - ASCII only (tests/test_wiki.py).
+ *
+ * Three kinds of link, told apart by more than colour:
+ *   a.wl      another article        the red thread, as in the rest of the app
+ *   a.wl.new  an article not written  faint, dotted
+ *   a.extw    out to Wikipedia        a blue of its own, with a small W
+ */
+
+.wiki {
+  --w-sunk: var(--panel-sunk, var(--page));
+  --w-strong: var(--edge-strong, var(--ink-soft));
+  --w-faint: var(--ink-faint, var(--ink-soft));
+  --w-brass: var(--brass, #A97B2C);
+  --w-display: var(--font-display, Georgia, "Times New Roman", serif);
+  --w-mark: var(--font-wordmark, Georgia, "Times New Roman", serif);
+  --w-ui: var(--font-ui, system-ui, -apple-system, "Segoe UI", sans-serif);
+  --w-mono: var(--font-gauge, ui-monospace, Consolas, monospace);
+  --w-radius: var(--radius, 2px);
+  /* The Wikipedia link, and the cool tone of the diagrams. */
+  --wiki-out: #23527C;
+  --wiki-out-ink: #F5F0E4;
+  /* Each suspect's ink, for a token's initial (engraved.css has these;
+     legacy.css does not). */
+  --w-scarlett-ink: var(--suspect-scarlett-ink, #F5F0E4);
+  --w-mustard-ink: var(--suspect-mustard-ink, #14110D);
+  --w-plum-ink: var(--suspect-plum-ink, #F5F0E4);
+  --w-peacock-ink: var(--suspect-peacock-ink, #F5F0E4);
+  --w-green-ink: var(--suspect-green-ink, #F5F0E4);
+  --w-white-ink: var(--suspect-white-ink, #14110D);
+}
+:root[data-theme="dark"] .wiki {
+  --wiki-out: #9CC1EE;
+  --wiki-out-ink: #121013;
+}
+@media (prefers-color-scheme: dark) {
+  /* Developer follows the device (legacy.css), having no data-theme. */
+  :root[data-style="developer"] .wiki {
+    --wiki-out: #9CC1EE;
+    --wiki-out-ink: #16161a;
+    --w-scarlett-ink: #14110D; --w-plum-ink: #14110D;
+    --w-peacock-ink: #14110D; --w-green-ink: #14110D;
+  }
+}
+
+/* --- the frame ----------------------------------------------------------- */
+
+.wiki {
+  display: block;
+  max-width: 76rem;
+  margin: 0 auto;
+  font-family: var(--w-ui);
+  line-height: 1.6;
+}
+
+.wiki-side {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin: 0 0 0.75rem;
+}
+.wiki-home { display: flex; flex-direction: column; text-decoration: none; color: var(--ink); line-height: 1.15; }
+.wiki-wordmark { font-family: var(--w-mark); font-weight: 600; letter-spacing: 0.04em; color: var(--accent); }
+.wiki-home .wiki-wordmark { font-size: 1.35rem; }
+.wiki-motto { font-size: 0.72rem; color: var(--ink-soft); letter-spacing: 0.02em; }
+
+.wiki-search { display: flex; align-items: stretch; flex: 1 1 12rem; min-width: 0; margin: 0; }
+.wiki-search input {
+  flex: 1 1 0;
+  min-width: 0;
+  width: 0;
+  height: auto;
+  margin: 0;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--w-strong);
+  border-right: 0;
+  border-radius: var(--w-radius) 0 0 var(--w-radius);
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+}
+.wiki-search button {
+  flex: none;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--w-strong);
+  border-radius: 0 var(--w-radius) var(--w-radius) 0;
+  background: var(--w-sunk);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: none;
+}
+.wiki-search input:focus-visible, .wiki-search button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.wiki-nav { display: flex; flex-wrap: wrap; gap: 0.15rem 1rem; width: 100%; font-size: 0.85rem; }
+.wiki-nav a { color: var(--ink-soft); }
+.wiki-nav a:hover { color: var(--accent); }
+.wiki-toc-rail { display: none; }
+
+.wiki-page {
+  padding: 1rem 1rem 1.5rem;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: var(--w-radius);
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+/* --- type ---------------------------------------------------------------- */
+
+.wiki-page h1, .wiki-page h2, .wiki-page h3, .wiki-page h4 {
+  font-family: var(--w-display);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--ink);
+  scroll-margin-top: 0.75rem;
+}
+.wiki-page h1 { font-size: 1.75rem; margin: 0; }
+.wiki-page h2 {
+  font-size: 1.35rem;
+  margin: 1.75rem 0 0.6rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid var(--edge);
+}
+.wiki-page h3 { font-size: 1.1rem; margin: 1.3rem 0 0.4rem; }
+.wiki-page h4 { font-size: 1rem; margin: 1.1rem 0 0.3rem; font-style: italic; }
+.wiki-page p { margin: 0 0 0.85rem; }
+.wiki-page ul, .wiki-page ol { margin: 0 0 0.85rem; padding-left: 1.5rem; }
+.wiki-page li { margin: 0.15rem 0; }
+.wiki-page dt { font-weight: 600; margin-top: 0.5rem; }
+.wiki-page dd { margin: 0 0 0.4rem 1.25rem; }
+.wiki-page code {
+  padding: 0.05rem 0.25rem;
+  background: var(--w-sunk);
+  border: 1px solid var(--edge);
+  border-radius: var(--w-radius);
+  font: 0.86em var(--w-mono);
+  overflow-wrap: anywhere;
+}
+.wiki-page blockquote {
+  margin: 0 0 0.85rem;
+  padding: 0.1rem 0 0.1rem 1rem;
+  border-left: 3px solid var(--edge);
+  color: var(--ink-soft);
+}
+.wiki-page hr { border: 0; border-top: 1px solid var(--edge); margin: 1.25rem 0; }
+
+.wiki-head { margin: 0 0 0.85rem; padding-bottom: 0.35rem; border-bottom: 1px solid var(--w-strong); }
+.wiki-from { margin: 0.2rem 0 0; font-size: 0.8rem; color: var(--ink-soft); }
+.wiki-page .wiki-from { margin-bottom: 0; }
+.wiki-space { color: var(--ink-soft); font-weight: 400; }
+
+/* --- links --------------------------------------------------------------- */
+
+.wiki-page a { text-underline-offset: 0.15em; text-decoration-thickness: 1px; }
+.wiki-page a.wl { color: var(--accent); text-decoration: none; }
+.wiki-page a.wl:hover { text-decoration: underline; }
+.wiki-page a.wl.new { color: var(--w-faint); text-decoration: underline dotted; }
+.wiki-page a.wl.new:hover { color: var(--warn); }
+.wiki-page a.extw { color: var(--wiki-out); text-decoration: none; }
+.wiki-page a.extw:hover { text-decoration: underline; }
+.wiki-page a.extw::after {
+  content: "W";
+  margin-left: 0.1em;
+  font: 600 0.58em / 1 var(--w-display);
+  vertical-align: super;
+}
+.wiki-page a.src { color: var(--wiki-out); }
+.wiki-page a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--w-radius); }
+.wiki-page .selflink { font-weight: 600; }
+
+/* --- the lead, hatnotes and notices -------------------------------------- */
+
+.hatnote { margin: 0 0 0.6rem; padding-left: 1.25rem; font-style: italic; font-size: 0.92rem; color: var(--ink-soft); }
+.hatnote a { font-style: italic; }
+.wiki-notice {
+  margin: 0 0 0.85rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--edge);
+  border-left: 4px solid var(--w-brass);
+  background: var(--w-sunk);
+  font-size: 0.9rem;
+}
+
+/* On a phone the infobox comes after the first paragraph, as Wikipedia's
+   own phone pages have it; from 900 px it floats beside the lead. */
+.wiki-lead { display: flex; flex-direction: column; }
+.wiki-lead > * { order: 2; }
+.wiki-lead > p:first-of-type { order: 0; }
+.wiki-lead > .infobox { order: 1; }
+
+/* --- the infobox --------------------------------------------------------- */
+
+.infobox {
+  width: 100%;
+  margin: 0 0 1rem;
+  border: 1px solid var(--w-strong);
+  border-radius: var(--w-radius);
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--w-sunk);
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+.infobox caption {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--w-strong);
+  border-bottom: 0;
+  border-radius: var(--w-radius) var(--w-radius) 0 0;
+  background: var(--w-strong);
+  color: var(--panel);
+  font: 600 1.05rem / 1.25 var(--w-display);
+  caption-side: top;
+}
+.infobox th, .infobox td { padding: 0.3rem 0.6rem; vertical-align: top; text-align: left; border-top: 1px solid var(--edge); }
+.infobox th[scope="row"] { width: 42%; font-weight: 600; color: var(--ink-soft); }
+.infobox .infobox-head { text-align: center; background: var(--panel); font: 600 0.8rem / 1.3 var(--w-ui); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+.infobox .infobox-art { border-top: 0; text-align: center; background: var(--panel); padding: 0.6rem; }
+.infobox .infobox-art svg { display: block; width: 100%; height: auto; margin: 0 auto; }
+.infobox .infobox-art svg.fig-pawn { width: 6.5rem; }
+.infobox-caption { margin-top: 0.25rem; font-size: 0.8rem; color: var(--ink-soft); }
+.infobox.suspect-scarlett caption { background: var(--suspect-scarlett); color: var(--w-scarlett-ink); }
+.infobox.suspect-mustard caption { background: var(--suspect-mustard); color: var(--w-mustard-ink); }
+.infobox.suspect-white caption { background: var(--suspect-white); color: var(--w-white-ink); }
+.infobox.suspect-green caption { background: var(--suspect-green); color: var(--w-green-ink); }
+.infobox.suspect-peacock caption { background: var(--suspect-peacock); color: var(--w-peacock-ink); }
+.infobox.suspect-plum caption { background: var(--suspect-plum); color: var(--w-plum-ink); }
+
+/* --- contents ------------------------------------------------------------ */
+
+.wiki-toc {
+  margin: 0.25rem 0 1rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--edge);
+  border-radius: var(--w-radius);
+  background: var(--w-sunk);
+  font-size: 0.92rem;
+}
+.wiki-toc summary { cursor: pointer; font: 600 1rem var(--w-display); }
+.wiki-toc ol, .wiki-toc-rail ol { list-style: none; margin: 0.4rem 0 0; padding: 0; }
+.wiki-toc ol ol, .wiki-toc-rail ol ol { margin: 0; padding-left: 1.1rem; }
+.wiki-toc a, .wiki-toc-rail a { color: var(--accent); text-decoration: none; }
+.wiki-toc a:hover, .wiki-toc-rail a:hover { text-decoration: underline; }
+.toc-n { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+
+/* --- figures ------------------------------------------------------------- */
+
+.thumb {
+  margin: 0.25rem 0 1rem;
+  padding: 0.4rem;
+  border: 1px solid var(--edge);
+  border-radius: var(--w-radius);
+  background: var(--w-sunk);
+}
+.thumb-art { background: var(--panel); border: 1px solid var(--edge); padding: 0.4rem; overflow-x: auto; text-align: center; }
+.thumb-art svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+/* A method diagram is shown at its drawn size where there is room. Where
+   there is not it shrinks, but only to three-quarters (the min-width
+   scripts/build_wiki_figures.py gives it), and then scrolls inside its
+   frame: its type never goes below reading size. */
+.thumb figcaption { padding: 0.4rem 0.2rem 0.1rem; font-size: 0.84rem; line-height: 1.4; color: var(--ink-soft); }
+.thumb-open { white-space: nowrap; font-size: 0.78rem; color: var(--ink-soft); }
+.thumb.full .thumb-art svg.fig-drawn, .thumb.full .thumb-art svg.fig-chart { width: 100%; max-width: 40rem; }
+.thumb.full .thumb-art svg.fig-pawn { width: 9rem; }
+
+.fig { font-family: var(--w-ui); }
+.fig .t { fill: var(--ink); font-size: 13px; }
+.fig .t-sm { font-size: 12px; }
+.fig .t-xs { font-size: 10.5px; }
+.fig .t-b { font-weight: 600; }
+.fig .t-soft { fill: var(--ink-soft); }
+.fig .t-accent { fill: var(--accent); }
+.fig .t-warn { fill: var(--warn); }
+.fig .t-num { font-family: var(--w-mono); }
+.fig .t-caps { letter-spacing: 0.08em; text-transform: uppercase; }
+.fig .t-halo { paint-order: stroke; stroke: var(--panel); stroke-width: 3px; stroke-linejoin: round; }
+.fig .ln { fill: none; stroke: var(--ink); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.fig .ln-soft { stroke: var(--w-strong); }
+.fig .fl-none { fill: none; }
+.fig .mark-no { stroke: var(--warn); stroke-width: 2; }
+.fig .plate { fill: var(--panel); stroke: var(--w-strong); stroke-width: 1; }
+.fig .plate-out { fill: var(--w-sunk); stroke: var(--edge); }
+.fig .card { fill: var(--w-sunk); stroke: var(--w-strong); stroke-width: 1; }
+.fig .card-shown { fill: var(--accent); stroke: var(--accent); }
+.fig .pawn { stroke: var(--ink); stroke-width: 1.5; stroke-linejoin: round; }
+.fig .pawn-shadow { fill: var(--edge); }
+.fig .pawn-initial { font: 700 19px var(--w-ui); }
+.fig .disc-initial { font: 700 12px var(--w-ui); }
+.fig .s-scarlett { fill: var(--suspect-scarlett); }
+.fig .s-mustard { fill: var(--suspect-mustard); }
+.fig .s-white { fill: var(--suspect-white); }
+.fig .s-green { fill: var(--suspect-green); }
+.fig .s-peacock { fill: var(--suspect-peacock); }
+.fig .s-plum { fill: var(--suspect-plum); }
+.fig .si-scarlett { fill: var(--w-scarlett-ink); }
+.fig .si-mustard { fill: var(--w-mustard-ink); }
+.fig .si-white { fill: var(--w-white-ink); }
+.fig .si-green { fill: var(--w-green-ink); }
+.fig .si-peacock { fill: var(--w-peacock-ink); }
+.fig .si-plum { fill: var(--w-plum-ink); }
+
+/* Charts: thin marks, a recessive grid, text in ink and never in a
+   series colour. A point's value is its tooltip. */
+.fig .grid { stroke: var(--edge); stroke-width: 1; fill: none; }
+.fig .axis { stroke: var(--w-strong); stroke-width: 1; fill: none; }
+.fig .ref { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 5 4; fill: none; }
+.fig .bar { stroke: none; }
+.fig .bar-neutral { fill: var(--w-faint); }
+.fig .line { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.fig .line.dashed { stroke-dasharray: 2 5; }
+.fig .dot { stroke: var(--panel); stroke-width: 2; }
+.fig .sl-scarlett { stroke: var(--suspect-scarlett); }
+.fig .sl-plum { stroke: var(--suspect-plum); }
+.fig .sl-neutral { stroke: var(--w-faint); }
+.fig .dot.sl-scarlett { fill: var(--suspect-scarlett); stroke: var(--panel); }
+.fig .dot.sl-plum { fill: var(--suspect-plum); stroke: var(--panel); }
+.fig .dot.sl-neutral { fill: var(--w-faint); stroke: var(--panel); }
+
+/* The method diagrams: Mermaid's geometry, undressed by
+   scripts/build_wiki_figures.py and dressed here. */
+.fig-mermaid { font: 14px / 1.2 var(--w-ui); }
+.fig-mermaid text { fill: var(--ink); text-anchor: middle; }
+.fig-mermaid .node rect, .fig-mermaid .node polygon, .fig-mermaid .node circle, .fig-mermaid .node path {
+  fill: var(--w-sunk);
+  stroke: var(--w-strong);
+  stroke-width: 1.5;
+}
+.fig-mermaid .label rect, .fig-mermaid .node .label rect { fill: none; stroke: none; }
+.fig-mermaid .edgeLabel rect { fill: var(--panel); stroke: none; }
+.fig-mermaid .edgeLabel text { fill: var(--ink-soft); font-size: 12px; }
+.fig-mermaid .flowchart-link { fill: none; stroke: var(--w-strong); stroke-width: 1.5; }
+.fig-mermaid .edge-pattern-dotted { stroke-dasharray: 3 4; }
+.fig-mermaid .arrowMarkerPath { fill: var(--w-strong); stroke: var(--w-strong); }
+/* The diagrams' own classes (classDef in build_diagrams.py). Cool: the
+   floor and anything computed. Brass: a gate or a result. Red: what
+   goes wrong, or goes up. */
+.fig-mermaid .node.floorc rect, .fig-mermaid .node.rule rect, .fig-mermaid .node.calc rect, .fig-mermaid .node.down rect,
+.fig-mermaid .node.cold rect { fill: var(--wiki-out); stroke: var(--wiki-out); }
+.fig-mermaid .node.floorc text, .fig-mermaid .node.rule text, .fig-mermaid .node.calc text, .fig-mermaid .node.down text,
+.fig-mermaid .node.cold text { fill: var(--wiki-out-ink); }
+.fig-mermaid .node.gate rect, .fig-mermaid .node.out rect, .fig-mermaid .node.hyp rect, .fig-mermaid .node.warm rect { fill: var(--w-brass); stroke: var(--w-strong); }
+.fig-mermaid .node.gate text, .fig-mermaid .node.out text, .fig-mermaid .node.hyp text, .fig-mermaid .node.warm text { fill: #14110D; }
+.fig-mermaid .node.bad rect, .fig-mermaid .node.up rect, .fig-mermaid .node.hot rect { fill: var(--accent); stroke: var(--accent); }
+.fig-mermaid .node.bad text, .fig-mermaid .node.up text, .fig-mermaid .node.hot text { fill: var(--accent-ink); }
+.fig-mermaid .node.cool rect { fill: var(--panel); stroke: var(--wiki-out); }
+/* Plain: a step, a piece of evidence, a method among methods. */
+.fig-mermaid .node.seedc rect, .fig-mermaid .node.method rect, .fig-mermaid .node.ev rect,
+.fig-mermaid .node.flat rect { fill: var(--w-sunk); stroke: var(--w-strong); }
+
+/* --- tables -------------------------------------------------------------- */
+
+.table-wrap { margin: 0 0 1rem; overflow-x: auto; }
+.table-caption { margin: 0 0 0.3rem; font-size: 0.86rem; line-height: 1.4; color: var(--ink-soft); }
+.wiki-page p.table-caption { margin-bottom: 0.3rem; }
+.wikitable {
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  line-height: 1.35;
+  background: var(--panel);
+}
+.wikitable th, .wikitable td { padding: 0.3rem 0.55rem; border: 1px solid var(--edge); vertical-align: top; }
+.wikitable th { background: var(--w-sunk); font-weight: 600; text-align: left; }
+.wikitable td { font-variant-numeric: tabular-nums; }
+.wikitable tr.row-note td { background: var(--w-sunk); }
+
+/* --- mathematics --------------------------------------------------------- */
+
+.wiki-page math { font-size: 1.08em; }
+.math-block { margin: 0 0 0.85rem; padding: 0.25rem 0; overflow-x: auto; overflow-y: hidden; text-align: center; }
+.math-block math { font-size: 1.15em; }
+
+/* --- worked examples and asides ------------------------------------------ */
+
+.admonition {
+  display: flow-root; /* holds its own figure, and never runs under another's */
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.85rem 0.1rem;
+  border: 1px solid var(--edge);
+  border-left: 4px solid var(--w-brass);
+  border-radius: var(--w-radius);
+  background: var(--w-sunk);
+}
+.admonition-title { margin: 0 0 0.4rem; font: 600 0.8rem / 1.3 var(--w-ui); letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-soft); }
+.admonition.note { border-left-color: var(--wiki-out); }
+
+/* --- references ---------------------------------------------------------- */
+
+.wiki-page sup { line-height: 0; }
+.footnote-ref { color: var(--accent); text-decoration: none; font-size: 0.82em; }
+.footnote-ref::before { content: "["; }
+.footnote-ref::after { content: "]"; }
+.footnote { font-size: 0.86rem; line-height: 1.45; }
+.footnote hr { display: none; }
+.footnote ol { padding-left: 1.6rem; }
+.footnote li { margin: 0.25rem 0; }
+.footnote li p { margin: 0; }
+.footnote li:target { background: var(--w-sunk); outline: 1px solid var(--edge); }
+.footnote-backref { text-decoration: none; font-weight: 600; color: var(--accent); }
+.footnote cite { font-style: italic; }
+
+/* --- the navbox, categories and tools ------------------------------------ */
+
+.navbox { margin: 1.5rem 0 0.75rem; border: 1px solid var(--w-strong); border-radius: var(--w-radius); font-size: 0.84rem; line-height: 1.5; background: var(--w-sunk); }
+.navbox-title { padding: 0.3rem 0.6rem; background: var(--w-strong); color: var(--panel); text-align: center; font: 600 0.95rem var(--w-mark); letter-spacing: 0.08em; }
+.navbox-row { display: flex; flex-direction: column; border-top: 1px solid var(--edge); }
+.navbox-group { padding: 0.3rem 0.6rem 0; font-weight: 600; color: var(--ink-soft); }
+.navbox ul { list-style: none; margin: 0; padding: 0.15rem 0.6rem 0.35rem; display: flex; flex-wrap: wrap; }
+.navbox li { margin: 0; }
+.navbox li + li::before { content: "\00B7"; margin: 0 0.45rem; color: var(--ink-soft); }
+
+.wiki-cats { margin: 0.75rem 0 0; padding: 0.4rem 0.6rem; border: 1px solid var(--edge); border-radius: var(--w-radius); background: var(--w-sunk); font-size: 0.86rem; }
+.wiki-cats > a { color: var(--ink); font-weight: 600; }
+.wiki-cats ul { display: inline; list-style: none; margin: 0; padding: 0; }
+.wiki-cats li { display: inline; margin: 0; }
+.wiki-cats li + li::before { content: "|"; margin: 0 0.5rem; color: var(--edge); }
+
+.wiki-tools { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; margin: 0.75rem 0 0; font-size: 0.8rem; color: var(--ink-soft); }
+.wiki-tools a { color: var(--ink-soft); }
+
+/* --- lists of pages, search results -------------------------------------- */
+
+.wiki-list { list-style: none; padding: 0; }
+.wiki-list li { margin: 0; padding: 0.3rem 0; border-bottom: 1px solid var(--edge); }
+.wiki-short, .wiki-excerpt { color: var(--ink-soft); font-size: 0.88rem; }
+.wiki-short::before { content: "\2013\00A0"; }
+.wiki-excerpt { display: block; }
+.tag { padding: 0 0.35rem; border: 1px solid var(--edge); border-radius: 999px; font-size: 0.72rem; color: var(--ink-soft); vertical-align: 0.1em; }
+
+/* --- the Main Page ------------------------------------------------------- */
+
+.wiki-welcome { margin: 0 0 1rem; padding: 0.9rem 1rem; border: 1px solid var(--w-strong); border-radius: var(--w-radius); background: var(--w-sunk); text-align: center; }
+.wiki-welcome h1 { font-size: 1.5rem; }
+.wiki-welcome h1 .wiki-wordmark { font-size: 1.1em; }
+.wiki-welcome p { margin: 0.25rem 0 0; }
+.wiki-count { font-size: 0.82rem; color: var(--ink-soft); }
+.wiki-count a { color: inherit; }
+.wiki-portals { display: grid; gap: 1rem; }
+.portal { border: 1px solid var(--edge); border-radius: var(--w-radius); min-width: 0; }
+.wiki-page .portal h2 { margin: 0; padding: 0.35rem 0.75rem; border-bottom: 1px solid var(--edge); background: var(--w-sunk); font-size: 1.05rem; }
+.portal-body { padding: 0.75rem 0.75rem 0.1rem; }
+.portal-body .thumb { display: none; }
+.portal-more { text-align: right; font-size: 0.9rem; }
+.portal dl { margin: 0 0 0.75rem; }
+.portal dt:first-child { margin-top: 0; }
+.portal dd { margin-left: 0; font-size: 0.92rem; }
+.portal a.stub { color: var(--ink-soft); }
+
+/* --- below 900 px: every pixel to the figure ------------------------------ */
+
+@media (max-width: 899px) {
+  .wiki { margin: 0 -0.5rem; }
+  .wiki-page { padding: 0.9rem 0.75rem 1.25rem; }
+  .thumb { padding: 0; border: 0; background: none; }
+  .thumb-art { padding: 0.25rem; }
+  .thumb figcaption { padding: 0.35rem 0 0; }
+  .admonition { padding: 0.6rem 0.6rem 0.1rem; }
+}
+
+/* --- from 900 px: the rail, the float ------------------------------------ */
+
+@media (min-width: 900px) {
+  .wiki { display: grid; grid-template-columns: 13rem minmax(0, 1fr); gap: 1.25rem; align-items: start; }
+  .wiki-side {
+    position: sticky;
+    top: 0.75rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    margin: 0;
+    max-height: calc(100vh - 1.5rem);
+    overflow-y: auto;
+  }
+  .wiki-search { flex: none; }
+  .wiki-nav { flex-direction: column; gap: 0.1rem; }
+  .wiki-toc-rail { display: block; padding-top: 0.6rem; border-top: 1px solid var(--edge); font-size: 0.86rem; line-height: 1.4; }
+  .wiki-toc-rail h2 { margin: 0 0 0.3rem; font: 600 0.95rem var(--w-display); }
+  .wiki-toc-rail li { margin: 0.25rem 0; }
+  .toc-top { color: var(--ink-soft); font-size: 0.82rem; text-decoration: none; }
+  .wiki-toc { display: none; }
+  .wiki-page { padding: 1.5rem 2rem 2rem; }
+  .wiki-page h1 { font-size: 2rem; }
+
+  /* The lead does not contain the infobox's float: as on Wikipedia,
+     the article's text runs on beside it. */
+  .wiki-lead { display: block; }
+  .infobox { float: right; clear: right; width: 19rem; margin: 0.2rem 0 1rem 1.5rem; }
+  .thumb { float: right; clear: right; width: 23rem; margin: 0.3rem 0 1rem 1.5rem; }
+  /* A worked example starts below the infobox, never beside it. */
+  .admonition { clear: right; }
+  .admonition .thumb { width: 22rem; margin-top: 0; }
+  .thumb.left { float: left; clear: left; margin: 0.3rem 1.5rem 1rem 0; }
+  .thumb.wide, .thumb.full { float: none; clear: both; width: auto; max-width: 46rem; margin: 0.5rem auto 1.25rem; }
+  .wiki-body h2 { clear: none; }
+  .wiki-body::after { content: ""; display: block; clear: both; }
+  .navbox, .wiki-cats, .wiki-tools { clear: both; }
+  .navbox-row { flex-direction: row; }
+  .navbox-group { flex: 0 0 9rem; padding: 0.3rem 0.6rem; border-right: 1px solid var(--edge); text-align: right; }
+  .navbox ul { padding: 0.3rem 0.6rem; }
+  .wiki-portals { grid-template-columns: 3fr 2fr; }
+  .portal-featured { grid-row: span 2; }
+  .portal-browse, .portal-about { grid-column: 1 / -1; }
+}

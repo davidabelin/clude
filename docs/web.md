@@ -94,7 +94,9 @@ app-wide `before_request` in `create_app`. A route added later is private
 unless someone marks it `@auth.public` on purpose, which is the safer way
 round; `tests/test_web.py` walks the app's entire url map and asserts every
 route but the login redirects, so a route added in step 3 is covered the
-day it appears.
+day it appears. Three things are public on purpose: the login, the
+privacy page (D12) and, since 2026-10-01, Wikiclude (`/wiki` and
+everything under it; "Wikiclude", below), which shows no game's state.
 
 Alongside it:
 
@@ -128,7 +130,10 @@ Alongside it:
 | `clude_web/tables.py` | Tables people play at (Phase 8.2): the registry that stores, drives and rebuilds every game, the form, and the view of a game from one seat. |
 | `clude_web/chat.py` | Off-turn talk (Phase 8.3b): the reaction queue, the participation draw, the pacing and the caps. |
 | `clude_web/watch.py` | Watch as a table with nobody human at it: the all-bot form and the names the Watch screen speaks. |
-| `clude_web/views.py` | The lobby, the Stored games folders and a run's games, the replay, Watch, the table routes (page, poll, work, answer, sit, deal, autopilot), and the privacy page and Wikiclude's placeholder. |
+| `clude_web/views.py` | The lobby, the Stored games folders and a run's games, the replay, Watch, the table routes (page, poll, work, answer, sit, deal, autopilot), the privacy page, and Wikiclude's routes. |
+| `clude_web/wiki/` | Wikiclude (D20): `render.py` (the markup), `index.py` (every article rendered once, redirects, categories, backlinks, search), `facts.py` (every number an article quotes), `figures.py` and `figures/` (the pictures, uncoloured SVG), `sources.py` (citations), `articles/*.md`. |
+| `clude_web/templates/wiki/` | The wiki's page frame, an article, the Main Page, a category, a figure's page, and the pages the wiki keeps about itself. |
+| `clude_web/static/styles/wiki.css` | Wikiclude's layout and its figures' colours, shared by every look and loaded only on wiki pages, after `chrome.css`. |
 | `clude_web/templates/` | Jinja templates; `base.html` is the shell, `table.html` the table. |
 | `clude_web/styles.py` | The looks a player can choose between (Phase 9h): Case-file light (the default), Gaslight dark, and Developer (was Legacy). |
 | `clude_web/static/styles/legacy.css` | The Developer look's sheet, Legacy's frozen 2026-09-26: every colour a variable, light and dark. |
@@ -603,8 +608,8 @@ stylesheet tests in `tests/test_replay_screen.py` run over every look.
 
 What every look shares is `chrome.css`, loaded after the look's sheet
 and using only tokens both sheets define: the header bar's wooden
-question mark, which leads to Wikiclude (`/wiki`, a placeholder for
-now), and the footer on every page -- Privacy (`/privacy`, public like
+question mark, which leads to Wikiclude (`/wiki`; "Wikiclude",
+below), and the footer on every page -- Privacy (`/privacy`, public like
 the login page, D12's draft), Contact (the repo's GitHub issues) and
 Wikiclude, and the copyleft mark (`static/copyleft.svg`, used as a mask
 so it takes the text's colour) with "2026 AIX Laboratories".
@@ -634,6 +639,85 @@ no screenshot lands mid-transition, and a test refuses any literal
 duration outside `:root`. Costs are Developer's alone (D9, D17,
 2026-10-01): an Engraved look draws no per-seat cost bar, no Cost
 column and no spend line on the table.
+
+## Wikiclude
+
+The encyclopaedia of clude (D20; `docs/wikiclude-plan.md` has the plan
+and what was built): Wikipedia-style articles on the characters, their
+methods, the game and what the measurements found, each written for
+every reader at once. It is under `/wiki`, **public** like the privacy
+page (David, 2026-10-01), and reached from the header bar's wooden
+question mark and the footer.
+
+**An article is a Markdown file** in `clude_web/wiki/articles/`, named
+for its title (`Professor_Plum.md`), with a front-matter block (title,
+a short description, categories, redirects, "Did you know" hooks,
+`kind: stub` for a place-holder) and a body. Edit it in VS Code like
+any file. On top of Markdown's own footnotes and tables, the markup
+(`clude_web/wiki/render.py`, whose docstring lists it all) has:
+
+| Written | Is |
+|---|---|
+| `[[Professor Plum]]`, `[[Professor Plum\|Plum]]`, `[[Suggestion#The answer\|disprove]]` | a link to another article, in the red thread |
+| `[[w:Bayes' theorem\|Bayes' theorem]]` | a link out to Wikipedia: its own blue, a small W, a new tab |
+| `[[Category:Methods\|methods]]` | a link to a category |
+| `{{fact:bench.grid.Plum.50}}` | a measured number, from `facts.py`, checked against the doc it came from |
+| `{{code:preset.Plum.accuse_threshold}}` | a constant or a computed example, read from the live modules |
+| `{{table:budget.grid\|Caption}}` | a whole measured table |
+| `{{figure:rope-deals\|Caption}}`, `{{figure:key\|wide\|Caption}}` | a figure in a thumb frame; indented inside a worked example it stays inside it |
+| `$x^2$`, `$$ ... $$` | mathematics, LaTeX rendered to MathML on the server; a literal dollar is `\$` |
+| `[^note]` and `[^note]: {{cite:docs/board.md\|Movement rules}}` | a reference; References is numbered in the order the text cites |
+| `{{infobox` ... `}}`, `{{main:Title}}`, `{{hatnote:...}}`, `{{navbox:clude}}`, `{{references}}` | the furniture |
+| `!!! example "Title"` and an indented block | a worked example |
+
+**Everything is rendered once, when the app starts** (`wiki.load()`, in
+`create_app`), so a page view is a dictionary lookup and a mistake in
+an article (an unknown fact, a figure that does not exist, a note cited
+and never defined) stops the app starting and fails the tests, where it
+is seen, and never reaches a reader. A link to an article nobody has
+written yet is not an error: it renders dotted and is listed at
+`/wiki/Special:WantedPages`, and `tests/test_wiki.py` holds the count
+to `WANTED_BUDGET`, which is 0 at a release.
+
+**Numbers are never typed into an article.** A measured number is
+`{{fact:...}}`, kept in `facts.py` with the doc and heading it came
+from, and a test finds every one in that doc: re-measure something,
+change the glossary, and the suite fails until `facts.py` follows.
+(`docs/` is not in the image, which is why the values are copied and
+not read.) A constant is `{{code:...}}`, read from the module when the
+wiki is built, and the worked example the method articles share is run
+through the real `ExactEnumAgent` and `NaiveBayesAgent`
+(`facts.rope_question`).
+
+**The figures set no colour**, like the board and the logo: each shape
+has a class and `static/styles/wiki.css` dresses it from the look's
+tokens. The pawns, the worked examples and the charts are drawn by
+`figures.py` when the wiki is built. The method diagrams are the
+`DIAGRAMS` registry of `docs/ux/diagrams/build_diagrams.py`, drawn by
+the vendored Mermaid under Playwright and stripped of its colours by
+
+```powershell
+& .venv\Scripts\python.exe scripts\build_wiki_figures.py
+```
+
+which writes `clude_web/wiki/figures/*.svg`, committed. Run it after a
+diagram or the code behind one changes, then look at the page.
+
+**The pages**: `/wiki` (the Main Page: the featured article, "Did you
+know", the categories), `/wiki/<Title>`, `/wiki/Category:<Name>`,
+`/wiki/Figure:<key>`, and `/wiki/Special:` `AllPages`, `Random`,
+`WantedPages`, `WhatLinksHere/<Title>` and `Search?q=`. Titles ignore
+case and treat an underscore as a space; a redirect shows its target
+with a "Redirected from" line. From 900 px the contents sit in a rail
+on the left and the infobox floats right; on a phone the infobox comes
+after the first paragraph and the contents fold away.
+
+**Checking the Wikipedia links** needs the network, so it is skipped
+unless asked for:
+
+```powershell
+$env:CLUDE_WIKI_LIVE = "1"; & .venv\Scripts\python.exe -m pytest tests\test_wiki.py -k wikipedia
+```
 
 ## Sound
 
@@ -666,7 +750,8 @@ The screens can be seen without opening a browser by hand:
 It boots the app on a spare port against a throwaway store seeded from
 real records, signs in, and writes a PNG per screen -- login, lobby,
 lobby with an LLM memory dial, run listing, Watch and Play states, a
-waiting table, and replay at its start, middle and end -- in light and
+waiting table, replay at its start, middle and end, and Wikiclude's
+pages (`--wiki` shoots only those, and needs no stored games) -- in light and
 dark, at wide and phone widths, and in every look on the list (Phase
 10b; `--look KEY`, repeatable, narrows it). The file names carry the
 look, the scheme and the width: `lobby-engraved-dark-phone.png`.
@@ -1016,7 +1101,10 @@ pending decision; open seats, dealing, autopilot, reserved names and the
 memory toggle; and Phase 9h's typing, time-out, strikes, speed mode and
 certainty. `tests/test_mcp.py` plays a whole game through the MCP tools on the
 SDK's in-memory client, and checks the combined app's mount and guard
-("A seat over MCP"). `tests/test_browser.py` adds the table page in Chromium:
+("A seat over MCP"). `tests/test_wiki.py` is Wikiclude's: the markup, the
+pages under every look, every measured number against its doc, every
+citation against the repository, and the worked example against the real
+agents ("Wikiclude"). `tests/test_browser.py` adds the table page in Chromium:
 the legal squares drawn where the server says, a click that plays the
 move, and the reveal rule holding in the log. `TESTING` makes the app sign
 its cookies with an ephemeral key, so a test never depends on the

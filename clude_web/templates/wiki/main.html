@@ -1,0 +1,50 @@
+{% extends "wiki/layout.html" %}
+{% block wiki_title %}Main Page{% endblock %}
+{% block page %}
+<header class="wiki-welcome" id="top">
+  <h1>Welcome to <span class="wiki-wordmark">Wikiclude</span>,</h1>
+  <p>the encyclopaedia of <a class="wl" href="{{ url_for('main.index') }}">clude</a>: six suspects, six ways of thinking, and one game of Clue.</p>
+  <p class="wiki-count">{{ counts.articles }} article{{ '' if counts.articles == 1 else 's' }} so far, {{ counts.stubs }} stub{{ '' if counts.stubs == 1 else 's' }} and {{ counts.wanted }} <a href="{{ url_for('main.wiki_page', title='Special:WantedPages') }}">wanted</a></p>
+</header>
+<div class="wiki-portals">
+  {% if featured %}
+  <section class="portal portal-featured">
+    <h2>From the featured article</h2>
+    <div class="portal-body">
+      {{ featured.lead|safe }}
+      <p class="portal-more"><a class="wl" href="{{ url_for('main.wiki_page', title=featured.slug) }}"><strong>Read the whole article: {{ featured.title }}</strong></a></p>
+    </div>
+  </section>
+  {% endif %}
+  {% if hooks %}
+  <section class="portal portal-dyk">
+    <h2>Did you know ...</h2>
+    <div class="portal-body">
+      <ul>
+        {% for hook in hooks %}<li>{{ hook|safe }}</li>{% endfor %}
+      </ul>
+    </div>
+  </section>
+  {% endif %}
+  <section class="portal portal-browse">
+    <h2>Browse</h2>
+    <div class="portal-body">
+      <dl>
+        {% for name in wiki.category_names() %}
+        <dt><a class="wl" href="{{ url_for('main.wiki_page', title='Category:' ~ name.replace(' ', '_')) }}">{{ name }}</a></dt>
+        <dd>
+          {% for page in wiki.categories[name] %}<a class="wl{% if page.is_stub %} stub{% endif %}" href="{{ url_for('main.wiki_page', title=page.slug) }}">{{ page.title }}</a>{% if not loop.last %} &middot; {% endif %}{% endfor %}
+        </dd>
+        {% endfor %}
+      </dl>
+    </div>
+  </section>
+  <section class="portal portal-about">
+    <h2>About Wikiclude</h2>
+    <div class="portal-body">
+      <p>Every article is written for everyone at once: what the thing is and why it matters at the table first, a worked example next, the mathematics after, and what the measurements found last. Stop wherever you have what you came for.</p>
+      <p>Links in <a class="wl" href="{{ url_for('main.wiki_page', title='Special:AllPages') }}">this colour</a> stay inside Wikiclude. Links in <a class="extw" href="https://en.wikipedia.org/wiki/Cluedo" target="_blank" rel="noopener" title="Wikipedia: Cluedo">this colour</a> leave for Wikipedia, in a new tab. A <a class="wl new" href="{{ url_for('main.wiki_page', title='Special:WantedPages') }}">dotted link</a> is an article nobody has written yet.</p>
+    </div>
+  </section>
+</div>
+{% endblock %}
