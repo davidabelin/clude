@@ -644,7 +644,8 @@ screen in both looks before the deploy.
 ### 10d-10g, with David's third round (2026-09-29)
 
 Built in one day with the suite green (537 passed, 31 skipped; the 29
-browser tests pass under `CLUDE_WEB_BROWSER=1`), not yet deployed. Two
+browser tests pass under `CLUDE_WEB_BROWSER=1`); deployed with the
+fourth round that evening as `clude-00019-9x5`. Two
 things shape all four sub-phases:
 
 - **Two markups, one script.** `legacy.css` is never edited, so Legacy
@@ -772,7 +773,7 @@ phone the header bar wraps to two rows with the Sound button in it.
 
 Built the same afternoon as D17-D20 were given, with the suite green
 (539 passed, 31 skipped; the 29 browser tests pass under
-`CLUDE_WEB_BROWSER=1`), not yet deployed.
+`CLUDE_WEB_BROWSER=1`); deployed that evening as `clude-00019-9x5`.
 
 **The looks (D17).** `STYLES` is `casefile` ("Case-file light", the
 default), `gaslight` ("Gaslight dark") and `developer` ("Developer",
@@ -826,10 +827,11 @@ wooden button onto its own row on pages without the Sound button.
 ### The fifth round (2026-10-01)
 
 D21-D28, built in one sweep with the suite green (545 passed, 32
-skipped; the 30 browser tests pass under `CLUDE_WEB_BROWSER=1`), not
-yet deployed. The fourth round itself went live as `clude-00019-9x5` on
-2026-09-29, which the status lines here and in `CLAUDE.md` had not
-caught up with.
+skipped; the 30 browser tests pass under `CLUDE_WEB_BROWSER=1`), and
+revised the same afternoon (the doors, below); deployed together on
+2026-10-01 as `clude-00020-2tf`. The fourth round itself went live as
+`clude-00019-9x5` on 2026-09-29, which the status lines here and in
+`CLAUDE.md` had not caught up with.
 
 **Pass up top (D21).** `table.js` `passButton` adds "Pass" (the
 accusation question) or "No suggestion" (entering a room) to the status
