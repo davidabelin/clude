@@ -25,7 +25,7 @@ external too.
 from __future__ import annotations
 
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable, Optional, Protocol, runtime_checkable
 
 from . import board
@@ -110,10 +110,16 @@ class LiveGame:
     `DecisionRequest` deliberately carries only one seat's masked view
     instead, so that what the referee can see and what a player is told
     stay separate things (docs/architecture.md, "Reveal integrity").
+
+    `rolls` is every turn's die as ``(turn, seat, roll)``, appended as
+    the turn starts (2026-10-01), so a table can say who rolled what.
+    It is kept beside the log, never in it: a roll is narration, not a
+    record, and no stored game or golden changes for it.
     """
 
     state: GameState
     events: list[GameEvent]
+    rolls: list[tuple[int, int, int]] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -628,8 +634,9 @@ def game_steps(
     rng = random.Random(seed)
     state = setup(n_players, rng, suspects)
     events: list[GameEvent] = []
+    rolls: list[tuple[int, int, int]] = []
     talkers = _Talkers(bots, speakers)
-    yield LiveGame(state, events)
+    yield LiveGame(state, events, rolls)
     turns_taken = 0
     idx = 0
 
@@ -644,6 +651,7 @@ def game_steps(
         state.turn += 1
         turns_taken += 1
         roll = rng.randint(1, 6)
+        rolls.append((state.turn, player, roll))
         choices = legal_moves(state, player, roll)
         if state.summoned:
             state.summoned[player] = False  # the right to stay lasts one turn, used or not

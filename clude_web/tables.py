@@ -205,6 +205,11 @@ SPEED_TIMEOUT = 30.0
 """`TURN_TIMEOUT` at a table made in speed mode (the lobby's
 checkbox)."""
 
+SHOW_TIMEOUT = 30.0
+"""The most a seat may take to show a card, whatever the table's
+time-out (David, 2026-10-01): the turn is someone else's, and they are
+the one kept waiting."""
+
 STRIKES = 3
 """Timed-out turns in a row after which the seat is handed to the
 stand-in as if its person had pressed the button (David, 2026-09-26):
@@ -254,6 +259,15 @@ def timeout_for(document) -> float:
         return float((document or {}).get("timeout") or TURN_TIMEOUT)
     except (TypeError, ValueError):
         return TURN_TIMEOUT
+
+
+def decision_timeout(document, kind: Optional[str]) -> float:
+    """The time-out on one decision: the table's, but never more than
+    `SHOW_TIMEOUT` for a card to show (2026-10-01)."""
+    timeout = timeout_for(document)
+    if kind == "card_to_show":
+        return min(timeout, SHOW_TIMEOUT)
+    return timeout
 
 
 def speed_from_form(form) -> bool:
@@ -560,12 +574,13 @@ def notepad(game, viewer: int) -> list:
     return rows
 
 
-FOCUS_RANKS = ("show", "end", "move", "decide", "beat", "talk", "board")
+FOCUS_RANKS = ("show", "end", "move", "decide", "talk", "board")
 """The focus ladder of plan 3.1, highest first: what holds the stage.
 `focus_for` decides the ranks the server can see (`show`, `end`,
-`move`, `decide`, `board`); the page lays `beat` and `talk` over
-`board` for 2.2 s and 6 s after a line arrives, since only it knows
-when that was."""
+`move`, `decide`, `board`); the page lays `talk` over `board` for 6 s
+after a line arrives, since only it knows when that was. The `beat`, a
+narration caption laid over the board, was dropped on 2026-10-01 for
+the narration line above it."""
 
 
 def focus_for(pending: Optional[dict], finished: bool) -> str:
@@ -574,7 +589,7 @@ def focus_for(pending: Optional[dict], finished: bool) -> str:
     `pending` is the viewer's own decision, or None. A card to show
     outranks the end, which outranks the viewer's move and then their
     other decisions; with none of those the board holds the stage and
-    the page may lay a beat or talk over it. The stage never changes
+    the page may lay talk over it. The stage never changes
     under the viewer's hand: with a decision of theirs pending the page
     lays nothing over it but the accusation's impact frame.
     """
@@ -673,8 +688,7 @@ def view_payload(
     # 10d): every RemarkEvent goes to Talk and everything else to the
     # Record, decided here so the split is one rule with a test. `line`
     # is what a balloon says without the speaker's name in front; `seat`
-    # is whose event it is, for the balloon's colour and the beat's
-    # rule; `cue` is the sound it makes (10g).
+    # is whose event it is, for the balloon's colour; `cue` is the sound it makes (10g).
     events = [
         {
             "i": index,
@@ -721,6 +735,9 @@ def view_payload(
             "name": names[who],
             "kind": request["kind"],
             "seconds": round(waiting_for, 1),
+            # This decision's time-out: a card to show has at most
+            # `SHOW_TIMEOUT` (2026-10-01); `timeout` below is the table's.
+            "timeout": decision_timeout(document, request["kind"]),
             "autopilot": bool(autopilot.get(str(who))),
             "model": game.kinds[who] == "llm",
             "no_model": game.kinds[who] == "llm" and wrapper is None,
@@ -807,9 +824,11 @@ def view_payload(
         "events": events,
         "pending": pending,
         "waiting": waiting,
+        # The latest turn's die (2026-10-01): narrated above the board,
+        # never written into the log or the Record.
+        "roll": None if snap.roll is None else {"turn": snap.roll[0], "seat": snap.roll[1], "n": snap.roll[2]},
         # What holds the stage (plan 3.1, Phase 10e): the server's ranks
-        # of the focus ladder; the page lays the beat and talk over
-        # `board` itself.
+        # of the focus ladder; the page lays talk over `board` itself.
         "focus": focus_for(pending, bool(snap.finished)),
         # Work is due while the bots play, while a model seat decides,
         # while a line waits to be said -- and once a person's time is up
@@ -826,7 +845,7 @@ def view_payload(
                     snap.pending is None
                     or bool(waiting and waiting["model"] and not waiting["no_model"])
                     or game.reactions.pending
-                    or bool(waiting and not waiting["model"] and waiting_for >= timeout)
+                    or bool(waiting and not waiting["model"] and waiting_for >= waiting["timeout"])
                 )
             )
         ),
@@ -1278,7 +1297,7 @@ class TableRegistry:
                 pending = game.pending
                 if pending is None or game.kinds[pending.seat] != "human" or stands_in_for(pending.seat):
                     return False
-                if self.waiting_for(table_id, game) < timeout_for(document):
+                if self.waiting_for(table_id, game) < decision_timeout(document, pending.kind):
                     return False
                 seat = pending.seat
                 while game.pending is not None and game.pending.seat == seat and not game.finished:

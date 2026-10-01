@@ -236,6 +236,26 @@ def set_style(store, name: str, key: str) -> dict:
     return document
 
 
+def end_mcp_logins(store, name: str) -> int:
+    """End every MCP login `name` holds (`clude_logout`, 2026-10-01):
+    bump the account's `mcp_epoch`, which every login carries and must
+    match. Absent reads as 0, so the logins issued before there was a
+    logout stay good until one is asked for. The browser's session is a
+    separate thing and is untouched. Returns the new epoch.
+
+    Raises
+    ------
+    ValueError
+        No such account.
+    """
+    document = get_user(store, name)
+    if document is None:
+        raise ValueError(f"no such user: {name!r}")
+    document["mcp_epoch"] = int(document.get("mcp_epoch") or 0) + 1
+    store.put_doc(user_key(name), document)
+    return document["mcp_epoch"]
+
+
 def remove_user(store, name: str) -> bool:
     """Delete an account; True if it existed."""
     try:

@@ -30,6 +30,7 @@
   var engraved = document.documentElement.getAttribute("data-style") !== "developer";
 
   var status = document.getElementById("status");
+  var narration = document.getElementById("narration");
   var title = document.getElementById("title");
   var decision = document.getElementById("decision");
   var decisionTitle = document.getElementById("decision-title");
@@ -55,7 +56,6 @@
   var screen = document.getElementById("screen");
   var stage = document.getElementById("stage");
   var over = document.getElementById("over");
-  var beatBox = document.getElementById("beat");
   var talkOver = document.getElementById("talk-over");
   var endPlate = document.getElementById("end-plate");
   var tabStrip = document.getElementById("tabs");
@@ -309,7 +309,7 @@
   }
 
   /* Adds the new events to their panels; returns what was new, split
-     by panel, for the beat, the badges and the sound. */
+     by panel, for the narration, the badges and the sound. */
   function appendEvents(events) {
     var fresh = (events || []).filter(function (event) { return event.i >= since; });
     var said = [];
@@ -332,12 +332,15 @@
 
   /* How long the seat the table waits on has left before the floor bot
      plays its turn (Phase 9h): the server's count at the last payload
-     plus the time since, so the line ticks without a request. */
+     plus the time since, so the line ticks without a request. The
+     decision's own time-out when the server sends one: a card to show
+     has 30 s at most (2026-10-01). */
   function secondsLeft(payload) {
     var w = payload.waiting;
-    if (!w || w.model || w.autopilot || !payload.timeout) return null;
+    var timeout = (w && w.timeout) || payload.timeout;
+    if (!w || w.model || w.autopilot || !timeout) return null;
     var elapsed = (w.seconds || 0) + (Date.now() - receivedAt) / 1000;
-    return Math.max(0, Math.ceil(payload.timeout - elapsed));
+    return Math.max(0, Math.ceil(timeout - elapsed));
   }
 
   function statusText(payload) {
@@ -394,13 +397,27 @@
       clock.appendChild(document.createTextNode(""));
     }
     if (clock.parentNode !== status) {
-      status.appendChild(document.createTextNode(" "));
-      status.appendChild(clock);
+      var pass = document.getElementById("status-pass");
+      status.insertBefore(document.createTextNode(" "), pass);
+      status.insertBefore(clock, pass);
     }
     var seconds = clock.firstChild;
     seconds.textContent = left + " s left";
     seconds.className = "clock" + (left <= 10 ? " urgent" : "");
     clock.lastChild.textContent = mine ? " before the floor bot moves for you." : ".";
+  }
+
+  /* Passing, up top (David, 2026-10-01): at the accusation question
+     and on entering a room the pass sits in the status line too, so it
+     never needs a scroll past the board. The decision panel keeps its
+     own; this is the same answer. */
+  function passButton(pending) {
+    if (!pending || (pending.kind !== "accusation" && pending.kind !== "suggestion")) return null;
+    var button = el("button", "quiet pass", pending.kind === "accusation" ? "Pass" : "No suggestion");
+    button.type = "button";
+    button.id = "status-pass";
+    button.addEventListener("click", function () { answer(null); });
+    return button;
   }
 
   function renderStatus(payload) {
@@ -409,6 +426,11 @@
     clock = null;
     if (screen) status.className = "status" + (payload.pending ? " yours" : payload.over ? " over" : "");
     renderClock(payload);
+    var pass = passButton(payload.pending);
+    if (pass) {
+      status.appendChild(document.createTextNode(" "));
+      status.appendChild(pass);
+    }
     if (payload.over && payload.over.replay && !payload.pending) {
       var a = el("a", null, "Open the replay");
       a.id = "replay-link";
@@ -688,7 +710,7 @@
           decision.appendChild(a);
         }
       } else {
-        decision.appendChild(el("p", "note", current.waiting ? statusText(current) : "Wait for your turn."));
+        decision.appendChild(el("p", "note", "Wait for your turn."));
       }
       return;
     }
@@ -790,7 +812,7 @@
     if (accusePanel) accusePanel.className = "panel accuse-panel" + (live ? " live" : "");
     if (accuseHint) {
       accuseHint.textContent = live
-        ? "This is the moment: accuse, or Pass in the decision panel."
+        ? "This is the moment: accuse, or Pass above the board."
         : "You can accuse at the end of your turn. Set your three cards here whenever you like; they will keep.";
     }
   }
@@ -818,7 +840,7 @@
         : "";
     }
     if (autopilotButton) {
-      autopilotButton.textContent = me.autopilot ? "Take my seat back" : "Let the floor bot play for me";
+      autopilotButton.textContent = me.autopilot ? "Take my seat back" : "Let the floorbot play for me";
       autopilotButton.onclick = function () {
         post(urls.autopilot, { seat: me.seat, on: me.autopilot ? "0" : "1" })
           .then(function (payload) { render(payload); schedule(); })
@@ -906,9 +928,10 @@
      calls and the logbook entries after the game. Only on a table with
      model seats; a seat that cannot spend -- a person, the chat seat, a
      floorbot, a headless character -- reads 0%. Solid rather than pale:
-     a cost is a fact, not a belief. Engraved hides it (D9). */
+     a cost is a fact, not a belief. Developer only (D9, D17): an
+     Engraved look never builds it. */
   function costBar(payload, seat) {
-    if (!payload.llm) return null;
+    if (!payload.llm || engraved) return null;
     var total = Number(payload.llm.spent || 0);
     var dollars = Number((payload.llm.seats || {})[String(seat)] || 0);
     var share = total > 0 ? dollars / total : 0;
@@ -1092,55 +1115,32 @@
   /* --- the stage and the focus ladder (plan 3.1, 10e) ------------------ */
 
   /* The server sends the ranks it can see (`focus`: show, end, move,
-     decide, board). This lays the two it cannot over `board`: a beat,
-     the narration caption for 2.2 s after a suggestion or an
-     accusation arrives, and talk, the last two balloons for 6 s after a
-     line. A decision of the viewer's locks both out, so the stage never
-     changes under their hand -- except for the accusation's impact
-     frame, which outranks all but a card to show. Esc ends either early. */
-  var BEAT_MS = 2200;
+     decide, board). This lays the one it cannot over `board`: talk, the
+     last two balloons for 6 s after a line. A decision of the viewer's
+     locks it out, so the stage never changes under their hand. Esc ends
+     it early. The narration caption that used to sit over the board for
+     2.2 s after a suggestion or an accusation (the beat) is gone
+     (David, 2026-10-01): the narration line above the board says it. */
   var TALK_MS = 6000;
-  var beat = null;
   var talkUntil = 0;
   var focusTimer = null;
 
   function focusFor(payload, now) {
     var f = payload.focus || "board";
-    if (f === "show" || f === "end") return f;
-    if (beat && beat.until > now && beat.event.kind === "accusation") return "beat";
     if (f !== "board") return f;
-    if (beat && beat.until > now) return "beat";
     if (talkUntil > now) return "talk";
     return "board";
   }
 
-  function caption(kicker, text, seat, kind) {
-    while (beatBox.firstChild) beatBox.removeChild(beatBox.firstChild);
-    beatBox.appendChild(el("span", "turn", kicker));
-    beatBox.appendChild(document.createTextNode(text));
-    var spec = seat === null || seat === undefined ? null : seatSpec(seat);
-    if (spec) beatBox.setAttribute("data-suspect", spec.token.toLowerCase());
-    else beatBox.removeAttribute("data-suspect");
-    beatBox.className = "beat" + (kind ? " " + kind : "");
-    beatBox.setAttribute("aria-live", kind === "accusation" ? "assertive" : "polite");
-    beatBox.hidden = false;
-  }
-
   function fillStage(focus, payload) {
     if (!over) return;
-    var dim = focus === "show" || focus === "end" || focus === "beat" || focus === "talk";
+    var dim = focus === "end" || focus === "talk";
     stage.classList.toggle("dimmed", dim);
     over.hidden = !dim;
     over.className = "over" + (focus === "talk" ? " bottom" : "");
-    beatBox.hidden = true;
     if (talkOver) talkOver.hidden = focus !== "talk";
     if (endPlate) endPlate.hidden = focus !== "end";
-    if (focus === "show" && payload.pending) {
-      caption("Show a card", payload.pending.shown_to_name + " named cards you hold: "
-        + payload.pending.candidates.map(cardName).join(", ") + ".", payload.pending.shown_to, "suggestion");
-    } else if (focus === "beat" && beat) {
-      caption("Turn " + beat.event.turn + " · " + beat.event.kind, beat.event.text, beat.event.seat, beat.event.kind);
-    } else if (focus === "end" && endPlate && payload.over) {
+    if (focus === "end" && endPlate && payload.over) {
       var e = payload.over.envelope;
       var envelope = document.getElementById("envelope");
       while (envelope.firstChild) envelope.removeChild(envelope.firstChild);
@@ -1178,13 +1178,16 @@
       screen.setAttribute("data-focus", focus);
       if (!firstRender) cut();
     }
+    /* Which decision is the viewer's, for the stylesheet: on a phone
+       only the suggestion form shrinks the board (2026-10-01). */
+    if (current.pending) screen.setAttribute("data-pending", current.pending.kind);
+    else screen.removeAttribute("data-pending");
     fillStage(focus, current);
-    var next = Math.min(beat && beat.until > now ? beat.until : Infinity, talkUntil > now ? talkUntil : Infinity);
-    if (next !== Infinity) focusTimer = window.setTimeout(applyFocus, next - now + 20);
+    if (talkUntil > now) focusTimer = window.setTimeout(applyFocus, talkUntil - now + 20);
   }
 
-  /* The one impact frame (plan 4, 11): an accusation lands, the board
-     flashes to ink and the caption in the hero size. */
+  /* The one impact frame (plan 4, 11): an accusation lands and the
+     board flashes to ink. */
   function impact() {
     if (!stage) return;
     stage.classList.remove("impact");
@@ -1194,26 +1197,52 @@
 
   function noteStage(fresh) {
     if (!screen || firstRender) return;
-    var now = Date.now();
-    var loud = null;
-    fresh.played.forEach(function (event) {
-      if (event.kind === "suggestion" || event.kind === "accusation") loud = event;
-    });
-    if (loud) {
-      beat = { event: loud, until: now + BEAT_MS };
-      if (loud.kind === "accusation") impact();
-    }
-    if (fresh.said.length) talkUntil = now + TALK_MS;
+    var accused = fresh.played.some(function (event) { return event.kind === "accusation"; });
+    if (accused) impact();
+    if (fresh.said.length) talkUntil = Date.now() + TALK_MS;
   }
 
   document.addEventListener("keydown", function (event) {
     if (event.key !== "Escape" || !screen) return;
-    if ((beat && beat.until > Date.now()) || talkUntil > Date.now()) {
-      beat = null;
+    if (talkUntil > Date.now()) {
       talkUntil = 0;
       applyFocus();
     }
   });
+
+  /* --- the narration line (David, 2026-10-01) ---------------------------- */
+
+  /* One line above the board tells the turn in play: its roll ("You
+     rolled a six." -- never written into the log or the Record), then
+     its suggestion and accusation as they come, in the Record's own
+     words. It starts again with the next turn's roll. */
+  var ROLLED = ["", "a one", "a two", "a three", "a four", "a five", "a six"];
+  var told = { turn: null, roll: "", lines: [] };
+
+  function rollText(roll) {
+    var mine = !!(current.me && roll.seat === current.me.seat);
+    var spec = seatSpec(roll.seat);
+    var who = mine ? "You" : (spec ? spec.token : "Somebody");
+    return who + " rolled " + (ROLLED[roll.n] || roll.n) + ".";
+  }
+
+  function renderNarration(payload, fresh) {
+    if (!narration) return;
+    var roll = payload.roll;
+    if (roll && roll.turn !== told.turn) {
+      told = { turn: roll.turn, roll: rollText(roll), lines: [] };
+    }
+    fresh.played.forEach(function (event) {
+      if (event.turn !== told.turn) return;
+      if (event.kind === "suggestion" || event.kind === "accusation") told.lines.push(event.text);
+    });
+    var text = [told.roll].concat(told.lines).filter(Boolean).join(" ");
+    if (payload.over) text = "";
+    narration.textContent = text;
+    narration.hidden = !text;
+    narration.className = "narration" + (told.lines.length ? " told" : "");
+    if (roll) narration.setAttribute("data-turn", "Turn " + roll.turn);
+  }
 
   /* --- one payload ----------------------------------------------------- */
 
@@ -1240,6 +1269,7 @@
     markThinking(payload);
     noteUnread(fresh);
     noteStage(fresh);
+    renderNarration(payload, fresh);
     applyFocus();
     /* Sound (10g): one cue per batch of new events, and the turn cue
        when a decision newly becomes the viewer's. Silent on the first

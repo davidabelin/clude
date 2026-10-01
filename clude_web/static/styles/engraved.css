@@ -120,6 +120,17 @@
   --board-door: #A97B2C;
   --board-cellar: #E9E2D3;
   --board-label: #5A4F40;
+  /* Each room's floor tint (2026-10-01): pale and low in chroma, so the
+     tokens and the labels still read over them. */
+  --room-ballroom: #F8EDD9;
+  --room-billiard: #DFEBE4;
+  --room-conservatory: #E9F1DE;
+  --room-dining: #F3EACB;
+  --room-hall: #E9E7E1;
+  --room-kitchen: #ECEEE8;
+  --room-library: #F2E4D2;
+  --room-lounge: #F6E3DD;
+  --room-study: #ECE3EB;
 
   /* The certainty tag (Phase 9h): cold through white to hot. */
   --certainty: 0;
@@ -200,6 +211,15 @@
     --board-door: #D6A75A;
     --board-cellar: #1B181C;
     --board-label: #A9A090;
+    --room-ballroom: #2E2620;
+    --room-billiard: #1C2A25;
+    --room-conservatory: #222A20;
+    --room-dining: #2D281C;
+    --room-hall: #28272A;
+    --room-kitchen: #252A2A;
+    --room-library: #2C241D;
+    --room-lounge: #30212A;
+    --room-study: #2B2131;
 
     --certain-cold: #6f9fd8;
     --certain-mid: #ECE9E2;
@@ -589,7 +609,7 @@ button.warn[disabled] { opacity: 0.45; cursor: not-allowed; }
  *
  * board_svg.py sets no colour: every shape carries a class and this block
  * decides how it looks. Dressed (10f, plan 8), the generator adds shapes
- * and still no paint: floor patterns, the double wall, door rivets, an
+ * and still no paint: floor patterns, the double wall, door swings, an
  * initial on every token and the logo in the cellar.
  */
 
@@ -686,30 +706,62 @@ button.warn[disabled] { opacity: 0.45; cursor: not-allowed; }
 }
 .board-target:hover { fill-opacity: 0.7; }
 
-/* The dressed board (10f). Four floors over nine rooms: the stylesheet
-   picks a pattern per room and colours the pattern's own shapes, so the
-   generator still paints nothing. */
-.board-room[data-room="Library"] rect,
-.board-room[data-room="Study"] rect,
-.board-room[data-room="Hall"] rect { fill: url(#tone-parquet); }
-.board-room[data-room="Kitchen"] rect,
-.board-room[data-room="Conservatory"] rect { fill: url(#tone-tile); }
-.board-room[data-room="Billiard"] rect,
-.board-room[data-room="Dining"] rect { fill: url(#tone-boards); }
-.board-room[data-room="Lounge"] rect,
-.board-room[data-room="Ballroom"] rect { fill: url(#tone-rug); }
-.tone-bg { fill: var(--board-room); }
-.tone-line { fill: none; stroke: var(--board-floor); stroke-width: 0.8; }
-.tone-dot { fill: var(--board-floor); }
+/* The dressed board (10f). Nine floors for nine rooms (2026-10-01; four
+   shared ones before): each room its own pattern on its own tint, set
+   here, since the generator paints nothing. `--room-tint` is set on the
+   room and on its pattern, so the floor and the label's halo agree. */
+.board-room[data-room="Ballroom"] { --room-tint: var(--room-ballroom); }
+.board-room[data-room="Ballroom"] rect { fill: url(#floor-ballroom); }
+.floor-ballroom { --room-tint: var(--room-ballroom); }
+.board-room[data-room="Billiard"] { --room-tint: var(--room-billiard); }
+.board-room[data-room="Billiard"] rect { fill: url(#floor-billiard); }
+.floor-billiard { --room-tint: var(--room-billiard); }
+.board-room[data-room="Conservatory"] { --room-tint: var(--room-conservatory); }
+.board-room[data-room="Conservatory"] rect { fill: url(#floor-conservatory); }
+.floor-conservatory { --room-tint: var(--room-conservatory); }
+.board-room[data-room="Dining"] { --room-tint: var(--room-dining); }
+.board-room[data-room="Dining"] rect { fill: url(#floor-dining); }
+.floor-dining { --room-tint: var(--room-dining); }
+.board-room[data-room="Hall"] { --room-tint: var(--room-hall); }
+.board-room[data-room="Hall"] rect { fill: url(#floor-hall); }
+.floor-hall { --room-tint: var(--room-hall); }
+.board-room[data-room="Kitchen"] { --room-tint: var(--room-kitchen); }
+.board-room[data-room="Kitchen"] rect { fill: url(#floor-kitchen); }
+.floor-kitchen { --room-tint: var(--room-kitchen); }
+.board-room[data-room="Library"] { --room-tint: var(--room-library); }
+.board-room[data-room="Library"] rect { fill: url(#floor-library); }
+.floor-library { --room-tint: var(--room-library); }
+.board-room[data-room="Lounge"] { --room-tint: var(--room-lounge); }
+.board-room[data-room="Lounge"] rect { fill: url(#floor-lounge); }
+.floor-lounge { --room-tint: var(--room-lounge); }
+.board-room[data-room="Study"] { --room-tint: var(--room-study); }
+.board-room[data-room="Study"] rect { fill: url(#floor-study); }
+.floor-study { --room-tint: var(--room-study); }
+.tone-bg { fill: var(--room-tint, var(--board-room)); }
+.tone-line, .tone-ring { fill: none; stroke: var(--board-floor); stroke-width: 0.8; }
+.tone-dot, .tone-fill { fill: var(--board-floor); }
+.tone-fill { opacity: 0.45; }
+.board-engraved .board-label { stroke: var(--room-tint, var(--board-room)); }
 
 /* Walls as a double rule: the ink, a brass hairline over it. */
 .board-engraved .board-wall { stroke-width: 3; }
 .board-walls-inner { pointer-events: none; }
 .board-wall-inner { stroke: var(--brass); stroke-width: 0.8; stroke-linecap: square; }
 
-/* Doors as threshold plates: the brass bar and a rivet at each end. */
-.board-rivets { pointer-events: none; }
-.board-rivet { fill: var(--brass-dim); stroke: var(--board-wall); stroke-width: 0.5; shape-rendering: auto; }
+/* Doors as a floor plan draws them (2026-10-01): the gap in the wall,
+   the leaf and its swing in the red thread, the swept quarter faintly
+   shaded. The brass bar of 10f matched the walls' hairline and read as
+   more wall. */
+.board-door-swing {
+  fill: var(--accent);
+  fill-opacity: 0.14;
+  stroke: var(--accent);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  shape-rendering: auto;
+  pointer-events: none;
+}
 
 /* Every token carries its initial in the ink that sits on its colour,
    so the six are told apart without colour (plan 12). A token glides at
@@ -1047,6 +1099,28 @@ input[type="range"] { accent-color: var(--brass); }
   min-height: 1.4em;
 }
 .status a { margin-left: var(--space-2); }
+/* Pass up top (2026-10-01): the decision panel's pass, in the line. */
+.status .pass { margin: 0 0 0 var(--space-2); padding: 0.15rem var(--space-3); vertical-align: baseline; }
+
+/* The narration line (2026-10-01): the turn in play -- its roll, then
+   its suggestion or accusation -- in the caption's italic, above the
+   board and never over it. */
+.narration {
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  border-left: 3px solid var(--edge-strong);
+  font: italic var(--type-sm) / var(--lh-sm) var(--font-display);
+  color: var(--ink);
+}
+.narration.told { border-left-color: var(--brass); }
+.narration[data-turn]::before {
+  content: attr(data-turn) " \00b7  ";
+  font: 500 var(--type-gauge) / 1 var(--font-gauge);
+  font-style: normal;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
 .spend { margin: var(--space-1) 0 0; }
 
 .decision-panel { max-width: none; margin: 0; }
@@ -1231,7 +1305,7 @@ details.panel:not([open]) > summary { margin: 0; }
   to { box-shadow: 0 0 0 0 transparent; }
 }
 
-/* The speaker's colour, for a balloon and for the beat's rule. White's
+/* The speaker's colour, for a balloon's tail. White's
    own colour vanishes on paper, so it takes the soft ink. */
 [data-suspect="scarlett"] { --speaker: var(--suspect-scarlett); }
 [data-suspect="mustard"]  { --speaker: var(--suspect-mustard); }
@@ -1271,6 +1345,7 @@ details.panel:not([open]) > summary { margin: 0; }
 .screen { display: flex; flex-direction: column; gap: var(--space-3); }
 .screen .col { display: contents; }
 .screen .status { order: 1; margin: 0; }
+.screen .narration { order: 1; }
 .screen .stage { order: 2; }
 .screen .spend { order: 3; margin: 0; }
 .screen .decision-panel { order: 4; }
@@ -1347,30 +1422,6 @@ body[data-motion="off"] .stage.impact { animation: impact-plain var(--dur-flash)
   from { opacity: 0.35; }
   to { opacity: 1; }
 }
-
-/* The narration caption (plan 7): a caption box, the speaker's colour as
-   its left rule; the accusation lands in the hero size. */
-.beat {
-  margin: 0;
-  padding: var(--space-3) var(--space-4);
-  background: var(--panel);
-  border: var(--rule-ink);
-  border-left: 6px solid var(--speaker, var(--edge-strong));
-  box-shadow: var(--lift);
-  font: italic var(--type-beat) / var(--lh-beat) var(--font-display);
-  color: var(--ink);
-}
-.beat .turn {
-  display: block;
-  margin-bottom: var(--space-1);
-  font: 500 var(--type-gauge) / 1.2 var(--font-gauge);
-  font-style: normal;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-}
-.beat.accusation { border-left-color: var(--warn); font-size: var(--type-hero); line-height: var(--lh-hero); }
-.beat.accusation .turn { color: var(--warn); }
 
 /* The plate: the riveted frame of the game-over card. */
 .plate {
@@ -1538,13 +1589,18 @@ body[data-motion="off"] .stage.impact { animation: impact-plain var(--dur-flash)
 
 .rail-foot { margin: 0; }
 
-/* Focus on a phone: deciding shrinks the board to a strip, so the form
-   and the board both fit above the thumb; with nothing of the viewer's
-   to decide, the empty decision panel gives way (the status line
-   already says whose turn it is). */
-.screen[data-focus="decide"] .stage .board { width: auto; height: 26vh; max-width: 100%; margin: 0 auto; }
+/* Focus on a phone: the suggestion form shrinks the board to a strip,
+   so the form and the board both fit above the thumb, and the stage
+   hugs it rather than framing it small in a full-width pane
+   (2026-10-01); the accusation no longer shrinks it, its Pass being in
+   the status line. With nothing of the viewer's to decide, the empty
+   decision panel gives way (the status line already says whose turn it
+   is). */
+@media (max-width: 35.99rem) {
+  .screen[data-focus="decide"][data-pending="suggestion"] .stage { align-self: center; max-width: 100%; }
+  .screen[data-focus="decide"][data-pending="suggestion"] .stage .board { width: auto; height: 26vh; max-width: 100%; margin: 0 auto; }
+}
 .screen[data-focus="board"] .decision-panel,
-.screen[data-focus="beat"] .decision-panel:not(:has(.options)),
 .screen[data-focus="talk"] .decision-panel { display: none; }
 
 /* Tablet: two columns, 5:4, the stage sticky on the left, every rail
@@ -1559,13 +1615,20 @@ body[data-motion="off"] .stage.impact { animation: impact-plain var(--dur-flash)
     gap: var(--space-4);
   }
   .screen .col { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
-  .screen .col-main { grid-area: main; position: sticky; top: var(--space-3); }
+  .screen .col-main { grid-area: main; position: sticky; top: var(--space-3); container-type: inline-size; }
+  /* The board as large as the column or 58vh allows, and the stage
+     hugging it: a percentage width under a height cap drew a small board
+     in a wide pane on a phone held sideways (2026-10-01). */
+  .stage { align-self: center; max-width: 100%; }
+  .stage .board {
+    width: min(calc(100cqw - 2 * var(--space-2) - 4px), calc(58vh * 576 / 600));
+    max-height: none;
+  }
   .screen .seats { grid-area: seats; }
   .screen .col-side { grid-area: side; }
   .screen .tabs { display: none; }
   .screen[data-tab] .col-side > .panel[data-tab] { display: block; }
   .screen .col-side > details.panel > summary { display: flex; }
-  .screen[data-focus="decide"] .stage .board { width: 100%; height: auto; }
   .screen[data-focus] .decision-panel { display: block; }
 }
 
@@ -1590,7 +1653,8 @@ body[data-motion="off"] .stage.impact { animation: impact-plain var(--dur-flash)
   .screen .col-side > .notepad-panel { grid-area: notes; }
   .screen .col-side > .rail-foot { grid-area: foot; }
   .screen .talk { max-height: 70vh; }
-  .stage .board { max-height: none; }
+  .stage { align-self: stretch; }
+  .stage .board { width: 100%; max-height: none; }
   .screen[data-focus="move"] .stage,
   .screen[data-focus="decide"] .decision-panel,
   .screen[data-focus="show"] .decision-panel { border-color: var(--brass); }

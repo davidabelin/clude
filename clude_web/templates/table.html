@@ -8,7 +8,7 @@
     <p class="crumbs"><a href="{{ url_for('main.index') }}">Lobby</a> &rsaquo; table</p>
     <h1 id="title">{% if open_table %}Waiting for players{% else %}Turn {{ payload.turns }}{% endif %}</h1>
     <p class="note">
-      {{ setup.n_players }} seats, seed {{ setup.seed }}{% if document.started_by %}, started by {{ document.started_by }}{% endif %}{% if setup.remember %}; the characters remember{% endif %}{% if document.timeout and document.timeout <= 30 %}; speed mode, {{ document.timeout|int }} s a decision{% else %}; {{ (document.timeout or 90)|int }} s a decision{% endif %}.
+      {{ setup.n_players }} seats, seed {{ setup.seed }}{% if document.started_by %}, started by {{ document.started_by }}{% endif %}{% if setup.remember %}; the characters remember{% endif %}{% if document.timeout and document.timeout <= 30 %}; speed mode, {{ document.timeout|int }} s a decision{% else %}; {{ (document.timeout or 90)|int }} s a decision, 30 s to show a card{% endif %}.
       {% if viewer is none and not open_table %}You are watching: hands stay hidden until the game ends.{% endif %}
     </p>
   </header>
@@ -68,15 +68,17 @@
   {# Phase 10d-10e: the stage and the rail (plan 3.1, 3.3, 6). The main
      column holds the status, the stage and the decision; the side
      column the four rail panels, which a phone shows one at a time
-     under the tab strip. The stage's overlay carries the beat caption,
-     the last balloons and the end plate, filled by table.js. #}
+     under the tab strip. The narration line above the stage tells the
+     turn in play (its roll, its suggestion; 2026-10-01); the stage's
+     overlay carries the last balloons and the end plate, filled by
+     table.js. #}
   <div class="screen" id="screen" data-focus="{{ payload.focus }}" data-tab="record">
     <div class="col col-main">
       <p class="status" id="status" aria-live="polite"></p>
+      <p class="narration" id="narration" aria-live="polite" hidden></p>
       <section class="stage" id="stage">
         {{ board|safe }}
         <div class="over" id="over" hidden>
-          <p class="beat" id="beat" hidden></p>
           <ol class="talk talk-over" id="talk-over" aria-hidden="true" hidden></ol>
           <div class="plate hero" id="end-plate" hidden>
             <span class="rivet tl"></span><span class="rivet tr"></span><span class="rivet bl"></span><span class="rivet br"></span>
@@ -86,7 +88,7 @@
           </div>
         </div>
       </section>
-      {% if payload and payload.llm %}<p class="note spend" id="spend"></p>{% endif %}
+      {% if payload and payload.llm and current_style().costs %}<p class="note spend" id="spend"></p>{% endif %}
       {% if viewer is not none %}
       <div class="panel controls decision-panel" id="dock">
         <h2 id="decision-title">Your decision</h2>
@@ -144,7 +146,7 @@
 
       <details class="panel notepad-panel" data-tab="notes" open>
         <summary><h2>Your notes</h2></summary>
-        <p class="note">What the deduction floor has established from your seat: solid ink is a proven holder, a dot a holder still possible. Every cludebot has the same sheet.</p>
+        <p class="note">What the deduction floor has established from your seat: solid ink is a proven card-holder; a dot means "still possible". Every player has this same sheet automatically filled in for them.</p>
         <table class="notepad" id="notepad"></table>
       </details>
 
@@ -170,6 +172,7 @@
   {# Legacy (Phase 9h): the markup the look was frozen with. #}
   <div class="replay-body">
     <section class="replay-board">
+      <p class="narration" id="narration" aria-live="polite" hidden></p>
       {{ board|safe }}
       <p class="status" id="status" aria-live="polite"></p>
       {% if payload and payload.llm %}<p class="note spend" id="spend"></p>{% endif %}
@@ -220,7 +223,7 @@
       {% if viewer is not none %}
       <div class="panel notepad-panel">
         <h2>Your notes</h2>
-        <p class="note">What the deduction floor has established from your seat: a filled cell is a proven holder, a dot a holder still possible. Every cludebot has the same sheet.</p>
+        <p class="note">What the <b>deduction floor</b> has established from your seat: a filled cell is a proven holder, a dot means a holder is still possible. Every player has this same sheet filled in for them as the game progresses.</p>
         <table class="notepad" id="notepad"></table>
       </div>
       {% endif %}

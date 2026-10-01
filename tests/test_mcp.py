@@ -1207,6 +1207,31 @@ async def test_a_login_ends_when_the_password_changes(server, registry, store):
         unwrap(await client.call_tool("clude_tables", {}))
 
 
+async def test_logging_out_ends_every_login_and_a_fresh_one_works(app, server, store):
+    """`clude_logout` (2026-10-01) ends every MCP login the account
+    holds, the one it was called with included; `clude_login` gives a
+    good one again; and a login issued before there was a logout (no
+    epoch in it) still checks until one is asked for."""
+    from itsdangerous import URLSafeTimedSerializer
+
+    account = users.get_user(store, CLAUDE)
+    old = URLSafeTimedSerializer(app.secret_key, salt=mcp.LOGIN_SALT).dumps(
+        {"key": CLAUDE, "pw": mcp._fingerprint(account)}
+    )
+    assert mcp.check_login(app.secret_key, store, old) == CLAUDE, "a login from before 2026-10-01"
+    async with playing(server) as first, playing(server) as second:
+        unwrap(await second.call_tool("clude_tables", {}))
+        out = unwrap(await first.call_tool("clude_logout", {}))
+        assert out["you"] == "Claude" and "logged out" in out["message"]
+        for client in (first, second):
+            assert "logged out" in error_text(await client.call_tool("clude_tables", {}))
+    with pytest.raises(mcp.ToolError, match="logged out"):
+        mcp.check_login(app.secret_key, store, old)
+    async with playing(server) as again:
+        unwrap(await again.call_tool("clude_tables", {}))
+    assert "clude_logout" in mcp.INSTRUCTIONS
+
+
 async def test_a_login_runs_out(app, store, monkeypatch):
     account = users.get_user(store, CLAUDE)
     login = mcp.issue_login(app.secret_key, account)

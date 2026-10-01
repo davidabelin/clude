@@ -13,7 +13,7 @@ phase's plan doc ends with an "as implemented" section that records what
 was actually built and where it departed from the plan: trust that over
 the plan sections above it, and over this file if they disagree.
 
-## Status (2026-09-29)
+## Status (2026-10-01)
 
 Phases 1-8 are done, committed and deployed. Phase 9, a seat over MCP,
 is built and live: 9a-9j (9f and 9g in revision `clude-00011-t7g`,
@@ -21,9 +21,11 @@ is built and live: 9a-9j (9f and 9g in revision `clude-00011-t7g`,
 `clude-00014-sqn`, 2026-09-26 and 2026-09-27). Phase 10 is under way:
 10a, the artboards, drawn and reviewed; 10b, the token layer, and 10c,
 play is blind, built and live together in `clude-00016-65z`
-(2026-09-28); **10d-10g built 2026-09-29**, committed, and David's
-fourth round (D17-D20) built the same day, neither yet deployed (below);
-10h not started, 10i become Wikiclude (D20), not started. Phase 11 is
+(2026-09-28); **10d-10g and David's fourth round (D17-D20)**, built
+2026-09-29 and live since that evening as `clude-00019-9x5` (these
+lines said "not yet deployed" until 2026-10-01); **the fifth round
+(D21-D28) built 2026-10-01**, not yet deployed (below); 10h not
+started, 10i become Wikiclude (D20), not started. Phase 11 is
 untouched.
 
 Each phase's record is the "as implemented" section of its plan doc
@@ -139,7 +141,7 @@ afterwards. (The stylesheet tests now parametrise on the look's key:
 with the sheet's text in the test id, Windows refused pytest's
 `PYTEST_CURRENT_TEST` variable as longer than 32767 characters.)
 
-**Phase 10d-10g (2026-09-29), built, not yet deployed**, with David's
+**Phase 10d-10g (2026-09-29), live in `clude-00019-9x5`**, with David's
 third round (D5 settled as E, D15, D16): **the looks** are now Engraved
 (auto), Case file light, Gaslight dark and Legacy, and **Engraved is the
 default** (D7; account document version 4 records `style_chosen`, since
@@ -158,7 +160,7 @@ per new event. Legacy keeps its frozen markup throughout (a template
 branch, an undressed board, gated script). Five browser tests had been
 failing since 9j on capitalised names; fixed. `docs/phase10-plan.md` 17.
 
-**David's fourth round (2026-09-29), built, not yet deployed.** **Three
+**David's fourth round (2026-09-29), live in `clude-00019-9x5`.** **Three
 looks** (D17): Case-file light, the default, and Gaslight dark (which
 absorbed "Engraved (auto)"), each fixing its theme; and **Developer**,
 which was Legacy, on the untouched `legacy.css`, the only look that
@@ -178,7 +180,25 @@ from `questionmark.png`) in the header bar, leading to Wikiclude, on
 trial, not the logo. **Wikiclude** (D20) is the next writing job, not
 started. `docs/phase10-plan.md` 13 and 17.
 
-Suite: 539 passed, 31 skipped, about four minutes with `-n auto`; 29
+**David's fifth round (2026-10-01), built, not yet deployed** (D21-D28,
+after playing the fourth round). **Pass up top**: the accusation's Pass
+and "No suggestion" also in the status line above the board. **One
+narration line above the board** (`#narration`): the turn's roll ("You
+rolled a six."; `LiveGame.rolls` beside the log, never in it, so no
+record or golden moved) and its suggestion or accusation; the caption
+over the board (the beat) is gone and `FOCUS_RANKS` with it. **Costs in
+Developer only** everywhere: the table's spend line and seat bars, and
+the chat seat's `cost` line by its account's look (`mcp.shows_costs`).
+**`clude_logout`**, the eleventh tool: an `mcp_epoch` on the account
+that every login carries. **The board**: doors as a leaf and its swing
+in the red thread, nine floors on nine tints. **A card to show has 30 s
+at most** (`SHOW_TIMEOUT`, `decision_timeout`). **The board's size**:
+only the suggestion form shrinks it on a phone, the stage hugging it,
+and in two columns it is as large as the column or 58vh allows. To
+discuss: narrating the floor's reasoning behind Your notes.
+`docs/phase10-plan.md` 13 and 17.
+
+Suite: 545 passed, 32 skipped, about four minutes with `-n auto`; 30
 more under `CLUDE_WEB_BROWSER=1`, all passing. (Three debrief tests
 turned out to fail on a fast machine before 9h: reactions are now
 immediate there.)
@@ -193,7 +213,7 @@ immediate there.)
 | 8.2 | Human players | done: 8.2a-c built 2026-09-18 (the table driver and `play --human`; the table on the web with open seats, autopilot, cold rebuild and "characters remember"); 8.2d deployed and live-checked 2026-09-19, the cold rebuild 0.1 s on a 3-turn table (`docs/phase8-plan.md` 12, `docs/web.md`) |
 | 8.3 | The rest of chat: the model on the web under a spend cap, human chat, off-turn talk with pacing, debriefs after web games | done: 8.3a-c built 2026-09-19 on fake backends, the key deployed and one live table played the same day (two model seats, chat, "remember"; $0.34, no fallbacks); 8.3d closed Phase 8 (`docs/phase8-plan.md` 12) |
 | 9 | A seat over MCP: a Claude in a chat window (claude.ai) plays one seat of a live table through an MCP server mounted beside the Flask app, on the same `TableRegistry` | built. 9a the plan and the renumbering (2026-09-20); 9b the server and the combined ASGI app, 9c deployed with the secret and the `claude` account, both 2026-09-21, and the first live game from the chat that evening; 9d the eight fixes after the second live game and 9e David's follow-ups, both 2026-09-22 and deployed that evening; 9f the chat seat's report after the third live game and 9g what a game cost (both 2026-09-25, deployed that day), 9h five tweaks in one sweep (2026-09-26 and deployed that evening; typing, the turn time-out and speed mode, the certainty tag, the animated replay, the Legacy style); 9i the chat seat's five requests after table `5019abeb0a` (2026-09-26; waiting for the deal, the held-back pass, hand sizes and disproof order, hard mode, a whole replay URL; deployed that evening) and 9j every chatbot its own login, watching over MCP, and names capitalised (2026-09-27, deployed that day as `clude-00014-sqn`) -- `docs/phase9-plan.md` 8, `docs/phase9h-plan.md` |
-| 10 | In-depth UX: the shippable look, "engraved, not brass-plated" | in progress. `docs/phase10-plan.md` proposed 2026-09-20, David's answers recorded 2026-09-21 (D1-D4, D6); 10a the artboards drawn 2026-09-27 (`docs/ux/table/`, `docs/ux/logo/`) and revised 2026-09-28 after his review (D7-D14); 10b the token layer and 10c play-is-blind built 2026-09-28 (Engraved as an opt-in beta beside Legacy, the faces self-hosted, the motion switch; `readings` absent for a seated player, methods and hand sizes on the rail, shown cards ticked), deployed together that day as `clude-00016-65z`; 10d-10g built 2026-09-29 with the third round (D5 = E, D15-D16): Record and Talk, the focus ladder and the phone's tabs, the dressed board and logo, sound; Engraved the default; and the fourth round the same day (D17-D20): three looks (Case-file light the default, Gaslight dark, Developer), Stored games as practice and development with wall time, the footer and the wooden question mark; neither yet deployed; 10h the help layer and Wikiclude (D20, replacing 10i's two explainers) still to come, both before 1.0.0 (was Phase 9 until 2026-09-20) |
+| 10 | In-depth UX: the shippable look, "engraved, not brass-plated" | in progress. `docs/phase10-plan.md` proposed 2026-09-20, David's answers recorded 2026-09-21 (D1-D4, D6); 10a the artboards drawn 2026-09-27 (`docs/ux/table/`, `docs/ux/logo/`) and revised 2026-09-28 after his review (D7-D14); 10b the token layer and 10c play-is-blind built 2026-09-28 (Engraved as an opt-in beta beside Legacy, the faces self-hosted, the motion switch; `readings` absent for a seated player, methods and hand sizes on the rail, shown cards ticked), deployed together that day as `clude-00016-65z`; 10d-10g built 2026-09-29 with the third round (D5 = E, D15-D16): Record and Talk, the focus ladder and the phone's tabs, the dressed board and logo, sound; Engraved the default; and the fourth round the same day (D17-D20): three looks (Case-file light the default, Gaslight dark, Developer), Stored games as practice and development with wall time, the footer and the wooden question mark; both live as `clude-00019-9x5` that evening; the fifth round (D21-D28) built 2026-10-01, not yet deployed: Pass up top, one narration line with the dice, costs in Developer only, `clude_logout`, swing doors and nine floors, 30 s to show a card, the board's size on a phone; 10h the help layer and Wikiclude (D20, replacing 10i's two explainers) still to come, both before 1.0.0 (was Phase 9 until 2026-09-20) |
 | 11 | Tweak, polish, release: clean-up and close, then version 1.0.0, released to family and friends, and planning in versions, not phases | not started (was Phase 10) |
 
 Where things stand:
@@ -601,7 +621,7 @@ Built; the detail is in `docs/architecture.md`.
   (Watch as a table with nobody human at it), `styles` (the looks a
   player can choose between: Case-file light, Gaslight dark, Developer;
   Phase 9h, 10e, D17), `logo` (logo E as uncoloured SVG, and
-  the favicon's source; 10f), `mcp` (Phase 9: the ten
+  the favicon's source; 10f), `mcp` (Phase 9: the eleven
   tools a chatbot in a chat window logs in with, plays a seat and watches
   through, built by `build_server` over any registry, the compact `seat_view` it reads,
   and `combined_app`, Flask and the endpoint in one ASGI app under a
@@ -688,11 +708,11 @@ choices made from the code -- the MCP transport stateless with JSON
 responses, the SDK's localhost-only Host check switched off (the secret
 is the guard), and asgiref's Flask bridge run off its one-thread lane.
 
-**Phase 10** (`docs/phase10-plan.md` 13): none open. D1-D20 are settled
+**Phase 10** (`docs/phase10-plan.md` 13): none open. D1-D28 are settled
 (D3 and D6 reversed on 2026-09-28, D10 amended by D15 and D7, D10 and
-D15 by D17 on 2026-09-29). Deploying 10d-10g and the fourth round waits
-for David's word: it makes Case-file light every unchosen account's look
-on the live service.
+D15 by D17 on 2026-09-29). Deploying the fifth round waits for David's
+word. To discuss: narrating the floor's reasoning behind the changes to
+Your notes.
 
 **Phase 8** left none; its assumptions stood through its close
 (`docs/phase8-plan.md` 9): the floor bot as the autopilot stand-in,
@@ -725,7 +745,8 @@ Resolved 2026-09-27: MCP players log in as web players do, with a
 Resolved 2026-09-28: Phase 10's second round, D7-D14 above. Resolved
 2026-09-29: the logo is E (D5); the themes choosable by name (D15); the
 clock and the Notes headings in red (D16); and the fourth round, D17-D20
-above.
+above. Resolved 2026-10-01: the fifth round, D21-D28
+(`docs/phase10-plan.md` 13).
 
 ## Working with David
 

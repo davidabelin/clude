@@ -641,6 +641,61 @@ def test_three_timed_out_turns_in_a_row_hand_the_seat_over(app, ann):
     assert all(e["by"] in ("timeout", "autopilot") for e in game.entries if e["seat"] == 0)
 
 
+def test_showing_a_card_has_thirty_seconds_whatever_the_table_s_time_out(app, ann):
+    """David, 2026-10-01: a card to show times out at `SHOW_TIMEOUT`
+    even at a 90 s table -- someone else's turn is waiting on it -- while
+    the seat's own decisions keep the table's time-out. The payload says
+    each decision's own (`waiting.timeout`), and the header both."""
+    tables.WORK_INTERVAL = 0.0
+    table_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
+    registry = app.extensions["tables"]
+    game = registry.game(table_id)
+    assert tables.decision_timeout(registry.document(table_id), "card_to_show") == tables.SHOW_TIMEOUT == 30.0
+    assert tables.decision_timeout({"timeout": 20.0}, "card_to_show") == 20.0, "never longer than the table's"
+    assert "90 s a decision, 30 s to show a card" in ann.get(f"/tables/{table_id}").get_data(as_text=True)
+
+    payload = work(ann, table_id)
+    steps = 0
+    while not payload["finished"] and steps < 3000:
+        pending = payload["pending"]
+        if pending is not None and pending["kind"] == "card_to_show":
+            break
+        if pending is not None:
+            assert payload["waiting"]["timeout"] == tables.TURN_TIMEOUT
+            _stall(registry, table_id, tables.SHOW_TIMEOUT + 1)
+            assert work(ann, table_id)["did"] != "timeout", "the seat's own decision timed out at 30 s"
+            payload = answer(ann, table_id, pending["seq"], simple_answer(pending))
+        else:
+            payload = work(ann, table_id)
+        steps += 1
+    if payload["finished"]:
+        pytest.skip("the sample game never asked Scarlett to show a card")
+    assert payload["waiting"]["timeout"] == tables.SHOW_TIMEOUT and payload["timeout"] == tables.TURN_TIMEOUT
+    _stall(registry, table_id, tables.SHOW_TIMEOUT + 1)
+    assert poll(ann, table_id)["work"] is True
+    payload = work(ann, table_id)
+    assert payload["did"] == "timeout" and payload["me"]["strikes"] == 1
+    shown = [e for e in game.entries if e["seat"] == 0 and e.get("kind") == "answer"][-1]
+    assert shown["by"] == "timeout"
+
+
+def test_the_roll_is_narration_and_never_the_record(app, ann):
+    """David, 2026-10-01: every turn's die is in the payload as `roll`
+    (turn, seat, n) for the narration line, and nowhere in the events;
+    a cold rebuild finds the same roll again."""
+    tables.WORK_INTERVAL = 0.0
+    table_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
+    payload = work(ann, table_id)
+    roll = payload["roll"]
+    assert roll == {"turn": 1, "seat": 0, "n": roll["n"]} and 1 <= roll["n"] <= 6
+    assert payload["pending"]["kind"] == "movement"
+    assert not any("roll" in (e["text"] or "").lower() for e in payload["events"])
+    live = app.extensions["tables"].game(table_id)
+    cold = tables.TableRegistry(app.extensions["tables"].store).game(table_id)
+    cold.run()  # a rebuild with no entries yet stops before the first turn
+    assert cold is not live and cold.snapshot.roll == live.snapshot.roll == (1, 0, roll["n"])
+
+
 def test_speed_mode_is_a_lobby_checkbox_and_older_tables_read_the_default(app, ann):
     fields = [("csrf", csrf(ann)), ("seed", str(SEED)), ("remember", "0"), ("speed", "1"),
               ("seat-Scarlett", "me"), ("seat-Mustard", "character"), ("seat-White", "character")]
@@ -859,9 +914,9 @@ def test_talk_and_the_record_hold_disjoint_events_and_a_hostile_line_runs_nothin
 def test_the_focus_ladder_ranks_what_the_server_can_see():
     """Phase 10e (plan 3.1): a card to show outranks the end, which
     outranks the viewer's move and then their other decisions; with none
-    of those the board holds the stage (and the page may lay a beat or
-    talk over it)."""
-    assert tables.FOCUS_RANKS == ("show", "end", "move", "decide", "beat", "talk", "board")
+    of those the board holds the stage (and the page may lay talk over
+    it; the beat went on 2026-10-01)."""
+    assert tables.FOCUS_RANKS == ("show", "end", "move", "decide", "talk", "board")
     assert tables.focus_for({"kind": "card_to_show"}, finished=False) == "show"
     assert tables.focus_for({"kind": "card_to_show"}, finished=True) == "show"
     assert tables.focus_for(None, finished=True) == "end"

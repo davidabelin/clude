@@ -514,7 +514,9 @@ class TableSnapshot:
     `n_events` bounds the event log a reader should look at, `seq` is the
     answer count an answer must quote (table talk does not move it), and
     `pending` is `describe_request` of the request the game is stopped
-    on, or None.
+    on, or None. `roll` is the latest turn's die as ``(turn, seat,
+    roll)``, or None before the first: narration for a screen, kept out
+    of the event log (2026-10-01).
     """
 
     turns: int
@@ -526,6 +528,7 @@ class TableSnapshot:
     active: tuple
     previous_mark: int
     broken: Optional[str] = None
+    roll: Optional[tuple] = None
 
 
 class Speaker:
@@ -672,6 +675,7 @@ class TableGame:
             active=tuple(self.state.active),
             previous_mark=self.previous_mark,
             broken=self.broken,
+            roll=self._live.rolls[-1] if self._live.rolls else None,
         )
 
     def turn_events(self) -> list:

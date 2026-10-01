@@ -990,7 +990,10 @@ he chose the tool (the password passes through the chat, which the
   `build_server(registry, account)`, and `config.mcp_account` and
   `CLUDE_MCP_ACCOUNT` are gone. The secret path stays as the outer
   lock, so the two connectors' URLs are unchanged. The one-time offer to
-  change the password is the browser's alone.
+  change the password is the browser's alone. (2026-10-01: a login
+  also carries the account's `mcp_epoch`, and `clude_logout`, an
+  eleventh tool, bumps it, ending every MCP login the account holds;
+  `docs/phase10-plan.md` 17, the fifth round.)
 - **Watching.** `clude_watch(login, table_id, since)` is a live table
   from no seat (`watch_view`: `view_payload` with no viewer, so no hands
   and no card shown in private; one line per seat with hand size and

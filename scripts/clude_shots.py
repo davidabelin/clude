@@ -273,7 +273,9 @@ def shoot(base: str, run: str, index: int, out: Path, dark: bool, phone: bool, s
                     page.wait_for_selector(".seat.compact.roster", timeout=20000)
                     spend(page.url.rstrip("/").split("/")[-1])
                     page.reload()
-                    page.wait_for_selector(".gauge.cost", state="attached", timeout=20000)
+                    # The bar is Developer's alone (D17); the other looks
+                    # draw none, so wait for the seats instead.
+                    page.wait_for_selector(".gauge.cost" if styles.style_named(look).costs else ".seat.compact", timeout=20000)
                     save("table-cost")
 
                     # And as a spectator: the same bar after the deduction bars.
@@ -286,7 +288,9 @@ def shoot(base: str, run: str, index: int, out: Path, dark: bool, phone: bool, s
                     page.wait_for_selector(".seat.compact .gauge", timeout=20000)
                     spend(page.url.rstrip("/").split("/")[-1])
                     page.reload()
-                    page.wait_for_selector(".gauge.cost", state="attached", timeout=20000)
+                    # The bar is Developer's alone (D17); the other looks
+                    # draw none, so wait for the seats instead.
+                    page.wait_for_selector(".gauge.cost" if styles.style_named(look).costs else ".seat.compact", timeout=20000)
                     save("table-cost-watching")
 
                 # A table waiting for players.

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import socket
 import threading
 from wsgiref.simple_server import WSGIRequestHandler, make_server
@@ -507,15 +508,20 @@ def test_each_seat_tab_shows_its_share_of_the_cost_only_at_a_model_table(page):
     """Phase 9g: one bar per seat's tab, that seat's share of what the
     table has spent with Claude, for someone playing and for someone
     watching; none at a table with no model seat. The model here never
-    answers, so every share is 0%."""
-    # Attached, not visible: Case-file light, the default, builds the
-    # bar and hides it (D9); Developer shows it.
+    answers, so every share is 0%. Developer only (D9, D17): since
+    2026-10-01 Case-file light, the default, does not build the bar at
+    all, where it used to build it and hide it."""
     _deal_table(page, {"Scarlett": "me", "Plum": "llm", "White": "character",
                        "Green": "empty", "Peacock": "empty", "Mustard": "empty"})
-    page.wait_for_selector(".seat.compact.roster .gauge.cost", state="attached", timeout=20000)
+    page.wait_for_selector(".seat.compact.roster", timeout=20000)
+    assert page.locator(".gauge.cost").count() == 0, "a cost bar outside Developer"
+    assert page.locator("#spend").count() == 0, "a spend line outside Developer"
+
+    _pick_look(page, "developer")
+    page.wait_for_selector(".seat.compact.roster .gauge.cost", timeout=20000)
     assert page.locator(".seat.compact .gauge.cost").count() == 3
     assert page.locator(".gauge.cost .pct").all_inner_texts() == ["0%"] * 3
-    assert not page.locator(".gauge.cost").first.is_visible(), "Engraved shows no cost bar (D9)"
+    assert page.locator(".gauge.cost").first.is_visible()
 
     # Watching a model table, the bar comes after each seat's deduction bars.
     _deal_table(page, {"Scarlett": "floor", "Plum": "llm", "White": "character",
@@ -532,6 +538,7 @@ def test_each_seat_tab_shows_its_share_of_the_cost_only_at_a_model_table(page):
     page.wait_for_selector("#autopilot", timeout=20000)
     page.wait_for_selector(".seat.compact.roster", timeout=20000)
     assert page.locator(".gauge.cost").count() == 0
+    _pick_look(page, "casefile")
 
 
 # --- Phase 9h -----------------------------------------------------------
@@ -607,7 +614,7 @@ def test_a_turn_the_person_lets_time_out_is_played_from_their_own_page(page):
     )
     page.wait_for_function("() => !document.getElementById('strikes').hidden", timeout=20000)
     assert page.inner_text("#strikes").startswith("The floor bot has played 1 turn for you")
-    assert page.inner_text("#autopilot") == "Let the floor bot play for me", "the seat was handed over"
+    assert page.inner_text("#autopilot") == "Let the floorbot play for me", "the seat was handed over"
 
 
 def test_the_certainty_tag_colours_every_seat_s_name(page):
@@ -697,7 +704,7 @@ def test_the_look_picker_applies_and_keeps_the_page(page):
 
 # --- Phase 10d-10g ------------------------------------------------------
 
-FOCI = ("show", "end", "move", "decide", "beat", "talk", "board")
+FOCI = ("show", "end", "move", "decide", "talk", "board")
 
 WATCH_FOCUS = """() => {
     window.__foci = [document.getElementById('screen').getAttribute('data-focus')];
@@ -767,13 +774,17 @@ def test_on_a_phone_the_rail_is_tabs_and_talk_is_balloons(page):
 def test_the_stage_never_changes_under_the_player_s_hand(page):
     """Phase 10e (plan 3.1). With the viewer's move pending the stage
     holds the board with its destinations lit, and a line of talk does
-    not take it away; once the move is made, a beat or talk may hold the
-    stage, and Esc hands it back."""
+    not take it away; once the move is made, talk may hold the stage,
+    and Esc hands it back. Nothing narrates over the board (2026-10-01):
+    the narration line above it says the roll."""
     _deal_table(page, {"Scarlett": "me", "Mustard": "character", "White": "character",
                        "Green": "empty", "Peacock": "empty", "Plum": "empty"})
     page.wait_for_selector(".board-target", timeout=20000)
     assert page.get_attribute("#screen", "data-focus") == "move"
-    assert page.locator("#over").is_hidden()
+    assert page.locator("#over").is_hidden() and page.locator("#beat").count() == 0
+    assert re.match(r"You rolled a (one|two|three|four|five|six)\.$", page.inner_text("#narration")), (
+        page.inner_text("#narration")
+    )
     assert page.locator(".board-target.lit").count() == page.locator(".decision .options button").count()
     page.fill("#say-text", "Nobody move.")
     page.click("#say-form button[type=submit]")
@@ -782,17 +793,18 @@ def test_the_stage_never_changes_under_the_player_s_hand(page):
 
     page.locator(".board-target").first.click()
     page.wait_for_function("() => document.getElementById('screen').dataset.focus !== 'move'", timeout=20000)
-    if page.get_attribute("#screen", "data-focus") in ("beat", "talk"):
+    if page.get_attribute("#screen", "data-focus") == "talk":
         assert page.locator("#over").is_visible()
         page.keyboard.press("Escape")
         assert page.get_attribute("#screen", "data-focus") in ("board", "move", "decide", "show", "end")
 
 
-def test_a_game_walks_the_stage_through_all_seven_focus_states(page):
+def test_a_game_walks_the_stage_through_all_six_focus_states(page):
     """Phase 10e's check (plan 14): play a table and watch `data-focus`
     take every rank of the ladder -- the viewer's move and decisions, a
-    card to show, the beat after a suggestion, a line of talk, the board
-    while the others play, and the end with its plate."""
+    card to show, a line of talk, the board while the others play, and
+    the end with its plate. (Seven until 2026-10-01: the beat, a caption
+    over the board after a suggestion, went for the narration line.)"""
     from clude_web import tables
 
     saved = tables.WORK_INTERVAL
@@ -814,7 +826,7 @@ def test_a_game_walks_the_stage_through_all_seven_focus_states(page):
                 page.fill("#say-text", "Somebody here is very fond of the Conservatory.")
                 page.click("#say-form button[type=submit]")
                 said = True
-            elif {"beat", "talk", "show"} <= foci and page.inner_text("#autopilot") == "Let the floor bot play for me":
+            elif {"talk", "show"} <= foci and page.inner_text("#autopilot") == "Let the floorbot play for me":
                 page.click("#autopilot")
             page.wait_for_timeout(250)
         page.wait_for_function("() => document.getElementById('screen').dataset.focus === 'end'", timeout=60000)
@@ -824,6 +836,36 @@ def test_a_game_walks_the_stage_through_all_seven_focus_states(page):
     assert foci == set(FOCI), sorted(set(FOCI) - foci)
     assert page.locator("#end-plate").is_visible()
     assert page.inner_text("#winner").endswith(".")
+
+
+def test_pass_sits_in_the_status_line_above_the_board(page):
+    """David, 2026-10-01: at the accusation question the Pass is in the
+    status line too, above the board, so it never needs a scroll; on a
+    phone the accusation no longer shrinks the board."""
+    phone = _phone(page)
+    _deal_table(phone, {"Scarlett": "me", "Mustard": "character", "White": "character",
+                        "Green": "empty", "Peacock": "empty", "Plum": "empty"})
+    seen = set()
+    for _ in range(600):
+        kind = phone.evaluate("() => document.getElementById('screen').dataset.pending || ''")
+        if kind == "accusation":
+            break
+        if kind == "suggestion":
+            seen.add(kind)
+            assert phone.inner_text("#status-pass") == "No suggestion"
+            phone.click("#status-pass")
+        elif kind and phone.locator(".decision .options button").count():
+            phone.locator(".decision .options button").first.click()
+        phone.wait_for_timeout(200)
+    assert phone.evaluate("() => document.getElementById('screen').dataset.pending") == "accusation"
+    button = phone.locator("#status #status-pass")
+    assert button.inner_text() == "Pass"
+    box, board_box = button.bounding_box(), phone.locator("#stage .board").bounding_box()
+    assert box["y"] + box["height"] <= board_box["y"], "the Pass is not above the board"
+    assert board_box["height"] > 0.4 * 844, "the accusation shrank the board"
+    button.click()
+    phone.wait_for_function("() => document.getElementById('screen').dataset.pending !== 'accusation'", timeout=20000)
+    phone.context.close()
 
 
 def test_sound_starts_muted_is_remembered_and_never_repeats_a_cue(page):

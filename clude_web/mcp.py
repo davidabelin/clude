@@ -70,11 +70,11 @@ from clude_storage import GameRecord
 from clude_storage.records import node_from_json
 from clude_training.table import TableError, TableSetup
 
-from . import config, replay_data, tables, users
+from . import config, replay_data, styles, tables, users
 
 __all__ = [
     "build_server", "combined_app", "seat_view", "digest", "compact_notepad", "shown_notepad", "order_line",
-    "held_pass", "cost_line", "watch_view", "issue_login", "check_login", "BOARD_PICTURE",
+    "held_pass", "cost_line", "watch_view", "issue_login", "check_login", "shows_costs", "BOARD_PICTURE",
 ]
 
 POLL_SECONDS = 60.0
@@ -121,7 +121,7 @@ it, then clude_turn once (it waits for your first decision) and after \
 that clude_answer over and over, since each answer waits for your next \
 decision; clude_say for table talk, clude_note for what you want to \
 remember, clude_autopilot to hand your seat to the floor bot when you \
-must leave. Pass `since` (the last `n_events` you saw) to every turn and \
+must leave, clude_logout when you are done. Pass `since` (the last `n_events` you saw) to every turn and \
 answer so only new events come back; a call with since 0 returns \
 everything, so nothing has to be remembered between calls. To look on \
 instead: clude_watch for a live table, clude_games and clude_replay for \
@@ -272,7 +272,12 @@ def _resolve_toward(game, seat: int, seq: int, answer):
 
 
 def seat_view(
-    registry: tables.TableRegistry, table_id: str, game: tables.WebGame, seat: int, since: int = 0
+    registry: tables.TableRegistry,
+    table_id: str,
+    game: tables.WebGame,
+    seat: int,
+    since: int = 0,
+    costs: bool = True,
 ) -> dict:
     """One picture of the table from `seat`, as small as it can be and
     still complete: the screen's `view_payload` from that seat, then
@@ -286,7 +291,9 @@ def seat_view(
     `readings`, `tokens`, the debriefs, the work flags -- is left out.
     The spend comes as one `cost_line`, on a table with model seats,
     since a player is shown who is spending as a person at the screen is
-    (Phase 9g); it comes on every reply, "unchanged" or not, because a
+    (Phase 9g) -- and so only when `costs`, which the tools set from the
+    account's look: Developer alone shows costs (D17, 2026-10-01); it
+    comes on every reply, "unchanged" or not, because a
     move or a line of table talk costs money too. Each seat's line ends
     with its certainty (Phase 9h), the number behind the screen's
     coloured name-tag, which only a non-quiet event can move.
@@ -369,7 +376,7 @@ def seat_view(
         getattr(getattr(wrapper, "backend", None), "last_refusal", None)
         for wrapper in game.wrappers.values()
     ]
-    cost = cost_line(view)
+    cost = cost_line(view) if costs else None
     if cost is not None:
         out["cost"] = cost
     if any(refusals):
@@ -398,7 +405,7 @@ def waiting_line(game, view: dict) -> Optional[str]:
     if waiting["seconds"] >= 1:
         details.append(f"{waiting['seconds']:.0f} s so far")
     if game.kinds[waiting["seat"]] == "human" and not waiting["autopilot"]:
-        details.append(f"the floor bot plays this turn at {view['timeout']:.0f} s")
+        details.append(f"the floor bot plays this turn at {waiting.get('timeout', view['timeout']):.0f} s")
     return f"Waiting for {waiting['name']} to {what}" + (
         f" ({'; '.join(details)})" if details else ""
     ) + (", on autopilot." if waiting["autopilot"] else ".")
@@ -429,7 +436,9 @@ def seat_line(game, spec: dict, hide_certainty: bool = False) -> str:
     return line
 
 
-def watch_view(registry: tables.TableRegistry, table_id: str, game: tables.WebGame, since: int = 0) -> dict:
+def watch_view(
+    registry: tables.TableRegistry, table_id: str, game: tables.WebGame, since: int = 0, costs: bool = True
+) -> dict:
     """A live table as a spectator sees it (Phase 9j), shaped as
     `seat_view` shapes a seat's: `view_payload` from no seat, so hands
     stay hidden and the card shown at a refutation is not named, then
@@ -466,7 +475,7 @@ def watch_view(registry: tables.TableRegistry, table_id: str, game: tables.WebGa
         "watching": [users.display_name(name) for name in registry.watching(table_id)],
         "over": view["over"],
     }
-    cost = cost_line(view)
+    cost = cost_line(view) if costs else None
     if cost is not None:
         out["cost"] = cost
     return out
@@ -514,7 +523,9 @@ def issue_login(secret_key, account: dict) -> str:
     session secret, not stored, so it survives a restart and scales to
     zero with the service."""
     serializer = URLSafeTimedSerializer(secret_key, salt=LOGIN_SALT)
-    return serializer.dumps({"key": account["key"], "pw": _fingerprint(account)})
+    return serializer.dumps(
+        {"key": account["key"], "pw": _fingerprint(account), "ep": int(account.get("mcp_epoch") or 0)}
+    )
 
 
 def check_login(secret_key, store, login) -> str:
@@ -523,8 +534,10 @@ def check_login(secret_key, store, login) -> str:
     Raises
     ------
     ToolError
-        No login, a forged or mangled one, one past `LOGIN_DAYS`, or one
-        for an account removed or whose password has changed since.
+        No login, a forged or mangled one, one past `LOGIN_DAYS`, one
+        for an account removed or whose password has changed since, or
+        one ended by `clude_logout` (`users.end_mcp_logins`; a login made
+        before 2026-10-01 has no epoch and reads as 0).
     """
     if not login:
         raise ToolError("Log in first: clude_login with the name and password you were given.")
@@ -538,7 +551,15 @@ def check_login(secret_key, store, login) -> str:
     account = users.get_user(store, str(data.get("key", "")))
     if account is None or _fingerprint(account) != data.get("pw"):
         raise ToolError("Your login is no longer good (the password changed?). Call clude_login again.")
+    if int(data.get("ep") or 0) != int(account.get("mcp_epoch") or 0):
+        raise ToolError("You logged out. Call clude_login to log in again.")
     return account["key"]
+
+
+def shows_costs(store, account: str) -> bool:
+    """Whether `account`'s look shows costs: Developer only (D17), the
+    same rule as the browser's (`styles.Style.costs`)."""
+    return styles.style_named(users.style_of(users.get_user(store, account))).costs
 
 
 def cost_line(view: dict) -> Optional[str]:
@@ -793,6 +814,23 @@ def build_server(registry: tables.TableRegistry, secret_key, limiter=None) -> MC
         }
 
     @server.tool()
+    def clude_logout(login: str) -> dict:
+        """Log out of clude: end every login this account holds over MCP.
+
+        Call it when you are done, or if the person you are chatting with
+        asks. Every login made for this account stops working at once,
+        this one included (a login is not stored anywhere, so they all end
+        together); the seat you hold at a table stays yours, and the
+        floor bot plays its turns on the clock as usual. clude_login gives
+        a fresh login whenever you want one. The person's own browser
+        sign-in is not affected.
+        """
+        account = who(login)
+        users.end_mcp_logins(registry.store, account)
+        you = users.display_name(account)
+        return {"you": you, "message": f"{you} is logged out. clude_login to come back."}
+
+    @server.tool()
     def clude_tables(login: str) -> dict:
         """List the clude tables you could join or are already sitting at.
 
@@ -886,7 +924,8 @@ def build_server(registry: tables.TableRegistry, secret_key, limiter=None) -> MC
           normal, not a fault: a person may think for a while, and the
           floor bot plays a person's turn for them once they have kept
           the table waiting the table's time-out (90 s; 30 s at a speed
-          table), so it never goes on longer than that. Just call this
+          table; 30 s at most to show a card), so it never goes on longer
+          than that. Just call this
           again with the same `since`; a reply with
           nothing new in it is short. Say something with clude_say
           meanwhile if you like.
@@ -921,14 +960,16 @@ def build_server(registry: tables.TableRegistry, secret_key, limiter=None) -> MC
         "unchanged": the ones you last saw still stand. `over`, at the
         end, has a `replay` link for the person you are chatting with. At a table with model
         characters, `cost` says what they have spent with Claude so far
-        and each seat's share of it.
+        and each seat's share of it -- only if this account's look is
+        Developer, as in the browser.
 
         The same clock runs on you: keep the table waiting past its
         time-out on a decision and the floor bot plays the rest of that
         turn for you (the seat stays yours; `waiting` says the time-out);
         three such turns in a row and it takes your seat as if you had
         called clude_autopilot, which gives it back. A speed table's 30 s
-        is tight for a chat seat: answer promptly there. If the table was
+        is tight for a chat seat: answer promptly there. Showing a card
+        has 30 s at any table, since someone else's turn is waiting on it. If the table was
         ended by whoever made it, this call says so.
 
         A movement decision arrives as `toward`: one line per room,
@@ -952,7 +993,7 @@ def build_server(registry: tables.TableRegistry, secret_key, limiter=None) -> MC
             return _undealt(table_id, document)
         game, seat = live(table_id, account)
         await_turn(table_id, game, seat, deadline)
-        return seat_view(registry, table_id, game, seat, since=since)
+        return seat_view(registry, table_id, game, seat, since=since, costs=shows_costs(registry.store, account))
 
     @server.tool()
     def clude_answer(
@@ -1009,7 +1050,8 @@ def build_server(registry: tables.TableRegistry, secret_key, limiter=None) -> MC
         when it returns and you need not call clude_turn at all. Pass
         `since` as in clude_turn so only new events come back.
         """
-        game, seat = live(table_id, who(login))
+        account = who(login)
+        game, seat = live(table_id, account)
         deadline = time.monotonic() + POLL_SECONDS
         notice = None
         try:
@@ -1044,12 +1086,12 @@ def build_server(registry: tables.TableRegistry, secret_key, limiter=None) -> MC
                         "If a decision is waiting, answer it and give accuse again with that answer."
                     )
         except TableError as exc:
-            view = seat_view(registry, table_id, game, seat, since=since)
+            view = seat_view(registry, table_id, game, seat, since=since, costs=shows_costs(registry.store, account))
             view["error"] = str(exc)
             return view
         if wait:
             await_turn(table_id, game, seat, deadline)
-        view = seat_view(registry, table_id, game, seat, since=since)
+        view = seat_view(registry, table_id, game, seat, since=since, costs=shows_costs(registry.store, account))
         if notice:
             view["notice"] = notice
         return view
@@ -1164,7 +1206,7 @@ def build_server(registry: tables.TableRegistry, secret_key, limiter=None) -> MC
             if registry.work(table_id, game) in ("waiting", "busy", "nothing"):
                 time.sleep(SLEEP_SECONDS)
         registry.seen_watching(table_id, account)
-        return watch_view(registry, table_id, game, since)
+        return watch_view(registry, table_id, game, since, costs=shows_costs(registry.store, account))
 
     @server.tool()
     def clude_games(login: str, run_id: str = tables.WEB_RUN, limit: int = 20) -> dict:

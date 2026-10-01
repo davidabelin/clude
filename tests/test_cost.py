@@ -168,6 +168,17 @@ def test_the_cost_is_recorded_last_after_every_logbook_entry(app, store, ann):
     assert f"${total:.2f} with Claude" in ann.get("/").get_data(as_text=True)
 
 
+def test_a_live_table_shows_its_spend_in_the_developer_look_only(app, ann):
+    """D17 (2026-10-01): the table's spend line and every seat's cost
+    bar are Developer's alone; a Case-file or Gaslight page has neither
+    in it, rather than hiding them."""
+    table_id = new_table(ann, SEATS, seed=SEED)
+    assert poll(ann, table_id)["llm"], "a table with model seats"
+    assert 'id="spend"' not in ann.get(f"/tables/{table_id}").get_data(as_text=True)
+    ann.post("/style", data={"csrf": csrf(ann), "style": "developer", "next": "/"})
+    assert 'id="spend"' in ann.get(f"/tables/{table_id}").get_data(as_text=True)
+
+
 def test_a_table_that_writes_no_entries_records_its_cost_at_the_finish(app, store, ann):
     table_id, _final = _finished(app, ann, remember=False)
     document = app.extensions["tables"].document(table_id)
@@ -237,6 +248,15 @@ def test_an_mcp_player_is_told_the_split_in_one_line_on_every_reply(store, monke
     )
     quiet = mcp.seat_view(registry, table_id, game, 0, since=game.snapshot.n_events)
     assert quiet["seats"] == "unchanged" and quiet["cost"] == view["cost"]
+    # Only an account whose look is Developer is told (D17, 2026-10-01).
+    assert "cost" not in mcp.seat_view(registry, table_id, game, 0, costs=False)
+    assert "cost" not in mcp.watch_view(registry, table_id, game, costs=False)
+    from clude_web import users
+
+    users.add_user(store, "claude")
+    assert mcp.shows_costs(store, "claude") is False
+    users.set_style(store, "claude", "developer")
+    assert mcp.shows_costs(store, "claude") is True
 
 
 def test_the_cost_line_in_words():

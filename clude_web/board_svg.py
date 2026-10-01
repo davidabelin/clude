@@ -11,9 +11,12 @@ No colour is set here either: every shape carries a class and
 board without touching this module (`docs/phase8.1-plan.md` 1).
 
 Dressed (Phase 10f, plan section 8), the board gains shapes and still
-no paint: four floor patterns in a `<defs>` whose children carry
-classes (the stylesheet picks a pattern per room and colours it), a
-brass hairline inside every wall, a rivet at each end of every door, an
+no paint: a floor pattern per room in a `<defs>` whose children carry
+classes (the stylesheet fills each room with its own and colours it;
+nine since 2026-10-01, four before), a brass hairline inside every
+wall, every door drawn as a floor plan draws one -- a leaf and the
+quarter circle it swings through, into the room (2026-10-01; a brass
+bar with a rivet at each end before, which read as more wall) -- an
 initial on every token, and the logo in the cellar where the wordmark
 was. An Engraved look asks for it; Legacy's sheet has no rules for any
 of it, so Legacy gets the board it was frozen with.
@@ -45,23 +48,49 @@ INITIALS = {"Scarlett": "S", "Mustard": "M", "White": "W", "Green": "G", "Peacoc
 """The letter on a dressed token, so the six are told apart without
 colour (plan 12). Peacock and Plum share a P, so both carry two (10a)."""
 
-FLOOR_PATTERNS = (
-    "<defs>"
-    '<pattern id="tone-parquet" patternUnits="userSpaceOnUse" width="8" height="8">'
-    '<rect class="tone-bg" width="8" height="8"/><path class="tone-line" d="M0 4 L4 0 M4 8 L8 4"/></pattern>'
-    '<pattern id="tone-tile" patternUnits="userSpaceOnUse" width="8" height="8">'
-    '<rect class="tone-bg" width="8" height="8"/><path class="tone-line" d="M0 0.3 H8 M0.3 0 V8"/></pattern>'
-    '<pattern id="tone-boards" patternUnits="userSpaceOnUse" width="24" height="6">'
-    '<rect class="tone-bg" width="24" height="6"/><path class="tone-line" d="M0 5.7 H24 M12 0 V6"/></pattern>'
-    '<pattern id="tone-rug" patternUnits="userSpaceOnUse" width="8" height="8">'
-    '<rect class="tone-bg" width="8" height="8"/>'
-    '<circle class="tone-dot" cx="2" cy="2" r="0.7"/><circle class="tone-dot" cx="6" cy="6" r="0.7"/></pattern>'
-    "</defs>"
-)
-"""The four floors of plan 8 -- parquet, tile, boards, rug -- at a pitch
-that survives a phone. Each holds a background rect, since a pattern is
-transparent wherever it does not draw (10a); the stylesheet chooses a
-floor per room and colours both halves."""
+def _floor(room: str, width: float, height: float, shapes: str) -> str:
+    return (
+        f'<pattern id="floor-{room_slug(room)}" class="floor floor-{room_slug(room)}" '
+        f'patternUnits="userSpaceOnUse" width="{width}" height="{height}">'
+        f'<rect class="tone-bg" width="{width}" height="{height}"/>{shapes}</pattern>'
+    )
+
+
+def room_slug(room: str) -> str:
+    """The room's name as an id and class suffix: "Billiard" -> "billiard"."""
+    return room.lower().replace(" ", "-")
+
+
+FLOORS = {
+    # Checker tile.
+    "Kitchen": (12, 12, '<rect class="tone-fill" width="6" height="6"/><rect class="tone-fill" x="6" y="6" width="6" height="6"/>'),
+    # Chevron parquet.
+    "Ballroom": (16, 8, '<path class="tone-line" d="M0 6 L4 2 L8 6 L12 2 L16 6"/>'),
+    # A diamond trellis.
+    "Conservatory": (10, 10, '<path class="tone-line" d="M0 0 L10 10 M10 0 L0 10"/>'),
+    # Baize, stippled.
+    "Billiard": (6, 6, '<circle class="tone-dot" cx="1.5" cy="1.5" r="0.6"/><circle class="tone-dot" cx="4.5" cy="4.5" r="0.6"/>'),
+    # Panelling: a double rule every eight.
+    "Library": (8, 8, '<path class="tone-line" d="M0.4 0 V8 M2.4 0 V8"/>'),
+    # A single diagonal hatch.
+    "Study": (6, 6, '<path class="tone-line" d="M-1.5 1.5 L1.5 -1.5 M0 6 L6 0 M4.5 7.5 L7.5 4.5"/>'),
+    # Flagstones, staggered.
+    "Hall": (16, 12, '<path class="tone-line" d="M0 0.3 H16 M0 6.3 H16 M0.3 0 V6 M8.3 6 V12"/>'),
+    # A rug of rosettes.
+    "Lounge": (12, 12, '<circle class="tone-ring" cx="6" cy="6" r="2"/><circle class="tone-dot" cx="6" cy="6" r="0.7"/>'
+               '<circle class="tone-dot" cx="0" cy="0" r="0.7"/><circle class="tone-dot" cx="12" cy="0" r="0.7"/>'
+               '<circle class="tone-dot" cx="0" cy="12" r="0.7"/><circle class="tone-dot" cx="12" cy="12" r="0.7"/>'),
+    # Planks, staggered.
+    "Dining": (24, 8, '<path class="tone-line" d="M0 0.3 H24 M0 4.3 H24 M8 0 V4 M20 4 V8"/>'),
+}
+"""Each room's floor (2026-10-01), at a pitch that survives a phone:
+nine patterns, no two alike, where 10f had four shared between them.
+The stylesheet gives each its own pale tint."""
+
+FLOOR_PATTERNS = "<defs>" + "".join(_floor(room, *FLOORS[room]) for room in sorted(FLOORS)) + "</defs>"
+"""The floors as one `<defs>`. Each pattern holds a background rect,
+since a pattern is transparent wherever it does not draw (10a), and
+carries the class `floor-<room>`, which the stylesheet tints."""
 
 _DOOR_PAIRS = frozenset((cell, square) for _room, cell, square in board.DOORS)
 """Every (door cell, corridor square) pair, to leave a gap in the room's
@@ -165,6 +194,41 @@ def _door_marker(room: str, cell: Square, square: Square) -> str:
         f'<line class="board-door" data-room="{_escape(room)}" '
         f'x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}"/>'
     )
+
+
+def _door_swing(room: str, cell: Square, square: Square, hinge_at_start: bool) -> str:
+    """A door as a floor plan draws it (2026-10-01): the leaf, one cell
+    long, standing into the room from the hinge, and the quarter circle
+    it sweeps back to the other jamb. The doorway itself stays a gap in
+    the wall, so the opening reads as an opening."""
+    door = _door_marker(room, cell, square)
+    x1, y1, x2, y2 = (float(door.split(f'{name}="')[1].split('"')[0]) for name in ("x1", "y1", "x2", "y2"))
+    (hx, hy), (ox, oy) = ((x1, y1), (x2, y2)) if hinge_at_start else ((x2, y2), (x1, y1))
+    dx, dy = cell.col - square.col, cell.row - square.row  # into the room
+    tx, ty = hx + dx * CELL, hy + dy * CELL
+    # SVG's y runs down, so a positive cross product is clockwise: sweep 1.
+    sweep = 1 if (tx - hx) * (oy - hy) - (ty - hy) * (ox - hx) > 0 else 0
+    return (
+        f'<path class="board-door board-door-swing" data-room="{_escape(room)}" '
+        f'd="M{hx:g} {hy:g} L{tx:g} {ty:g} A{CELL} {CELL} 0 0 {sweep} {ox:g} {oy:g}"/>'
+    )
+
+
+def _hinges() -> list[bool]:
+    """For each of `board.DOORS`, whether its hinge is the door edge's
+    first end: the end no other door of the same room shares, so a pair
+    side by side (the Hall's) opens as a double door; the first end
+    otherwise."""
+    ends: dict = {}
+    edges = []
+    for room, cell, square in board.DOORS:
+        door = _door_marker(room, cell, square)
+        a, b = ((door.split(f'{n}="')[1].split('"')[0] for n in pair) for pair in (("x1", "y1"), ("x2", "y2")))
+        a, b = tuple(a), tuple(b)
+        edges.append((room, a, b))
+        for end in (a, b):
+            ends[(room, end)] = ends.get((room, end), 0) + 1
+    return [ends[(room, a)] == 1 for room, a, b in edges]
 
 
 def _fan(nodes_at: list, centre: tuple[float, float]) -> list[tuple[float, float]]:
@@ -298,18 +362,14 @@ def board_svg(tokens=None, *, title="The board", dressed=False) -> str:
         out.extend(inner)
         out.append("</g>")
 
-    doors = [_door_marker(room, cell, square) for room, cell, square in board.DOORS]
-    out.extend(doors)
     if dressed:
-        # Doors as threshold plates: the brass bar and a rivet at each end.
-        out.append('<g class="board-rivets">')
-        for door in doors:
-            x1, y1, x2, y2 = (
-                door.split(f'{name}="')[1].split('"')[0] for name in ("x1", "y1", "x2", "y2")
-            )
-            out.append(f'<circle class="board-rivet" cx="{x1}" cy="{y1}" r="1.7"/>')
-            out.append(f'<circle class="board-rivet" cx="{x2}" cy="{y2}" r="1.7"/>')
-        out.append("</g>")
+        # Doors as a floor plan draws them: a leaf and its swing.
+        out.extend(
+            _door_swing(room, cell, square, hinge)
+            for (room, cell, square), hinge in zip(board.DOORS, _hinges())
+        )
+    else:
+        out.extend(_door_marker(room, cell, square) for room, cell, square in board.DOORS)
 
     for suspect, square in sorted(board.START_SQUARES.items()):
         x, y = _xy(square)

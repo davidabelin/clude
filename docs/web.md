@@ -368,7 +368,10 @@ as it was. Every write is a form POST with the CSRF token, which the page
 reads from a `<meta>` tag; a JSON body would fail the check on purpose.
 
 **The time-out (Phase 9h).** A decision has 90 s (`TURN_TIMEOUT`; 30 s at
-a table made in speed mode, the lobby's checkbox, `SPEED_TIMEOUT`). The
+a table made in speed mode, the lobby's checkbox, `SPEED_TIMEOUT`), and
+showing a card never more than 30 s at any table (`SHOW_TIMEOUT`,
+2026-10-01: someone else's turn waits on it; `waiting.timeout` is the
+decision's own). The
 status line counts it down. Past it, the next unit of `work` has the
 floor bot play the rest of that turn -- the move, the suggestion and the
 accusation question, or the one card to show -- and the seat is still
@@ -382,7 +385,7 @@ was pending, so the old three-minute hand-over never fired on a table
 with no chat seat driving `work`. The clock is the instance's: a cold
 rebuild starts it again.
 
-**Autopilot.** "Let the floor bot play for me" hands your seat to the
+**Autopilot.** "Let the floorbot play for me" hands your seat to the
 stand-in -- the plain characterless player, so a seat on autopilot never
 impersonates a character -- and "Take my seat back" takes it back; the
 seat's owner alone can do either. A person put out by a wrong accusation
@@ -608,9 +611,15 @@ so it takes the text's colour) with "2026 AIX Laboratories".
 
 Under Engraved the table is a stage and a rail (Phase 10d-10e,
 `docs/phase10-plan.md` 17): the server's `focus` says what holds the
-stage, the page lays a beat or talk over the board for a moment, and on
-a phone the rail is four tabs. The board is dressed: floor patterns, a
-double wall, door rivets, token initials and the logo in the cellar.
+stage, the page lays talk over the board for a moment, and on a phone
+the rail is four tabs. Above the board, the status line carries the
+Pass (or "No suggestion") when that decision is yours, and a narration
+line tells the turn in play: its roll ("You rolled a six.", narration
+only, never in the log or the Record) and then its suggestion or
+accusation (2026-10-01; nothing narrates over the board any more). The
+board is dressed: a floor of its own for each room on its own tint, a
+double wall, every door as a leaf and its swing, token initials and the
+logo in the cellar.
 
 Engraved's four faces are served from `static/fonts/`
 as Latin-subset woff2 files (Bodoni Moda for the wordmark, Playfair
@@ -620,8 +629,9 @@ for numbers; all under the SIL Open Font License, see
 and `body[data-motion="off"]` or a reduced-motion preference sets them
 all to zero: `clude_shots.py` and `tests/test_browser.py` set both, so
 no screenshot lands mid-transition, and a test refuses any literal
-duration outside `:root`. In this look the per-seat cost bar is not
-shown (D9), nor the Cost columns (D17); the table's spend line is.
+duration outside `:root`. Costs are Developer's alone (D9, D17,
+2026-10-01): an Engraved look draws no per-seat cost bar, no Cost
+column and no spend line on the table.
 
 ## Sound
 
@@ -839,7 +849,7 @@ own, kept on the table document and never an entry) and
 `clude_autopilot` (the seat handed to the floor bot when a chat must
 end). Since Phase 9j there are ten: `clude_login` first, and
 `clude_watch`, `clude_games` and `clude_replay` for looking on (below,
-"Accounts"). Every view is cut at a `since` cursor and kept compact -- one
+"Accounts"); since 2026-10-01 eleven, with `clude_logout`. Every view is cut at a `since` cursor and kept compact -- one
 line per seat, per event and per card -- because a chat pays for every
 token it reads: the first live game (2026-09-21) ran out of room at
 turn 30 on views of about 9,000 tokens (`docs/phase9-plan.md` 8). Its
@@ -916,7 +926,11 @@ The person in the chat tells the chatbot its name and password;
 `clude_login` checks them as the form does (the same rate limit, one
 message for a wrong name and a wrong password) and returns a `login`,
 signed with the session secret and not stored, which every other tool
-takes. It lasts 30 days and ends when the password changes. Until 9j
+takes. It lasts 30 days and ends when the password changes, or when
+the chatbot calls `clude_logout`, which ends every MCP login the
+account holds (an `mcp_epoch` on the account document that each login
+carries; the browser's sign-in is untouched). A chat seat is told what
+the table has spent (`cost`) only if its account's look is Developer. Until 9j
 the server played as one fixed account, `claude` (`CLUDE_MCP_ACCOUNT`,
 now gone), so two chatbots could not sit at one table; the `claude`
 account stays, and the Claude at claude.ai now logs in to it.

@@ -375,6 +375,18 @@ D3 and D6 are **reversed** by D8 and D10 below; D5 is narrowed by D11.
 - **D19. A header and footer** with links to privacy, contact and the wiki. A wooden remake of `static/questionmark.png`, lit the same way with the same push-button feel, links to the wiki pages -- on trial there, not *the* logo. `static/copyleft.svg` marks everything "2026 AIX Laboratories".
 - **D20. Wikiclude**, not started ("be ready"): an interlinked set of Wikipedia-style pages built mostly from the documentation we already have -- the LLM personalities, the ML and heuristic methods, everything in the docs, and later the ML classwork archive in the AIX repo. One article serves both audiences 10i was to split between (the high-schoolers and grandparents, the senior engineers and scientists). Replaces D13's two explainers.
 
+### Fifth round (2026-10-01), after playing the fourth round live
+
+- **D21. Pass up top.** The accusation's Pass and the suggestion's "No suggestion" also sit in the status line above the board, so neither needs a scroll; the decision panel keeps its own, and the Accuse panel stays where it is.
+- **D22. One narration line, above the board.** Narration was in three places on a phone (the status line, a caption laid over the board, the Record). It is now in two: a line above the board and the Record. The caption over the board (the beat) goes.
+- **D23. Dice narrated, never recorded.** "You rolled a six" / "Mustard rolled a two" in the narration line; not in the Record, not in the replay, not over MCP.
+- **D24. Costs in Developer only**, everywhere: the table's spend line and seat bars too, and the chat seat's `cost` line follows its account's look.
+- **D25. An MCP logout.**
+- **D26. Doors drawn as a floor plan draws them**, a leaf and its swing, in the red thread; and **every room its own floor**, nine patterns on nine pale tints.
+- **D27. Showing a card has 30 s at most**, at any table.
+- **D28. The board's size on a phone** fixed where it drew small inside its pane.
+- To discuss, not decided: narrating the floor's reasoning behind changes to Your notes.
+
 ## 14\. Sub-phases
 
 Each leaves the suite green and is a working system on its own, per `CLAUDE.md`.
@@ -809,3 +821,79 @@ placeholder page behind the login.
 
 **Not done.** Wikiclude itself (D20). The phone's header bar wraps the
 wooden button onto its own row on pages without the Sound button.
+
+### The fifth round (2026-10-01)
+
+D21-D28, built in one sweep with the suite green (545 passed, 32
+skipped; the 30 browser tests pass under `CLUDE_WEB_BROWSER=1`), not
+yet deployed. The fourth round itself went live as `clude-00019-9x5` on
+2026-09-29, which the status lines here and in `CLAUDE.md` had not
+caught up with.
+
+**Pass up top (D21).** `table.js` `passButton` adds "Pass" (the
+accusation question) or "No suggestion" (entering a room) to the status
+line after the clock, `#status-pass`, every look; the same `answer(null)`
+as the panel's. The Accuse hint now says "or Pass above the board".
+
+**The narration line (D22, D23).** `#narration`, between the status
+line and the stage in both templates (Developer's above its board,
+unstyled), tells the turn in play: its roll, then the turn's suggestion
+and accusation in the Record's own words, starting again with the next
+roll; the turn number is a CSS kicker. The beat is gone: no `#beat`, no
+caption over the board for a suggestion, an accusation or a card to
+show (the status line says that one), and `FOCUS_RANKS` loses `beat`,
+so the ladder is show, end, move, decide, talk, board. Kept: the
+accusation's impact flash, the Talk overlay and the end plate. The
+decision panel no longer repeats the status line when the decision is
+not yours. **The roll** is `LiveGame.rolls`, `(turn, seat, roll)`
+appended by `game_steps` as each turn starts, beside the event log and
+never in it, so no record, golden or fixture moved; `TableSnapshot.roll`
+carries the latest and `view_payload` sends it as `roll`. A cold rebuild
+replays the generator and finds the same rolls.
+
+**Costs (D24).** The table's spend line is in the page only when the
+look has `Style.costs`; `costBar` builds nothing outside Developer
+(10b-D17 built it and hid it with CSS). Over MCP, `seat_view` and
+`watch_view` take `costs`, which the tools set from the account's look
+(`mcp.shows_costs`); a chatbot's account is Case-file light unless
+someone picks Developer for it. The lobby's budget field stays: a
+setting, not a spend.
+
+**Logout (D25).** `clude_logout(login)`, the eleventh tool, bumps
+`mcp_epoch` on the account document (`users.end_mcp_logins`); every
+login carries the epoch it was issued under (`ep`) and `check_login`
+refuses a mismatch. Every MCP login the account holds ends together --
+nothing is stored per login -- and a login issued before there was a
+logout has no epoch, reads as 0, and stays good until one is asked
+for. The browser session is untouched.
+
+**The board (D26).** Dressed only; Developer's board is unchanged byte
+for byte. Each door is `<path class="board-door board-door-swing">`:
+hinged at one jamb, the leaf one cell into the room, the arc back to
+the other jamb, the swept quarter shaded at 14% of the red thread; the
+hinge is the end no other door of the room shares, so the Hall's pair
+opens as a double door. The rivets are gone. The floors are
+`FLOORS`, one per room -- Kitchen checker tile, Ballroom chevron
+parquet, Conservatory trellis, Billiard stippled baize, Library
+panelling, Study hatch, Hall staggered flagstones, Lounge rosettes,
+Dining staggered planks -- as `floor-<room>` patterns, each on its own
+`--room-<room>` tint in both themes, which the label's halo follows.
+
+**Showing a card (D27).** `tables.SHOW_TIMEOUT` (30 s) and
+`decision_timeout(document, kind)`, the table's time-out but never more
+than that for a card to show; used by `work`'s time-out, the `work`
+flag, and `waiting.timeout`, which the page's clock and the chat seat's
+waiting line read (`payload.timeout` stays the table's). A show that
+times out is still a strike. The table's header says "90 s a decision,
+30 s to show a card".
+
+**The board's size (D28).** Two causes, both fixed. On a phone the
+decide focus shrank the board to 26vh inside a full-width pane: now only
+the suggestion form shrinks it (the accusation's Pass is up top) and the
+stage hugs the strip. In two columns (a phone held sideways, a tablet)
+the board was `width: 100%` under a 58vh cap, so it drew small in a wide
+pane: now the main column is a size container and the board is as wide
+as the column or 58vh allows, the stage hugging it; from 62rem it fills
+the column as before. `clude_shots.py` waits for the cost bar only in
+Developer.
+
