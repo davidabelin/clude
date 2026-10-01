@@ -1,0 +1,20 @@
+{% extends "wiki/layout.html" %}
+{% block wiki_title %}Figure: {{ figure.title }}{% endblock %}
+{% block page %}
+<header class="wiki-head" id="top">
+  <h1><span class="wiki-space">Figure:</span> {{ figure.title }}</h1>
+  <p class="wiki-from">From Wikiclude, the encyclopaedia of clude</p>
+</header>
+<figure class="thumb full">
+  <div class="thumb-art">{{ figure.svg|safe }}</div>
+  <figcaption>{{ figure.caption }}</figcaption>
+</figure>
+<h2>Used in</h2>
+{% if uses %}
+<ul class="wiki-list">
+  {% for page in uses %}<li><a class="wl" href="{{ url_for('main.wiki_page', title=page.slug) }}#fig-{{ figure.key }}">{{ page.title }}</a></li>{% endfor %}
+</ul>
+{% else %}
+<p>No article uses this figure yet.</p>
+{% endif %}
+{% endblock %}

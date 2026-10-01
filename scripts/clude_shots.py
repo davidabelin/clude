@@ -20,11 +20,17 @@ table is seeded into the app's ledger, and the first game of the copied
 run is given a cost, so the cost bars and the games' cost column have
 something to show (Phase 9g).
 
+Wikiclude's pages (D20) are shot too: the Main Page, the three kinds of
+article, a stub, a category, a figure's own page, and the pages the wiki
+keeps about itself. ``--wiki`` shoots only those, and needs no stored
+games.
+
 Usage
 -----
     python scripts/clude_shots.py
     python scripts/clude_shots.py --store data/llm --run grid-twin-base-24
     python scripts/clude_shots.py --out docs/ux/shots --dark --phone
+    python scripts/clude_shots.py --wiki --phone
 
 Playwright and its browser are optional and not needed to run clude:
 
@@ -57,6 +63,21 @@ MOTION_OFF = "document.addEventListener('DOMContentLoaded', () => document.body.
 """Sets the stylesheet's motion kill switch (Phase 10b) on every page,
 and the context asks for reduced motion too, so no screenshot lands
 mid-transition."""
+
+WIKI_PAGES: tuple = (
+    ("wiki-main", "/wiki"),
+    ("wiki-character", "/wiki/Professor_Plum"),
+    ("wiki-method", "/wiki/Naive_Bayes"),
+    ("wiki-concept", "/wiki/Suggestion"),
+    ("wiki-stub", "/wiki/Mrs._Peacock"),
+    ("wiki-dials", "/wiki/Personality_dials"),
+    ("wiki-category", "/wiki/Category:Characters"),
+    ("wiki-figure", "/wiki/Figure:floor-then-method"),
+    ("wiki-all", "/wiki/Special:AllPages"),
+    ("wiki-search", "/wiki/Special:Search?q=envelope&go=0"),
+    ("wiki-missing", "/wiki/No_such_article"),
+)
+"""Wikiclude's screens (D20): a name for the file and the path."""
 
 
 class _Quiet(WSGIRequestHandler):
@@ -101,6 +122,15 @@ def seed_store(target: Path, source_uri: str, run: str, games: int) -> tuple:
     return store, picked, source.list_games(picked)[:games]
 
 
+def empty_store(target: Path):
+    """A throwaway store with the account and no games: all the wiki
+    pages need."""
+    store = open_store(str(target))
+    users.add_user(store, SHOT_USER, SHOT_PASSWORD)
+    users.mark_password_prompted(store, SHOT_USER)
+    return store
+
+
 def seed_cost(store, run: str) -> None:
     """Give the throwaway copy's first game a cost, so the run page's
     cost column shows a figure beside the dashes."""
@@ -143,9 +173,12 @@ def spender(app):
     return spend
 
 
-def shoot(base: str, run: str, index: int, out: Path, dark: bool, phone: bool, spend=None, looks=None) -> list:
+def shoot(base: str, run: str, index: int, out: Path, dark: bool, phone: bool, spend=None, looks=None,
+          wiki_only: bool = False) -> list:
     """Drive the app and write a PNG per screen, for every look in
-    `looks` (default: all of `styles.STYLES`). Returns their paths."""
+    `looks` (default: all of `styles.STYLES`). Returns their paths.
+    With `wiki_only`, only Wikiclude's pages (`WIKI_PAGES`), which need
+    no stored game."""
     from playwright.sync_api import sync_playwright
 
     from clude_web import styles  # noqa: PLC0415
@@ -199,6 +232,14 @@ def shoot(base: str, run: str, index: int, out: Path, dark: bool, phone: bool, s
                     page.select_option("#style", look)
                     page.click(".look button[type=submit]")
                     page.wait_for_url(f"{base}/")
+                # Wikiclude (D20): every kind of page it has.
+                for name, path in WIKI_PAGES:
+                    page.goto(f"{base}{path}")
+                    save(name)
+                if wiki_only:
+                    context.close()
+                    continue
+                page.goto(f"{base}/")
                 save("lobby")
                 page.select_option("#seat-Plum", "llm")
                 page.locator("#memory-Plum").fill("0.75")
@@ -342,21 +383,28 @@ def main(argv=None) -> int:
     parser.add_argument("--phone", action="store_true", help="Also shoot at phone width.")
     parser.add_argument("--look", action="append", default=None, metavar="KEY",
                         help="A look to shoot (repeatable); default every look on the list.")
+    parser.add_argument("--wiki", action="store_true",
+                        help="Shoot only Wikiclude's pages; needs no stored games.")
     args = parser.parse_args(argv)
 
     import tempfile
 
     with tempfile.TemporaryDirectory(prefix="clude-shots-") as scratch:
         store_dir = Path(scratch) / "store"
-        store, run, indexes = seed_store(store_dir, args.store, args.run, args.games)
-        seed_cost(store, run)
-        index = args.game if args.game in indexes else indexes[0]
+        if args.wiki:
+            empty_store(store_dir)
+            run, index = "", 0
+        else:
+            store, run, indexes = seed_store(store_dir, args.store, args.run, args.games)
+            seed_cost(store, run)
+            index = args.game if args.game in indexes else indexes[0]
         server, base, app = serve(str(store_dir))
-        print(f"serving {store_dir} at {base}; shooting {run} game {index}")
+        print(f"serving {store_dir} at {base}; shooting " + ("Wikiclude" if args.wiki else f"{run} game {index}"))
         try:
             time.sleep(0.2)
             out = Path(args.out) if args.out else Path(scratch).parent / "clude-shots"
-            written = shoot(base, run, index, out, args.dark, args.phone, spend=spender(app), looks=args.look)
+            written = shoot(base, run, index, out, args.dark, args.phone, spend=spender(app), looks=args.look,
+                            wiki_only=args.wiki)
         finally:
             server.shutdown()
     for path in written:

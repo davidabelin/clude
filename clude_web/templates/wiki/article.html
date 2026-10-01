@@ -1,0 +1,76 @@
+{% extends "wiki/layout.html" %}
+{% block wiki_title %}{{ article.title }}{% endblock %}
+
+{% macro contents(tokens, prefix='') %}
+<ol>
+  {% for token in tokens %}
+  {% set number = prefix ~ loop.index %}
+  <li><a href="#{{ token.id }}"><span class="toc-n">{{ number }}</span> {{ token.name }}</a>
+    {% if token.children %}{{ contents(token.children, number ~ '.') }}{% endif %}
+  </li>
+  {% endfor %}
+</ol>
+{% endmacro %}
+
+{% block rail %}
+{% if article.toc %}
+<nav class="wiki-toc-rail" aria-label="Contents">
+  <h2>Contents</h2>
+  <a class="toc-top" href="#top">(Top)</a>
+  {{ contents(article.toc) }}
+</nav>
+{% endif %}
+{% endblock %}
+
+{% block page %}
+<header class="wiki-head" id="top">
+  <h1>{{ article.title }}</h1>
+  <p class="wiki-from">From Wikiclude, the encyclopaedia of clude{% if redirected %} &nbsp;(Redirected from <em>{{ redirected }}</em>){% endif %}</p>
+</header>
+{% if article.is_stub %}
+<p class="wiki-notice">This page is a <strong>stub</strong>: a place-holder for an article still to be written. It says what the article will cover and where the facts are in the meantime.</p>
+{% endif %}
+{{ article.hatnotes|safe }}
+<div class="wiki-lead">
+  {{ article.infobox|safe }}
+  {{ article.lead|safe }}
+</div>
+{% if article.toc %}
+<details class="wiki-toc">
+  <summary>Contents</summary>
+  {{ contents(article.toc) }}
+</details>
+{% endif %}
+<div class="wiki-body">
+  {{ article.body|safe }}
+</div>
+{% for title, groups in navboxes %}
+<nav class="navbox" aria-label="{{ title }}">
+  <div class="navbox-title">{{ title }}</div>
+  {% for group, links in groups %}
+  <div class="navbox-row">
+    <div class="navbox-group">{{ group }}</div>
+    <ul>
+      {% for name, slug, exists in links %}
+      <li>{% if name == article.title %}<strong class="selflink">{{ name }}</strong>{% else %}<a class="wl{% if not exists %} new{% endif %}" href="{{ url_for('main.wiki_page', title=slug) }}"{% if not exists %} title="{{ name }} (not yet written)"{% endif %}>{{ name }}</a>{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endfor %}
+</nav>
+{% endfor %}
+{% if article.categories %}
+<div class="wiki-cats">
+  <a href="{{ url_for('main.wiki_page', title='Special:AllPages') }}">Categories</a>:
+  <ul>
+    {% for category in article.categories %}
+    <li><a class="wl" href="{{ url_for('main.wiki_page', title='Category:' ~ category.replace(' ', '_')) }}">{{ category }}</a></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+<p class="wiki-tools">
+  <a href="{{ url_for('main.wiki_page', title='Special:WhatLinksHere/' ~ article.slug) }}">What links here</a>
+  <span>{{ article.words }} words</span>
+</p>
+{% endblock %}

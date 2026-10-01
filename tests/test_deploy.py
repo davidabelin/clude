@@ -54,7 +54,9 @@ def test_the_image_installs_its_own_requirements_and_serves_the_factory():
     assert "-k uvicorn.workers.UvicornWorker" in dockerfile
     assert "--workers 1" in dockerfile
     wanted = (ROOT / "requirements-web.txt").read_text(encoding="utf-8")
-    for package in ("flask", "gunicorn", "google-cloud-storage", "anthropic", "mcp", "asgiref", "uvicorn"):
+    # markdown and latex2mathml render Wikiclude's articles (D20).
+    for package in ("flask", "gunicorn", "google-cloud-storage", "anthropic", "mcp", "asgiref", "uvicorn",
+                    "markdown", "latex2mathml"):
         assert package in wanted, f"{package} is not installed in the image"
 
 

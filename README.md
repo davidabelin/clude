@@ -101,7 +101,7 @@ clude_agents/        AgentProtocol, the AgentSpec registry, one module per metho
 clude_llm/           the LLM wrapper: menus, personas, prompts, backends, LLMCharacter, the debrief
 clude_training/      self-play snapshots, the belief benchmark, trace, record replay, method memory, arena, sweeps
 clude_storage/       game records and logbooks; local-directory and Cloud Storage stores
-clude_web/           the Flask app: the login gate, accounts, the lobby, tables people play at, Watch and the replay; and `mcp.py`, a seat a Claude in a chat window plays over MCP
+clude_web/           the Flask app: the login gate, accounts, the lobby, tables people play at, Watch and the replay; `mcp.py`, a seat a Claude in a chat window plays over MCP; and `wiki/`, Wikiclude
 Dockerfile           the Cloud Run image (with requirements-web.txt, .gcloudignore, .dockerignore)
 scripts/             clude_cli.py, the maintainer CLI
 tests/               pytest suite
@@ -143,7 +143,8 @@ five personality dials. Each is documented in
 - [docs/phase8-plan.md](docs/phase8-plan.md) -- Phase 8 to completion: the landing rule, human players, the model and chat on the web, and what was built
 - [docs/phase9-plan.md](docs/phase9-plan.md) -- Phase 9, a seat over MCP: the seven tools, the design, and what was built
 - [docs/phase10-plan.md](docs/phase10-plan.md) -- Phase 10, the shippable look: typography, ornament, the decorated board, motion and sound
-- [docs/web.md](docs/web.md) -- the Flask app: running it, accounts, the table, Watch, the replay, and deploying to Cloud Run
+- [docs/web.md](docs/web.md) -- the Flask app: running it, accounts, the table, Watch, the replay, Wikiclude, and deploying to Cloud Run
+- [docs/wikiclude-plan.md](docs/wikiclude-plan.md) -- Wikiclude, the encyclopaedia at `/wiki`: the plan, David's decisions, and what was built
 - [docs/llm-wrapper.md](docs/llm-wrapper.md) -- how an LLM pilots a character: menus, leash, personas, backends, cost
 - [docs/logbooks.md](docs/logbooks.md) -- playerbot memory: the three tiers, the `memory` dial, the debrief, the CLI
 - [docs/strategy-glossary.md](docs/strategy-glossary.md) -- each method in plain language, with benchmark and arena results
