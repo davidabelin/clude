@@ -22,7 +22,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from clude_storage import open_store
 
-from . import auth, config, logo, styles, tables, users, views
+from . import auth, config, logo, styles, tables, users, views, wiki
 
 __all__ = ["create_app"]
 
@@ -99,6 +99,9 @@ def create_app(settings=None) -> Flask:
     app.extensions["tables"] = tables.TableRegistry(app.extensions["store"], _llm_config(app.config, testing))
     # Watch is a table with nobody human at it (Phase 8.2); one registry.
     app.extensions["watch"] = app.extensions["tables"]
+    # Wikiclude (D20): every article rendered here, once per process, so
+    # a broken one stops the app starting instead of reaching a reader.
+    app.extensions["wiki"] = wiki.load()
 
     @app.after_request
     def _nosniff(response):

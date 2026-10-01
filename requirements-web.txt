@@ -15,3 +15,8 @@ anthropic>=1.5
 mcp>=2.0
 asgiref>=3.8
 uvicorn>=0.30
+# Wikiclude (clude_web.wiki, D20): Python-Markdown renders the articles
+# and latex2mathml their mathematics, to MathML, once at start-up. Both
+# are pure Python.
+markdown>=3.6
+latex2mathml>=3.77

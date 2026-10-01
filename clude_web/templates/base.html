@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename=style.stylesheet) }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles/chrome.css') }}">
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  {% block head %}{% endblock %}
 </head>
 <body>
   <header class="bar">

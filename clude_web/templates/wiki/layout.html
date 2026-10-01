@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{# Wikiclude's page frame (D20): a side panel with the search and the
+   ways in, and the page beside it. On a phone the panel is a strip
+   above the page. Dressed by static/styles/wiki.css in every look. #}
+{% block title %}{% block wiki_title %}Wikiclude{% endblock %} - Wikiclude{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='styles/wiki.css') }}">{% endblock %}
+{% block content %}
+<div class="wiki">
+  <aside class="wiki-side">
+    <a class="wiki-home" href="{{ url_for('main.wiki') }}">
+      <span class="wiki-wordmark">Wikiclude</span>
+      <span class="wiki-motto">The encyclopaedia of clude</span>
+    </a>
+    <form class="wiki-search" action="{{ url_for('main.wiki_page', title='Special:Search') }}" method="get" role="search">
+      <input type="search" name="q" value="{{ query|default('') }}" placeholder="Search Wikiclude" aria-label="Search Wikiclude">
+      <button type="submit">Search</button>
+    </form>
+    <nav class="wiki-nav" aria-label="Wikiclude">
+      <a href="{{ url_for('main.wiki') }}">Main page</a>
+      <a href="{{ url_for('main.wiki_page', title='Special:AllPages') }}">All pages</a>
+      <a href="{{ url_for('main.wiki_page', title='Special:Random') }}">Random article</a>
+      <a href="{{ url_for('main.wiki_page', title='Special:WantedPages') }}">Wanted pages</a>
+    </nav>
+    {% block rail %}{% endblock %}
+  </aside>
+  <article class="wiki-page">
+    {% block page %}{% endblock %}
+  </article>
+</div>
+{% endblock %}

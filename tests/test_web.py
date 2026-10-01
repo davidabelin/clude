@@ -173,12 +173,18 @@ def test_set_password_replaces_the_hash(store):
 # --- the gate ---------------------------------------------------------
 
 
+PUBLIC = {"static", "auth.login", "main.privacy", "main.wiki", "main.wiki_page"}
+"""The routes anyone may load: the login, the privacy page (D12) and
+Wikiclude (David, 2026-10-01), which shows no game's state."""
+
+
 def test_every_route_but_login_and_privacy_redirects_without_a_session(app, client):
     """Written over the app's whole url map, so a route added in steps 3
-    to 5 is covered the day it appears."""
+    to 5 is covered the day it appears. Wikiclude joined the public
+    routes on 2026-10-01 (`tests/test_wiki.py` has its own)."""
     checked = 0
     for rule in app.url_map.iter_rules():
-        if rule.endpoint in {"static", "auth.login", "main.privacy"} or "GET" not in rule.methods:
+        if rule.endpoint in PUBLIC or "GET" not in rule.methods:
             continue
         response = client.get(rule.rule)
         assert response.status_code == 302, f"{rule.rule} was reachable"
@@ -631,8 +637,8 @@ def test_the_games_table_has_wall_time_and_shows_cost_to_the_developer_only(app,
 
 def test_the_footer_links_privacy_contact_and_wikiclude_on_every_page(app, client):
     """2026-09-29. The footer is on every page, signed in or not; the
-    privacy page is public (D12), Wikiclude is a placeholder behind the
-    login, and the header bar's wooden question mark leads to it."""
+    privacy page is public (D12), and so since 2026-10-01 is Wikiclude,
+    which the header bar's wooden question mark leads to."""
     anonymous = app.test_client()
     login = anonymous.get("/login").get_data(as_text=True)
     foot = login.split('<footer class="foot">')[1].split("</footer>")[0]
@@ -640,7 +646,7 @@ def test_the_footer_links_privacy_contact_and_wikiclude_on_every_page(app, clien
     assert "github.com/davidabelin/clude/issues" in foot and "2026 AIX Laboratories" in foot
     privacy = anonymous.get("/privacy")
     assert privacy.status_code == 200 and "Anthropic" in privacy.get_data(as_text=True)
-    assert anonymous.get("/wiki").status_code == 302
+    assert anonymous.get("/wiki").status_code == 200
     for path in ("/static/copyleft.svg", "/static/questionmark-wood.png", "/static/styles/chrome.css"):
         assert anonymous.get(path).status_code == 200, path
 

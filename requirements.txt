@@ -27,6 +27,12 @@ gunicorn>=23.0; sys_platform != "win32"
 mcp>=2.0
 asgiref>=3.8
 uvicorn>=0.30
+# Wikiclude (clude_web.wiki, D20; docs/wikiclude-plan.md): Python-Markdown
+# renders the articles and latex2mathml their mathematics, to MathML, once
+# when the app starts. Both are pure Python. The app imports them, so
+# unlike the lines around this one they are not optional.
+markdown>=3.6
+latex2mathml>=3.77
 # Optional, and only for looking at the web app: `scripts/clude_shots.py`
 # screenshots every screen and `tests/test_browser.py` drives the real
 # thing, both skipped without it. An SVG rasteriser is no substitute --

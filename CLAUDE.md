@@ -25,8 +25,9 @@ play is blind, built and live together in `clude-00016-65z`
 2026-09-29 and live since that evening as `clude-00019-9x5` (these
 lines said "not yet deployed" until 2026-10-01); **the fifth round
 (D21-D28) built 2026-10-01**, not yet deployed (below); 10h not
-started, 10i become Wikiclude (D20), not started. Phase 11 is
-untouched.
+started; **Wikiclude (D20, was 10i) begun 2026-10-01**, its first slice
+(W1) on the branch `wikiclude`, awaiting David's review (below). Phase
+11 is untouched.
 
 Each phase's record is the "as implemented" section of its plan doc
 (`docs/phase5-plan.md` to `docs/phase9-plan.md`; Phases 1-4 in
@@ -177,8 +178,8 @@ look): Privacy (`/privacy`, public, D12's draft pulled forward), Contact
 with "2026 AIX Laboratories"; and the wooden question mark
 (`static/questionmark-wood.png`, made by `scripts/make_wood_button.py`
 from `questionmark.png`) in the header bar, leading to Wikiclude, on
-trial, not the logo. **Wikiclude** (D20) is the next writing job, not
-started. `docs/phase10-plan.md` 13 and 17.
+trial, not the logo. **Wikiclude** (D20) was then the next writing job
+(begun 2026-10-01, below). `docs/phase10-plan.md` 13 and 17.
 
 **David's fifth round (2026-10-01), built, not yet deployed** (D21-D28,
 after playing the fourth round). **Pass up top**: the accusation's Pass
@@ -198,8 +199,29 @@ and in two columns it is as large as the column or 58vh allows. To
 discuss: narrating the floor's reasoning behind Your notes.
 `docs/phase10-plan.md` 13 and 17.
 
+**Wikiclude W1 (2026-10-01), on the branch `wikiclude`: not merged, not
+deployed, awaiting David's review.** The encyclopaedia at `/wiki`,
+**public** like the privacy page (his call that day): Wikipedia's page
+layout in clude's looks, every article written for every reader at once.
+The engine is `clude_web/wiki/` (Markdown articles in `articles/`,
+rendered once at start-up; wikilinks in the red thread, Wikipedia links
+in a blue of their own, measured numbers only through `facts.py`, where a
+test finds each in the doc it cites, constants and the worked example
+read from the live modules, MathML for the mathematics, uncoloured SVG
+figures dressed by `static/styles/wiki.css`). Three exemplar articles,
+one of each kind, for the style to be settled on before it is
+multiplied: *Professor Plum*, *Naive Bayes*, *Suggestion*; thirty marked
+stubs so that every link leads somewhere; the five method diagrams drawn
+by `scripts/build_wiki_figures.py`. Two new dependencies in the image,
+`markdown` and `latex2mathml`. Not checkable from the cloud workspace it
+was built in, so still to do on Orbit: the live Wikipedia-link check
+(`CLUDE_WIKI_LIVE=1`), and a look at the mathematics on a phone.
+`docs/wikiclude-plan.md` 9, `docs/web.md` ("Wikiclude").
+
 Suite: 545 passed, 32 skipped, about four minutes with `-n auto`; 30
-more under `CLUDE_WEB_BROWSER=1`, all passing. (Three debrief tests
+more under `CLUDE_WEB_BROWSER=1`, all passing. On the `wikiclude`
+branch: 563 passed, 33 skipped (`tests/test_wiki.py` adds 18 and one
+that needs the network), the 30 browser tests passing. (Three debrief tests
 turned out to fail on a fast machine before 9h: reactions are now
 immediate there.)
 
@@ -213,7 +235,7 @@ immediate there.)
 | 8.2 | Human players | done: 8.2a-c built 2026-09-18 (the table driver and `play --human`; the table on the web with open seats, autopilot, cold rebuild and "characters remember"); 8.2d deployed and live-checked 2026-09-19, the cold rebuild 0.1 s on a 3-turn table (`docs/phase8-plan.md` 12, `docs/web.md`) |
 | 8.3 | The rest of chat: the model on the web under a spend cap, human chat, off-turn talk with pacing, debriefs after web games | done: 8.3a-c built 2026-09-19 on fake backends, the key deployed and one live table played the same day (two model seats, chat, "remember"; $0.34, no fallbacks); 8.3d closed Phase 8 (`docs/phase8-plan.md` 12) |
 | 9 | A seat over MCP: a Claude in a chat window (claude.ai) plays one seat of a live table through an MCP server mounted beside the Flask app, on the same `TableRegistry` | built. 9a the plan and the renumbering (2026-09-20); 9b the server and the combined ASGI app, 9c deployed with the secret and the `claude` account, both 2026-09-21, and the first live game from the chat that evening; 9d the eight fixes after the second live game and 9e David's follow-ups, both 2026-09-22 and deployed that evening; 9f the chat seat's report after the third live game and 9g what a game cost (both 2026-09-25, deployed that day), 9h five tweaks in one sweep (2026-09-26 and deployed that evening; typing, the turn time-out and speed mode, the certainty tag, the animated replay, the Legacy style); 9i the chat seat's five requests after table `5019abeb0a` (2026-09-26; waiting for the deal, the held-back pass, hand sizes and disproof order, hard mode, a whole replay URL; deployed that evening) and 9j every chatbot its own login, watching over MCP, and names capitalised (2026-09-27, deployed that day as `clude-00014-sqn`) -- `docs/phase9-plan.md` 8, `docs/phase9h-plan.md` |
-| 10 | In-depth UX: the shippable look, "engraved, not brass-plated" | in progress. `docs/phase10-plan.md` proposed 2026-09-20, David's answers recorded 2026-09-21 (D1-D4, D6); 10a the artboards drawn 2026-09-27 (`docs/ux/table/`, `docs/ux/logo/`) and revised 2026-09-28 after his review (D7-D14); 10b the token layer and 10c play-is-blind built 2026-09-28 (Engraved as an opt-in beta beside Legacy, the faces self-hosted, the motion switch; `readings` absent for a seated player, methods and hand sizes on the rail, shown cards ticked), deployed together that day as `clude-00016-65z`; 10d-10g built 2026-09-29 with the third round (D5 = E, D15-D16): Record and Talk, the focus ladder and the phone's tabs, the dressed board and logo, sound; Engraved the default; and the fourth round the same day (D17-D20): three looks (Case-file light the default, Gaslight dark, Developer), Stored games as practice and development with wall time, the footer and the wooden question mark; both live as `clude-00019-9x5` that evening; the fifth round (D21-D28) built 2026-10-01, not yet deployed: Pass up top, one narration line with the dice, costs in Developer only, `clude_logout`, swing doors and nine floors, 30 s to show a card, the board's size on a phone; 10h the help layer and Wikiclude (D20, replacing 10i's two explainers) still to come, both before 1.0.0 (was Phase 9 until 2026-09-20) |
+| 10 | In-depth UX: the shippable look, "engraved, not brass-plated" | in progress. `docs/phase10-plan.md` proposed 2026-09-20, David's answers recorded 2026-09-21 (D1-D4, D6); 10a the artboards drawn 2026-09-27 (`docs/ux/table/`, `docs/ux/logo/`) and revised 2026-09-28 after his review (D7-D14); 10b the token layer and 10c play-is-blind built 2026-09-28 (Engraved as an opt-in beta beside Legacy, the faces self-hosted, the motion switch; `readings` absent for a seated player, methods and hand sizes on the rail, shown cards ticked), deployed together that day as `clude-00016-65z`; 10d-10g built 2026-09-29 with the third round (D5 = E, D15-D16): Record and Talk, the focus ladder and the phone's tabs, the dressed board and logo, sound; Engraved the default; and the fourth round the same day (D17-D20): three looks (Case-file light the default, Gaslight dark, Developer), Stored games as practice and development with wall time, the footer and the wooden question mark; both live as `clude-00019-9x5` that evening; the fifth round (D21-D28) built 2026-10-01, not yet deployed: Pass up top, one narration line with the dice, costs in Developer only, `clude_logout`, swing doors and nine floors, 30 s to show a card, the board's size on a phone; 10h the help layer still to come; Wikiclude (D20, replacing 10i's two explainers) begun 2026-10-01, W1 (the engine, three exemplar articles, thirty stubs) on the branch `wikiclude` awaiting review -- `docs/wikiclude-plan.md`; both before 1.0.0 (was Phase 9 until 2026-09-20) |
 | 11 | Tweak, polish, release: clean-up and close, then version 1.0.0, released to family and friends, and planning in versions, not phases | not started (was Phase 10) |
 
 Where things stand:
@@ -551,6 +573,17 @@ it; `docs/phase-plan.md` has the disposition of every file.
   the ML classwork archive in the AIX repo -- each article written for
   both audiences at once (high-schoolers and grandparents, engineers and
   scientists); replaces D13's two explainers.
+- **Wikiclude's four calls (2026-10-01).** Built on a branch
+  (`wikiclude`) that David pulls and merges himself; the first slice
+  (W1: the engine and three exemplar articles) reviewed before more is
+  written; the wiki **public**, outside the login gate like the privacy
+  page; the old textbook is Sutton and Barto, *Reinforcement Learning:
+  An Introduction* (2nd ed.). His brief: Wikipedia's Manual of Style
+  for organisation and layout, in clude's own skins; no BLP and its
+  relatives; attribution looser than a featured article's, the writing
+  at that standard; every article for both audiences; hyperlink
+  heavily, to Wikipedia where our own pages run dry, in a different
+  colour from the in-app links (`docs/wikiclude-plan.md`).
 - **Phase 9h's four calls (2026-09-26).** The time-out is per turn:
   90 s on a decision (30 s at a speed table, a lobby checkbox), then
   the floor bot plays the rest of that turn and the seat stays the
@@ -618,7 +651,10 @@ Built; the detail is in `docs/architecture.md`.
   registry that stores, drives and rebuilds every game, the seat form,
   the view of a game from one seat, the model seats and their metering),
   `chat` (off-turn talk: the reaction queue and its pacing), `watch`
-  (Watch as a table with nobody human at it), `styles` (the looks a
+  (Watch as a table with nobody human at it), `wiki` (Wikiclude, D20:
+  the markup, the index of every article rendered once at start-up,
+  the facts each number comes from, the figures, the citations, and
+  `articles/*.md`; `docs/wikiclude-plan.md`), `styles` (the looks a
   player can choose between: Case-file light, Gaslight dark, Developer;
   Phase 9h, 10e, D17), `logo` (logo E as uncoloured SVG, and
   the favicon's source; 10f), `mcp` (Phase 9: the eleven
@@ -628,7 +664,7 @@ Built; the detail is in `docs/architecture.md`.
   secret path), `views`, templates,
   one stylesheet per look under `static/styles/` plus `chrome.css`
   that every look shares (the header's wooden question mark and the
-  footer), `replay.js`, `table.js`
+  footer) and `wiki.css` that the wiki's pages add, `replay.js`, `table.js`
   and `sound.js` (10g; the cues in `static/sounds/`, made by
   `scripts/make_sounds.py`).
   Imports every other package; nothing imports it (`docs/web.md`).
@@ -638,6 +674,7 @@ Built; the detail is in `docs/architecture.md`.
   you from the terminal); `scripts/clude_shots.py` screenshots every
   screen; `scripts/make_sounds.py` and `scripts/make_wood_button.py`
   make the sound cues and the wooden question mark;
+  `scripts/build_wiki_figures.py` draws Wikiclude's method diagrams;
   `scripts/clude_live_check.py` plays a table on the deployed
   service, wrapped by `scripts/live_check.bat`; `scripts/deploy.bat` is
   the deploy command; `tests/` -- pytest.
@@ -713,6 +750,13 @@ is the guard), and asgiref's Flask bridge run off its one-thread lane.
 D15 by D17 on 2026-09-29). Deploying the fifth round waits for David's
 word. To discuss: narrating the floor's reasoning behind the changes to
 Your notes.
+
+**Wikiclude** (`docs/wikiclude-plan.md` 9): W1 awaits David's review.
+His to say: whether the three exemplar articles are the style to write
+the other seventy in; whether the mathematics (MathML) reads well on his
+phone, or wants KaTeX; and what to do about three places where the
+glossary's prose disagrees with its own tables (9.5), which the wiki
+does not repeat.
 
 **Phase 8** left none; its assumptions stood through its close
 (`docs/phase8-plan.md` 9): the floor bot as the autopilot stand-in,
@@ -860,6 +904,9 @@ above. Resolved 2026-10-01: the fifth round, D21-D28
   layouts, case-file styling, sound in 10g. Proposed 2026-09-20; D1-D20
   settled; 10a-10g and the fourth round built, section 17 the record;
   Wikiclude (D20) next.
+- `docs/wikiclude-plan.md` -- Wikiclude (D20): David's brief, what is
+  taken from Wikipedia's Manual of Style and what is left, the article
+  list, sub-phases W1-W7, his decisions, and "as implemented" for W1.
 - `docs/strategy-glossary.md` -- each method in plain language; the
   benchmark, dial sweeps, tuned presets, and the Phase 6 measurements.
 - `docs/llm-wrapper.md` -- how a model pilots a character; credentials;
@@ -893,6 +940,8 @@ above. Resolved 2026-10-01: the fifth round, D21-D28
   syntax error renders as a small box rather than raising.
   `docs/ux/vendor/` holds the pinned Mermaid it draws with (its README
   says why it is not in `clude_web/static/`).
+  `scripts/build_wiki_figures.py` is that build: it draws the registry
+  to `clude_web/wiki/figures/*.svg`, stripped of Mermaid's colours.
 - `docs/docstring-guidelines.md` -- docstring conventions.
 - `docs/phase5-prep.md` -- the "Fab4" review that reworked Phase 5
   against the code as it was; historical. (Was `pre_stage_5.md`, renamed
