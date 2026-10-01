@@ -382,7 +382,8 @@ D3 and D6 are **reversed** by D8 and D10 below; D5 is narrowed by D11.
 - **D23. Dice narrated, never recorded.** "You rolled a six" / "Mustard rolled a two" in the narration line; not in the Record, not in the replay, not over MCP.
 - **D24. Costs in Developer only**, everywhere: the table's spend line and seat bars too, and the chat seat's `cost` line follows its account's look.
 - **D25. An MCP logout.**
-- **D26. Doors drawn as a floor plan draws them**, a leaf and its swing, in the red thread; and **every room its own floor**, nine patterns on nine pale tints.
+- **D26. Doors drawn as a floor plan draws them**, a leaf and its swing, in the red thread; and **every room its own floor**, nine patterns on nine pale tints. Revised the same day after David saw it ("garish"): **doors closed**, a shade off the wall so they show easily; **swung open only as a token comes in through one**, with a door sound in the family of the other cues; **a secret passage its own sound** and a visible marker.
+- **Not changed: "No suggestion".** David asked whether declining to suggest is how the real game is played. It is: the published rules say a player entering a room *may* make a suggestion, and the engine has always taken None there.
 - **D27. Showing a card has 30 s at most**, at any table.
 - **D28. The board's size on a phone** fixed where it drew small inside its pane.
 - To discuss, not decided: narrating the floor's reasoning behind changes to Your notes.
@@ -868,11 +869,30 @@ logout has no epoch, reads as 0, and stays good until one is asked
 for. The browser session is untouched.
 
 **The board (D26).** Dressed only; Developer's board is unchanged byte
-for byte. Each door is `<path class="board-door board-door-swing">`:
-hinged at one jamb, the leaf one cell into the room, the arc back to
-the other jamb, the swept quarter shaded at 14% of the red thread; the
-hinge is the end no other door of the room shares, so the Hall's pair
-opens as a double door. The rivets are gone. The floors are
+for byte. The doors were first drawn standing open (a leaf and its
+quarter arc in the red thread); David found that garish, so a door is
+now `<line class="board-door board-door-leaf" data-door="i">`, closed
+across its doorway in `--board-door-leaf` (honey on the light board,
+copper on the dark, both a step off the wall), hinged at one jamb --
+the end no other door of the room shares, so the Hall's pair is a
+double door -- with the hinge as its `transform-origin` and the quarter
+turn into the room as `--swing`. The rivets are gone. **Going in**:
+`replay_data.entry_doors` names the door each move into a room came
+through (the room's door nearest where the token stood, since the
+engine keeps no path; none for a stay, the corridor or a passage), sent
+as `door` on every table event and replay frame; the page adds
+`opening` and the leaf swings in and shut over `--dur-door` (1.1 s,
+zeroed with motion off) as the token glides in. **Secret passages**: a
+sunk plate with a flight of steps in the outer corner of each passage
+room, titled with where it leads; both ends glow (`used`) as a token
+takes it, sent as `passage` (the room it came out in). **Sound**: two
+new cues from `make_sounds.py`, `door` (the latch, a creak as it
+swings, the knock of it shutting about a second later, with the board)
+and `passage` (stone dragged aside over a hollow draught, and a low
+settle); `event_cue` gives a move the one or the other, and the table
+plays it beside the batch's loudest cue, which follows half a second
+later in the door's held-open pause, rather than under it. The replay
+does the same on Play. The floors are
 `FLOORS`, one per room -- Kitchen checker tile, Ballroom chevron
 parquet, Conservatory trellis, Billiard stippled baize, Library
 panelling, Study hatch, Hall staggered flagstones, Lounge rosettes,

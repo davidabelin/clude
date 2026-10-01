@@ -618,8 +618,10 @@ line tells the turn in play: its roll ("You rolled a six.", narration
 only, never in the log or the Record) and then its suggestion or
 accusation (2026-10-01; nothing narrates over the board any more). The
 board is dressed: a floor of its own for each room on its own tint, a
-double wall, every door as a leaf and its swing, token initials and the
-logo in the cellar.
+double wall, doors closed in a wood a shade off the wall that swing
+open and shut (with a sound) as a token comes in through one, a marker
+on each secret passage that glows as one is taken, token initials and
+the logo in the cellar.
 
 Engraved's four faces are served from `static/fonts/`
 as Latin-subset woff2 files (Bodoni Moda for the wordmark, Playfair
@@ -635,14 +637,16 @@ column and no spend line on the table.
 
 ## Sound
 
-The table, Watch and the replay can make four short sounds (Phase 10g,
-`docs/phase10-plan.md` 11.1): a tick for a move, the refutation cue, a
-bell when a decision becomes yours, an accent for an accusation and the
-end. No music. They are off until a viewer presses Sound in the header
+The table, Watch and the replay can make six short sounds (Phase 10g,
+`docs/phase10-plan.md` 11.1): a tick for a move, a door for a move into
+a room through one and a passage's own for one by secret passage
+(2026-10-01), the refutation cue, a bell when a decision becomes yours,
+an accent for an accusation and the end. No music. They are off until a viewer presses Sound in the header
 bar, which remembers the choice and the volume on that device
 (`static/sound.js`). A cue comes only from something new on the screen,
 once: never from a poll, a reload, talk or the replay's scrubber, and a
-batch of events makes one sound. The files are made, not recorded:
+batch of events makes one sound (a door or a passage plays beside it,
+not under it). The files are made, not recorded:
 
 ```powershell
 & .venv\Scripts\python.exe scripts\make_sounds.py

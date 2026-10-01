@@ -143,15 +143,59 @@
      that brings a move, a suggestion and its refutation makes one sound,
      not three on top of each other. `static/sound.js` does the playing
      and the muting; without it, or muted, this does nothing. */
-  var CUE_RANK = { accent: 3, refute: 2, turn: 1, tick: 0 };
+  var CUE_RANK = { accent: 4, refute: 3, turn: 2, door: 1, passage: 1, tick: 0 };
+  var BESIDE_MS = 500;
 
+  /* A door or a passage (2026-10-01) is not drowned by the batch's
+     loudest: it plays as the board swings the door, and anything louder
+     follows half a second later, in the door's held-open pause; a tick
+     beside it would only be the same move again. */
   function cue(names) {
     if (!window.cludeSound || !names.length) return;
+    var entry = null;
+    names.forEach(function (name) {
+      if (name === "passage" || (name === "door" && entry === null)) entry = name;
+    });
     var best = null;
     names.forEach(function (name) {
-      if (name && (best === null || CUE_RANK[name] > CUE_RANK[best])) best = name;
+      if (!name || name === "door" || name === "passage") return;
+      if (best === null || CUE_RANK[name] > CUE_RANK[best]) best = name;
     });
-    if (best) window.cludeSound.play(best);
+    if (entry) {
+      window.cludeSound.play(entry);
+      if (best && best !== "tick") window.setTimeout(function () { window.cludeSound.play(best); }, BESIDE_MS);
+    } else if (best) {
+      window.cludeSound.play(best);
+    }
+  }
+
+  /* --- doors and passages (2026-10-01) ----------------------------------- */
+
+  /* The door a token came in by swings open and shut (the stylesheet's
+     `opening`); a passage's two ends glow (`used`). Only for what is new
+     since the last paint, like the sound; never under Developer, whose
+     board has no leaves to swing. */
+  function restart(node, className) {
+    node.classList.remove(className);
+    void node.getBoundingClientRect();
+    node.classList.add(className);
+  }
+
+  function animateEntries(played) {
+    if (!svg) return;
+    played.forEach(function (event) {
+      if (event.door !== null && event.door !== undefined) {
+        var leaf = svg.querySelector('.board-door-leaf[data-door="' + event.door + '"]');
+        if (leaf) restart(leaf, "opening");
+      }
+      if (event.passage) {
+        Array.prototype.forEach.call(svg.querySelectorAll(".board-passage"), function (mark) {
+          if (mark.getAttribute("data-room") === event.passage || mark.getAttribute("data-to") === event.passage) {
+            restart(mark, "used");
+          }
+        });
+      }
+    });
   }
 
   /* --- rendering ------------------------------------------------------ */
@@ -1276,6 +1320,7 @@
        paint and on every reload, which is also a first paint. */
     var pendingKey = payload.pending ? payload.pending.kind + "#" + payload.pending.seq : null;
     if (!firstRender) {
+      animateEntries(fresh.played);
       var cues = fresh.played.map(function (event) { return event.cue; });
       if (pendingKey && pendingKey !== lastPendingKey) cues.push("turn");
       cue(cues);

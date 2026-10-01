@@ -265,7 +265,8 @@ def test_every_page_wears_the_account_s_look_and_the_bar_can_change_it(app, stor
 
 
 def test_the_sound_cues_are_served_short_and_start_muted(client):
-    """Phase 10g (plan 11.1). Four self-hosted cues, each a short mono
+    """Phase 10g (plan 11.1). Six self-hosted cues (the door and the
+    passage since 2026-10-01), each a short mono
     WAV; the shared player is served and remembers an off-by-default
     preference; the lobby has no sound control, since nothing there
     makes a sound. No music: nothing runs longer than a second and a half."""
@@ -273,7 +274,7 @@ def test_the_sound_cues_are_served_short_and_start_muted(client):
     import wave
 
     sign_in(client)
-    for name in ("tick", "turn", "refute", "accent"):
+    for name in ("tick", "turn", "refute", "accent", "door", "passage"):
         response = client.get(f"/static/sounds/{name}.wav")
         assert response.status_code == 200, name
         with wave.open(io.BytesIO(response.get_data())) as clip:
@@ -281,8 +282,8 @@ def test_the_sound_cues_are_served_short_and_start_muted(client):
             assert 0.05 <= clip.getnframes() / clip.getframerate() <= 1.5, name
     script = client.get("/static/sound.js").get_data(as_text=True)
     assert 'read(KEY_ON) === "1"' in script, "sound is off until the viewer turns it on"
-    for name in ("tick", "turn", "refute", "accent"):
-        assert name in script
+    for name in ("tick", "turn", "refute", "accent", "door", "passage"):
+        assert f'"{name}"' in script
     assert 'id="sound-toggle"' not in client.get("/").get_data(as_text=True)
 
 

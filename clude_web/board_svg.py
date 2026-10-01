@@ -14,11 +14,11 @@ Dressed (Phase 10f, plan section 8), the board gains shapes and still
 no paint: a floor pattern per room in a `<defs>` whose children carry
 classes (the stylesheet fills each room with its own and colours it;
 nine since 2026-10-01, four before), a brass hairline inside every
-wall, every door drawn as a floor plan draws one -- a leaf and the
-quarter circle it swings through, into the room (2026-10-01; a brass
-bar with a rivet at each end before, which read as more wall) -- an
-initial on every token, and the logo in the cellar where the wordmark
-was. An Engraved look asks for it; Legacy's sheet has no rules for any
+wall, every door a closed leaf across its doorway, hinged at one jamb
+so a page can swing it open as a token goes in (2026-10-01; a brass bar
+with a rivet at each end before, which read as more wall), a marker in
+the corner of each room a secret passage leaves from, an initial on
+every token, and the logo in the cellar where the wordmark was. An Engraved look asks for it; Legacy's sheet has no rules for any
 of it, so Legacy gets the board it was frozen with.
 
 Imports no Flask, so it can be tested and rendered on its own.
@@ -196,21 +196,54 @@ def _door_marker(room: str, cell: Square, square: Square) -> str:
     )
 
 
-def _door_swing(room: str, cell: Square, square: Square, hinge_at_start: bool) -> str:
-    """A door as a floor plan draws it (2026-10-01): the leaf, one cell
-    long, standing into the room from the hinge, and the quarter circle
-    it sweeps back to the other jamb. The doorway itself stays a gap in
-    the wall, so the opening reads as an opening."""
+def _door_leaf(index: int, room: str, cell: Square, square: Square, hinge_at_start: bool) -> str:
+    """A door, closed (2026-10-01): a leaf lying across the doorway from
+    its hinge to the other jamb, `data-door` its index in `board.DOORS`.
+    Its style carries the hinge as `transform-origin` and, as `--swing`,
+    the quarter turn that opens it into the room, so the stylesheet can
+    swing it open and shut as a token comes through -- geometry, never
+    paint."""
     door = _door_marker(room, cell, square)
     x1, y1, x2, y2 = (float(door.split(f'{name}="')[1].split('"')[0]) for name in ("x1", "y1", "x2", "y2"))
     (hx, hy), (ox, oy) = ((x1, y1), (x2, y2)) if hinge_at_start else ((x2, y2), (x1, y1))
     dx, dy = cell.col - square.col, cell.row - square.row  # into the room
-    tx, ty = hx + dx * CELL, hy + dy * CELL
-    # SVG's y runs down, so a positive cross product is clockwise: sweep 1.
-    sweep = 1 if (tx - hx) * (oy - hy) - (ty - hy) * (ox - hx) > 0 else 0
+    # Turning (ox - hx, oy - hy) by +90 degrees in SVG's y-down frame
+    # gives (-(oy - hy), ox - hx); if that points into the room, the
+    # door opens clockwise.
+    clockwise = (-(oy - hy), ox - hx) == (dx * CELL, dy * CELL)
     return (
-        f'<path class="board-door board-door-swing" data-room="{_escape(room)}" '
-        f'd="M{hx:g} {hy:g} L{tx:g} {ty:g} A{CELL} {CELL} 0 0 {sweep} {ox:g} {oy:g}"/>'
+        f'<line class="board-door board-door-leaf" data-door="{index}" data-room="{_escape(room)}" '
+        f'x1="{hx:g}" y1="{hy:g}" x2="{ox:g}" y2="{oy:g}" '
+        f'style="transform-origin: {hx:g}px {hy:g}px; --swing: {90 if clockwise else -90}deg"/>'
+    )
+
+
+def passage_cell(room: str) -> Square:
+    """The cell of `room` a secret passage's marker sits on: the one
+    farthest from the middle of the board, the room's outer corner, as
+    on the printed board."""
+    mid_row, mid_col = (board.N_ROWS - 1) / 2, (board.N_COLS - 1) / 2
+    return max(sorted(board.ROOM_CELLS[room]), key=lambda c: (c.row - mid_row) ** 2 + (c.col - mid_col) ** 2)
+
+
+def _passage_marker(room: str, to: str) -> str:
+    """A secret passage's mark (2026-10-01): a plate in the room's outer
+    corner with a flight of steps going down toward that corner, titled
+    with where it leads."""
+    cell = passage_cell(room)
+    x, y = _xy(cell)
+    # The steps are drawn going down toward the bottom-left; flipped to
+    # go down toward whichever corner this room is in.
+    sx = -1 if cell.col > (board.N_COLS - 1) / 2 else 1
+    sy = 1 if cell.row > (board.N_ROWS - 1) / 2 else -1
+    c = CELL / 2
+    return (
+        f'<g class="board-passage" data-room="{_escape(room)}" data-to="{_escape(to)}" '
+        f'transform="translate({x + c:g} {y + c:g}) scale({sx} {sy})">'
+        f"<title>Secret passage to the {_escape(to)}</title>"
+        f'<rect class="board-passage-plate" x="{-c + 2.5:g}" y="{-c + 2.5:g}" width="{CELL - 5:g}" height="{CELL - 5:g}"/>'
+        '<path class="board-passage-steps" d="M-6.5 6.5 V2.5 H-2.5 V-1.5 H1.5 V-5.5 H6.5"/>'
+        "</g>"
     )
 
 
@@ -363,11 +396,12 @@ def board_svg(tokens=None, *, title="The board", dressed=False) -> str:
         out.append("</g>")
 
     if dressed:
-        # Doors as a floor plan draws them: a leaf and its swing.
+        # Doors closed, each ready to swing open into its room.
         out.extend(
-            _door_swing(room, cell, square, hinge)
-            for (room, cell, square), hinge in zip(board.DOORS, _hinges())
+            _door_leaf(index, room, cell, square, hinge)
+            for index, ((room, cell, square), hinge) in enumerate(zip(board.DOORS, _hinges()))
         )
+        out.extend(_passage_marker(room, to) for room, to in sorted(board.SECRET_PASSAGES.items()))
     else:
         out.extend(_door_marker(room, cell, square) for room, cell, square in board.DOORS)
 

@@ -148,8 +148,8 @@ def test_the_board_is_well_formed_xml():
 def test_a_dressed_board_adds_shapes_and_still_no_paint():
     """Phase 10f (plan 8). Dressed, the board gains a floor pattern per
     room (nine, none alike, since 2026-10-01), a brass line inside every
-    wall, every door as a leaf and its swing (2026-10-01; a brass bar and
-    two rivets before), an initial on every token where the token
+    wall, every door a closed leaf that can swing (2026-10-01; a brass
+    bar and two rivets before), a secret passage's marker, an initial on every token where the token
     stands, and the logo in the cellar in place of the wordmark -- every
     shape classed, none coloured, the whole still well-formed."""
     tokens = {"Scarlett": "Hall", "Plum": Square(7, 4), "Peacock": "Hall"}
@@ -163,7 +163,7 @@ def test_a_dressed_board_adds_shapes_and_still_no_paint():
     assert len(set(bodies)) == len(board.ROOM_CELLS), "two rooms share a floor"
     walls = plain.count('class="board-wall"')
     assert dressed.count('class="board-wall"') == walls == dressed.count('class="board-wall-inner"')
-    assert dressed.count('class="board-door board-door-swing"') == len(board.DOORS)
+    assert dressed.count('class="board-door board-door-leaf"') == len(board.DOORS)
     assert 'class="board-door"' not in dressed and "board-rivet" not in dressed
     assert 'class="board-mark"' not in dressed and 'class="board-logo"' in dressed
     assert "board-engraved" in dressed and "board-engraved" not in plain
@@ -175,40 +175,8 @@ def test_a_dressed_board_adds_shapes_and_still_no_paint():
         assert f'data-suspect="{suspect}" x="0" y="0" style="transform: translate({x}px, {y}px)" aria-hidden="true">{letter}</text>' in dressed
     assert board_svg.INITIALS["Peacock"] != board_svg.INITIALS["Plum"], "two P's told apart"
     # Undressed, the board is exactly the one Legacy was frozen with.
-    for extra in ("board-initial", "board-door-swing", "board-wall-inner", "<defs>", "board-logo", "logo-", "floor-"):
+    for extra in ("board-initial", "board-door-leaf", "board-passage", "board-wall-inner", "<defs>", "board-logo", "logo-", "floor-"):
         assert extra not in plain
-
-
-def test_a_door_swings_into_its_room_from_a_jamb():
-    """A dressed door (2026-10-01) is drawn as a floor plan draws one:
-    hinged at one end of the doorway, its leaf one cell long and standing
-    into the room, the arc closing on the doorway's other end. The
-    Hall's two doors side by side hinge on their outer ends, a double
-    door, never on the jamb they share."""
-    dressed = board_svg.board_svg(dressed=True)
-    paths = [line for line in dressed.splitlines() if "board-door-swing" in line]
-    spans: dict = {}
-    for (room, cell, square), path in zip(board.DOORS, paths):
-        assert f'data-room="{room}"' in path
-        hx, hy, tx, ty, ox, oy = (
-            float(n) for n in re.match(r'.*d="M(\S+) (\S+) L(\S+) (\S+) A\S+ \S+ 0 0 [01] (\S+) (\S+)"', path).groups()
-        )
-        into = (cell.col - square.col, cell.row - square.row)
-        assert (tx - hx, ty - hy) == (into[0] * board_svg.CELL, into[1] * board_svg.CELL), f"{room}'s leaf"
-        edge = board_svg._door_marker(room, cell, square)
-        ends = {
-            tuple(float(edge.split(f'{n}="')[1].split('"')[0]) for n in pair) for pair in (("x1", "y1"), ("x2", "y2"))
-        }
-        assert {(hx, hy), (ox, oy)} == ends, f"{room}'s door does not span its doorway"
-        spans.setdefault(room, []).append(((hx, hy), (ox, oy)))
-    for room, doors in spans.items():
-        hinges = [hinge for hinge, _ in doors]
-        jambs = [end for door in doors for end in door]
-        shared = {end for end in jambs if jambs.count(end) > 1}
-        assert not shared & set(hinges), f"a pair of {room} doors hinged on the jamb they share"
-    assert any(len(doors) > 1 and len({e for d in doors for e in d}) < 2 * len(doors) for doors in spans.values()), (
-        "no double door left to test"
-    )
 
 
 def test_every_room_has_its_own_tint_in_both_themes():
@@ -223,6 +191,67 @@ def test_every_room_has_its_own_tint_in_both_themes():
         assert len({m.group(1).lower() for m in tints.values()}) == len(board.ROOM_CELLS)
     for room in board.ROOM_CELLS:
         assert f'.board-room[data-room="{room}"] rect {{ fill: url(#floor-{board_svg.room_slug(room)}); }}' in css
+
+
+def test_a_move_into_a_room_names_the_door_it_came_through():
+    """2026-10-01: the door a token walked in by is the one of that room
+    nearest where it stood (the engine keeps no path); a move by secret
+    passage, one ending in the corridor, or a stay has none. A
+    suggestion's summons moves a token without a door, and the next move
+    starts from the room it was summoned to."""
+    from clude_core.domain import Suggestion
+    from clude_core.events import MoveEvent, SuggestionEvent
+
+    suspects = ["Scarlett", "Mustard", "White"]
+    mustard = board.start_position("Mustard")
+    events = [
+        MoveEvent(1, 1, "Dining", False),          # Mustard walks in
+        MoveEvent(2, 1, "Dining", False),          # and stays
+        MoveEvent(3, 1, Square(16, 6), False),     # out to the corridor
+        MoveEvent(4, 0, "Lounge", False),
+        SuggestionEvent(4, Suggestion(0, "White", "Rope", "Lounge", None, 0, None)),
+        MoveEvent(5, 2, "Conservatory", True),     # White, summoned, takes the passage
+    ]
+    doors = replay_data.entry_doors(events, suspects)
+    assert doors[0] == replay_data.nearest_door(mustard, "Dining")
+    assert board.DOORS[doors[0]][0] == "Dining"
+    assert doors[1:3] == [None, None] and doors[5] is None
+    assert board.DOORS[doors[3]][0] == "Lounge"
+    assert [replay_data.event_cue(e, d) for e, d in zip(events, doors)] == [
+        "door", "tick", "tick", "door", "tick", "passage"
+    ]
+    # From the square outside a door, that door.
+    for index, (room, _cell, square) in enumerate(board.DOORS):
+        assert replay_data.nearest_door(square, room) == index
+
+
+def test_a_closed_door_swings_into_its_room_and_passages_are_marked():
+    """2026-10-01: dressed, a door is a closed leaf across its doorway,
+    hinged at a jamb (the Hall's pair at their outer ends), whose
+    quarter turn `--swing` opens it into the room; and each room a
+    secret passage leaves from has its marker in its outer corner."""
+    dressed = board_svg.board_svg(dressed=True)
+    leaves = [line for line in dressed.splitlines() if "board-door-leaf" in line]
+    assert len(leaves) == len(board.DOORS)
+    for index, ((room, cell, square), leaf) in enumerate(zip(board.DOORS, leaves)):
+        assert f'data-door="{index}" data-room="{room}"' in leaf
+        x1, y1, x2, y2 = (float(leaf.split(f'{n}="')[1].split('"')[0]) for n in ("x1", "y1", "x2", "y2"))
+        origin = leaf.split("transform-origin: ")[1].split(";")[0]
+        assert origin == f"{x1:g}px {y1:g}px", "the hinge is the leaf's first end"
+        swing = int(leaf.split("--swing: ")[1].split("deg")[0])
+        # The leaf turned by `swing` must point into the room.
+        vx, vy = x2 - x1, y2 - y1
+        turned = (-vy, vx) if swing == 90 else (vy, -vx)
+        assert turned == ((cell.col - square.col) * board_svg.CELL, (cell.row - square.row) * board_svg.CELL), room
+    hall = [leaf for leaf in leaves if 'data-room="Hall"' in leaf]
+    hinges = [leaf.split("transform-origin: ")[1].split(";")[0] for leaf in hall]
+    assert "288px 432px" not in hinges, "the Hall's pair hinged on the jamb they share"
+    for room, to in board.SECRET_PASSAGES.items():
+        assert f'class="board-passage" data-room="{room}" data-to="{to}"' in dressed
+        assert f"Secret passage to the {to}" in dressed
+        assert board_svg.passage_cell(room) in board.ROOM_CELLS[room]
+    plain = board_svg.board_svg()
+    assert "board-door-leaf" not in plain and "board-passage" not in plain
 
 
 def test_the_logo_is_the_keyhole_question_mark_in_every_place_it_goes():
@@ -393,8 +422,11 @@ def test_every_event_gets_a_frame_with_a_line_and_a_board():
     assert [f.index for f in frames] == list(range(len(frames)))
     # Each step names the sound Play makes on reaching it (Phase 10g),
     # the same cue the table gives the same event.
-    assert [f.cue for f in frames] == [replay_data.event_cue(e) for e in record.events]
-    assert {f.cue for f in frames if f.kind == "move"} == {"tick"}
+    doors = replay_data.entry_doors(record.events, replay_data.seat_names(record))
+    assert [f.cue for f in frames] == [replay_data.event_cue(e, d) for e, d in zip(record.events, doors)]
+    assert [f.door for f in frames] == doors
+    assert {f.cue for f in frames if f.kind == "move"} <= {"tick", "door", "passage"}
+    assert {f.cue for f in frames if f.kind == "move"} >= {"tick", "door"}
     assert {f.cue for f in frames if f.kind in ("over", "accusation")} <= {"accent"}
 
 

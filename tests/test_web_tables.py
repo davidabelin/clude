@@ -964,12 +964,16 @@ def test_a_cue_is_the_same_for_every_viewer_and_follows_the_line(app, ann, cat):
     names = tables.seat_names(game)
     mine = [tables.describe_for(e, game, names, 0) for e in game.events]
     theirs = [tables.describe_for(e, game, names, None) for e in game.events]
-    cues = [replay_data.event_cue(e) for e in game.events]
+    doors = replay_data.entry_doors(game.events, game.suspects)
+    cues = [replay_data.event_cue(e, d) for e, d in zip(game.events, doors)]
     assert mine != theirs, "the seat that was shown cards reads more than the spectator"
     kinds = {kind: set() for kind, _ in mine}
     for (kind, _), cue in zip(mine, cues):
         kinds[kind].add(cue)
-    assert kinds["move"] == {"tick"} and kinds["over"] == {"accent"}
+    assert {"tick", "door"} <= kinds["move"] <= {"tick", "door", "passage"} and kinds["over"] == {"accent"}
+    payload = poll(ann, table_id)
+    assert [e["cue"] for e in payload["events"]] == cues, "the payload's cues are the same"
+    assert [e["door"] for e in payload["events"]] == doors
     assert kinds.get("accusation", {"accent"}) == {"accent"}
     assert kinds["suggestion"] <= {"tick", "refute"}
     for event, cue in zip(game.events, cues):
@@ -977,6 +981,7 @@ def test_a_cue_is_the_same_for_every_viewer_and_follows_the_line(app, ann, cat):
             assert cue == ("refute" if event.suggestion.refuter is not None else "tick")
     assert replay_data.loudest_cue(["tick", None, "refute", "tick"]) == "refute"
     assert replay_data.loudest_cue(["tick", "accent", "refute"]) == "accent"
+    assert replay_data.loudest_cue(["tick", "door", "refute"]) == "refute"
     assert replay_data.loudest_cue([None, None]) is None
 
 

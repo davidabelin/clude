@@ -88,7 +88,7 @@ from clude_agents import AGENT_SPECS, build_agent
 from clude_agents.bandit import RevealedOutcome
 from clude_core import engine
 from clude_core.domain import ALL_CARDS, ROOMS, SUSPECTS, WEAPONS
-from clude_core.events import GameOverEvent, RemarkEvent, SuggestionEvent
+from clude_core.events import GameOverEvent, MoveEvent, RemarkEvent, SuggestionEvent
 from clude_llm.backend import DEFAULT_MODEL
 from clude_llm.metered import Ledger, MeteredBackend
 from clude_storage import GameRecord, Logbook, SeatRecord
@@ -688,7 +688,11 @@ def view_payload(
     # 10d): every RemarkEvent goes to Talk and everything else to the
     # Record, decided here so the split is one rule with a test. `line`
     # is what a balloon says without the speaker's name in front; `seat`
-    # is whose event it is, for the balloon's colour; `cue` is the sound it makes (10g).
+    # is whose event it is, for the balloon's colour; `cue` is the sound it makes (10g);
+    # `door` the door a move into a room came through and `passage` a move
+    # by secret passage, which the board animates (2026-10-01).
+    logged = game.events[:snap.n_events]
+    doors = replay_data.entry_doors(logged, game.suspects) if len(logged) > since else []
     events = [
         {
             "i": index,
@@ -699,9 +703,11 @@ def view_payload(
             "panel": "talk" if isinstance(event, RemarkEvent) else "record",
             "seat": replay_data.event_actor(event),
             "line": event.text if isinstance(event, RemarkEvent) else None,
-            "cue": replay_data.event_cue(event),
+            "cue": replay_data.event_cue(event, doors[index]),
+            "door": doors[index],
+            "passage": event.destination if isinstance(event, MoveEvent) and event.used_secret_passage else None,
         }
-        for index, event in enumerate(game.events[:snap.n_events])
+        for index, event in enumerate(logged)
         if index >= since
         for kind, text in [describe_for(event, game, names, viewer)]
     ]

@@ -118,6 +118,9 @@
   --board-floor: #CFC4AA;
   --board-wall: #6B5D49;
   --board-door: #A97B2C;
+  /* A closed door: wood, a step warmer and lighter than the wall it
+     sits in, so it shows without shouting (2026-10-01). */
+  --board-door-leaf: #C99D63;
   --board-cellar: #E9E2D3;
   --board-label: #5A4F40;
   /* Each room's floor tint (2026-10-01): pale and low in chroma, so the
@@ -165,6 +168,8 @@
   --dur-cut: 140ms;
   --dur-move: 220ms;
   --dur-impact: 420ms;
+  /* A door swung open and shut as a token goes in (2026-10-01). */
+  --dur-door: 1100ms;
   /* The one duration the switch leaves alone: with motion off an
      accusation still flashes, briefly, to opacity (plan 11). */
   --dur-flash: 80ms;
@@ -209,6 +214,7 @@
     --board-floor: #4A4350;
     --board-wall: #9A9186;
     --board-door: #D6A75A;
+    --board-door-leaf: #D9824A;
     --board-cellar: #1B181C;
     --board-label: #A9A090;
     --room-ballroom: #2E2620;
@@ -231,11 +237,11 @@
    set the attribute, reduced motion sets it too, and no rule below
    names a duration except through these tokens. */
 body[data-motion="off"] {
-  --dur-tick: 0s; --dur-cut: 0s; --dur-move: 0s; --dur-impact: 0s;
+  --dur-tick: 0s; --dur-cut: 0s; --dur-move: 0s; --dur-impact: 0s; --dur-door: 0s;
 }
 @media (prefers-reduced-motion: reduce) {
   :root {
-    --dur-tick: 0s; --dur-cut: 0s; --dur-move: 0s; --dur-impact: 0s;
+    --dur-tick: 0s; --dur-cut: 0s; --dur-move: 0s; --dur-impact: 0s; --dur-door: 0s;
   }
 }
 
@@ -748,19 +754,40 @@ button.warn[disabled] { opacity: 0.45; cursor: not-allowed; }
 .board-walls-inner { pointer-events: none; }
 .board-wall-inner { stroke: var(--brass); stroke-width: 0.8; stroke-linecap: square; }
 
-/* Doors as a floor plan draws them (2026-10-01): the gap in the wall,
-   the leaf and its swing in the red thread, the swept quarter faintly
-   shaded. The brass bar of 10f matched the walls' hairline and read as
-   more wall. */
-.board-door-swing {
-  fill: var(--accent);
-  fill-opacity: 0.14;
-  stroke: var(--accent);
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  shape-rendering: auto;
+/* Doors (2026-10-01): closed, a wooden leaf across the doorway, a shade
+   off the wall so it reads as a door and not as more wall. As a token
+   comes in through one, table.js and replay.js add `opening` and the
+   leaf swings into the room about its hinge (the transform-origin and
+   `--swing` the generator writes) and shut again. With motion off it
+   stays shut. */
+.board-door-leaf {
+  stroke: var(--board-door-leaf);
+  stroke-width: 3;
+  stroke-linecap: butt;
   pointer-events: none;
+}
+.board-door-leaf.opening { animation: door-swing var(--dur-door) var(--ease-panel) 1; }
+@keyframes door-swing {
+  0%, 100% { transform: rotate(0deg); }
+  30%, 65% { transform: rotate(var(--swing, 90deg)); }  /* --swing: from the SVG */
+}
+
+/* A secret passage (2026-10-01): a sunk plate in the room's outer
+   corner with a flight of steps going down; both ends glow as a token
+   takes it. */
+.board-passage { pointer-events: none; }
+.board-passage-plate { fill: var(--board-void); stroke: var(--board-wall); stroke-width: 1; }
+.board-passage-steps {
+  fill: none;
+  stroke: var(--brass);
+  stroke-width: 1.6;
+  stroke-linejoin: miter;
+  shape-rendering: auto;
+}
+.board-passage.used .board-passage-plate { animation: passage-glow var(--dur-door) var(--ease-panel) 1; }
+@keyframes passage-glow {
+  0%, 100% { stroke: var(--board-wall); stroke-width: 1; }
+  30%, 65% { stroke: var(--accent); stroke-width: 2.5; }
 }
 
 /* Every token carries its initial in the ink that sits on its colour,

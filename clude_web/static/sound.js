@@ -1,10 +1,11 @@
 /* Sound effects (Phase 10g, docs/phase10-plan.md 11.1).
  *
- * Four short cues, self-hosted under static/sounds/ and made by
+ * Six short cues, self-hosted under static/sounds/ and made by
  * scripts/make_sounds.py: `tick` (a move, or a suggestion nobody could
  * disprove), `refute` (a suggestion somebody disproved), `turn` (a
- * decision just became yours) and `accent` (an accusation, the end).
- * No music.
+ * decision just became yours), `accent` (an accusation, the end), and
+ * since 2026-10-01 `door` (a token going into a room through a door)
+ * and `passage` (one taking a secret passage). No music.
  *
  * The rules, all kept here or by the pages that call `play`:
  * - Muted until the viewer turns it on; the toggle and the volume are
@@ -27,8 +28,8 @@
 
   var KEY_ON = "clude.sound.on";
   var KEY_VOLUME = "clude.sound.volume";
-  var NAMES = ["tick", "turn", "refute", "accent"];
-  var RANK = { tick: 0, turn: 1, refute: 2, accent: 3 };
+  var NAMES = ["tick", "turn", "refute", "accent", "door", "passage"];
+  var RANK = { tick: 0, door: 1, passage: 1, turn: 2, refute: 3, accent: 4 };
   var GAP_MS = 150;
   var DEFAULT_VOLUME = 0.6;
 

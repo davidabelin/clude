@@ -24,6 +24,7 @@ live. Fixing that is out of scope for 8.1.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 from datetime import datetime, timezone
 
 import clude_constraints
@@ -84,6 +85,12 @@ class EventFrame:
     cue : str or None
         The sound the step makes when Play reaches it (`event_cue`,
         Phase 10g).
+    door : int or None
+        For a move into a room through a door, that door's index in
+        `board.DOORS` (`entry_doors`, 2026-10-01): the one the board
+        swings open as the token goes in.
+    passage : str or None
+        For a move by secret passage, the room it came out in.
     """
 
     index: int
@@ -93,6 +100,8 @@ class EventFrame:
     positions: dict
     k: int
     cue: str | None = None
+    door: int | None = None
+    passage: str | None = None
 
 
 def suggestion_line(suggestion, suspects, reveal: bool = True) -> str:
@@ -170,6 +179,7 @@ def event_frames(record) -> list:
     """
     suspects = seat_names(record)
     positions = {s: board.start_position(s) for s in suspects}
+    doors = entry_doors(record.events, suspects)
     frames = []
     k = 0
 
@@ -190,10 +200,74 @@ def event_frames(record) -> list:
                 text=text,
                 positions=dict(positions),
                 k=k,
-                cue=event_cue(event),
+                cue=event_cue(event, doors[index]),
+                door=doors[index],
+                passage=event.destination if isinstance(event, MoveEvent) and event.used_secret_passage else None,
             )
         )
     return frames
+
+
+@lru_cache(maxsize=None)
+def _corridor_steps(start) -> dict:
+    """Corridor square -> steps from `start` (a square, or a room left by
+    any of its doors), walking corridor squares only."""
+    dist = {}
+    frontier = list(board.neighbors(start)) if isinstance(start, str) else [start]
+    frontier = [n for n in frontier if not isinstance(n, str)]
+    for node in frontier:
+        dist[node] = 0 if node == start else 1
+    while frontier:
+        nxt = []
+        for node in frontier:
+            for nb in board.neighbors(node):
+                if not isinstance(nb, str) and nb not in dist:
+                    dist[nb] = dist[node] + 1
+                    nxt.append(nb)
+        frontier = nxt
+    return dist
+
+
+def nearest_door(start, room: str):
+    """The index in `board.DOORS` of the door of `room` nearest `start`:
+    the one a token from there walked in by, since the engine keeps no
+    path and a move is the whole roll along some shortest way. Ties go
+    to the door listed first. None when `start` is not a node of this
+    board (a ring-era record)."""
+    try:
+        steps = _corridor_steps(start)
+    except TypeError:
+        return None
+    best = None
+    for index, (door_room, _cell, square) in enumerate(board.DOORS):
+        if door_room != room or square not in steps:
+            continue
+        if best is None or steps[square] < steps[board.DOORS[best][2]]:
+            best = index
+    return best
+
+
+def entry_doors(events, suspects) -> list:
+    """For every event, the door a move came into a room through, as an
+    index in `board.DOORS`, or None (2026-10-01): None for anything but a
+    move, a move that ends in the corridor, by secret passage, or that
+    stays put. `suspects` is the seat -> token list. Folds the tokens'
+    places as `event_frames` does, a suggestion's summons included, since
+    the door depends on where the token stood before."""
+    positions = {s: board.start_position(s) for s in suspects}
+    out = []
+    for event in events:
+        door = None
+        if isinstance(event, MoveEvent):
+            who = suspects[event.player]
+            before, after = positions.get(who), event.destination
+            if isinstance(after, str) and not event.used_secret_passage and before != after:
+                door = nearest_door(before, after)
+            positions[who] = after
+        elif isinstance(event, SuggestionEvent) and event.suggestion.suspect in positions:
+            positions[event.suggestion.suspect] = event.suggestion.room
+        out.append(door)
+    return out
 
 
 def seat_method(label: str) -> str:
@@ -237,15 +311,19 @@ def event_actor(event):
     return None
 
 
-def event_cue(event):
+def event_cue(event, door=None):
     """The sound an event makes (Phase 10g, plan 11.1), or None: a tick
     for a move and for a suggestion nobody could disprove, the
     refutation cue for one somebody did, the accent for an accusation
     and for the end. Talk is silent. Made from the event alone, never
     from who saw which card, so a cue tells nobody more than the line
-    it goes with."""
+    it goes with. Since 2026-10-01 a move into a room makes the door
+    (`door`, from `entry_doors`, says it came through one) or the
+    passage's own sound."""
     if isinstance(event, MoveEvent):
-        return "tick"
+        if event.used_secret_passage:
+            return "passage"
+        return "door" if door is not None else "tick"
     if isinstance(event, SuggestionEvent):
         return "refute" if event.suggestion.refuter is not None else "tick"
     if isinstance(event, (AccusationEvent, GameOverEvent)):
@@ -253,10 +331,11 @@ def event_cue(event):
     return None
 
 
-CUE_RANK = {"tick": 0, "turn": 1, "refute": 2, "accent": 3}
+CUE_RANK = {"tick": 0, "door": 1, "passage": 1, "turn": 2, "refute": 3, "accent": 4}
 """Which cue wins when several land at once (`static/sound.js` ranks
 them the same way): the accent over a refutation over the turn cue
-over a tick."""
+over a door or a passage over a tick. The table plays a door or a
+passage beside the batch's loudest rather than under it."""
 
 
 def loudest_cue(cues):
@@ -424,6 +503,8 @@ def screen_payload(record, trace: dict) -> dict:
                 "text": frame.text,
                 "k": frame.k,
                 "cue": frame.cue,
+                "door": frame.door,
+                "passage": frame.passage,
                 "tokens": {
                     suspect: [round(v, 2) for v in point]
                     for suspect, point in board_svg.token_points(frame.positions).items()

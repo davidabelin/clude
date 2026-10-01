@@ -167,6 +167,29 @@
     showPlaying();
   }
 
+  /* As Play reaches a move into a room (2026-10-01), the door it came
+     in by swings open and shut, or a passage's two ends glow, as on the
+     table. Play only, like the sound. */
+  function restart(node, className) {
+    node.classList.remove(className);
+    void node.getBoundingClientRect();
+    node.classList.add(className);
+  }
+
+  function animateEntry(frame) {
+    if (frame.door !== null && frame.door !== undefined) {
+      var leaf = document.querySelector('.board-door-leaf[data-door="' + frame.door + '"]');
+      if (leaf) restart(leaf, "opening");
+    }
+    if (frame.passage) {
+      Array.prototype.forEach.call(document.querySelectorAll(".board-passage"), function (mark) {
+        if (mark.getAttribute("data-room") === frame.passage || mark.getAttribute("data-to") === frame.passage) {
+          restart(mark, "used");
+        }
+      });
+    }
+  }
+
   function stepForward() {
     playTimer = null;
     if (!playing) return;
@@ -175,6 +198,7 @@
     go(next);
     /* Sound (Phase 10g): only Play reaching a step makes one; the
        scrubber, the arrow keys and the first paint stay silent. */
+    animateEntry(frames[next]);
     if (window.cludeSound && frames[next].cue) window.cludeSound.play(frames[next].cue);
     if (next >= frames.length - 1) { pause(); return; }
     playTimer = window.setTimeout(stepForward, stepMs());

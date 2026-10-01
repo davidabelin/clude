@@ -895,7 +895,7 @@ def test_sound_starts_muted_is_remembered_and_never_repeats_a_cue(page):
 
     page.locator(".board-target").first.click()
     page.wait_for_function("() => window.cludeSound.played.length > 0", timeout=30000)
-    assert set(page.evaluate("() => window.cludeSound.played")) <= {"tick", "turn", "refute", "accent"}
+    assert set(page.evaluate("() => window.cludeSound.played")) <= {"tick", "turn", "refute", "accent", "door", "passage"}
 
     page.goto(f"{page.base}/replay/{RUN}/0")
     page.wait_for_selector(".board-token")
