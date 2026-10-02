@@ -276,6 +276,21 @@ def test_facts_mathematics_and_a_literal_dollar():
     assert '<div class="math-block"><math' in block.html and 'display="block"' in block.html
 
 
+@pytest.mark.parametrize("delimiter", ("$", "$$"))
+def test_values_in_mathematics_are_resolved_and_tracked(delimiter):
+    latex = "N = {{code:certainty.triples}}, x = {{fact:bench.grid.Plum.50}}"
+    text = f"$$ {latex} $$" if delimiter == "$$" else f"${latex}$"
+    out = _render(text)
+    assert "<mn>324</mn>" in out.html and "<mn>1.75</mn>" in out.html
+    assert out.ctx.codes == {"certainty.triples"}
+    assert out.ctx.facts == {"bench.grid.Plum.50"}
+    assert "code:" not in out.html and "fact:" not in out.html
+    for kind in ("code", "fact"):
+        bad = "{{" + kind + ":no.such.value}}"
+        with pytest.raises(WikiError, match="no " + kind):
+            _render(delimiter + bad + delimiter)
+
+
 def test_a_mistake_in_an_article_is_an_error_not_a_broken_page():
     for bad in (
         "A fact {{fact:no.such.fact}}.",

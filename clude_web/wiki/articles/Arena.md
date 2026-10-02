@@ -1,13 +1,13 @@
 ---
 title: Arena
-short: Complete games between the characters, counted
+short: Evaluation of characters in complete seeded games
 categories: Measurement
 redirects: The arena, Arenas
 kind: stub
 ---
-The **arena** is where the characters are measured as players: complete games, usually 24 to a run, at tables of three to six, with the same deals and dice replayed whenever one setting is changed so that runs can be compared game for game. It records who won, who [[accusation|accused]] wrongly and when, and how many of their own cards each player gave away.[^cli]
+The **arena** evaluates characters by playing complete games, commonly 24 per run at tables of three to six. Seeded runs reuse deals and dice to support comparisons when settings change. The output records wins, wrong [[accusation|accusations]], accusation timing and card disclosures.[^cli] A changed setting can alter later play, so a paired seed does not guarantee an identical sequence of decisions.
 
-Its numbers are noisier than they look. A character plays 16 to 20 of a run's 24 games, so a win rate carries an uncertainty of {{fact:arena.noise}} points, and characters have moved that far between runs in which nothing of theirs was changed.[^glossary] The arena on the [[Classic board]] is tabulated at [[Professor Plum#At the table|Professor Plum]].
+A character typically plays only 16 to 20 games in a 24-game run. The estimated standard error of a win percentage is {{fact:arena.noise}} percentage points, and changing the opposition can move results even when that character's own settings stay fixed.[^glossary] The [[Classic board]] results are tabulated at [[Professor Plum#At the table|Professor Plum]].
 
 ## References
 

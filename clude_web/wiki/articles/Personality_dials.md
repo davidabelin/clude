@@ -5,13 +5,13 @@ categories: Personality
 redirects: Dials, Personality, Presets, Accusation threshold, Accuse threshold, Bluff rate, Curiosity, Secrecy, Temperature
 kind: stub
 ---
-The **personality dials** are five numbers that decide what a character does with its [[belief]]. Two characters given identical probabilities will still play differently if their dials differ; the dials are the temperament and the [[Category:Methods|method]] is the mind.[^personality]
+The **personality dials** are five numerical settings governing how a character uses its [[belief]] to play. They control accusation timing, held-card suggestions, movement priorities, disclosure choices and randomness. Characters with identical probability estimates can therefore make different decisions.[^personality]
 
 | Dial | Decides | Meaning |
 |---|---|---|
 | **Accusation threshold** | when to [[accusation|accuse]] | The character accuses once its own estimate of being right reaches this. |
-| **Bluff rate** | what to [[suggestion|suggest]] | The chance of naming one of its own cards in a suggestion. |
-| **Curiosity** | where to move | At 1 it heads for the room it most suspects; at 0 it enters the nearest. |
+| **Bluff rate** | what to [[suggestion|suggest]] | The chance of selecting a held card when choosing the suspect or weapon. |
+| **Curiosity** | where to move | Balances the value of investigating a room against the distance needed to reach it. |
 | **Secrecy** | which card to show | How strongly it prefers to show a card that has been seen before. |
 | **Temperature** | all of its choices | How much chance enters a choice; at 0 it always takes its top-scoring option. |
 
@@ -24,7 +24,7 @@ The **personality dials** are five numbers that decide what a character does wit
 | [[Mrs. Peacock]] | {{code:preset.Peacock.accuse_threshold}} | {{code:preset.Peacock.bluff_rate}} | {{code:preset.Peacock.curiosity}} | {{code:preset.Peacock.secrecy}} | {{code:preset.Peacock.temperature}} |
 | [[Professor Plum]] | {{code:preset.Plum.accuse_threshold}} | {{code:preset.Plum.bluff_rate}} | {{code:preset.Plum.curiosity}} | {{code:preset.Plum.secrecy}} | {{code:preset.Plum.temperature}} |
 
-The settings in the second table are the characters' *presets*, read from the code as this page was built. Mrs. Peacock's threshold is applied to her lower bound, the Dempster-Shafer belief, and not to a probability. Each dial will have an article of its own.
+The settings in the second table are the characters' *presets*, read from the code as this page was built. Mrs. Peacock's accusation threshold uses a product of Dempster–Shafer belief bounds rather than her reported decision probabilities. These five settings are distinct from the model-wrapper settings for leash, chattiness and narrative memory.
 
 ## References
 

@@ -1,42 +1,42 @@
 ---
 title: Decision tree
-short: Colonel Mustard's method: a tree of questions grown from past games
+short: Colonel Mustard's probability model trained on features from past games
 categories: Methods
 redirects: Decision trees, Mustard's method, Regression tree, CART, Decision tree learning
-dyk: ... that [[Colonel Mustard]]'s whole method is {{code:mustard.tree.leaves}} numbers at the ends of {{code:mustard.tree.nodes}} questions, and that it was grown from {{code:mustard.tree.games}} games it watched?
+dyk: ... that [[Colonel Mustard]]'s tree has {{code:mustard.tree.nodes}} nodes, including {{code:mustard.tree.leaves}} leaves, and is trained on {{code:mustard.tree.games}} self-play games?
 dyk: ... that on the Rope question Mustard's [[decision tree]] asks the same {{code:example.mustard.questions}} questions about all four open cards and reaches the same answer for each?
 ---
 {{infobox
 title: Decision tree
 Played by | [[Colonel Mustard]]
-In a phrase | Pattern-matches; confidently wrong on unusual deals
+In a phrase | Estimates from patterns in training games
 Module | `decision_tree.py`
 Evidence used | {{code:mustard.tree.features}} measurements of each card's situation
 Assumes | The games it was grown from are like the game it is in
-Cost | About {{fact:bench.grid.Mustard.ms}} ms a call
+Cost | About {{fact:bench.grid.Mustard.ms}} ms a call at the Classic-board halfway checkpoint
 = The tree, as grown
 Questions | {{code:mustard.tree.nodes}} nodes, {{code:mustard.tree.leaves}} leaves, depth {{code:mustard.tree.depth}}
 Grown from | {{code:mustard.tree.rows}} rows of {{code:mustard.tree.games}} games
 }}
 
-A **decision tree** is the method by which [[Colonel Mustard]] forms his [[belief]] about what is in [[the envelope]]. It is a [[w:Decision tree learning|tree of yes-or-no questions]] about a card: how many players could still hold it, how often it has been named and by how many different players, how far the game has run. Each answer leads to the next question, and the last leads to a number, the share of cards in past games that gave the same answers and turned out to be the envelope's. The tree is not written; it is *grown*, by a program that reads the records of games already played and finds the questions that best separate the envelope's cards from the rest. Mustard's is grown from {{code:mustard.tree.games}} games played out between purely logical players, and with a [[logbook]] it is regrown from every game since.[^glossary]
+A **decision tree** estimates an answer by following a sequence of yes-or-no questions. [[Colonel Mustard]] uses one to form his [[belief]] about the cards in [[the envelope]]. The questions describe a card's situation: possible holders, how often it has been named and the stage of the game. Each sequence ends at a *leaf*, which assigns a score based on training examples with similar features. The [[deduction floor]] then masks and normalises these scores into card probabilities.[^module][^base]
 
-The method reasons by resemblance. It does not count deals, as [[Professor Plum]] does, or multiply evidence, as [[Miss Scarlett]] does; it asks whether cards *like this one* were usually the envelope's, and answers with the confidence that experience of many games gives. That is its strength at the end of a game, where the patterns are strong and it has the best belief of the six, and its weakness in the middle, where an unusual deal matches a pattern it has no business matching and the tree is, in the project's phrase, "confidently wrong".[^glossary]
+Mustard's default tree is trained on {{code:mustard.tree.games}} floor-bot self-play games. When method memory is enabled, it is retrained with additional stored-game examples. Training chooses the questions rather than a programmer specifying them all. The method is inexpensive to consult, but its accuracy depends on how well those features and training games represent the current position.[^module]
 
-Decision trees are one of the oldest and most used tools in [[w:Machine learning|machine learning]], valued for being fast to consult and easy to read: the whole of what Mustard believes can be printed on a page and followed by hand.[^cart]
+[[w:Decision tree learning|Decision trees]] are widely used in [[w:Machine learning|machine learning]] because their paths can be inspected and followed by hand.[^cart] In the recorded Classic-board benchmark, Mustard had the lowest final log-loss of the six methods. The earlier ring-board run also gave him the lowest final loss, but substantially worse mid-game results. These outcomes show the importance of training data and evaluation conditions.[^glossary]
 
 ## At the table
 
 !!! example "Worked example: the Rope question"
     {{figure:mustard-path|The questions the trained tree asked about Mrs. Peacock's card in the Rope question, and the leaf it reached.}}
 
-    Late in a three-handed game Mustard's [[detective notepad|notepad]] has every card placed except four: of the suspects, **Mrs. White** or **Mrs. Peacock** is in the envelope; of the weapons, the **Rope** or the **Wrench**. [[Mr. Green]] has just suggested *Mrs. Peacock, with the Rope, in the Hall*, and Mustard himself showed him a card. The game is at turn 30.
+    An observer at a three-handed table has every card placed except four: **Mrs. White**, **Mrs. Peacock**, the **Rope** and the **Wrench**. One suspect and one weapon are in the envelope; the alternatives are in [[Colonel Mustard]]'s hand. [[Mr. Green]] suggests *Mrs. Peacock, with the Rope, in the Hall*, whose room card is known to be in Green's hand. Mustard shows Green a card the observer cannot see. At turn 30, Mustard's tree is evaluated on this observer's view, not on Mustard's own private hand. This is the same comparison position used by the other method articles.
 
     For each of the four open cards the tree asks its questions. For Mrs. Peacock's card: has it been named at most {{code:example.mustard.step.1.threshold}} times? {{code:example.mustard.step.1.answer}}, once. Named without being disproved at most {{code:example.mustard.step.2.threshold}} times? {{code:example.mustard.step.2.answer}}, never. Named by at most {{code:example.mustard.step.3.threshold}} players? {{code:example.mustard.step.3.answer}}, by one. Are at most {{code:example.mustard.step.4.threshold}} of the possible holders still possible for it? {{code:example.mustard.step.4.answer}}: two of the four (Mustard and the envelope), which is {{code:example.mustard.step.4.value}}. At most {{code:example.mustard.step.5.threshold}}? {{code:example.mustard.step.5.answer}}. Is the game at most {{code:example.mustard.step.6.threshold}} of the way through its first fifty turns? {{code:example.mustard.step.6.answer}}. The {{code:example.mustard.questions}} answers end at a leaf that says **{{code:example.mustard.leaf}}**: of the {{code:example.mustard.leaf.n}} cards in the training games that answered the same way, about that share were the envelope's.
 
-    Mrs. White's card answers every question the same way, so does the Rope, and so does the Wrench. All four reach the same leaf, and when the four raw numbers are turned into probabilities within each category every open card is at **{{code:example.mustard.White}}**. The overheard answer, which told [[Professor Plum]] exactly that Mrs. White is at {{code:example.plum.White}}, has told Mustard nothing at all.
+    Mrs. White's card answers every question the same way, so does the Rope, and so does the Wrench. All four reach the same leaf, and when the four raw numbers are turned into probabilities within each category every open card is at **{{code:example.mustard.White}}**. The same disproof gives Mrs. White probability {{code:example.plum.White}} under [[Professor Plum]]'s count. On this path, the tree makes no corresponding distinction.
 
-The tree does have a question that could have told the cards apart, whether a card is in an open "one of these" fact, and it asks it elsewhere in the tree. On this path it never gets there. That is the method in one example: it answers from the questions experience taught it to ask, and the right question is not always among them.
+One available feature counts a card's involvement in open disjunctions. It would distinguish the two named cards from the alternatives, but this path does not test it. The tree uses only the features selected along the path, even when another feature matters in the current position.
 
 ## How it works
 
@@ -81,7 +81,7 @@ which is 0 for a pure group and largest, $1/2$, for an even mixture. A candidate
 
 $$ \Delta = G_{\text{parent}} - \frac{n_L\, G_L + n_R\, G_R}{n_L + n_R} $$
 
-and the split with the largest gain is taken. Candidate cuts are the midpoints between consecutive distinct values of each measurement, so the tree's thresholds, {{code:example.mustard.step.1.threshold}} for "times named" at the root, are halfway points between values that occurred.[^cart]
+and the split with the largest gain is taken. Candidate cuts are the midpoints between consecutive distinct values of each measurement, so the tree's thresholds, such as {{code:example.mustard.step.1.threshold}} for "times named" on the illustrated path, are halfway points between values that occurred.[^cart]
 
 ### The leaf value
 
@@ -93,7 +93,7 @@ where $r$ is the whole training set's base rate and $m$ the number of phantom ro
 
 ### Why it is called a regression tree
 
-The tree predicts a number in $[0, 1]$, not a class, which is what makes it a regression tree rather than a classifier; but its labels are 0 and 1 and its splits are chosen by a classification criterion. In practice it is a [[w:Probabilistic classification|probability estimator]], and its probabilities are known to be poorly [[w:Calibration (statistics)|calibrated]] in the way trees usually are: a leaf's value is the average over whatever mixture of situations reached it, confident in proportion to its size and not to its relevance.[^cart]
+The implementation calls the model a regression tree because its leaves return numerical scores. With binary labels, Gini-based splits and smoothed class frequencies, it also acts as a [[w:Probabilistic classification|probability estimator]]. A leaf summarises the training rows that reached it, not a count of deals consistent with the current evidence. The resulting probabilities need not be well [[w:Calibration (statistics)|calibrated]], especially when the current games differ from the training regime.[^module]
 
 ## In clude
 
@@ -107,7 +107,7 @@ The tree is only as good as the games it was grown from, and the first tree was 
 
 ### Memory
 
-Mustard is one of three characters whose method itself remembers. With a logbook, rows built from every seat's view of every stored game, at the same two checkpoints, are appended to the self-play base before the tree is grown, and the tree is grown afresh for him at each table. He learns from games he did not sit in, since a row is a row. Rebuilt from {{fact:mustard.memory.games}} stored games ({{fact:mustard.memory.rows}} rows) and scored on {{fact:mustard.memory.held_out}} held-out games, a first and noisy look: his mid-game [[log-loss]] went from {{fact:mustard.memory.mid.before}} to {{fact:mustard.memory.mid.after}}, better, and his end-of-game score from {{fact:mustard.memory.end.before}} to {{fact:mustard.memory.end.after}}, worse. The tree with memory pattern-matches three-seat character games rather than floor-bot self-play, which, as the notes observe, is the character.[^memory]
+Mustard has persistent method memory. When it is enabled, rows from stored games are appended to the self-play training set, and his tree is rebuilt for each table. Rows include every seat's view, so he can learn from games he did not play. An initial comparison added {{fact:mustard.memory.rows}} rows from {{fact:mustard.memory.games}} stored games and evaluated {{fact:mustard.memory.held_out}} held-out games. Mid-game log-loss improved from {{fact:mustard.memory.mid.before}} to {{fact:mustard.memory.mid.after}}, while final loss worsened from {{fact:mustard.memory.end.before}} to {{fact:mustard.memory.end.after}}. This small experiment gives mixed evidence of benefit and changes the training distribution from floor-bot self-play towards character games.[^memory]
 
 ## Measured
 
@@ -119,22 +119,22 @@ On the ring board the tree had the best belief of the six at the end of a game, 
 
 {{table:bench.grid|The same benchmark on the Classic board, {{fact:bench.grid.games}} games, 15 September 2026.}}
 
-On the Classic board the tree, now grown from games on that board, matches the baseline in the middle ({{fact:bench.grid.Mustard.50}} to {{fact:bench.grid.uniform.50}}) and is the best method at the end, {{fact:bench.grid.Mustard.100}}, with the best first choice, {{fact:bench.grid.Mustard.top1}}. The notes put it as "the same method on data that suits it better".[^grid]
+In the Classic-board benchmark, with the tree trained on that board, halfway loss was {{fact:bench.grid.Mustard.50}}, compared with the baseline's {{fact:bench.grid.uniform.50}}. Final loss was {{fact:bench.grid.Mustard.100}}, the lowest of the six methods, and final first-choice accuracy was {{fact:bench.grid.Mustard.top1}}, the highest. The improved results are consistent with training on a more suitable game distribution, although several aspects of the regime changed together.[^grid]
 
 ### At the table
 
 {{table:arena.grid|The six characters over {{fact:arena.grid.games}} games on the Classic board at their tuned presets, 15 September 2026.}}
 
-Mustard's wrong accusations are the tree's. His [[accusation threshold]] is the neutral {{code:preset.Mustard.accuse_threshold}} on purpose, so that when he is wrong the method is to blame and not a dial. On the ring board the tree put him out of {{fact:arena.ring.first.Mustard.wrong}}% of his games at the first pass and {{fact:arena.ring.Mustard.wrong}}% at the tuned presets; on the Classic board, {{fact:arena.grid.Mustard.wrong}}%.[^arena][^ringarena]
+Mustard uses the neutral [[accusation threshold]] of {{code:preset.Mustard.accuse_threshold}} to keep the method's effect visible without an unusually low or high threshold. Wrong accusations still depend on both the estimates and this decision rule. He accused wrongly in {{fact:arena.ring.first.Mustard.wrong}}% of games in the first ring-board arena, {{fact:arena.ring.Mustard.wrong}}% with tuned presets, and {{fact:arena.grid.Mustard.wrong}}% in the tabulated Classic-board arena.[^arena][^ringarena]
 
-With [[Claude]] in his seat at a table where every character had one, his wrong accusations fell from {{fact:twin.grid.Mustard.wrong_base}}% to {{fact:twin.grid.Mustard.wrong_llm}}% and his wins rose from {{fact:twin.grid.Mustard.win_base}}% to {{fact:twin.grid.Mustard.win_llm}}%, on both boards. The obvious reading, that a judgement layer rescues a pattern-matcher from its confident errors, did not survive the ladder that tested it: alone with Claude at a table of headless characters, his wrong rate at the preset [[leash]] was {{fact:ladder.mustard.0.25.wrong}}% against {{fact:ladder.mustard.headless.wrong}}% without, and his wins did not move at any leash. What improved him in the twin run was the table, five other model-piloted seats ending games sooner.[^twin][^ladder]
+In the Classic-board twin comparison, with [[Claude]] piloting every character, Mustard's wrong-accusation rate fell from {{fact:twin.grid.Mustard.wrong_base}}% to {{fact:twin.grid.Mustard.wrong_llm}}%, and wins rose from {{fact:twin.grid.Mustard.win_base}}% to {{fact:twin.grid.Mustard.win_llm}}%.[^twin] A separate ring-board leash experiment, with only Mustard model-piloted, did not reproduce that reduction: at the preset [[leash]], his wrong rate was {{fact:ladder.mustard.0.25.wrong}}%, compared with {{fact:ladder.mustard.headless.wrong}}% headless.[^ladder] The project attributes much of the twin-run improvement to other model-piloted seats ending games earlier. The trials do not isolate a reliable benefit from model judgement alone.
 
 ## Limitations
 
 - **It matches patterns, not deals.** The tree has no notion of a deal's consistency; the floor supplies what is certain and the tree guesses the rest from resemblance.
 - **Its confidence is the training set's, not the position's.** A leaf is as sure as its rows were, whatever the present deal is like. This is the mid-game error, measured.
 - **The questions are fixed by what the training games showed.** A fact that mattered rarely in those games is asked about rarely in the tree, however much it matters now; the Rope question is an example.
-- **It is only ever as good as its past is like the present.** Grown from floor-bot games it is at its best against floor bots; grown from character games it changes, in behaviour and not only in accuracy, and so does the character. In the vocabulary of machine learning the tree is exposed to [[w:Overfitting|overfitting]] and to shift in the distribution it was trained on, and its depth and leaf size are the only guards.
+- **Training and play can differ.** Changing the board, opponents or stored-game data can change accuracy. Depth limits, minimum leaf sizes and smoothing help control [[w:Overfitting|overfitting]], but do not guarantee performance under a different distribution.
 
 ## See also
 

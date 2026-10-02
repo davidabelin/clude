@@ -1,13 +1,13 @@
 ---
 title: Accusation
-short: The guess that ends the game, one way or the other
+short: A final claim about the envelope that wins or eliminates its maker
 categories: The game
 redirects: Accuse, Accusations
 kind: stub
 ---
-An **accusation** is a player's claim to know what is in [[the envelope]]: a suspect, a weapon and a room, named together at the end of the player's own turn. Unlike a [[suggestion]] it may name any room, it is checked against the envelope itself, and it can be made only once in earnest. If it is right the player wins. If it is wrong the player is out: they take no more turns, though they keep their cards and must go on showing them when asked.[^engine]
+An **accusation** names the suspect, weapon and room a player believes are in [[the envelope]]. It is made at the end of that player's turn and may name any room, unlike a [[suggestion]]. The engine checks it against the envelope. A correct accusation wins the game; an incorrect one eliminates the player from further turns. An eliminated player keeps their cards and must still show a matching card when asked.[^engine]
 
-When to accuse is the sharpest decision in the game, since waiting for certainty loses races and guessing early loses games. Each character has a dial for it, its [[accusation threshold]].
+Accusing early risks elimination, while waiting for proof can let another player win first. Each numerical character uses an [[accusation threshold]] to govern that trade-off.
 
 ## References
 

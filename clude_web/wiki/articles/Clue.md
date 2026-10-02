@@ -5,9 +5,9 @@ categories: The game
 redirects: Cluedo, The game
 kind: stub
 ---
-**Clue**, called [[w:Cluedo|Cluedo]] outside North America, is the murder-mystery board game that [[clude]] plays. Three cards, one suspect, one weapon and one room, are set aside unseen in [[the envelope]]; the rest are dealt out; and the players move through the rooms of a house making [[suggestion|suggestions]] to find out, by elimination, which three are missing. The first to name them in an [[accusation]] wins.
+**Clue**, also known as [[w:Cluedo|Cluedo]], is a murder-mystery board game played through movement, questions and deduction. One suspect, one weapon and one room card are hidden in [[the envelope]], and the remaining cards are dealt to the players. Players enter rooms and make [[suggestion|suggestions]], using the cards shown in reply to identify the hidden combination. The first correct [[accusation]] wins.
 
-clude follows the classic game: {{code:cards.suspects}} suspects, {{code:cards.weapons}} weapons and {{code:cards.rooms}} rooms, three to six players, one die, and the familiar board of nine rooms round a central cellar.[^board] The game was devised in England by [[w:Anthony E. Pratt|Anthony E. Pratt]] and first published in 1949.
+[[clude]] implements the classic card set: {{code:cards.suspects}} suspects, {{code:cards.weapons}} weapons and {{code:cards.rooms}} rooms, with three to six players and one die. Its [[Classic board]] has nine rooms around a central cellar.[^board] The original game was devised by [[w:Anthony E. Pratt|Anthony E. Pratt]] and first published in 1949.
 
 ## The cards
 

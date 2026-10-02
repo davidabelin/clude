@@ -1,13 +1,13 @@
 ---
 title: The envelope
-short: The three cards nobody holds: the answer
+short: The hidden suspect, weapon and room that form the solution
 categories: The game
 redirects: Envelope, The solution, Solution
 kind: stub
 ---
-**The envelope** holds the answer to a game of [[Clue]]: one suspect, one weapon and one room, drawn at random before the deal and seen by nobody. There are {{code:envelopes}} possible envelopes ({{code:cards.suspects}} × {{code:cards.weapons}} × {{code:cards.rooms}}). The other {{code:cards.dealt}} cards are dealt to the players, and the whole game is the effort to work out which three are missing.
+**The envelope** contains the solution to a game of [[Clue]]: one suspect, one weapon and one room selected randomly before the deal. There are {{code:envelopes}} possible combinations ({{code:cards.suspects}} × {{code:cards.weapons}} × {{code:cards.rooms}}). The remaining {{code:cards.dealt}} cards are dealt to the players. Suggestions and disproofs provide evidence about which three cards are missing from their hands.
 
-A character's [[belief]] is its set of probabilities for what the envelope contains, and an [[accusation]] is a claim to know.[^domain]
+A character's [[belief]] estimates the probability of each card being in the envelope. An [[accusation]] names one complete combination and is checked against the solution.[^domain]
 
 ## References
 

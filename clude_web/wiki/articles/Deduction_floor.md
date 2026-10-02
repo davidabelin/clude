@@ -1,10 +1,10 @@
 ---
 title: Deduction floor
-short: The logic all six characters share: what is certain, and nothing else
+short: Shared logical deductions from one player's hand and observed disproofs
 categories: Methods
 redirects: Floor, The floor, The deduction floor, Constraint propagation, Floor bot, The floor bot, FloorBot
-dyk: ... that every one of clude's six characters stands on the same [[deduction floor]], and that it is the whole of what a person at a table is told?
-dyk: ... that the [[deduction floor]] never once ruled out the true holder of a card across hundreds of replayed games, and that a test says so?
+dyk: ... that all six characters use the same [[deduction floor]] to fill in their notepads before applying different methods to the unresolved cards?
+dyk: ... that the [[deduction floor]] retained every card's true holder in the seeded games used by its soundness test?
 ---
 {{infobox
 title: Deduction floor
@@ -19,16 +19,16 @@ Category | Eight of nine rooms placed: the ninth is the envelope's
 Hand size | A full hand holds nothing more
 }}
 
-The **deduction floor** is the part of every character's reasoning that is not a matter of opinion. From a player's own hand and the history of [[suggestion|suggestions]] it works out, by [[w:Deductive reasoning|deduction]] alone, everything that follows for certain: which cards are placed and where, which holders are still possible for each card that is not, and which facts of the form "this player holds at least one of these cards" remain open. It repeats three rules until nothing changes, and the result is a *mask* that every one of [[clude]]'s six [[Category:Methods|methods]] reasons on top of and is checked against afterwards. A card the floor has ruled out of [[the envelope]] gets a [[belief]] of exactly 0 from every character, whatever their method would have said, and a card it has proved gets exactly 1.
+The **deduction floor** is [[clude]]'s shared system for deriving facts about the cards by [[w:Deductive reasoning|deduction]]. It uses one player's hand and the recorded answers to [[suggestion|suggestions]] to determine where cards are known to be, where they could still be, and which statements such as "Mustard holds at least one of these cards" remain unresolved. Three rules repeat until they make no further changes. Their output is a *mask* that constrains every [[Category:Methods|method]]'s [[belief]]: cards excluded from [[the envelope]] receive probability 0, and cards proven to be inside receive 1.[^module][^base]
 
-That is the project's first invariant: the six characters "differ in how they reason under uncertainty, never in what is logically certain".[^invariant] It is what makes it safe for [[Miss Scarlett]]'s [[Naive Bayes]] to be sloppy about soft evidence without ever suspecting a card she is holding, and it is why the methods can be compared at all. Each of them starts from the same floor and adds a different judgement about what the floor leaves open; the [[uniform baseline]] the [[belief benchmark]] scores them against is the floor's own belief, with no judgement added.
+The floor keeps methods with very different approaches consistent with the same deductions.[^invariant] [[Miss Scarlett]]'s [[Naive Bayes]] may overestimate an unresolved card, but cannot assign envelope probability to one in her hand. The [[uniform baseline]] adds no further judgement: it distributes probability evenly across the floor's remaining candidates. The floor is sound for valid observations but incomplete; some deductions require a search that its three rules do not perform.
 
-The floor also plays. The **floor bot** is a seventh, characterless player that acts on the floor alone: it suggests only about cards it has not placed, moves towards rooms it has not placed, and [[accusation|accuses]] exactly when the floor has proved all three cards and never otherwise. It is the standard opponent in every measurement, the player that fills an empty seat, the training partner [[Colonel Mustard]]'s tree was grown against, and the stand-in that plays a person's turn when they run out of time. And it is what fills in a person's [[detective notepad]] at a web table: a human player is told what the floor knows, and nothing a method believes.[^web]
+The **floor bot** plays using these deductions alone, without a character-specific method or personality. It asks about unresolved cards and [[accusation|accuses]] only when the floor proves all three envelope cards. It supplies opponents for training and several measurement regimes, fills designated floor-bot seats and takes over timed-out human turns. A person's [[detective notepad]] also uses the floor, while omitting the characters' probability estimates.[^floorbot][^web]
 
 ## At the table
 
 !!! example "Worked example: the Rope question, as the floor sees it"
-    {{figure:floor-notepad|What the floor knows in the Rope question, from the viewer's chair. Seventeen cards are placed, one is proven the envelope's, and four are left to the methods.}}
+    {{figure:floor-notepad|What the floor knows in the Rope question, from the viewer's chair. Seventeen cards are placed, including the Study in the envelope; four remain unresolved.}}
 
     Late in a three-handed game the viewer holds six cards and has seen enough suggestions answered for the floor to place every other card but four. [[Colonel Mustard]] is known to hold four particular cards; [[Mr. Green]], six. Of the nine rooms, eight are placed in hands, and so the ninth, the Study, is proven the envelope's by the category rule: every category has exactly one card in the envelope, and when eight are elsewhere the last has nowhere else to be.
 
@@ -62,23 +62,23 @@ With the facts seeded, three rules run over the whole position, and run again wh
 **The hand-size rule.**
 :   A player known to hold as many cards as their hand has room for can hold nothing else; every other card is struck from that hand.
 
-Each rule can feed the others, which is the [[w:Process of elimination|process of elimination]] made mechanical. A card placed by the open-fact rule may fill a hand; a hand filled strikes cards that may leave a category with one candidate; a category resolved may collapse an open fact. The loop runs until the position is still, which is its [[w:Fixed point (mathematics)|fixed point]], and in practice takes a handful of passes.
+The rules interact. Resolving an open fact can fill a hand; excluding other cards from that full hand can leave a category with one envelope candidate; resolving that category can then simplify another open fact. The loop stops at a [[w:Fixed point (mathematics)|fixed point]], where another pass changes nothing. Each change removes a possibility, so the process terminates.
 
 ### Contradictions
 
-If the facts ever contradict one another (no possible holder left for a card, a player who must hold one of a set of cards none of which they can hold, a hand with more cards placed in it than it has room for) the floor raises an error rather than carrying on. Real evidence is never contradictory; a contradiction is a bug in whoever built the observation, and the project treats it as one.[^module]
+The floor raises an error if its constraints contradict one another: a card has no possible holder, an open fact has no possible member, or a hand contains more placed cards than its capacity. Valid game observations should not produce these contradictions; the project treats one as a bug in the construction or processing of the observation.[^module]
 
 ## Formally
 
 What the floor does is [[w:Constraint satisfaction problem|constraint propagation]]. Each card is a variable whose domain is the set of holders it could still have; each fact is a constraint; and the three rules are propagators that shrink domains until no rule can shrink one further. The result is a fixed point of the rules, reached in finitely many steps because every step removes something and nothing is ever put back.[^aima]
 
-Two properties matter, and they pull in different directions.
+Soundness and completeness describe different properties of this process.
 
-**[[w:Soundness|Soundness]].** The floor never strikes a holder that the truth has. Every rule removes only what the facts exclude, so the mask always contains the actual deal, and a test replays many real games through every player's view to check that the true holder of every card survives at every turn and that, given enough play, some viewer reaches full certainty.[^tests]
+**[[w:Soundness|Soundness]].** Given valid observations, each rule excludes only holders incompatible with the evidence. The actual deal therefore remains possible. The soundness test runs seeded games and checks each player's completed-game observation against the true holders. A separate convergence test checks that at least one player can prove the envelope after sufficiently informative play.[^tests]
 
-**[[w:Completeness (logic)|Incompleteness]].** The floor does not find everything that follows. Its rules reason one fact at a time, as [[w:Unit propagation|unit propagation]] does in a logic solver; they never consider cases, and a conclusion that needs "if Mustard holds Peacock then ... but if he holds the Rope then ..." is beyond them. A full search over consistent deals, which is what [[exact posterior enumeration]] performs, finds every card the facts determine; the floor finds only the ones its three rules can reach. This is the usual trade: propagation is cheap and sound, search is complete and expensive. What the floor misses is not lost, because it reaches the methods as uncertainty. A card that is in fact determined but not by the floor's rules will have, in Plum's count, every consistent deal agreeing on it, and a probability of exactly 1.
+**[[w:Completeness (logic)|Incompleteness]].** The rules do not derive every conclusion implied by the evidence. They process individual constraints, somewhat like [[w:Unit propagation|unit propagation]], without exploring alternative assignments. A conclusion requiring cases such as "if Mustard holds Peacock, then ...; otherwise he must hold the Rope, so ..." may remain unresolved. A completed [[exact posterior enumeration|search over consistent deals]] can find such conclusions: if every surviving deal puts a card in the envelope, its probability under the counting model is 1. The floor trades this completeness for inexpensive propagation.
 
-The floor's output has three parts, and the shape was chosen for the methods that read it. Each card's set of possible holders is exposed as a set rather than collapsed to known-or-unknown, because [[Mrs. Peacock]]'s [[Dempster-Shafer theory]] wants exactly that structure to put weight on. The open facts are exposed separately, because per-card sets lose the joint "one of these three" that [[Professor Plum]]'s search needs to count the true posterior and that Peacock holds as a mass on a set.[^architecture]
+The floor's output has three parts, and the shape was chosen for the methods that read it. Each card's set of possible holders is exposed as a set rather than collapsed to known-or-unknown, because [[Mrs. Peacock]]'s [[Dempster-Shafer theory]] wants exactly that structure to put weight on. The open facts are exposed separately, because per-card sets lose the joint "one of these three" that [[Professor Plum]]'s search needs to enumerate consistent deals and that Peacock holds as a mass on a set.[^architecture]
 
 ## In clude
 
@@ -92,25 +92,25 @@ One bug of the floor's own was found by Peacock. Until Phase 5, an open fact tha
 
 ### The floor bot
 
-The floor bot implements the engine's player contract with no belief and no personality: a seventh player, "dumb" in the six-methods sense but never wasteful. For its suggestion it names a suspect and a weapon it neither holds nor has placed, chosen evenly, and once a category has no such card left it names the proven envelope card, which nobody can disprove, so that the suggestion tests the other two cleanly. For its move it prefers a room it has not placed, then the move that comes closest to one, and once every room is placed, a room nobody else can disprove with. It accuses on the floor's proof and never otherwise.[^floorbot]
+The floor bot implements the engine's player contract without a probability method or personality dials. It chooses uniformly among unresolved suspects and weapons that it does not hold. Once a category is resolved, it names the proven envelope card so the answer can test the other categories. For movement, it prefers unresolved rooms, then moves towards them. When every room is resolved, it favours a room whose card opponents cannot show. It accuses only on proof.[^floorbot]
 
-Its movement was meant to be uniform over the legal moves and was measured not to work: a table of uniform movers piles into one room that some player holds, and every later suggestion there is answered by the same player with the same card. The first floor-bot games plateaued exactly as the random games before them had, and tracing them found why: a bug on the board that kept a token from leaving a room except by [[Classic board|secret passage]]. Both the bug and the movement were fixed together.[^phase5]
+An earlier uniform movement policy produced uninformative games: bots repeatedly entered rooms whose cards were held and received the same disproofs. Tracing the stalled games also exposed a board bug that prevented ordinary exits from rooms. The exits were repaired and movement was changed to favour unresolved rooms.[^phase5]
 
-The floor bot is used wherever a seat needs a sensible occupant and no character: it fills the empty seats of a small table in the [[arena]], it plays the games the [[belief benchmark]] scores and the games [[Colonel Mustard]]'s tree is grown from, it answers for a seat whose player is out of the game, and at a web table it plays a person's turn when their time runs out, three turns in a row handing the seat over to it altogether.[^web]
+The floor bot fills spare seats in small [[arena]] tables, plays the games used by the [[belief benchmark]] and trains [[Colonel Mustard]]'s tree. It also answers for eliminated players. At a web table it takes a human player's turn after a timeout; three consecutive timeouts hand the seat over to it.[^web]
 
 ### People
 
-A person at a clude table reasons on the floor and nothing else. Their notepad is the floor's grid, filled in as each suggestion is answered; the certainty tag beside their name, shown to everyone, is computed from the floor alone, an even spread over whatever it has not ruled out. They are shown no method's probabilities, since play is blind. A [[Claude]] playing a seat from a chat window gets the same: "MCP players get their numbers from floorbot, that's it. No heads! They're the head!"[^web][^mcp]
+A person's notepad records the floor's deductions as suggestions are answered. Their public certainty tag uses an even distribution over the remaining envelope candidates. During play, they see no character's probability bars, which could reveal private cards. A [[Claude]] playing through the chat interface receives the floor's notepad rather than a character method's estimates. The person or chat agent supplies its own reasoning beyond those deductions.[^web][^mcp]
 
 ## Measured
 
-The floor has no probabilities to score. What has been measured is the game it plays.
+The floor itself produces constraints rather than probabilities. The uniform baseline supplies a probability score for those constraints, while self-play measures the floor bot's information gathering.
 
-Games between floor bots end in about {{fact:floor.suggestions}} suggestions, with {{fact:floor.solved}} of the viewers holding a proven envelope at the end; the random players they replaced ran {{fact:random.suggestions}} suggestions with a floor that plateaued early and no viewer ever proving the envelope at a full table.[^selfplay] That difference is why the floor bot is the training regime: Mustard's rows and the benchmark's positions come from games that carry information throughout and end by deduction.
+In the recorded self-play comparison, floor-bot games took about {{fact:floor.suggestions}} suggestions, and {{fact:floor.solved}} of the viewers had proved the envelope by the end. The earlier random-bot games took {{fact:random.suggestions}} suggestions; their deductions plateaued, and no viewer proved the envelope at a full table.[^selfplay] Floor-bot play was therefore adopted for Mustard's training data and benchmark positions.
 
 {{table:bench.grid|The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026. The uniform row is the floor's own belief.}}
 
-The uniform row is what the floor alone is worth: {{fact:bench.grid.uniform.50}} at the halfway mark and {{fact:bench.grid.uniform.100}} at the end of a game, with its first choice right {{fact:bench.grid.uniform.top1}} of the time. Four of the six methods beat it at the end and two, [[Naive Bayes]] and [[Dempster-Shafer theory]], trail it throughout; the floor is the line every method is measured from.[^grid]
+The uniform row gives the baseline score for this run: {{fact:bench.grid.uniform.50}} at halfway and {{fact:bench.grid.uniform.100}} at the end, with final top-choice accuracy {{fact:bench.grid.uniform.top1}}. Four methods had lower final log-loss; [[Naive Bayes]] and [[Dempster-Shafer theory]] had higher loss at every checkpoint.[^grid]
 
 In the arena the floor bot is the "does a character beat a purely logical player" baseline: the sweeps that set the presets seat every character between floor bots, and a win rate there is a character's rate against pure logic.[^sweeps]
 

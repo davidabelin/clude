@@ -2,6 +2,8 @@
 
 Status: **proposed 2026-10-01, David's four answers recorded the same day (section 7); W1 built that day on the branch `wikiclude` (section 9), merged and live as `clude-00021-fmb`; W2 built 2026-10-02 on the branch `claude/great-knuth-e8o5tl` (section 10), awaiting his review.** Written in the shape of the other plan docs: context, what the code dictates, design, sub-phases, files, decisions, out of scope, and "as implemented". Where sections 9 and 10 differ from the sections above them, they are what was built.
 
+Current local status (2026-10-02): the editorial pass on W1–W2 is complete (section 11). W3–W5 article creation is the next task. The implementation and deployment records in sections 9–10 are retained as history.
+
 ## 1. Context: David's brief (2026-10-01)
 
 - **Wikipedia-style**, by reference to WP:MOS, with exceptions. Not wanted: WP:BLP and its relatives. Attribution looser than WP:FA demands; **writing at WP:FA quality**. It wears clude's skins: what is borrowed is the organisation and the page layout, not Wikipedia's look.
@@ -253,3 +255,39 @@ Built on the branch `claude/great-knuth-e8o5tl` in a cloud workspace, the day af
 ### 10.5 Tests
 
 `tests/test_wiki.py`: 19 passed, 1 skipped (the live check). The whole suite: 565 passed, 33 skipped, about three minutes with `-n auto` (564 and 33 after W1's merge), and the 30 browser tests pass under `CLUDE_WEB_BROWSER=1`. Run on Python 3.11 in the cloud workspace, Playwright on the pre-installed Chromium.
+
+## 11. Editorial pass before W3–W5 (2026-10-02)
+
+Edited all fifteen full articles and eighteen stubs locally. *Suggestion*, *Deduction floor*, *Belief*, *Professor Plum*, *Exact posterior enumeration* and *Naive Bayes* received the deepest review. The target is clear, engaging encyclopaedic prose, guided by Wikipedia's [Manual of Style](https://en.wikipedia.org/wiki/Wikipedia:Manual_of_Style), [featured article criteria](https://en.wikipedia.org/wiki/Wikipedia:Featured_article_criteria) and [technical accessibility guidance](https://en.wikipedia.org/wiki/Wikipedia:Make_technical_articles_understandable), within Wikiclude's existing sourcing conventions.
+
+### 11.1 Conventions for the next articles
+
+- Start with a self-contained lead: what the subject is, its role in clude, and its main limitations. Explain the basic idea before introducing formal notation or implementation details.
+- Use direct sentences, British spelling and third-person narration. Keep generous links, define technical terms and symbols at first use, and avoid rhetorical flourishes or unsupported superlatives.
+- Follow plain explanation with an independently understandable example, then the mathematics, implementation and measurements. Preserve existing headings and section anchors when editing published articles.
+- Character pages explain persona, playing behaviour and relevant history. Attribute persona descriptions and selected quotations; link to method articles for detailed algorithms. Technical explanations use the narrator's direct prose.
+- Distinguish logical deductions, model assumptions and heuristics. An exact result is exact under stated assumptions; a method's score or confidence need not be a calibrated probability.
+- Identify the board, benchmark or arena, checkpoint and recorded games behind a comparison. Use past tense for measurements. A recorded absence of wrong accusations does not establish that a character can never accuse wrongly.
+- Review short descriptions, infoboxes, hooks, captions and stub summaries with the body. Keep measured values and current constants in `{{fact:...}}` and `{{code:...}}`, and retain equation, figure and citation markup.
+
+### 11.2 Corrections made
+
+- The Rope question is explicitly a constructed position evaluated by the real agents, as recorded in 9.2. Method comparisons use one observer's private information; character names identify algorithms, not separate seats with different views. The naive Bayes repetition example now states that Green holds the Hall and keeps the rest of the position fixed.
+- Enumeration's exact card probabilities require a completed search and equal weighting of consistent deals. Its evidence model does not account for opponents' choice policies. Sampling frequency is a count of benchmark calls, not a fraction of each game spent sampling.
+- Exact card marginals do not make the shared accusation score exact. In the Rope question, White and the Wrench each have probability 2/3; their product is 4/9, while their joint probability is 1/3. Scarlett's fixed-factor heuristic is distinguished from textbook naive Bayes.
+- Peacock's pignistic probability is generally not the midpoint of belief and plausibility. Her bounds describe evidential support within her model, and their product is not a guaranteed lower bound on the true accusation probability. Green's decayed Beta records guide selection without calibrating which arm is best. Figure captions and accessible descriptions follow these distinctions.
+- Benchmark and arena summaries now identify their measurement context. The floor's soundness-test description follows the actual completed-game checks; timing infoboxes identify the Classic-board halfway checkpoint. Five links to nonexistent Suggestion section labels now point to its existing "In the rules" heading.
+- Stubs distinguish narrative logbooks from learned method state, explain that a zero leash permits tied top options, and describe historical model costs as historical. No W3–W5 stub became a full article.
+- Screenshot review found that the renderer consumed fact and code templates inside mathematics before resolving their values. Both inline and display equations now substitute and track those values before MathML conversion, with regression checks for valid and unknown keys. The article equations remain unchanged.
+
+Article titles, routes, redirects, categories and section headings are unchanged. All original fact, code, figure and measured-table keys and display equations remain. Changes to `figures.py` affect explanatory strings only; public APIs and game behaviour are unchanged.
+
+### 11.3 Verification
+
+- `tests/test_wiki.py` and `tests/test_web.py`: **67 passed, 1 skipped**. These cover loading, citations, measured values, computed examples, links, figures and public routes. The wiki suite is now 21 passed and one live check skipped; the two added cases cover substitutions in inline and display mathematics.
+- The separate opt-in Wikipedia-title check: **1 passed, 21 deselected** with `CLUDE_WIKI_LIVE=1`. Wikipedia access succeeded and no missing titles were reported. This checks titles and redirects, not Wikipedia section fragments.
+- A corpus audit checked all 33 articles' internal section links and confirmed stable titles, redirects, categories, headings, substitutions and display equations.
+- The six priority articles were rendered in Chromium at 1440 px and 390 px in Case-file light, Gaslight dark, and Developer light and dark: **48 page/layout combinations**. Screenshots were reviewed for leads, infoboxes, examples, equations, tables and captions; navigation and local anchors were checked. No browser errors, missing images, MathML error elements, unresolved mathematical templates or page-wide horizontal overflow were found. Wide tables, long equations and diagrams retain their existing horizontal scrolling containers; their right edges were confirmed reachable at 390 px.
+- All 33 edited pages also loaded publicly without authentication. Mobile verification remains Chromium at 390 px, rather than a physical phone, as in 9.3 and 10.3. The prose was reread for terminology, repetition, relevance and unsupported claims; editorial quality was assessed through review rather than article length.
+
+W3, W4 and W5 remain the subsequent writing phases in section 5. This pass establishes the voice and accuracy conventions for them without changing their scope.

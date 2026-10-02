@@ -5,9 +5,9 @@ categories: Personality
 redirects: The leash
 kind: stub
 ---
-The **leash** is the limit on a language model playing a character's seat. For each decision the character's own [[Category:Methods|method]] scores every option; the model is then offered only those options that score within the leash of the best, and chooses among them. At a leash of 0 it may pick only what the character would have picked; at 1 it may pick anything legal. The preset is 0.25 for every character.[^wrapper]
+The **leash** limits the choices available to a model-piloted character. For movement, suggestions and showing a card, options are scored by the numerical character and allowed when their score is at least $(1 - \text{leash})$ times the best score. At 0, only the highest-scoring options remain, including ties; at 1, every option on the legal menu is allowed. The preset is 0.25. For [[accusation|accusations]], the leash instead opens a window around the character's threshold, allowing an earlier accusation or a decision to wait.[^wrapper]
 
-If only one option is within the leash the model is not asked at all, and if its answer is anything but one of the options offered, the character's own choice is played instead. The leash is why a model can give a character a voice without changing who the character is.
+If only one option remains, the model is not called. An invalid reply, backend error or budget limit falls back to the headless character's choice. The leash permits discretion while retaining constraints supplied by the method and [[personality dials]].
 
 ## References
 

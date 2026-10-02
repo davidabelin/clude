@@ -1,9 +1,9 @@
 ---
 title: Mrs. Peacock
-short: The character who will not guess
+short: The cautious character who accuses using evidential lower bounds
 categories: Characters
 redirects: Peacock, Mrs Peacock
-dyk: ... that [[Mrs. Peacock]] accuses on a number that stays at nothing until the evidence singles a card out, and has never accused wrongly in any arena?
+dyk: ... that [[Mrs. Peacock]] uses belief bounds rather than decision probabilities when accusing, and made no wrong accusations in the recorded headless arenas?
 dyk: ... that [[Mrs. Peacock]]'s curiosity was tried at three settings and her results were identical at all three?
 ---
 {{infobox
@@ -21,20 +21,20 @@ Memory | A [[logbook]] only; her method remembers nothing
 [[Curiosity]] | {{code:preset.Peacock.curiosity}}
 [[Secrecy]] | {{code:preset.Peacock.secrecy}}
 [[Temperature]] | {{code:preset.Peacock.temperature}}
-= Record on the Classic board
+= Classic-board arena, 15 September 2026
 Games won | {{fact:arena.grid.Peacock.win}}% of {{fact:arena.grid.Peacock.games}}
 Wrong accusations | {{fact:arena.grid.Peacock.wrong}}%
 }}
 
-**Mrs. Peacock** is one of the six [[Clue#The cards|suspects]] of [[Clue]] and, in [[clude]], the [[Category:Characters|character]] who declines to guess. Her method is [[Dempster-Shafer theory]], a [[w:Dempster–Shafer theory|theory of evidence]] that keeps two numbers for every card where the others keep one: a *belief*, how far the evidence positively supports it, and a *plausibility*, how far the evidence fails to rule it out. The gap between the two is what she does not know, and she leaves it open rather than filling it with a guess. When a single probability is required she reports the middle of the two; when she decides whether to [[accusation|accuse]], she uses the [[w:Upper and lower probabilities|lower one]].
+**Mrs. Peacock** is one of the six [[Clue#The cards|suspects]] in [[Clue]] and the cautious [[Category:Characters|character]] in [[clude]]. Her [[Dempster-Shafer theory|Dempster–Shafer]] method assigns evidence to sets of possible cards. For each card, it calculates *belief*, the mass supporting that card alone, and *plausibility*, the mass that does not exclude it. When a single probability is needed, each set's mass is shared equally among its members. When she [[accusation|accuses]], she instead uses the product of the selected cards' [[w:Upper and lower probabilities|belief bounds]].[^module]
 
-That choice is the character. A belief, in her sense, stays at nothing for a card until evidence singles it out, so her [[accusation threshold]] of {{code:preset.Peacock.accuse_threshold}}, applied to it, is "far stricter than 0.7 would be for anyone else". She accuses late and, in every arena on both [[Classic board|boards]], never wrongly, and on the Classic board she is level with [[Professor Plum]] at the top of the table. Her single number, measured against the truth, is slightly worse than that of a player who knows only what is certain, which the project's notes trace to one modelling choice in how a clue about three cards is shared among the three categories; the caution is unaffected, because it comes from the bound the benchmark does not score.[^glossary]
+Using the lower values makes her [[accusation threshold]] of {{code:preset.Peacock.accuse_threshold}} more conservative than the same threshold applied to her decision probabilities. She made no wrong accusations in the recorded headless arenas on either board, and tied with [[Professor Plum]] for wins in the tabulated [[Classic board]] arena. Her decision probabilities nevertheless had slightly worse [[log-loss]] than the [[uniform baseline]] in both benchmark regimes. The project attributes this deficit to its heuristic allocation of evidence across categories.[^glossary]
 
 ## Character
 
-Peacock is written as "grand, formal, socially exact, and easily scandalised. Standards matter to you, and so does being seen to have them."[^persona] The description is addressed to her: it is the opening of her [[persona]], the page of prose a [[w:Large language model|language model]] is given when it plays her seat. The persona describes the method from the inside, and does it unusually exactly: "You keep two numbers for everything. One is what the evidence has actually established: the weight of proof behind a card, which stays at nothing until something singles that card out. The other is what the evidence has merely failed to rule out. You never confuse the two. A thing that is possible is not thereby likely, and a thing that is likely is not thereby proven, and you will not say 'it was the Colonel' on the strength of the second when the first is still empty." It ends: "Other people find this slow. You find other people hasty."[^persona]
+Peacock's [[persona]], given to a [[w:Large language model|language model]] playing her seat, describes her as "grand, formal, socially exact, and easily scandalised". It stresses the distinction between possible, likely and proven: "A thing that is possible is not thereby likely, and a thing that is likely is not thereby proven". Her impatience is reserved for everyone else: "Other people find this slow. You find other people hasty."[^persona]
 
-Her voice is "formal, a touch imperious, with a strong sense of what is and is not done. 'One does not...' and 'It has not been established that...' are yours." She disapproves of guessing "the way you disapprove of elbows on the table", and is "kind, in a stiff way, to anyone who is losing gracefully, and withering to anyone who is winning loudly."[^persona] In the first recorded games with a model in every seat her voice found the one fault that was fixed for everyone: late in a game, when the deduction had narrowed and every remaining remark wanted to be the same remark, she restated a line almost verbatim three turns apart. The rule that followed, in the house rules every character is given, is to say nothing rather than restate; in the re-recorded games the table went quiet instead of looping.[^phase6]
+Her prescribed voice is "formal, a touch imperious", with phrases such as "One does not..." and "It has not been established that...". She disapproves of guessing and is kind to graceful losers.[^persona] In the first reviewed model-piloted games, she repeated a late-game remark almost verbatim. That example helped prompt a shared rule: say nothing rather than repeat an earlier line. The subsequent recordings were quieter instead of looping.[^phase6]
 
 Headless, by her numbers alone, she is silent, and every measurement below was made that way unless it says otherwise. The seat is fixed: Peacock always plays the blue token, fifth in the order of play.[^seats]
 
@@ -44,9 +44,9 @@ Headless, by her numbers alone, she is silent, and every measurement below was m
 
 {{figure:peacock-interval|Peacock's two numbers for each open card in the Rope question: belief solid, plausibility pale, and the one number she reports between them.}}
 
-For each category, suspects, weapons and rooms, Peacock keeps a *mass function*: a weight of 1 shared out among sets of the cards the [[deduction floor]] still allows in the envelope. At the start all of it sits on the whole set, which is her way of saying she knows nothing beyond what is certain. Each open fact the floor hands her, "this player holds at least one of these cards", becomes one piece of evidence, weight on the cards it does *not* name, and the pieces are combined by Dempster's rule. A card's belief is the weight on it alone; its plausibility the weight on every set that contains it. When one number is needed each set's weight is split evenly among its members.[^module]
+For each category, Peacock assigns a total mass of 1 to sets of cards permitted by the [[deduction floor]]. Initially, all mass belongs to the full candidate set. Open disproof constraints add partial support for alternatives to the named cards, and Dempster's rule combines it. Belief counts support for a card alone; plausibility counts support compatible with it. The reported decision probability shares every set's mass equally. It is not generally the midpoint of belief and plausibility.[^module]
 
-On the worked example the method articles share, the Rope question, Colonel Mustard has shown Mr. Green a card after a suggestion of Mrs. Peacock and the Rope, so he holds one of the two. Peacock's belief in Mrs. White being the envelope's suspect is {{code:example.peacock.White.bel}}, her plausibility {{code:example.peacock.White.pl}}, and the number she reports {{code:example.peacock.White}}, a little past Plum's exact {{code:example.plum.White}}. But her belief in the pair she would have to name, White with the Wrench, is only {{code:example.peacock.pair}}, far below her threshold. The number is in her favour and she still will not say it.[^ds]
+In the [[Dempster-Shafer theory#At the table|Rope question]], the observer knows that the Hall is in Green's hand, and Mustard shows Green an unseen card. Mustard therefore holds Peacock or the Rope. Applying Peacock's method to that observer's view gives Mrs. White belief {{code:example.peacock.White.bel}}, plausibility {{code:example.peacock.White.pl}} and decision probability {{code:example.peacock.White}}. Plum's equal-weight count gives {{code:example.plum.White}}. Peacock's lower-bound product for White with the Wrench is {{code:example.peacock.pair}}, below her threshold, so she would not accuse. This product is an accusation score, not an exact joint probability.[^ds]
 
 ## How she plays
 
@@ -54,7 +54,7 @@ A character's belief says what it thinks; five [[personality dials]] say what it
 
 | Dial | Peacock | What it does |
 |---|---|---|
-| [[Accusation threshold]] | {{code:preset.Peacock.accuse_threshold}} | She accuses once her *belief* in the three cards reaches this. Applied to a lower bound, it is the strictest test at the table. |
+| [[Accusation threshold]] | {{code:preset.Peacock.accuse_threshold}} | She accuses once the product of the three selected cards' belief bounds reaches this. It is more conservative than using her decision probabilities. |
 | [[Bluff rate]] | {{code:preset.Peacock.bluff_rate}} | The chance that she names a card from her own hand in a suggestion. The lowest at the table, shared with [[Professor Plum]]. |
 | [[Curiosity]] | {{code:preset.Peacock.curiosity}} | How far she will walk for the room she most suspects rather than enter the nearest. |
 | [[Secrecy]] | {{code:preset.Peacock.secrecy}} | When she must show a card, how strongly she prefers one that player has already seen. The highest of the six. |
@@ -68,7 +68,7 @@ The threshold is tested against her belief rather than her probability by a func
 
 {{table:bench.ring|The six methods on the ring board, Phase 5: log-loss at four checkpoints. Lower is better.}}
 
-The [[belief benchmark]] scores the single number she reports, since that is what the rest of the system uses, and on both boards it trails the [[uniform baseline]] by a little at every checkpoint: on the Classic board {{fact:bench.grid.Peacock.50}} against {{fact:bench.grid.uniform.50}} at the halfway mark and {{fact:bench.grid.Peacock.100}} against {{fact:bench.grid.uniform.100}} at the end, with her first choice right {{fact:bench.grid.Peacock.top1}} of the time, the baseline's own figure. The notes put it down to the apportioning rule in her method and record that nothing depends on it yet; the caution, which comes from the belief bound, is unaffected.[^ring][^grid] She answers in a fraction of a millisecond.
+The [[belief benchmark]] scores her decision probabilities rather than the bounds used for accusation. In both recorded regimes, her log-loss was slightly higher than the [[uniform baseline]] at every checkpoint. On the Classic board, halfway loss was {{fact:bench.grid.Peacock.50}} versus {{fact:bench.grid.uniform.50}}, and final loss {{fact:bench.grid.Peacock.100}} versus {{fact:bench.grid.uniform.100}}. Final first-choice accuracy was {{fact:bench.grid.Peacock.top1}}, the same as the baseline. These results evaluate the single-number estimates, not whether the bounds are calibrated or whether caution is always advantageous.[^ring][^grid] Computation took a fraction of a millisecond per call.
 
 {{table:bench.grid|The same benchmark on the Classic board, {{fact:bench.grid.games}} games, 15 September 2026.}}
 
@@ -76,20 +76,20 @@ The [[belief benchmark]] scores the single number she reports, since that is wha
 
 {{table:arena.grid|The six characters over {{fact:arena.grid.games}} games on the Classic board at their tuned presets, tables of three to six, 15 September 2026.}}
 
-Peacock has not accused wrongly in any arena on either board. In the ring board's first arena she won {{fact:arena.ring.first.Peacock.win}}% of her games, the most of anyone; at the tuned presets, {{fact:arena.ring.Peacock.win}}%, with her first accusation at turn {{fact:arena.ring.Peacock.first}} and no accusation at all in {{fact:arena.ring.Peacock.never}}% of her games. On the Classic board she won {{fact:arena.grid.Peacock.win}}%, level with Plum at the top of the table, her first accusation coming at turn {{fact:arena.grid.Peacock.first}}, the latest of the six. What held across every arena on the Classic board was the pattern at the edges: Plum, Peacock and White never accused wrongly and [[Miss Scarlett]] did so most. A character plays 16 to 20 of the 24 games, so each percentage carries a [[w:Standard error|standard error]] of {{fact:arena.noise}} points.[^first][^ring-arena][^arena][^grid-presets] The [[landing rule]] took her exact repeats of her own earlier suggestions on the mixed table from {{fact:landing.repeats.Peacock.mixed}}, the second-largest fall after Plum's.[^landing]
+Peacock made no wrong accusations in the recorded headless arenas. In the first ring-board arena she won {{fact:arena.ring.first.Peacock.win}}% of her games; with tuned presets, {{fact:arena.ring.Peacock.win}}%. Her first accusation then came at mean turn {{fact:arena.ring.Peacock.first}}, and she never accused in {{fact:arena.ring.Peacock.never}}% of games. In the tabulated Classic-board run she won {{fact:arena.grid.Peacock.win}}%, tied with Plum, and first accused at mean turn {{fact:arena.grid.Peacock.first}}, the latest of the six. Each character played 16 to 20 games per arena, with estimated [[w:Standard error|standard error]] {{fact:arena.noise}} percentage points.[^first][^ring-arena][^arena][^grid-presets] After the [[landing rule]] change, her exact repeats on the mixed table changed from {{fact:landing.repeats.Peacock.mixed}}.[^landing]
 
 ### With Claude in the seat
 
-When a model plays her, choosing among her own best-scoring options within the [[leash]], her caution gives a little. The leash lets a model accuse once the character's confidence is within a quarter of its threshold, and a model is less patient than a lower bound. At a four-seat table where every character played with [[Claude]] her first accusation came at turn {{fact:twin.grid.Peacock.first_llm}} instead of {{fact:twin.grid.Peacock.first_base}}, she accused in {{fact:twin.grid.Peacock.never_llm}}% of games rather than never in {{fact:twin.grid.Peacock.never_base}}%, and her wins went from {{fact:twin.grid.Peacock.win_base}}% to {{fact:twin.grid.Peacock.win_llm}}%, about {{fact:twin.grid.sigma.peacock}} [[w:Standard deviation|standard deviations]], still with no wrong accusation. On the ring board the same comparison had left her where she was, {{fact:twin.ring.Peacock.win_base}}% both ways. Her [[w:Bluff (poker)|bluffing]] fell with the model, from {{fact:twin.grid.bluff.peacock.base}} own-card suggestions a game to {{fact:twin.grid.bluff.peacock.llm}}, as it did for every character that does not loop.[^twin][^twin-ring][^wrapper]
+When a model plays her, choosing among her own best-scoring options within the [[leash]], her caution gives a little. The leash lets a model accuse once the character's confidence is within a quarter of its threshold, and the recorded model-piloted games brought earlier accusations. At a four-seat table where every character played with [[Claude]] her first accusation came at turn {{fact:twin.grid.Peacock.first_llm}} instead of {{fact:twin.grid.Peacock.first_base}}, she never accused in {{fact:twin.grid.Peacock.never_llm}}% of games rather than {{fact:twin.grid.Peacock.never_base}}%, and her wins went from {{fact:twin.grid.Peacock.win_base}}% to {{fact:twin.grid.Peacock.win_llm}}%, about {{fact:twin.grid.sigma.peacock}} [[w:Standard deviation|standard deviations]], still with no wrong accusation. On the ring board the same comparison had left her where she was, {{fact:twin.ring.Peacock.win_base}}% both ways. Her [[w:Bluff (poker)|bluffing]] fell with the model, from {{fact:twin.grid.bluff.peacock.base}} own-card suggestions a game to {{fact:twin.grid.bluff.peacock.llm}}, as it did for every character that does not loop.[^twin][^twin-ring][^wrapper]
 
 ## Memory
 
-Peacock's method has nothing to remember: it starts every game from the floor's open facts and combines them afresh on every call. What she can carry from game to game is a [[logbook]], which only a model-piloted seat writes: after each game the model, shown the whole deal face up, writes an entry in her voice with what happened, what she learned, and a set of standing instructions for next time.[^logbooks]
+Peacock's method recomputes from the floor's open facts on each call and carries no learned state between games. A model playing her seat can separately keep a [[logbook]] when memory is enabled, recording events, lessons and standing instructions after seeing the completed deal.[^logbooks]
 
 ## See also
 
 - [[Dempster-Shafer theory]], her method in full, with the worked example and the mathematics
-- [[Miss Scarlett]], the character at the other end of the caution scale, and [[Professor Plum]], who shares her clean sheet
+- [[Miss Scarlett]], the character at the other end of the caution scale, and [[Professor Plum]], who also made no wrong accusations in the tabulated headless arena
 - [[Accusation]] and [[Accusation threshold]]
 - [[Belief]], where the six methods' answers to the Rope question are compared
 - [[Belief benchmark]] and [[Arena]]

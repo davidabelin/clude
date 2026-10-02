@@ -1,10 +1,10 @@
 ---
 title: Mr. Green
-short: The character who trusts whichever method has been doing best
+short: The adaptable character who selects among five other methods
 categories: Characters
 redirects: Green, Reverend Green, Rev. Green
-dyk: ... that [[Mr. Green]] once won no games at all in an arena of sixteen and then {{fact:green.confirm.win}}% of the very same deals with nothing of his changed?
-dyk: ... that [[Mr. Green]] is as slow as the other five methods put together, because he asks every one of them on every turn?
+dyk: ... that [[Mr. Green]] won no games in one sixteen-game arena, then {{fact:green.confirm.win}}% on the same deals with his settings unchanged and different opposition?
+dyk: ... that [[Mr. Green]] queries all five other methods before selecting one, even when he will not use the most expensive answer?
 ---
 {{infobox
 title: Mr. Green
@@ -21,20 +21,20 @@ Memory | How well each of the other five methods has done
 [[Curiosity]] | {{code:preset.Green.curiosity}}
 [[Secrecy]] | {{code:preset.Green.secrecy}}
 [[Temperature]] | {{code:preset.Green.temperature}}
-= Record on the Classic board
+= Classic-board arena, 15 September 2026
 Games won | {{fact:arena.grid.Green.win}}% of {{fact:arena.grid.Green.games}}
 Wrong accusations | {{fact:arena.grid.Green.wrong}}%
 }}
 
-**Mr. Green** is one of the six [[Clue#The cards|suspects]] of [[Clue]] and, in [[clude]], the [[Category:Characters|character]] with no method of his own. He consults the other five, and on each turn adopts the [[belief]] of whichever he currently trusts most, whole. Which to trust is a [[w:Multi-armed bandit|multi-armed bandit]] problem, and he solves it by [[w:Thompson sampling|Thompson sampling]]: each method is an "arm" with a running record, and after every game the arms are ranked by how close each came to the truth and their records updated. His method is called the [[bandit ensemble]], an [[w:Ensemble learning|ensemble]] in the machine-learning sense of several models consulted together. He is as good as the mind he is currently borrowing, and as slow as all five of them together.
+**Mr. Green** is one of the six [[Clue#The cards|suspects]] in [[Clue]] and a [[Category:Characters|character]] in [[clude]]. His [[bandit ensemble]] computes the other five methods' [[belief|beliefs]] and adopts one unchanged. It uses [[w:Thompson sampling|Thompson sampling]] to select among them, based on a record of their accuracy on revealed envelopes. Green therefore has an adaptive selection method of his own, but obtains the card probabilities from one of its constituent methods. He pays the computation cost of all five whether or not he selects the expensive one.[^module]
 
-Over many games he comes to trust the methods the [[belief benchmark]] also ranks highest, [[Professor Plum]]'s count and [[Colonel Mustard]]'s tree, and his belief tracks theirs: second-best of the six at the end of a game on the [[Classic board]], and ahead of a purely logical player throughout. At the table his results are the noisiest of the six, and his record is the project's standing warning about what twenty games can and cannot show. He is one of three characters whose method remembers from game to game, and what his remembers is whom to believe.[^glossary]
+In the recorded [[belief benchmark|benchmarks]], his arm records favoured [[Professor Plum]] and [[Colonel Mustard]]. He had the second-lowest final log-loss on the [[Classic board]] and lower loss than the [[uniform baseline]] at all four checkpoints. His game results varied substantially between small arenas, making them a useful warning against drawing firm conclusions from one run. He has persistent method memory, which stores the arm records.[^glossary]
 
 ## Character
 
-Green is written as "affable, a little nervous, eager to be agreed with, and more calculating than you let on."[^persona] The description is addressed to him: it is the opening of his [[persona]], the page of prose a [[w:Large language model|language model]] is given when it plays his seat. The persona describes the method from the inside, and it is the one persona whose self-image is of having no self: "You do not have one way of thinking; you have five, borrowed from the other five people at this table, and you keep score of which of them has been closest to right lately. Each turn you lean on whichever one is winning that score, and your numbers this turn are theirs." It names the temperament the method implies: "You hedge by nature: you would rather be reliably second than brilliantly wrong. You are exactly as good as the mind you are currently borrowing, and you know it, which is why you watch the others so closely."[^persona]
+Green's [[persona]], given to a [[w:Large language model|language model]] playing his seat, describes him as "affable, a little nervous, eager to be agreed with, and more calculating than you let on". It characterises his ensemble as borrowed ways of thinking: "You do not have one way of thinking; you have five". His self-image is cautious and opportunistic: he would rather be reliably second than brilliantly wrong.[^persona] The borrowed minds are algorithmic models, not access to the other seats' private cards.
 
-His voice is "ingratiating, quick to agree, a touch anxious. 'I was just about to say that.' 'Well, that's one way of looking at it.'" He disclaims confidence right up to the moment he acts, compliments people whose reasoning he has just stolen, and is "the last person at the table anyone suspects of playing to win, and the second-most likely to."[^persona] In the first recorded games with a model in every seat the method surfaced unprompted as borrowing other players' reasoning, "Scarlett's fractions were quite persuasive, so I'll poke somewhere she hasn't", which the notes record as the method audible in the voice. He needed no edit.[^phase6]
+His prescribed voice is "ingratiating, quick to agree, a touch anxious", with phrases such as "I was just about to say that". He compliments others while borrowing their reasoning.[^persona] In the first reviewed model-piloted games, a line about "Scarlett's fractions" expressed this habit without additional prompting. The review retained his persona.[^phase6]
 
 Headless, by his numbers alone, he is silent, and every measurement below was made that way unless it says otherwise. The seat is fixed: Green always plays the green token, fourth in the order of play.[^seats]
 
@@ -44,9 +44,9 @@ Headless, by his numbers alone, he is silent, and every measurement below was ma
 
 {{figure:green-trust|Whom Green came to trust: the mean of each arm's record after sixty benchmark games on the ring board, against the prior's 0.5.}}
 
-Green keeps, for each of the other five methods, a record of two numbers that together make a [[w:Beta distribution|Beta distribution]]: a curve saying how likely that method is to be the best. On every turn he asks all five what they believe, draws one random number from each curve, and plays the belief of the method whose number is highest, exactly as it stands. A method with a good record wins the draw nearly always; one with a poor record wins it now and then, which is how he finds out if it has improved. When a game ends and the envelope is opened, the five beliefs are scored against it by [[log-loss]], ranked, and each record is nudged by its rank, the best by a full step and the worst by none.[^module]
+Each constituent method is an *arm* with two parameters defining a [[w:Beta distribution|Beta distribution]]. Green draws one score per arm and adopts the belief of the largest draw. On a revealed envelope, he ranks all five predictions by [[log-loss]] and updates their records with fractional rewards; old evidence gradually decays. Stronger records tend to produce higher draws. The records are heuristic measures of recent rank performance, rather than calibrated probabilities that a method is best.[^module]
 
-On the worked example the method articles share, the Rope question, his five arms give five answers for Mrs. White being in the envelope, from {{code:example.white.White}} ([[Mrs. White]]'s chain) to {{code:example.peacock.White}} ([[Mrs. Peacock]]'s bounds), with Plum's exact {{code:example.plum.White}} among them; which he plays depends on his record, and in a first game, every record flat, it is a coin toss. The example on the method's page goes on to score the five against a revealed envelope and shows one lesson bending every record.[^bandit]
+In the [[Bandit ensemble#At the table|shared observer example]], the five arms give probabilities for Mrs. White ranging from {{code:example.white.White}} to {{code:example.peacock.White}}, including Plum's equal-weight count of {{code:example.plum.White}}. With five identical initial records, each arm is equally likely to be selected. The method article then reveals the envelope and shows how one outcome updates all five records.[^bandit]
 
 ## How he plays
 
@@ -64,7 +64,7 @@ The preset's own note calls him "opportunistic: middling everything, a bit noisy
 
 {{table:green.threshold|Green with only his accusation threshold moved, three arenas of 24 games on the Classic board, 15 September 2026.}}
 
-Lowering the bar bought one win in sixteen and, at 0.5, two wrong accusations. What limits him is pace, not his dial: the confidence he borrows rarely reaches even 0.5 before somebody else ends the game. The preset stood at {{code:preset.Green.accuse_threshold}}.[^grid-presets]
+Lowering Green's threshold produced one win in sixteen games; at 0.5 he also made two wrong accusations. The sweep suggested that his borrowed confidence often rose too slowly to reach the threshold before another player won. His preset remained {{code:preset.Green.accuse_threshold}}.[^grid-presets]
 
 ## Record
 
@@ -82,15 +82,15 @@ On the Classic board he is second-best at the end, {{fact:bench.grid.Green.100}}
 
 {{table:arena.grid|The six characters over {{fact:arena.grid.games}} games on the Classic board at their tuned presets, tables of three to six, 15 September 2026.}}
 
-In the [[arena]] Green trails, "as an ensemble that is only as good as the arm it currently trusts and slower than everyone": {{fact:arena.ring.Green.win}}% of his games won on the ring board at the tuned presets, with {{fact:arena.ring.Green.wrong}}% wrong.[^ring-arena] The Classic board's first arena gave him no wins at all in sixteen games, and the notes called it a collapse until the arenas that followed said otherwise. Across the nine arenas run that day, in only two of which any dial of his was moved, he won {{fact:green.swing}} per cent of his games; and in the confirmation arena, played on the same 24 deals as the one he had lost every game of, he won {{fact:green.confirm.win}}% with nothing of his changed. The zero was "the low draw of a noisy number, not a collapse", and his line is the one the notes point to whenever a single arena seems to show something: a character plays 16 to 20 of the 24 games, so each percentage carries a [[w:Standard error|standard error]] of {{fact:arena.noise}} points, and "nothing smaller than that swing is evidence on its own".[^grid-presets][^arena]
+Green won {{fact:arena.ring.Green.win}}% of his games in the tuned ring-board arena and accused wrongly in {{fact:arena.ring.Green.wrong}}%.[^ring-arena] In the first Classic-board arena he won none of sixteen games. Later trials showed that this was not a stable result: across nine arenas that day, with his dials changed in only two, his win rates spanned {{fact:green.swing}} per cent. A confirmation run using the same deals as the initial arena gave {{fact:green.confirm.win}}% wins with his settings unchanged. Opponents' settings had changed, so this was not an identical replay. Each character played only 16 to 20 games per arena, giving an estimated [[w:Standard error|standard error]] of {{fact:arena.noise}} percentage points. These results do not establish a precise competitive ranking.[^grid-presets][^arena]
 
 ### With Claude in the seat
 
-When a model plays him, choosing among his own best-scoring options within the [[leash]], he moves within the noise: {{fact:twin.ring.Green.win_base}}% to {{fact:twin.ring.Green.win_llm}}% of games won on the ring board, {{fact:twin.grid.Green.win_base}}% to {{fact:twin.grid.Green.win_llm}}% on the Classic board, with his first accusation coming earlier in both, as everyone's did at a table where every seat had a model. His [[w:Bluff (poker)|bluffing]] fell, from {{fact:twin.grid.bluff.green.base}} own-card suggestions a game to {{fact:twin.grid.bluff.green.llm}}, as it did for every character that does not loop.[^twin-ring][^twin]
+With a model choosing within his [[leash]], Green's win rate changed from {{fact:twin.ring.Green.win_base}}% to {{fact:twin.ring.Green.win_llm}}% on the ring board and from {{fact:twin.grid.Green.win_base}}% to {{fact:twin.grid.Green.win_llm}}% on the Classic board. The notes treat these changes as within sampling uncertainty. His first accusation came earlier on both boards, as it did for every character at the model table. His [[w:Bluff (poker)|bluffing]] fell from {{fact:twin.grid.bluff.green.base}} own-card suggestions per game to {{fact:twin.grid.bluff.green.llm}}.[^twin-ring][^twin]
 
 ## Memory
 
-Green's method remembers whom to trust. His five records are saved after every game and restored before the next, so that the trust he has built over a run of games is there at the start of the next one; since Phase 7 they survive the end of the program too, kept as his method memory in the same store as the game records. Unlike [[Colonel Mustard]]'s rows and [[Mrs. White]]'s counts, his memory cannot be rebuilt from stored games afterwards: a record depends on what his arms predicted at the time, which no game record holds, so it is only ever accumulated, never recomputed.[^memory]
+Green's five arm records are saved after games and restored when remembering is enabled. Since Phase 7, they persist in the same store as game records. Unlike [[Colonel Mustard]]'s training rows and [[Mrs. White]]'s transition counts, the current memory builder does not reconstruct them from stored games: the records do not preserve the predictions made by the arms at the time. His method memory is accumulated during play.[^memory]
 
 Like every character he can also keep a narrative [[logbook]], written by a model after each game it played his seat, with what happened and what to do next time.[^logbooks]
 

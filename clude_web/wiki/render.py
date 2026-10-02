@@ -177,20 +177,32 @@ class _WikiLink(InlineProcessor):
         return wikilink(self.ctx, m.group(1), m.group(2)), m.start(0), m.end(0)
 
 
+_VALUE_PATTERN = r"\{\{(fact|code):([\w.\-]+)\}\}"
+
+
+def _value(ctx: Context, kind: str, key: str) -> str:
+    try:
+        text = facts.fact(key) if kind == "fact" else facts.code(key)
+    except KeyError:
+        raise WikiError(f"{ctx.title}: no {kind} named {key!r}") from None
+    (ctx.facts if kind == "fact" else ctx.codes).add(key)
+    return text
+
+
+def _math_values(latex: str, ctx: Context) -> str:
+    """Resolve numeric templates before MathML consumes their markup."""
+    return re.sub(_VALUE_PATTERN, lambda m: _value(ctx, m.group(1), m.group(2)), latex)
+
+
 class _Fact(InlineProcessor):
     """``{{fact:key}}`` and ``{{code:key}}``: text, from one table."""
 
     def __init__(self, md, ctx):
-        super().__init__(r"\{\{(fact|code):([\w.\-]+)\}\}", md)
+        super().__init__(_VALUE_PATTERN, md)
         self.ctx = ctx
 
     def handleMatch(self, m, data):
-        kind, key = m.group(1), m.group(2)
-        try:
-            text = facts.fact(key) if kind == "fact" else facts.code(key)
-        except KeyError:
-            raise WikiError(f"{self.ctx.title}: no {kind} named {key!r}") from None
-        (self.ctx.facts if kind == "fact" else self.ctx.codes).add(key)
+        text = _value(self.ctx, m.group(1), m.group(2))
         return text, m.start(0), m.end(0)
 
 
@@ -223,11 +235,13 @@ def mathml(latex: str, display: bool = False) -> str:
 class _Math(InlineProcessor):
     """``$...$``, no space inside either dollar; ``\\$`` is a dollar."""
 
-    def __init__(self, md):
+    def __init__(self, md, ctx):
         super().__init__(r"(?<![\\$\w])\$(?![\s$])([^$\n]+?)(?<![\s\\])\$(?![\w$])", md)
+        self.ctx = ctx
 
     def handleMatch(self, m, data):
-        return self.md.htmlStash.store(mathml(m.group(1))), m.start(0), m.end(0)
+        latex = _math_values(m.group(1), self.ctx)
+        return self.md.htmlStash.store(mathml(latex)), m.start(0), m.end(0)
 
 
 # --- blocks ----------------------------------------------------------------
@@ -271,7 +285,8 @@ class _Blocks(Preprocessor):
                     if j == len(lines):
                         raise WikiError(f"{self.ctx.title}: display mathematics that never closes")
                     body += " " + lines[j].strip()
-                out += self._stash(f'<div class="math-block">{mathml(body.rstrip()[:-2], display=True)}</div>')
+                latex = _math_values(body.rstrip()[:-2], self.ctx)
+                out += self._stash(f'<div class="math-block">{mathml(latex, display=True)}</div>')
                 i = j + 1
                 continue
             m = re.fullmatch(r"\{\{(figure|table|main|see also|hatnote|navbox):(.*)\}\}", stripped)
@@ -429,7 +444,7 @@ class WikiExtension(Extension):
         ctx = self.ctx
         if "$" not in md.ESCAPED_CHARS:
             md.ESCAPED_CHARS.append("$")  # so a price can be written \\$0.25
-        md.inlinePatterns.register(_Math(md), "wiki-math", 185)
+        md.inlinePatterns.register(_Math(md, ctx), "wiki-math", 185)
         md.inlinePatterns.register(_Cite(md, ctx), "wiki-cite", 195)  # before code spans: a locator may hold one
         md.inlinePatterns.register(_Fact(md, ctx), "wiki-fact", 177)
         md.inlinePatterns.register(_WikiLink(md, ctx), "wiki-link", 176)

@@ -1,19 +1,19 @@
 ---
 title: Bandit ensemble
-short: Mr. Green's method: trust whichever of the other five has been doing best
+short: Mr. Green's adaptive selection among the other five methods
 categories: Methods
 redirects: Bandit, Multi-armed bandit, Thompson sampling, Green's method, Ensemble, The ensemble
-dyk: ... that [[Mr. Green]] has no method of his own, and that after sixty games on the ring board he trusted [[Professor Plum]] and [[Colonel Mustard]] twice as much as [[Miss Scarlett]]?
-dyk: ... that the [[bandit ensemble]] learns from one lesson a game, and that the lesson is a ranking, not a mark?
+dyk: ... that [[Mr. Green]] selects from five other methods, and that after sixty ring-board benchmark games the mean arm scores for Plum and Mustard were about twice Scarlett's?
+dyk: ... that in arena play the [[bandit ensemble]] updates once per completed game, using the methods' ranked log-loss scores?
 ---
 {{infobox
 title: Bandit ensemble
 Played by | [[Mr. Green]]
-In a phrase | Opportunistic; only as good as the method he is trusting
+In a phrase | Selects one of five methods using learned score records
 Module | `bandit.py`
 Evidence used | The other five methods' beliefs, and how each has fared
 Assumes | The method that has been closest to the truth lately will be again
-Cost | About {{fact:bench.grid.Green.ms}} ms a call: everyone else's, added up
+Cost | About {{fact:bench.grid.Green.ms}} ms a call at the Classic-board halfway checkpoint; queries all five arms
 = The arms
 How many | {{code:green.arms}}, one per other method
 Each arm's record | A Beta distribution, from Beta(1, 1)
@@ -21,40 +21,40 @@ A lesson | A rank from 1 (closest to the truth) to 0, weighted {{code:green.step
 Forgetting | The record decays towards the prior by {{code:green.decay}} a lesson
 }}
 
-The **bandit ensemble** is the method by which [[Mr. Green]] forms his [[belief]] about what is in [[the envelope]], or more exactly borrows it. Green has no way of reasoning of his own. On every turn he asks each of the other five [[Category:Methods|methods]] what it believes, and plays the belief of one of them, whole. Which one is decided by a record he keeps of how well each has done: after every game the five are ranked by how close they came to the truth, and the record of each is updated. Over many games the methods that are usually right are trusted most often, and the ones that are usually wrong are tried now and then in case they have improved.
+The **bandit ensemble** is [[Mr. Green]]'s method for selecting a [[belief]] from the other five [[Category:Methods|methods]]. On each call it computes all five beliefs and adopts one without blending them. Its choice uses a record of how accurately each method has predicted revealed envelopes. After feedback, it ranks their predictions by [[log-loss]] and updates that record. Methods with stronger recent records tend to be selected more often, while random sampling allows alternatives to be tried.[^module]
 
-Choosing among several options of unknown worth, each of which teaches you its worth only when you choose it, is the [[w:Multi-armed bandit|multi-armed bandit]] problem, named for a row of [[w:Slot machine|slot machines]] with different and unknown odds. Green's five arms are the five methods, and he solves the problem by [[w:Thompson sampling|Thompson sampling]], one of the oldest and simplest ways to do it: keep a probability distribution over each arm's worth, draw one number from each, and play the arm whose draw is highest. An arm with a good record draws high most of the time; an uncertain arm draws high sometimes. The balance between using what has worked and testing what might, between *exploitation* and *exploration*, is the oldest problem in [[w:Reinforcement learning|reinforcement learning]], and it is the first chapter of the textbook.[^sutton][^thompson]
+The design draws on the [[w:Multi-armed bandit|multi-armed bandit]] problem: choosing among options with uncertain rewards, named after [[w:Slot machine|slot machines]]. Green uses [[w:Thompson sampling|Thompson sampling]], drawing a score from each arm's distribution and selecting the largest. This balances *exploitation*, using a method with a good record, against *exploration*, trying one whose value is less certain.[^sutton][^thompson] Unlike a classical bandit, Green receives feedback for all five arms when the envelope is revealed, rather than only for the selected arm.
 
-The method is therefore as good as whichever arm it is trusting, and as slow as all five arms together: it inherits [[Professor Plum]]'s count and [[Colonel Mustard]]'s tree whether or not it ends up using them. Green is "exactly as good as the mind you are currently borrowing, and you know it", as his [[persona]] puts it.[^persona]
+Green's current belief is exactly the selected method's output, but the computation cost is that of all five methods together. In particular, he pays for [[Professor Plum]]'s enumeration or sampling even when he selects another arm. His [[persona]] turns this dependence into the character's opportunistic voice.[^persona]
 
 ## At the table
 
 !!! example "Worked example: the Rope question, and the lesson after it"
-    {{figure:green-arms|Each arm's record after one lesson. Every arm began at Beta(1, 1), the flat line; one question, scored against its answer, has already bent each one.}}
+    {{figure:green-arms|Each arm's record after one lesson. Every arm began with the flat Beta(1, 1) distribution. The ranked scores from one revealed envelope have updated these selection records.}}
 
-    Late in a three-handed game, every card is placed except four: of the suspects, **Mrs. White** or **Mrs. Peacock** is in the envelope; of the weapons, the **Rope** or the **Wrench**; and [[Colonel Mustard]] has just shown [[Mr. Green]] a card after Green suggested *Mrs. Peacock, with the Rope, in the Hall*, so Mustard holds Peacock or the Rope.
+    In the shared comparison position, an observer has every card placed except four: **Mrs. White**, **Mrs. Peacock**, the **Rope** and the **Wrench**. One suspect and one weapon are in the envelope; the other two are in [[Colonel Mustard]]'s hand. The Hall is known to be in [[Mr. Green]]'s hand. Green suggests *Mrs. Peacock, with the Rope, in the Hall*, and Mustard shows him a card hidden from the observer. Green's ensemble is evaluated on the observer's view, not on the suggester's private knowledge, so it receives the same evidence as the other methods.
 
-    Green asks his five arms for the probability that Mrs. White is in the envelope and gets five answers: [[Miss Scarlett]]'s tally says {{code:example.scarlett.1.White}}, [[Professor Plum]]'s count {{code:example.plum.White}}, [[Mrs. Peacock]]'s bounds {{code:example.peacock.White}}, [[Colonel Mustard]]'s tree {{code:example.mustard.White}} and [[Mrs. White]]'s chain {{code:example.white.White}}. Which one he plays depends on his record. In a first game, with every arm at Beta(1, 1), the draws are coin tosses and he plays any of them; with the record the benchmark left him he would most likely play Mustard's or Plum's.
+    Green asks his five arms for the probability that Mrs. White is in the envelope and gets five answers: [[Miss Scarlett]]'s tally says {{code:example.scarlett.1.White}}, [[Professor Plum]]'s count {{code:example.plum.White}}, [[Mrs. Peacock]]'s bounds {{code:example.peacock.White}}, [[Colonel Mustard]]'s tree {{code:example.mustard.White}} and [[Mrs. White]]'s chain {{code:example.white.White}}. Which one he plays depends on his record. In a first game, with every arm at Beta(1, 1), each draw is uniform on [0, 1] and each arm is equally likely to win; with the record the benchmark left him he would most likely play Mustard's or Plum's.
 
     Then the game ends and the envelope is revealed: White, the Wrench, the Study. Each arm's belief is scored by [[log-loss]] on the three true cards: Peacock {{code:example.green.loss.Peacock}}, Plum {{code:example.green.loss.Plum}}, Scarlett {{code:example.green.loss.Scarlett}}, Mustard {{code:example.green.loss.Mustard}}, White {{code:example.green.loss.White}} (lower is better). The arms are ranked: the best scores a reward of 1, the worst 0, the three between at even spacing. Each arm's record is a [[w:Beta distribution|Beta distribution]] with two counts, successes and failures, both starting at 1; the reward times {{code:green.step_size}} is added to the one and its shortfall times {{code:green.step_size}} to the other. After this single lesson Peacock's arm stands at Beta({{code:example.green.alpha.Peacock}}, {{code:example.green.beta.Peacock}}) with a mean of {{code:example.green.mean.Peacock}}, Plum's at mean {{code:example.green.mean.Plum}}, Scarlett's {{code:example.green.mean.Scarlett}}, Mustard's {{code:example.green.mean.Mustard}} and White's {{code:example.green.mean.White}}.
 
-One lesson is not a verdict: on this one question Peacock's overshoot happened to land nearer the truth than Plum's exact count, and the rank rewards her for it. Over sixty games the order comes out quite differently (below). The example shows the mechanism, which is all it is meant to show: the arms answer, the truth arrives, the arms are ranked, and the ranking becomes the next game's bias.
+On this revealed envelope, Peacock's estimate happens to give the lowest loss, although Plum's count gives the exact probabilities under the model. A probability estimate can be correct without giving the highest probability to the outcome of one particular deal. The reward therefore reflects one realised outcome; it does not establish which method is best in expectation.
 
 ## How it works
 
 ### Thompson sampling
 
-Each arm has a record of two numbers, $\alpha$ and $\beta$, which together define a Beta distribution: a curve on the interval from 0 to 1 that says how likely the arm is to be the best. At the start both are 1 and the curve is flat, every value equally likely. On every turn Green draws one random number from each arm's curve and plays the arm whose number is highest. An arm whose curve is piled up near 1 draws high nearly always; an arm whose curve is piled up near 0 draws high rarely but not never; an arm whose curve is still flat, because it has not been tested, draws high about as often as not. This is Thompson sampling, and it has a property that makes it the right tool here: an arm is played with exactly the probability that it is the best, according to the record. An arm that might be best is tried; an arm that is surely worse is left alone.[^thompson][^sutton]
+Each arm has two parameters, $\alpha$ and $\beta$, defining a [[w:Beta distribution|Beta distribution]] over scores from 0 to 1. Both start at 1, giving a uniform distribution. On each call, Green draws one score per arm and selects the largest. Strong records tend to produce higher draws; uncertain records leave more opportunity for exploration. These distributions track decayed, fractional rank rewards, so they are heuristic records rather than calibrated probabilities that a method is best.[^module][^thompson][^sutton]
 
 ### The lesson
 
-Thompson sampling needs a *reward* after each play, and the reward is where the method had to be designed. The obvious one, how much probability the arm gave to the three true cards, failed: the [[deduction floor]] that every method shares does most of the work in every belief, so all five arms scored within a percent of one another, their records moved together, and Green chose among them at random. The reward adopted instead is a **rank**. On each revealed envelope the arms are ordered by their log-loss; the best scores 1, the worst 0, and the others fall at even steps between, with ties sharing their mean position. A rank compares the arms against one another on the same position, which is the only thing Green needs to learn.[^phase5][^module]
+The update needs a reward that distinguishes the arms. The initial reward, based directly on probability assigned to the true cards, gave very similar values because the shared [[deduction floor]] supplied much of every belief. Phase 5 replaced it with a **rank reward**. At each reveal, methods are ordered by log-loss: the best receives 1, the worst 0, and the others evenly spaced values. Ties share their average rank. This compares methods on the same observation, while discarding the size of the loss differences.[^phase5][^module]
 
 Before the reward is added, each record decays a step towards the flat prior, so that old evidence fades and an arm that has recently improved can be rediscovered. Then the arm's successes rise by the reward times a step size and its failures by the shortfall times the same, so one lesson moves a fresh record a long way and a well-established one a little.[^module]
 
 ### When the lessons come
 
-A lesson needs the truth, and the truth arrives once a game, when the envelope is opened. So in the [[arena]] Green learns once per game; in the [[belief benchmark]], where every position comes with its answer, once per position. The record is kept across games, which is what "learns across games" means for him, and since Phase 7 it is also kept across runs of the program.[^arena]
+Green can update only when the envelope is known. He therefore learns once per completed [[arena]] game, or once per scored position in the [[belief benchmark]]. His record persists across games and, since Phase 7, across program runs when memory is enabled.[^arena]
 
 ## Formally
 
@@ -64,11 +64,11 @@ An arm's record is $\text{Beta}(\alpha, \beta)$, with density proportional to $x
 
 $$ \alpha \leftarrow \frac{\alpha - 1}{d} + 1 + s\,r, \qquad \beta \leftarrow \frac{\beta - 1}{d} + 1 + s\,(1 - r) $$
 
-with $s = {{code:green.step_size}}$ and $d = {{code:green.decay}}$: the excess over the prior shrinks by the decay, then the lesson is added. With $d = 1$ and whole-number rewards this would be the ordinary [[w:Bayesian inference|Bayesian update]] of a Beta prior on a coin's bias after one toss, the Beta being the [[w:Conjugate prior|conjugate prior]] of a coin; the decay turns it into a record with a memory of a few dozen lessons rather than all of them.[^module]
+with $s = {{code:green.step_size}}$ and $d = {{code:green.decay}}$: the excess over the prior shrinks by the decay, then the lesson is added. With $d = 1$, $s = 1$ and binary rewards this would be the ordinary [[w:Bayesian inference|Bayesian update]] of a Beta prior on a coin's bias after one toss, the Beta being the [[w:Conjugate prior|conjugate prior]] of a coin; the decay turns it into a record with a memory of a few dozen lessons rather than all of them.[^module]
 
 ### The rank reward
 
-For arms with losses $\ell_1 \le \ell_2 \le \dots \le \ell_n$, the arm in position $i$ (counting from 0) receives
+Order the $n$ arms by losses $\ell_1 \le \ell_2 \le \dots \le \ell_n$. A rank index $i$ runs from 0 for the best arm to $n-1$ for the worst. Its reward is
 
 $$ r_i = 1 - \frac{i}{n - 1} $$
 
@@ -76,13 +76,13 @@ and arms with equal losses share the mean of the positions they span. With five 
 
 ### Thompson sampling as probability matching
 
-If $\theta_k$ is the unknown worth of arm $k$ and the record is a posterior over each $\theta_k$, then drawing $\tilde\theta_k$ from each posterior and playing $\arg\max_k \tilde\theta_k$ plays arm $k$ with probability $P(\theta_k = \max_j \theta_j)$ under the posterior. This is [[w:Thompson sampling|probability matching]], and it is why no separate rule for exploration is needed: the uncertainty in the record is the exploration.[^thompson]
+For textbook Thompson sampling, let $\theta_k$ be arm $k$'s unknown expected reward. Drawing $\tilde\theta_k$ from each arm's posterior and selecting $\arg\max_k \tilde\theta_k$ chooses arm $k$ with the posterior probability that it is best. This is [[w:Thompson sampling|probability matching]]. Green uses the same sampling mechanism, but his decayed rank updates do not arise from that textbook reward model. The matching property describes his score distributions, not a guarantee that they represent the true relative merits of the methods.[^thompson][^module]
 
 ## In clude
 
 The module is `clude_agents/bandit.py`, and it is a port. David's earlier project, a [[w:Rock paper scissors|rock-paper-scissors]] tournament, had a Thompson-sampling bandit over move-predicting heuristics; here the structure is the same and the arms are literal instances of the other five agents, built fresh when Green is reset. The draws come from Python's own `betavariate`, so that the package needs no numerical library the rest of clude does without.[^module][^port]
 
-Three things about the implementation are worth knowing. The arm's belief is played *outright*, not blended: Green's probabilities on a given turn are exactly one other method's, and his belief carries a note of whose. The record is saved after every game and restored before the next as his method memory, one of the three characters' Tier 1 memories; it cannot be rebuilt from stored game records, since no record holds what his arms predicted at the time, so it is only ever accumulated.[^memory] And every arm is consulted on every call, which is where his cost comes from: [[Professor Plum]]'s count alone is about {{fact:bench.grid.Plum.ms}} ms at mid-game on the Classic board, and Green's call is {{fact:bench.grid.Green.ms}}.[^grid]
+The chosen arm's probabilities are returned unchanged, with its name recorded in the belief's extras. Green's record is saved after each game and restored as Tier 1 method memory. The current memory builder does not reconstruct the arm counts from stored games, because those records do not preserve the predictions made by the arms at the time.[^memory] Every call consults all five arms. In the Classic-board benchmark, [[Professor Plum]] alone took about {{fact:bench.grid.Plum.ms}} ms per call at mid-game and Green took {{fact:bench.grid.Green.ms}} ms.[^grid]
 
 ## Measured
 
@@ -96,20 +96,20 @@ The rank reward separated the arms where the earlier reward had not. Over sixty 
 
 {{table:bench.grid|The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
 
-Because he plays a borrowed belief, Green's score tracks the arms he trusts. On the ring board he was joint-best with Plum at the end, {{fact:bench.ring.Green.100}}, with the best first choice of the six, {{fact:bench.ring.Green.top1}}; on the Classic board he is second-best at the end, {{fact:bench.grid.Green.100}}, and ahead of the baseline throughout, including the halfway checkpoint ({{fact:bench.grid.Green.50}} to {{fact:bench.grid.uniform.50}}) where Plum himself is not. The notes describe him as tracking "Plum's quality at a Plum-plus-everyone price".[^ring][^grid]
+Green's benchmark loss reflects which arms were selected. In the ring-board run, his final loss was {{fact:bench.ring.Green.100}}, joint-lowest with Plum, and his final first-choice accuracy was {{fact:bench.ring.Green.top1}}, the highest of the six. In the Classic-board run, final loss was {{fact:bench.grid.Green.100}}, second-lowest. He beat the uniform baseline at all four checkpoints, including halfway: {{fact:bench.grid.Green.50}} versus {{fact:bench.grid.uniform.50}}. Computing all five arms made his runtime comparable to Plum's plus the other methods' costs.[^ring][^grid]
 
 ### At the table
 
 {{table:green.threshold|Green with only his accusation threshold moved, three arenas of 24 games on the Classic board, 15 September 2026.}}
 
-In the [[arena]] Green's results are the noisiest of the six. He won {{fact:arena.ring.Green.win}}% of his games at the tuned presets on the ring board, and on the Classic board's first arena no game at all, accusing in only one of sixteen. Lowering his threshold bought one win in sixteen and, at 0.5, two wrong accusations, so the preset stood; what limits him is pace, not his dial, since the belief he borrows rarely reaches even 0.5 before somebody else ends the game. Then, across nine arenas that day in which his own settings were touched in only two, he won {{fact:green.swing}} per cent of his games, and {{fact:green.confirm.win}}% of the very deals he had lost every one of, with nothing of his changed. The zero was the low draw of a noisy number, and the project's notes use his record as the standing warning about what twenty games can show.[^tuned]
+Green won {{fact:arena.ring.Green.win}}% of his games in the tuned ring-board arena and none of sixteen in the first Classic-board arena. Lowering the threshold produced only one win in sixteen, with two wrong accusations at 0.5, so the preset was retained. Across nine arenas that day, his win rates spanned {{fact:green.swing}} per cent. A confirmation run using the original 24 deals gave {{fact:green.confirm.win}}% wins with his settings unchanged but other characters retuned. The outcomes varied with the opposition as well as the sequence of play; a single small arena does not establish his competitive strength.[^tuned]
 
-With [[Claude]] in his seat he moved within the noise: {{fact:twin.ring.Green.win_base}}% to {{fact:twin.ring.Green.win_llm}}% on the ring, {{fact:twin.grid.Green.win_base}}% to {{fact:twin.grid.Green.win_llm}}% on the Classic board.[^twin]
+In the twin arenas, adding [[Claude]] changed Green's win rate from {{fact:twin.ring.Green.win_base}}% to {{fact:twin.ring.Green.win_llm}}% on the ring board and from {{fact:twin.grid.Green.win_base}}% to {{fact:twin.grid.Green.win_llm}}% on the Classic board. These differences were within the reported sampling uncertainty.[^twin]
 
 ## Limitations
 
-- **He is only as good as his arms.** An ensemble that plays one belief whole cannot be better than its best arm on any turn, and is worse whenever it picks another.
-- **He learns slowly.** One lesson a game is a thin diet for five records, and a game's lesson is one ranking on one position, the final one.
+- **Each prediction comes from one arm.** On an individual observation, Green returns one constituent belief unchanged. Adaptively selecting arms may outperform a fixed arm across a run, but selection does not improve that arm's current probabilities.
+- **Game feedback is sparse.** An arena game supplies one update from the final predictions. This does not directly teach which method is best at each earlier stage.
 - **He is slow.** Every call pays for every arm.
 - **The reward is a ranking, not a measure.** An arm that is a shade better than the rest scores the same 1 as one that is far better; the record knows the order of the arms and nothing of the gaps.
 

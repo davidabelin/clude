@@ -1,13 +1,13 @@
 ---
 title: Bluffing
-short: Naming your own card in a suggestion, and why
+short: Using held cards in suggestions to isolate or conceal information
 categories: The game
 redirects: Bluff, Bluffs
 kind: stub
 ---
-**Bluffing**, in [[Clue]], is making a [[suggestion]] that names a card from one's own hand. Nobody else can show that card, so the bluff narrows what an answer can mean, hides what the player is really after, and can leave the table believing a card is in [[the envelope]] when it is not. Each character does it at a set rate, its [[bluff rate]].
+**Bluffing** in Wikiclude means making a [[suggestion]] that names a card from the player's own hand. Other players cannot show that card, so the tactic can isolate an unknown card or conceal which cards are being investigated. It need not involve a false statement. Each character's [[bluff rate]] controls its chance of selecting a held suspect or weapon; the room is fixed by its location.
 
-Measured over the six characters together, bluffing a quarter of the time cost nothing and bluffing every time cut the win rate to a third.[^sweeps] The figures are tabulated at [[Suggestion#How much to bluff|Suggestion]]. Talk is a separate matter: players may say what they like about their hands, true or false.
+In the ring-board sweep, a bluff rate of 0.25 did not reduce the pooled win rate, while a rate of 1 cut it to about a third of its value at 0.[^sweeps] The results and their conditions are at [[Suggestion#How much to bluff|Suggestion]]. Misleading [[table talk]] is a separate use of bluffing.
 
 ## References
 

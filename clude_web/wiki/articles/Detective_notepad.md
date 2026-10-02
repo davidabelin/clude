@@ -5,9 +5,9 @@ categories: The game
 redirects: Notepad, Notes, Your notes, Detective notes
 kind: stub
 ---
-The **detective notepad** is the sheet on which a [[Clue]] player keeps track: every card down the side, every player across the top, and a mark wherever a card is known to be, or known not to be, in a hand. In [[clude]] the notepad at a web table is kept for the player by the [[deduction floor]], which fills in everything that follows for certain from the player's own cards and from each [[suggestion]] as it is answered.[^web]
+A **detective notepad** records what a [[Clue]] player knows about card locations. Cards form the rows, possible holders the columns, and marks distinguish known locations from exclusions. In [[clude]], the [[deduction floor]] updates the web notepad from the player's own hand and observed answers to [[suggestion|suggestions]]. It derives the conclusions its propagation rules can reach, rather than every conclusion possible through exhaustive reasoning.[^web]
 
-The notepad shows only what is certain. What to make of a fact that fits no single box, such as "this player holds at least one of these three", is where the six [[Category:Methods|methods]] begin.
+The grid displays deductions rather than a method's probability estimates. An unresolved statement such as "Mustard holds at least one of these three cards" cannot be reduced to a single marked location. The floor retains these joint constraints for the [[Category:Methods|methods]] to use.
 
 ## References
 

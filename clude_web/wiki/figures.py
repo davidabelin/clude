@@ -242,11 +242,11 @@ def _rope_bars() -> Figure:
     label = (
         "Scarlett's probability that Mrs. White is in the envelope: "
         + ", ".join(f"{name} {value:.2f}" for name, _, value, _ in columns)
-        + f". The exact answer stays at {exact:.2f}."
+        + f". The equal-weight count stays at {exact:.2f}."
     )
     return _columns(
         "rope-bars", "Scarlett hears the same thing three times",
-        "The same fact, heard three times. The exact answer does not move after the first; Scarlett's does.",
+        "The same constraint, heard three times with the rest of the position held fixed. The count does not change after the first answer; Scarlett's estimate does.",
         columns, (exact, "exact: 2/3"), "P(Mrs. White is in the envelope)", label,
     )
 
@@ -477,10 +477,10 @@ def _peacock_interval() -> Figure:
         y += 40
     y += 6
     body.append(f'<rect x="8" y="{y}" width="16" height="10" class="interval-bel"/>')
-    body.append(_text(30, y + 9, "belief: what the evidence has established", "t-xs t-soft"))
+    body.append(_text(30, y + 9, "belief: support for the card alone", "t-xs t-soft"))
     y += 16
     body.append(f'<rect x="8" y="{y}" width="16" height="10" class="interval-pl"/>')
-    body.append(_text(30, y + 9, "plausibility: what it has failed to rule out", "t-xs t-soft"))
+    body.append(_text(30, y + 9, "plausibility: support compatible with the card", "t-xs t-soft"))
     y += 16
     body.append(f'<path d="M16 {y - 1} l5 6 l-5 6 l-5 -6 Z" class="betp"/>')
     body.append(_text(30, y + 9, "the one number she reports (BetP)", "t-xs t-soft"))
@@ -489,7 +489,7 @@ def _peacock_interval() -> Figure:
     ) + "."
     return Figure(
         key="peacock-interval", title="Peacock's two numbers",
-        caption="For each card, what the evidence has established (solid) and what it has failed to rule out (pale). The diamond is the one number she reports when a probability is required.",
+        caption="Belief (solid) and plausibility (the end of the pale bar) for each card. The diamond marks the pignistic probability used for decisions; the bounds describe evidential support within Peacock's model.",
         svg=_svg(360, y + 24, "".join(body), label),
     )
 
@@ -589,7 +589,7 @@ def _white_chain() -> Figure:
     label = (
         "One opponent's suggestions, " + ", ".join("repeat" if s else "new" for s in sequence) + ". "
         f"The fitted chain moves from new to repeat with probability {p01:.2f} and from repeat to new with {p10:.2f}; "
-        f"in the long run it repeats with probability {stationary:.2f}."
+        f"the fitted model's long-run probability of repetition is {stationary:.2f}."
     )
     return Figure(
         key="white-chain", title="White's two-state chain",
@@ -608,7 +608,7 @@ def _beta_pdf(x: float, a: float, b: float) -> float:
 
 
 def _green_arms() -> Figure:
-    """Each arm's Beta posterior after one lesson, the Rope question
+    """Each arm's Beta score record after one lesson, the Rope question
     scored against its answer, over the flat prior they all began with."""
     example = facts.rope_question()
     arms = sorted(example["green_arms"].items(), key=lambda item: -item[1][2])
@@ -620,7 +620,7 @@ def _green_arms() -> Figure:
     def y_of(v: float) -> float:
         return bottom - v / top_value * (bottom - top)
 
-    body = [_text(left - 30, 12, "how likely each arm is to be the best, as Green now sees it", "t-xs t-soft")]
+    body = [_text(left - 30, 12, "Green's Beta score records after one lesson", "t-xs t-soft")]
     for tick in (0, 0.25, 0.5, 0.75, 1):
         body.append(f'<path d="M{x_of(tick):.1f} {top} V{bottom}" class="grid"/>')
         body.append(_text(x_of(tick), bottom + 14, f"{tick:g}", "t-xs t-soft t-num", "middle"))
@@ -644,27 +644,27 @@ def _green_arms() -> Figure:
             body.append(f'<path d="M{x} {y} h18" class="line sl-under"/>')
         body.append(f'<path d="M{x} {y} h18" class="line sl-{name.lower()}"/>')
         body.append(_text(x + 24, y + 4, f"{name}: Beta({a:g}, {b:g}), mean {mean:.2f}", "t-xs"))
-    label = "Each arm's Beta posterior after one lesson: " + "; ".join(
+    label = "Each arm's Beta score record after one lesson: " + "; ".join(
         f"{name} Beta({a:g}, {b:g}), mean {mean:.2f}" for name, (a, b, mean) in arms
     ) + ". The prior for every arm was Beta(1, 1), flat."
     return Figure(
         key="green-arms", title="Green's arms after one lesson",
-        caption="Every arm began at Beta(1, 1), the flat line. One question, scored against its answer, has already bent each one.",
+        caption="Beta score distributions after the methods' answers to one question have been ranked. Every arm began with the flat Beta(1, 1) distribution; these records guide selection rather than calibrating an arm's probability of being best.",
         svg=_svg(360, bottom + 34 + 15 * len(arms) + 4, "".join(body), label, "chart"),
     )
 
 
 def _green_trust() -> Figure:
-    """The arms' posterior means after the ring board's benchmark."""
+    """The arms' mean Beta scores after the ring board's benchmark."""
     names = [("Plum", "plum", "exact"), ("Mustard", "mustard", "tree"), ("White", "white", "Markov"), ("Peacock", "peacock", "D-S"), ("Scarlett", "scarlett", "naive Bayes")]
     columns = [(name, sub, float(facts.fact(f"green.arms.ring.{key}")), f"s-{key}") for name, key, sub in names]
-    label = "The mean of each arm's Beta posterior after sixty benchmark games on the ring board: " + ", ".join(
+    label = "The mean of each arm's Beta score record after sixty benchmark games on the ring board: " + ", ".join(
         f"{name} {value:.2f}" for name, _, value, _ in columns
     ) + "."
     return _columns(
         "green-trust", "Whom Green came to trust",
-        "After sixty benchmark games on the ring board: the mean of each arm's Beta posterior, against the prior's 0.5.",
-        columns, (0.5, "the prior: 0.5"), "mean of the arm's posterior", label,
+        "Mean Beta scores after sixty benchmark games on the ring board, compared with the initial mean of 0.5. These are selection records, not calibrated probabilities of a method being best.",
+        columns, (0.5, "the prior: 0.5"), "mean arm score", label,
     )
 
 

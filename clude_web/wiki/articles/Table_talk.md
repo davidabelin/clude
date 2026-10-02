@@ -5,9 +5,9 @@ categories: Personality
 redirects: Talk, Chat, Chattiness
 kind: stub
 ---
-**Table talk** is what is said at a clude table apart from the game's formal moves. A character played by a language model may offer a line with any decision it makes, and may react when somebody else speaks, makes a [[suggestion]] or [[accusation|accuses]]; whether an offered line is actually said is a draw on the character's *chattiness*. People at the table can type lines of their own.[^wrapper]
+**Table talk** is conversation at a [[clude]] table outside the formal game actions. A model-piloted character may offer a line with a decision or react to another player's remark, [[suggestion]] or [[accusation]]. Its *chattiness* setting controls how often remarks are requested or published. Human players can type their own messages.[^wrapper]
 
-Nothing said is checked, and nobody has to believe it. Players may hint, tease and lie about their cards in talk; only the formal answer to a suggestion is beyond falsifying.
+Conversation is not checked against the hidden cards. Players may disclose, hint or mislead, and listeners decide what to believe. Formal disproofs are different: the engine enforces the requirement to show a matching card.
 
 ## References
 

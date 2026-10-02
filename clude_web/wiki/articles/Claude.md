@@ -5,9 +5,9 @@ categories: The app
 redirects: Claude (language model), The model, LLM
 kind: stub
 ---
-**Claude** is the [[w:Claude (language model)|language model]], made by [[w:Anthropic|Anthropic]], that [[clude]] is named for. It appears at the table in two ways. A character may be played *with Claude*: the character's [[Category:Methods|method]] still produces the numbers, and the model chooses among the character's best options within its [[leash]], speaks in its [[persona]]'s voice, and keeps its [[logbook]]. Or a Claude in a chat window may take a seat as a player in its own right, with no character behind it and nothing to go on but the [[detective notepad]] every human player gets.[^wrapper][^mcp]
+**Claude** is a [[w:Claude (language model)|language model]] made by [[w:Anthropic|Anthropic]] and the source of [[clude]]'s name. A model-piloted character uses its numerical [[Category:Methods|method]] to build options, then asks Claude to choose within the [[leash]] and speak in its [[persona]]'s voice. When remembering is enabled, it also uses a narrative [[logbook]].[^wrapper] A chat agent can instead take a seat through MCP and reason independently from its own hand, visible history and [[detective notepad]], without a numerical character behind it.[^mcp]
 
-At list prices a character played with Claude costs about \${{fact:cost.seat_game.others}} a game, and [[Professor Plum]], whose games run long, about \${{fact:cost.seat_game.plum}}.[^cost]
+The project's recorded cost estimates were about \${{fact:cost.seat_game.others}} per model-piloted seat-game, or \${{fact:cost.seat_game.plum}} for [[Professor Plum]], whose games were longer. These estimates describe the documented model and runs; they are not current-price guarantees.[^cost]
 
 ## References
 

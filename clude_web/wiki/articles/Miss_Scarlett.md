@@ -1,10 +1,10 @@
 ---
 title: Miss Scarlett
-short: The character who reasons by tally, and accuses first
+short: The confident character who combines clues with heuristic score updates
 categories: Characters
 redirects: Scarlett, Miss Scarlet, Scarlet
 dyk: ... that [[Miss Scarlett]] accuses at a confidence of {{code:preset.Scarlett.accuse_threshold}}, where every other character waits for 0.7 or more, and that her bar has been set three times?
-dyk: ... that [[Miss Scarlett]], told the same thing three times, believes it three times as much?
+dyk: ... that repeating the same disproof raises [[Miss Scarlett]]'s probability for Mrs. White from {{code:example.scarlett.1.White}} to {{code:example.scarlett.3.White}}, without adding a new constraint?
 ---
 {{infobox
 title: Miss Scarlett
@@ -21,22 +21,22 @@ Memory | A [[logbook]] only; her method remembers nothing
 [[Curiosity]] | {{code:preset.Scarlett.curiosity}}
 [[Secrecy]] | {{code:preset.Scarlett.secrecy}}
 [[Temperature]] | {{code:preset.Scarlett.temperature}}
-= Record on the Classic board
+= Classic-board arena, 15 September 2026
 Games won | {{fact:arena.grid.Scarlett.win}}% of {{fact:arena.grid.Scarlett.games}}
 Wrong accusations | {{fact:arena.grid.Scarlett.wrong}}%
 }}
 
-**Miss Scarlett** is one of the six [[Clue#The cards|suspects]] of [[Clue]] and, in [[clude]], the [[Category:Characters|character]] who reasons by tally. Her method is [[Naive Bayes]]: every [[suggestion]] she hears nudges the three cards it names up, if nobody could [[suggestion#Disproof|disprove]] it, or down, if somebody did, and she adds up the nudges as though each had nothing to do with the others. It makes her the fastest thinker at the table, since her whole method is a few multiplications, and the most [[w:Overconfidence effect|overconfident]], since the same card in the same hand can answer three suggestions and she counts it three times.
+**Miss Scarlett** is one of the six [[Clue#The cards|suspects]] in [[Clue]] and a [[Category:Characters|character]] in [[clude]]. Her [[Naive Bayes]] method estimates the cards in [[the envelope]] by multiplying their scores after each [[suggestion]]. An undisproved suggestion raises the named cards' scores; a disproof whose card she does not see lowers them. Each update treats the suggestion as independent evidence. The method is fast, but overlapping clues can make Scarlett [[w:Overconfidence effect|overconfident]].[^module]
 
-She plays as she thinks. Her [[accusation threshold]] is {{code:preset.Scarlett.accuse_threshold}}, where the other five wait for 0.7 to 0.9, so she [[accusation|accuses]] on a third of the confidence anyone else would need; and because her numbers run ahead of the evidence, she makes more wrong accusations than any other character, on both [[Classic board|boards]] the game has been played on. The project's notes are careful about where that comes from: "the dial supplies 'early', the belief supplies 'wrong'". Repairing her arithmetic "would make her a different character".[^tuned]
+Her [[accusation threshold]] is {{code:preset.Scarlett.accuse_threshold}}, lower than the other presets. It encourages her to act on less evidence, while repeated score updates can overstate that evidence. She had the highest wrong-accusation rate in the recorded tuned arenas on both boards. The project deliberately retains this combination of haste and overconfidence as part of her character.[^tuned]
 
-Her [[belief]], measured against the truth, is a little worse than that of a player who knows only what is logically certain, at every stage of a game, and her first choice of card is nonetheless right a little more often than that player's. Among the six she is the reminder that confidence and accuracy are different things.
+In both recorded [[belief benchmark|benchmark]] regimes, her log-loss was slightly worse than the [[uniform baseline]] at all four checkpoints. In the Classic-board run, however, her final first-choice accuracy was slightly higher than the baseline's. A useful ranking and a reliable probability estimate are different achievements.[^grid]
 
 ## Character
 
-Scarlett is written as "quick, glamorous, and entirely sure of yourself. You came to win, and you would rather be first than careful."[^persona] The description is addressed to her: it is the opening of her [[persona]], the page of prose a [[w:Large language model|language model]] is given when it plays her seat. The persona describes the method from the inside, as a way of thinking rather than a rule: "You think in tallies. Every suggestion that nobody answers nudges its three cards up in your mind; every card someone shows nudges one down; and you add up the nudges as if each one had nothing to do with the others." And it names the flaw without instructing her to have it: "your certainty has a way of running ahead of the evidence without your noticing. When your numbers say a thing, you believe them."[^persona]
+Scarlett's [[persona]], the instructions given to a [[w:Large language model|language model]] playing her seat, describes her as "quick, glamorous, and entirely sure of yourself". It connects her confidence to her method: "your certainty has a way of running ahead of the evidence without your noticing".[^persona] The persona supplies the voice; the method and threshold supply the decisions that make that voice credible.
 
-Her voice at the table is "poised, amused, a little cutting. Short sentences." She pays compliments with an edge on them, flirts with the table when she is winning and needles it when she is not, and "never explain[s] her arithmetic; you announce conclusions". She is given no sore point and no hedge: "if you are wrong you are wrong out loud, and you would do it again."[^persona] When the first recorded games with a model in every seat were read for how each voice had survived, hers needed no change; she had explained her arithmetic once in five lines, which her persona already forbids, and one line was judged too thin to tune on.[^phase6]
+Her prescribed voice is "poised, amused, a little cutting. Short sentences." She announces conclusions rather than explains her arithmetic, and her confidence is meant to survive being wrong.[^persona] A review of the first model-piloted games found no sufficient reason to change the persona. One explanation of her arithmetic conflicted with the instructions, but was judged too little evidence to justify retuning.[^phase6]
 
 The persona is written to one rule, shared by all six: do not encode the flaw twice. Scarlett's early accusations come from her threshold and her method; the persona says she is sure of herself, not that she should accuse early.[^wrapper] All of this is heard only when a model is in the seat, as [[table talk]]. Headless, by her numbers alone, she is silent, and every measurement below was made that way unless it says otherwise. The seat is fixed: Scarlett always plays the red token and moves first.[^seats]
 
@@ -44,13 +44,13 @@ The persona is written to one rule, shared by all six: do not encode the flaw tw
 
 {{main:Naive Bayes}}
 
-{{figure:rope-bars|Scarlett's probability that Mrs. White is in the envelope as the same fact reaches her once, twice and three times. The dashed line is the exact answer, which the second and third hearings do not change.}}
+{{figure:rope-bars|Scarlett's probability that Mrs. White is in the envelope as the same fact reaches her once, twice and three times. The dashed line is the equal-weight count, unchanged by the repeated evidence.}}
 
-Scarlett starts every one of the {{code:cards.total}} cards at a score of 1 and reads through every suggestion made so far. One that nobody could disprove multiplies the score of each card it named by {{code:scarlett.boost}}; one that somebody disproved with a card she did not see multiplies each by {{code:scarlett.decay}}; one whose shown card she saw changes nothing, because the [[deduction floor]] records that card as a fact. The scores are then turned into probabilities within each category, after the floor has struck out every card it has ruled out of the envelope. Nothing is carried from one call to the next and nothing from one game to the next.[^module]
+Scarlett recomputes a score for each of the {{code:cards.total}} cards from the suggestion history. The update factors are {{code:scarlett.boost}} for an undisproved suggestion and {{code:scarlett.decay}} for an unseen disproof. Seen cards become facts through the [[deduction floor]], which masks and normalises the scores into category probabilities. She carries no method state between calls or games.[^module]
 
-The worked example at [[Naive Bayes#At the table|Naive Bayes]] shows the method hearing one fact three times. Late in a three-handed game, with Mrs. White or Mrs. Peacock in the envelope, Mr. Green suggests Peacock and the Rope and Colonel Mustard shows him a card. Scarlett marks Peacock and the Rope down and Mrs. White rises to {{code:example.scarlett.1.White}}. [[Professor Plum]], counting the deals still possible, puts her at {{code:example.plum.White}} and stays there however often the same question is asked. Scarlett does not: when Green asks again she is at {{code:example.scarlett.2.White}}, and a third time at {{code:example.scarlett.3.White}}, ten points past the right answer and still climbing, with her figure for the pair she would accuse at {{code:example.scarlett.3.pair}}, twice her threshold. One card in Mustard's hand explains everything she has heard.[^module]
+In the [[Naive Bayes#At the table|worked example]], Green's disproofs add the same constraint repeatedly: Mustard holds Peacock or the Rope. The Hall is already known to be in Green's hand. Scarlett's estimate for Mrs. White rises from {{code:example.scarlett.1.White}} to {{code:example.scarlett.2.White}} and then {{code:example.scarlett.3.White}}. The equal-weight count remains {{code:example.plum.White}}, because the repeated evidence excludes no additional deals. Her accusation score for White with the Wrench reaches {{code:example.scarlett.3.pair}}, above her threshold. That score is a product of card probabilities, not an exact probability for the pair.[^module]
 
-The assumption behind the multiplication, that each piece of evidence is [[w:Conditional independence|independent]] of every other given the truth, is what the word "naive" means in the method's name, and it is false at a card table in exactly the way the example shows. Outside clude the same method [[w:Naive Bayes spam filtering|sorts spam from real mail]], and is known there for the same two traits: good at picking the right answer, poor at saying how sure to be.[^domingos]
+The name "naive Bayes" refers to [[w:Conditional independence|conditional independence]] of evidence given a hypothesis. Scarlett uses hand-set factors rather than learned likelihoods, so hers is a heuristic adaptation. Textbook models, used for tasks such as [[w:Naive Bayes spam filtering|spam filtering]], can classify well despite inaccurate probability estimates; their performance is not determined by Scarlett's benchmark results.[^domingos]
 
 ## How she plays
 
@@ -68,7 +68,7 @@ The threshold has been set three times, and its history is most of her record. T
 
 {{table:scarlett.threshold|Scarlett over three arenas of 24 games on the Classic board, with only her accusation threshold changed, 15 September 2026.}}
 
-At 0.3 she won three times as often as at 0.15, at a lower wrong rate, because the longer game gives her tally time to be right before it reaches the bar. She still accuses in nearly half her games and is still wrong about half the times she does, just later. The threshold became {{code:preset.Scarlett.accuse_threshold}}.[^grid-presets] Her curiosity was tried at 0.5 and 0.3 the same day and the results, {{fact:curiosity.grid.0.5.scarlett}} and {{fact:curiosity.grid.0.3.scarlett}} for won, wrong and never accused, were "noise around a losing position"; it stands at {{code:preset.Scarlett.curiosity}}.[^grid-presets]
+In the Classic-board sweep, a threshold of 0.3 produced three times the win rate of 0.15, with fewer wrong accusations. The longer games allowed more evidence to accumulate before she reached the higher threshold. She still accused in nearly half her games and was wrong in about half those accusations. The preset became {{code:preset.Scarlett.accuse_threshold}}.[^grid-presets] Curiosity settings of 0.5 and 0.3 gave {{fact:curiosity.grid.0.5.scarlett}} and {{fact:curiosity.grid.0.3.scarlett}} for won, wrong and never accused. The notes describe these as "noise around a losing position", and her curiosity remains {{code:preset.Scarlett.curiosity}}.[^grid-presets]
 
 ## Record
 
@@ -80,7 +80,7 @@ The [[belief benchmark]] scores each method's probabilities against the truth at
 
 {{table:bench.grid|The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
 
-Scarlett trails the baseline at every checkpoint on the Classic board, by a little, as she did on the ring, where she was for a time the only method that did.[^ring] Every adjustment she makes to the floor's even spread costs her on average more than it gains, because most suggestions in a real game are disproved and her cruder factor is applied over and over to overlapping sets of cards. Her first choice in each category at the end of a game is nonetheless right {{fact:bench.grid.Scarlett.top1}} of the time against the baseline's {{fact:bench.grid.uniform.top1}}: her ranking of the cards is a little better than ignorance while her probabilities are worse, the usual finding about her method.[^grid][^domingos] And she is fast, answering in a fraction of a millisecond where [[Professor Plum]] takes half a second.
+In both the ring-board and Classic-board benchmarks, Scarlett's log-loss was slightly higher than the baseline at every checkpoint.[^ring] The repeated adjustments reduced probability accuracy on average. In the Classic-board run, final first-choice accuracy was {{fact:bench.grid.Scarlett.top1}}, compared with {{fact:bench.grid.uniform.top1}} for the baseline. Her card ranking was slightly better while her probability estimates were worse.[^grid] This is consistent with the distinction between classification accuracy and [[w:Calibration (statistics)|calibration]] discussed in the naive Bayes literature.[^domingos]
 
 ### At the table
 
@@ -92,11 +92,11 @@ The [[landing rule]] took her exact repeats of her own earlier suggestions on th
 
 ### With Claude in the seat
 
-When a model plays her, choosing among her own best-scoring options within the [[leash]], she is the character who changes least. At a four-seat table where every character played with [[Claude]], her wins were unchanged on both boards, {{fact:twin.ring.Scarlett.win_base}}% on the ring and {{fact:twin.grid.Scarlett.win_base}}% on the Classic board, and her wrong accusations moved within noise, {{fact:twin.ring.Scarlett.wrong_base}}% to {{fact:twin.ring.Scarlett.wrong_llm}}% and {{fact:twin.grid.Scarlett.wrong_base}}% to {{fact:twin.grid.Scarlett.wrong_llm}}%. The one thing the model did differently was [[w:Bluff (poker)|bluff]] less: her suggestions naming a card of her own fell from {{fact:twin.ring.bluff.scarlett.base}} a game to {{fact:twin.ring.bluff.scarlett.llm}} on the ring and from {{fact:twin.grid.bluff.scarlett.base}} to {{fact:twin.grid.bluff.scarlett.llm}} on the Classic board, which was true of every character that does not loop. The model treats naming its own card as a wasted question rather than a feint.[^twin-ring][^twin]
+In the [[Claude]] twin comparisons, Scarlett's win rate was unchanged: {{fact:twin.ring.Scarlett.win_base}}% on the ring board and {{fact:twin.grid.Scarlett.win_base}}% on the Classic board. Wrong-accusation rates changed from {{fact:twin.ring.Scarlett.wrong_base}}% to {{fact:twin.ring.Scarlett.wrong_llm}}% and from {{fact:twin.grid.Scarlett.wrong_base}}% to {{fact:twin.grid.Scarlett.wrong_llm}}%, respectively, within the uncertainty of these runs. The clearer behavioural change was fewer [[w:Bluff (poker)|held-card suggestions]]: {{fact:twin.ring.bluff.scarlett.base}} to {{fact:twin.ring.bluff.scarlett.llm}} per game on the ring and {{fact:twin.grid.bluff.scarlett.base}} to {{fact:twin.grid.bluff.scarlett.llm}} on the Classic board. Those counts do not by themselves establish why the model changed its choices.[^twin-ring][^twin]
 
 ## Memory
 
-Scarlett's method has nothing to remember: it starts every game from the deal in front of it and reads the whole history of suggestions afresh on every call. What she can carry from game to game is a [[logbook]], which only a model-piloted seat writes: after each game the model, shown the whole deal face up, writes an entry in her voice with what happened, what she learned, and a set of standing instructions for next time.[^logbooks] No long experiment with her logbook has been run; the one that has, with [[Professor Plum]]'s, is described on his page.
+Scarlett's method reads the current game's suggestion history afresh on every call and carries no learned state between games. A model playing her seat can separately keep a [[logbook]] when memory is enabled, recording events, lessons and standing instructions after seeing the completed deal.[^logbooks] No extended logbook experiment with Scarlett has been recorded; the one conducted with [[Professor Plum]] is described on his page.
 
 ## See also
 

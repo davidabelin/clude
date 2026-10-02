@@ -5,9 +5,9 @@ categories: Personality
 redirects: Personas
 kind: stub
 ---
-A **persona** is the short description of a character that a language model is given when it plays that character's seat: who the character is, how it thinks, described from the inside, and how it talks. There is one for each of the six, and a shared page of house rules.[^wrapper]
+A **persona** describes a character to a language model playing its seat. It explains the character's temperament, its method as a way of thinking and its speaking style. Each of the six characters has its own persona alongside shared house rules.[^wrapper]
 
-A persona gives a character its voice and nothing else. What a character *does* comes from its [[Category:Methods|method]] and its [[personality dials]]; the rule the personas are written to is "do not encode the flaw twice". [[Miss Scarlett]]'s persona says she is sure of herself; it does not tell her to accuse early.
+The persona primarily supplies voice and self-image. It can influence the model's choices within the [[leash]], but the [[Category:Methods|method]] and [[personality dials]] define the scored options. The design rule is to avoid encoding the same flaw twice: [[Miss Scarlett]]'s persona expresses confidence without separately instructing her to accuse early.
 
 ## References
 

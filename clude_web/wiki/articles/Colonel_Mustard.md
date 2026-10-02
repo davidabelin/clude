@@ -1,10 +1,10 @@
 ---
 title: Colonel Mustard
-short: The character who reasons from the games he has seen
+short: The decisive character whose decision tree learns from past games
 categories: Characters
 redirects: Mustard, Col. Mustard, The Colonel
-dyk: ... that [[Colonel Mustard]]'s method is a tree of {{code:mustard.tree.nodes}} questions grown from {{code:mustard.tree.games}} games he watched before the first one he played?
-dyk: ... that on the ring board [[Colonel Mustard]]'s own method put him out of a third of his games, and that the dial that could have stopped it was left alone on purpose?
+dyk: ... that [[Colonel Mustard]]'s tree is trained on {{code:mustard.tree.games}} self-play games and has {{code:mustard.tree.nodes}} nodes, including {{code:mustard.tree.leaves}} leaves?
+dyk: ... that in the first ring-board arena [[Colonel Mustard]] accused wrongly in about a third of his games, while his neutral accusation threshold was retained to isolate his method's errors?
 ---
 {{infobox
 title: Colonel Mustard
@@ -12,29 +12,29 @@ class: suspect-mustard
 figure: token-mustard
 caption: Mustard's token, the second in the order of play
 Method | [[Decision tree]]
-In a phrase | Pattern-matches; confidently wrong on unusual deals
+In a phrase | Decisive, experienced and sometimes overconfident
 Module | `decision_tree.py`
-Memory | Every game he has seen played, as training rows for his tree
+Memory | Training rows extracted from stored games when remembering is enabled
 = Personality dials
 [[Accusation threshold]] | {{code:preset.Mustard.accuse_threshold}} (neutral)
 [[Bluff rate]] | {{code:preset.Mustard.bluff_rate}}
 [[Curiosity]] | {{code:preset.Mustard.curiosity}}
 [[Secrecy]] | {{code:preset.Mustard.secrecy}}
 [[Temperature]] | {{code:preset.Mustard.temperature}}
-= Record on the Classic board
+= Classic-board arena, 15 September 2026
 Games won | {{fact:arena.grid.Mustard.win}}% of {{fact:arena.grid.Mustard.games}}
 Wrong accusations | {{fact:arena.grid.Mustard.wrong}}%
 }}
 
-**Colonel Mustard** is one of the six [[Clue#The cards|suspects]] of [[Clue]] and, in [[clude]], the [[Category:Characters|character]] who reasons from experience. His method is a [[decision tree]] grown from the records of past games: for each card still in doubt it asks a short series of questions (how many players could still hold it, how often it has been named and by how many different players, how far the game has run) and answers with how such cards turned out before. A situation reminds him of the ones that came before it, and the [[w:Pattern recognition|resemblance]] gives him the answer at once, with the confidence that many games give. When a deal is unlike the ones he remembers he does not notice, because the pattern speaks with the same confidence either way.
+**Colonel Mustard** is one of the six [[Clue#The cards|suspects]] in [[Clue]] and the [[clude]] [[Category:Characters|character]] who uses a [[decision tree]]. For each unresolved card, the tree asks questions about possible holders, previous [[suggestion|suggestions]] and the stage of the game. It assigns a score from training examples with similar features. This [[w:Pattern recognition|pattern-based]] approach is fast, but can be misleading when a current position differs from the games used for training.[^module]
 
-Measured, that is exactly what happens. On the ring board his [[belief]] was the best of the six at the end of a game and one of the worst in the middle, where a pattern that usually holds was confidently wrong about the deal in front of him; on the [[Classic board]], with a tree grown from games on that board, he matches a purely logical player in the middle and is the best method at the end. His [[accusation threshold]] is the neutral {{code:preset.Mustard.accuse_threshold}} on purpose, so that when he accuses wrongly the fault is the tree's and not a dial's, and on the ring board the tree put him out of a quarter of his games. He is one of three characters whose method itself remembers from game to game.[^glossary]
+In the recorded ring-board benchmark, Mustard had the lowest final [[log-loss]] but some of the highest mid-game losses. With training on the [[Classic board]], he matched the uniform baseline at halfway and again had the lowest final loss. His [[accusation threshold]] is the neutral {{code:preset.Mustard.accuse_threshold}}, chosen to avoid adding an unusually hasty threshold to an already overconfident method. He is one of three characters with persistent method memory.[^glossary]
 
 ## Character
 
-Mustard is written as "hearty, bluff, decisive, a military man who has played a great many games of this and remembers most of them."[^persona] The description is addressed to him: it is the opening of his [[persona]], the page of prose a [[w:Large language model|language model]] is given when it plays his seat. The persona describes the method from the inside: "You think by experience. A situation reminds you of the ones that came before it: this many suggestions in, that card named by that many people, the floor closed this far, and you know how those games came out. The pattern gives you the answer, and it gives it to you at once." And it names the flaw as a trait and not an instruction: "when a deal is unlike the ones you remember you do not notice, because the pattern still speaks with the same confidence. You trust it anyway. It has been right before."[^persona]
+Mustard's [[persona]], given to a [[w:Large language model|language model]] playing his seat, describes him as "hearty, bluff, decisive, a military man". His confidence comes from experience: "The pattern gives you the answer, and it gives it to you at once." The same confidence persists when the resemblance is misleading.[^persona] This turns the tree's reliance on familiar features into a recognisable temperament.
 
-His voice is "loud, warm, impatient with theory. 'Seen this before.' 'In my experience.' 'Mark my words.'" He calls people by their titles, slaps metaphorical backs, and has "no time for anyone counting on their fingers". The persona gives him one way of losing: "When you are wrong you are magnificently wrong and you take it like a soldier, then blame the weather."[^persona] In the first recorded games with a model in every seat his voice needed no change. He did volunteer, in [[table talk]], that he held the room he was standing in, which the notes record as "a real [[w:Tell (poker)|tell]], in bounds under the over-sharing decision, and exactly the kind of thing the logbooks should punish later".[^phase6] Characters may hint, bluff and give themselves away about their own cards; what they may not do is refuse to show one when the rules require it.[^integrity]
+His prescribed voice is "loud, warm, impatient with theory", with phrases such as "Seen this before" and "Mark my words". When wrong, he is instructed to take it like a soldier and blame the weather.[^persona] A review of the first model-piloted games retained the voice. He also volunteered that he held his current room's card, an allowed [[w:Tell (poker)|tell]] in [[table talk]].[^phase6] Characters may disclose or mislead about their cards in conversation; they must still show a matching card when the formal rules require it.[^integrity]
 
 Headless, by his numbers alone, he is silent, and every measurement below was made that way unless it says otherwise. The seat is fixed: Mustard always plays the yellow token, second in the order of play.[^seats]
 
@@ -42,9 +42,9 @@ Headless, by his numbers alone, he is silent, and every measurement below was ma
 
 {{main:Decision tree}}
 
-{{figure:mustard-tree|wide|Mustard's tree as it is actually played with, grown from the live model. A leaf's colour is how sure it is.}}
+{{figure:mustard-tree|wide|Mustard's tree as it is actually played with, grown from the live model. A leaf's colour represents its raw score.}}
 
-Mustard's [[w:Decision tree learning|tree]] is grown, when it is first needed, from {{code:mustard.tree.games}} games played out between purely logical players: one row for every card not yet placed, in every player's view, at the halfway point and at the end of each game, {{code:mustard.tree.rows}} rows in all, labelled with whether the card turned out to be the envelope's. From them the grower finds the {{code:mustard.tree.nodes}} questions that best separate the envelope's cards from the rest, and the {{code:mustard.tree.leaves}} leaves at the ends hold the answers: the share of training cards like this one that were the envelope's, [[w:Additive smoothing|smoothed]] so that no leaf says exactly never.[^module] To form a belief he takes each unplaced card down the tree to its leaf, and the [[deduction floor]] then strikes out whatever it has ruled out.
+Mustard's [[w:Decision tree learning|tree]] is trained when first needed. Its default data contains {{code:mustard.tree.rows}} rows from {{code:mustard.tree.games}} floor-bot games, sampled from every player's view at halfway and at the end. Each row describes an unresolved card and records whether it was in the envelope. The tree has {{code:mustard.tree.nodes}} nodes, including {{code:mustard.tree.leaves}} leaves. Leaf scores are training frequencies adjusted by [[w:Additive smoothing|smoothing]]; the [[deduction floor]] masks and normalises them before use.[^module]
 
 The questions are about a card's situation and never its name, and on the worked example the method articles share, the Rope question, they fail to tell four open cards apart. One overheard answer has told [[Professor Plum]] that Mrs. White is in the envelope with probability {{code:example.plum.White}}; Mustard's tree, asking its {{code:example.mustard.questions}} questions, sends all four cards to the same leaf, and he puts each at {{code:example.mustard.White}}. The tree has a question that would have separated them, whether a card is in an open "one of these" fact, but on this path it never asks it.[^tree]
 
@@ -54,7 +54,7 @@ A character's belief says what it thinks; five [[personality dials]] say what it
 
 | Dial | Mustard | What it does |
 |---|---|---|
-| [[Accusation threshold]] | {{code:preset.Mustard.accuse_threshold}} | He accuses once his own estimate of being right reaches this. The neutral setting, kept on purpose: with the dial neutral, every wrong accusation of his is the tree's. |
+| [[Accusation threshold]] | {{code:preset.Mustard.accuse_threshold}} | He accuses once his own estimate of being right reaches this. The neutral setting, kept on purpose: it avoids adding an unusually low threshold to the method's errors. |
 | [[Bluff rate]] | {{code:preset.Mustard.bluff_rate}} | The chance that he names a card from his own hand in a suggestion. |
 | [[Curiosity]] | {{code:preset.Mustard.curiosity}} | How far he will walk for the room he most suspects. The lowest of the six: he "blusters into the nearest room". |
 | [[Secrecy]] | {{code:preset.Mustard.secrecy}} | When he must show a card, how strongly he prefers one that player has already seen. The lowest of the six: he "shows whatever". |
@@ -72,27 +72,27 @@ On the first benchmark of all, before the tree was regrown on better games and i
 
 {{table:bench.grid|The same benchmark on the Classic board, {{fact:bench.grid.games}} games, 15 September 2026.}}
 
-On the Classic board, with a tree grown from games on that board, he matches the baseline at the halfway mark ({{fact:bench.grid.Mustard.50}} to {{fact:bench.grid.uniform.50}}) and is the best method at the end, {{fact:bench.grid.Mustard.100}}, with the best first choice of the six, {{fact:bench.grid.Mustard.top1}}: "the same method on data that suits it better".[^grid] He answers in a fraction of a millisecond.
+In the Classic-board benchmark, with a tree trained on that board, halfway loss was {{fact:bench.grid.Mustard.50}} against the baseline's {{fact:bench.grid.uniform.50}}. Final loss was {{fact:bench.grid.Mustard.100}}, the lowest of the six, and final first-choice accuracy was {{fact:bench.grid.Mustard.top1}}, the highest. His calls took a fraction of a millisecond.[^grid]
 
 ### At the table
 
 {{table:arena.grid|The six characters over {{fact:arena.grid.games}} games on the Classic board at their tuned presets, 15 September 2026.}}
 
-The wrong accusations are his record. In the ring board's first arena the tree "eliminated him in a third of his games", {{fact:arena.ring.first.Mustard.wrong}}% wrong, which the notes mark as the character where [[Miss Scarlett]]'s failure to accuse at all was a dial; at the tuned presets, {{fact:arena.ring.Mustard.wrong}}%, with {{fact:arena.ring.Mustard.win}}% won.[^first][^ring-arena] On the Classic board the better-grown tree accuses wrongly in {{fact:arena.grid.Mustard.wrong}}% of his games and wins {{fact:arena.grid.Mustard.win}}%, his first accusation coming at turn {{fact:arena.grid.Mustard.first}}. A character plays 16 to 20 of the 24 games, so each percentage carries a [[w:Standard error|standard error]] of {{fact:arena.noise}} points.[^arena][^grid-presets]
+In the first ring-board arena, Mustard accused wrongly in {{fact:arena.ring.first.Mustard.wrong}}% of games. With tuned presets, that fell to {{fact:arena.ring.Mustard.wrong}}%, while he won {{fact:arena.ring.Mustard.win}}%.[^first][^ring-arena] The tabulated Classic-board run recorded {{fact:arena.grid.Mustard.wrong}}% wrong accusations and {{fact:arena.grid.Mustard.win}}% wins, with a first accusation at mean turn {{fact:arena.grid.Mustard.first}}. Each character played 16 to 20 of the 24 games, giving an estimated [[w:Standard error|standard error]] of {{fact:arena.noise}} percentage points.[^arena][^grid-presets]
 
 ### With Claude in the seat
 
-When a model plays him, choosing among his own best-scoring options within the [[leash]], Mustard looked at first like the character the model rescues. At a four-seat table where every character played with [[Claude]], his wrong accusations fell from {{fact:twin.ring.Mustard.wrong_base}}% to {{fact:twin.ring.Mustard.wrong_llm}}% and his wins tripled, {{fact:twin.ring.Mustard.win_base}}% to {{fact:twin.ring.Mustard.win_llm}}%, on the ring board, and the same again on the Classic board, {{fact:twin.grid.Mustard.wrong_base}}% to {{fact:twin.grid.Mustard.wrong_llm}}% and {{fact:twin.grid.Mustard.win_base}}% to {{fact:twin.grid.Mustard.win_llm}}%. The first reading was that a decision tree that pattern-matches into confident errors is exactly the character an extra layer of judgement can save.[^twin-ring][^twin]
+The twin arenas initially suggested that [[Claude]] improved Mustard's decisions within the [[leash]]. With a model in every seat of a four-player table, his wrong-accusation rate fell from {{fact:twin.ring.Mustard.wrong_base}}% to {{fact:twin.ring.Mustard.wrong_llm}}% on the ring board, while his win rate rose from {{fact:twin.ring.Mustard.win_base}}% to {{fact:twin.ring.Mustard.win_llm}}%. On the Classic board the corresponding changes were {{fact:twin.grid.Mustard.wrong_base}}% to {{fact:twin.grid.Mustard.wrong_llm}}%, and {{fact:twin.grid.Mustard.win_base}}% to {{fact:twin.grid.Mustard.win_llm}}%. The initial interpretation was that model judgement helped him avoid the tree's confident errors.[^twin-ring][^twin]
 
 {{table:ladder.mustard|Mustard alone with Claude at four leashes on the ring board, 24 paired games each against the same two headless opponents, 13 September 2026. "Departures" counts the choices on which the model overrode his top option.}}
 
-The ladder that tested it, Mustard alone with a model at a table of two headless characters, did not bear it out. At the preset leash his wrong rate was {{fact:ladder.mustard.0.25.wrong}}% against {{fact:ladder.mustard.headless.wrong}}% without the model, his wins did not move outside noise at any leash, and the model overrode his top option on {{fact:ladder.mustard.1.devs}} of {{fact:ladder.mustard.1.played}} choices even when allowed to play anything. What improved him in the twin run was the table: five other model-piloted seats ending games sooner and cleaner, before his tree had reached a wrong certainty. The notes retire the "rescue" reading in so many words.[^ladder][^glossary]
+The separate leash experiment did not establish that the model corrected the tree's errors. With only Mustard model-piloted, the wrong rate at the preset leash was {{fact:ladder.mustard.0.25.wrong}}%, compared with {{fact:ladder.mustard.headless.wrong}}% headless. Wins did not change beyond the run's uncertainty. Even at the widest leash, the model overrode the top option on only {{fact:ladder.mustard.1.devs}} of {{fact:ladder.mustard.1.played}} choices. The project therefore withdrew its earlier "rescue" interpretation and attributed much of the twin-run improvement to other model-piloted seats ending games sooner.[^ladder][^glossary]
 
 Two other things the model did in his seat are recorded. He came to repeat himself: {{fact:mustard.loop.claude.pct}}% of his suggestions with Claude were exact repeats of his own earlier ones, against {{fact:mustard.loop.alone.pct}}% headless, with {{fact:mustard.loop.trips}} wasted trips; a loop through a room whose card he held names his own card on every pass, which is why his [[w:Bluff (poker)|bluffing]] held steady ({{fact:twin.grid.bluff.mustard.base}} to {{fact:twin.grid.bluff.mustard.llm}} own-card suggestions a game) while every character that did not loop bluffed far less. The [[landing rule]] has since taken most of the looping away: on the mixed table his repeats went from {{fact:landing.repeats.Mustard.mixed}}.[^twin][^landing]
 
 ## Memory
 
-Mustard's method remembers, and his memory is the plainest of the three that do: more rows. With a [[logbook]], rows built from every seat's view of every stored game, at the same two checkpoints his training games were sampled at, are added to the self-play base before his tree is grown, and the tree is grown afresh for him at each table. He learns from games he did not sit in, since a row is a row and the tree wants volume. Rebuilt from {{fact:mustard.memory.games}} stored games, {{fact:mustard.memory.rows}} rows joined the base; scored on {{fact:mustard.memory.held_out}} held-out games, a first and noisy look, his mid-game [[log-loss]] went from {{fact:mustard.memory.mid.before}} to {{fact:mustard.memory.mid.after}} (better) and his end-of-game score from {{fact:mustard.memory.end.before}} to {{fact:mustard.memory.end.after}} (worse). The tree with memory pattern-matches three-seat character games rather than floor-bot self-play, "which is the character"; the fair test, the notes add, is a benchmark on character games, which has not been run.[^memory]
+Mustard's method memory adds training rows from stored games to the self-play base and rebuilds the tree for each table. It uses every seat's view, including games he did not play. An initial experiment added {{fact:mustard.memory.rows}} rows from {{fact:mustard.memory.games}} stored games and scored {{fact:mustard.memory.held_out}} held-out games. Mid-game [[log-loss]] improved from {{fact:mustard.memory.mid.before}} to {{fact:mustard.memory.mid.after}}, while final loss worsened from {{fact:mustard.memory.end.before}} to {{fact:mustard.memory.end.after}}. These mixed results do not establish an overall benefit. Adding character-game rows also changes the distribution relative to floor-bot training.[^memory]
 
 Like every character he can also keep a narrative logbook, written by a model after each game it played his seat, with what happened and what to do next time.[^logbooks] The training rows are kept whether or not a model was ever in the seat.
 

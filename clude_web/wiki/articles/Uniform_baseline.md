@@ -1,13 +1,13 @@
 ---
 title: Uniform baseline
-short: The yardstick: believe what is certain and spread the rest evenly
+short: Equal probabilities among the deduction floor's remaining candidates
 categories: Measurement
 redirects: Uniform, Baseline, Uniform (baseline)
 kind: stub
 ---
-The **uniform baseline** is the [[belief]] of a player with no method at all: it accepts everything the [[deduction floor]] has proved and gives every card still possible an equal share. It is the yardstick of the [[belief benchmark]]. A method that scores better than the baseline is adding something to pure logic; one that scores worse is subtracting.[^glossary]
+The **uniform baseline** is a [[belief]] formed directly from the [[deduction floor]]. Proven envelope cards receive probability 1, excluded cards receive 0, and remaining candidates share the probability equally within each category. The [[belief benchmark]] uses it as a reference: a method with lower [[log-loss]] improves on these estimates in that evaluation, while one with higher loss makes them less accurate on average.[^glossary]
 
-On the [[Classic board]] two methods, [[Naive Bayes]] and [[Dempster-Shafer theory]], trail it at every stage of a game.
+In the recorded [[Classic board]] benchmark, [[Naive Bayes]] and [[Dempster-Shafer theory]] had higher log-loss than the baseline at all four checkpoints. Equal per-card probabilities are a simple reference, not necessarily the exact marginals of a uniform distribution over consistent deals; joint constraints can favour some cards.
 
 ## References
 
