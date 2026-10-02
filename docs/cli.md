@@ -10,6 +10,12 @@ python scripts/clude_cli.py --help
 python scripts/clude_cli.py <subcommand> --help
 ```
 
+The Windows wrapper `clude.bat` defaults `users`, `tables`, `logbook`
+and `store` commands to the deployed client store,
+`gs://clude-game-data/llm`. Supply `--uri data/llm` (or another URI)
+to override it. The existing `clude live ...` shorthand still works.
+Other commands and direct Python invocations keep their existing defaults.
+
 Run from the repo root with the project venv active (see
 `docs/architecture.md` for the environment). No subcommand writes to
 disk unless you pass `--json` or `--store`.
