@@ -56,6 +56,16 @@ Zero leash does not generally make a working model identical to the headless twi
 Historical passage loops showed another limit. When the useful move was excluded by the score cutoff, a persona or remembered instruction could not choose it. The [[landing rule]] changed the scores instead. The leash constrains discretion within the current scoring policy; it is not a proof that those scores rank actions well.
 
 
+## Per-character ladders
+
+The recorded ring-board ladders of 13 September 2026 varied Mustard or Plum separately against headless opponents at preset. Each completed leg used 24 three-seat games and seed 7007. Those characters still rotated through tokens; seat locking was adopted the following day.[^ladders]
+
+{{table:ladder.mustard|Mustard's ring-board ladder against Plum and Green. Won and Wrong are per-seat-game percentages; departures per decision use eligible decisions rather than accepted model choices.}}
+
+Mustard's observed win rates did not establish a clear preference among the positive leash values. Departures per decision rose while the wider menus also opened more model choices. Plum's corresponding table is in [[measurement record#Ring-board model and memory experiments|the measurement record]]. A pooled all-model sweep answers a different question, presented in [[dial sweeps#The pooled model leash sweep|Dial sweeps]].
+
+These historical runs informed keeping the preset. They predate the Classic board and landing rule, so they do not settle the best leash for the present implementation. A later comparison needs the board, opponents, model and starting memory recorded afresh.
+
 ## See also
 
 [[LLM wrapper]] · [[Personality dials]] · [[Twin comparison]] · [[Landing rule]]
@@ -66,5 +76,6 @@ Historical passage loops showed another limit. When the useful move was excluded
 
 [^menu]: {{cite:clude_llm/menu.py|`within_leash`, `suggestion_menu`, `accusation_menu` and `_build`}}
 [^wrapper]: {{cite:clude_llm/player.py|decision validation and fallback}}
+[^ladders]: {{cite:docs/strategy-glossary.md|Per-character leash ladders (2026-09-13)}}
 
 {{navbox:clude}}

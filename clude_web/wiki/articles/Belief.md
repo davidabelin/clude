@@ -126,6 +126,8 @@ The ring-board run produced a different ranking. These results describe the reco
 
 ## See also
 
+[[The certainty tag]] · [[Replay]]
+
 - [[Deduction floor]], what every belief is masked by
 - [[Naive Bayes]], [[Exact posterior enumeration]], [[Dempster-Shafer theory]], [[Decision tree]], [[Bandit ensemble]] and [[Markov chain]], the six ways of forming one
 - [[Personality dials]] and [[Accusation threshold]], what is done with one

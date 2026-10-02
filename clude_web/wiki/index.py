@@ -48,7 +48,9 @@ NAVBOXES: dict = {
             ("Personality", ["Personality dials", "Persona", "Leash", "LLM wrapper", "Table talk"]),
             ("Memory", ["Logbook", "Method memory", "The debrief", "Memory dial"]),
             ("Mathematics", ["Probability", "Conditional probability and Bayes' theorem", "Independence", "Combinatorics of a deal", "Log-loss", "Entropy and bits", "Softmax and temperature", "Beta distribution"]),
-            ("Measurement", ["Belief benchmark", "Arena", "Dial sweeps", "Twin comparison", "Landing rule", "Self-play", "Determinism and seeds"]),
+            ("Measurement", ["Measurement record", "Belief benchmark", "Arena", "Dial sweeps", "Twin comparison", "Landing rule", "Self-play", "Determinism and seeds", "Character training"]),
+            ("The app", ["clude", "The lobby", "The table", "Watch", "Replay", "Looks", "The certainty tag", "A seat over MCP", "What a game costs", "Game records", "Maintainer CLI", "History of clude", "AIX Laboratories"]),
+            ("Classwork", ["Classwork archive", "Reinforcement learning", "Markov decision process", "Q-learning", "Deep Q-network", "DeepNash"]),
         ],
     ),
 }
@@ -56,7 +58,7 @@ NAVBOXES: dict = {
 a title and groups of article titles, in the order shown."""
 
 CATEGORY_ORDER = (
-    "The game", "Characters", "Methods", "Mathematics", "Personality", "Memory", "Measurement", "The app",
+    "The game", "Characters", "Methods", "Mathematics", "Personality", "Memory", "Measurement", "The app", "Classwork",
 )
 """The order the Main Page lists categories in; any other follows."""
 
@@ -69,6 +71,7 @@ CATEGORY_BLURBS: dict = {
     "Memory": "What a character carries from one game to the next.",
     "Measurement": "How the methods and the characters were tested, and what was found.",
     "The app": "The table, the replay, and the project itself.",
+    "Classwork": "Learning concepts and the reference papers kept with the project.",
 }
 
 

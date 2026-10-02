@@ -823,6 +823,28 @@ def _arena_rates() -> Figure:
     return Figure("arena-rates", "Wins and wrong accusations", label, _svg(360, 306, "".join(body), label, "chart"))
 
 
+def _learning_loop() -> Figure:
+    """The generic agent/environment loop, without implying a clude RL policy."""
+    body = [
+        '<rect x="90" y="18" width="180" height="66" rx="2" class="plate"/>',
+        _text(180, 43, "Agent", "t-b", "middle"),
+        _text(180, 64, "chooses an action", "t-sm", "middle"),
+        '<rect x="90" y="206" width="180" height="66" rx="2" class="plate"/>',
+        _text(180, 231, "Environment", "t-b", "middle"),
+        _text(180, 252, "produces an outcome", "t-sm", "middle"),
+        '<path d="M228 84 V198" class="arc"/>',
+        '<path d="M223 196 L228 206 L233 196 Z" class="arc-head"/>',
+        _text(244, 136, "Action", "t-sm"),
+        '<path d="M132 206 V92" class="arc"/>',
+        '<path d="M127 94 L132 84 L137 94 Z" class="arc-head"/>',
+        _text(114, 125, "Reward", "t-sm", "end"),
+        _text(114, 146, "and next", "t-sm", "end"),
+        _text(114, 167, "observation", "t-sm", "end"),
+    ]
+    label = "The agent sends an action to the environment, which returns a reward and next observation; interaction repeats."
+    return Figure("learning-loop", "The learning interaction", label, _svg(360, 290, "".join(body), label))
+
+
 # --- the method diagrams, from files ----------------------------------------
 
 
@@ -858,6 +880,7 @@ def _diagram(key: str) -> Figure:
 
 
 _DRAWN: dict = {
+    "learning-loop": _learning_loop,
     "classic-board": _board_figure,
     "conservatory-door": lambda: _board_figure(detail=True),
     "leash-band": _leash_band,

@@ -190,9 +190,10 @@ def test_the_three_kinds_of_exemplar_are_there_with_their_redirects(wiki):
     assert wiki.get("Scarlett's method")[0].title == "Naive Bayes"
     assert wiki.get("Disproof")[0].title == "Suggestion"
     assert wiki.get("Nothing at all") == (None, "")
-    # A stub is a page, is marked as one, and is not the featured article.
+    # W6 expands the project overview while retaining its established aliases.
     project, _ = wiki.get("clude")
-    assert project.is_stub and project in wiki.categories["The app"]
+    assert not project.is_stub and project in wiki.categories["The app"]
+    assert wiki.get("The project")[0] is project
     # What links here, and the hooks on the Main Page.
     assert plum in wiki.linking_to(wiki.get("Naive Bayes")[0])
     assert any("Professor Plum" in hook for hook in wiki.did_you_know())
@@ -241,7 +242,7 @@ def test_every_character_and_method_has_its_article(wiki):
 
 
 def test_w3_w5_topics_are_articles_and_all_public_pages_load(wiki, app):
-    """Full W3-W5 topics, with W6's project stub and established aliases."""
+    """Full W3-W5 topics and established aliases."""
     titles = (
         "Rules of play", "Clue", "Classic board", "Rooms", "The deal", "The envelope",
         "Accusation", "Detective notepad", "Bluffing", "Floor player", "Random bot",
@@ -255,7 +256,7 @@ def test_w3_w5_topics_are_articles_and_all_public_pages_load(wiki, app):
     for title in titles:
         article, _ = wiki.get(title)
         assert article is not None and not article.is_stub, title
-    assert [a.title for a in wiki.pages() if a.is_stub] == ["clude"]
+    assert not [a.title for a in wiki.pages() if a.is_stub]
     client = app.test_client()
     for article in wiki.pages():
         response = client.get(f"/wiki/{article.slug}")
@@ -269,6 +270,36 @@ def test_w3_w5_topics_are_articles_and_all_public_pages_load(wiki, app):
         ("Chattiness", "Table talk"), ("Accusation threshold", "Personality dials"),
     ):
         assert wiki.get(alias)[0].title == title
+
+
+def test_w6_app_archive_and_measurement_coverage(wiki):
+    """The W6 catalogue resolves, and the complete sweep data stays reachable.
+
+    The existing citation/value tests independently check these stored tables
+    against their named source sections; this checks their place in the wiki.
+    """
+    for title in (
+        "clude", "History of clude", "The lobby", "The table", "Watch", "Replay",
+        "Looks", "The certainty tag", "A seat over MCP", "What a game costs", "AIX Laboratories",
+        "Game records", "Maintainer CLI", "Character training", "Measurement record",
+        "Classwork archive", "Reinforcement learning", "Markov decision process", "Q-learning",
+        "Deep Q-network", "DeepNash",
+    ):
+        page, _ = wiki.get(title)
+        assert page is not None and not page.is_stub, title
+    # Keep the earlier Certainty tag alias, whose subject was introduced in Belief.
+    assert wiki.get("Certainty tag")[0].title == "Belief"
+    sweeps, _ = wiki.get("Dial sweeps")
+    for board in ("ring", "grid"):
+        for dial in ("accuse_threshold", "bluff_rate", "curiosity", "secrecy", "temperature"):
+            key = "sweep.bluff" if (board, dial) == ("ring", "bluff_rate") else f"sweep.{board}.{dial}"
+            assert key in sweeps.facts, key
+    measurements, _ = wiki.get("Measurement record")
+    assert "ladder.plum" in measurements.facts
+    for key in ("sutton-barto", "mnih-2015", "wang-2016", "schaul-2016", "perolat-2022"):
+        assert 'drive.google.com/file/d/' in sources.SOURCES[key]
+        assert 'Archive copy' in sources.SOURCES[key]
+    assert "Classwork" in wiki.categories
 
 
 def test_every_internal_section_link_resolves(wiki):
@@ -456,7 +487,7 @@ def test_wikiclude_is_public_and_every_kind_of_page_answers(app):
     assert 'class="navbox"' in text and 'href="/wiki/Category:Characters"' in text
     assert "Redirected from" not in text
     assert "Redirected from <em>Plum</em>" in client.get("/wiki/Plum").get_data(as_text=True)
-    assert 'class="wiki-notice"' in client.get("/wiki/clude").get_data(as_text=True)
+    assert 'class="wiki-notice"' not in client.get("/wiki/clude").get_data(as_text=True)
     # The wooden question mark is every wiki page's logo (David, 2026-10-02).
     assert 'class="wiki-logo" src="/static/questionmark-wood.png"' in text
     assert main.count('class="wiki-logo"') == 2  # the masthead and the welcome

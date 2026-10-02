@@ -305,6 +305,129 @@ TABLES: dict = {
     ),
 }
 
+# Full historical dial sweeps and the remaining leash tables (W6).
+TABLES.update({
+    "sweep.ring.accuse_threshold": Table(
+        GLOSSARY, 'Dial sweeps',
+        ('Accusation threshold', 'Won %', 'Wrong %', 'First accusation (turn)', 'Never accused %', 'Mean turns'),
+        ('win', 'wrong', 'first', 'never', 'turns'),
+        {
+            '0.2': ('0.2', '| 0.2 | 18.3 | 33.3 | 18.1 | 48 | 22.8 |'),
+            '0.4': ('0.4', '| 0.4 | 23.3 | 21.7 | 22.5 | 55 | 25.2 |'),
+            '0.6': ('0.6', '| 0.6 | 24.2 | 11.7 | 24.4 | 64 | 24.5 |'),
+            '0.8': ('0.8', '| 0.8 | 23.3 | 4.2 | 19.6 | 73 | 24.3 |'),
+            '1.0': ('1.0', '| 1.0 | 20.8 | 0.0 | 22.2 | 79 | 27.5 |'),
+        },
+    ),
+    "sweep.ring.curiosity": Table(
+        GLOSSARY, 'Dial sweeps',
+        ('Curiosity', 'Won %', 'Wrong %', 'First accusation (turn)', 'Never accused %', 'Own cards named', 'Mean turns'),
+        ('win', 'wrong', 'first', 'never', 'named', 'turns'),
+        {
+            '0.0': ('0.0', '| 0.0 | 23.3 | 6.7 | 22.8 | 70 | 1.86 | 24.0 |'),
+            '0.5': ('0.5', '| 0.5 | 25.8 | 4.2 | 23.5 | 70 | 1.51 | 23.9 |'),
+            '1.0': ('1.0', '| 1.0 | 18.3 | 4.2 | 26.5 | 78 | 0.88 | 28.6 |'),
+        },
+    ),
+    "sweep.ring.secrecy": Table(
+        GLOSSARY, 'Dial sweeps',
+        ('Secrecy', 'Won %', 'Wrong %', 'Never accused %', 'Own cards shown', 'Re-shown %', 'Mean turns'),
+        ('win', 'wrong', 'never', 'leaked', 'reshow', 'turns'),
+        {
+            '0.0': ('0.0', '| 0.0 | 29.2 | 6.7 | 64 | 2.64 | 30.4 | 24.1 |'),
+            '0.5': ('0.5', '| 0.5 | 20.0 | 8.3 | 72 | 2.90 | 38.1 | 26.6 |'),
+            '1.0': ('1.0', '| 1.0 | 25.0 | 6.7 | 68 | 2.68 | 40.8 | 24.4 |'),
+        },
+    ),
+    "sweep.ring.temperature": Table(
+        GLOSSARY, 'Dial sweeps',
+        ('Temperature', 'Won %', 'Wrong %', 'First accusation (turn)', 'Never accused %', 'Own cards shown', 'Own cards named', 'Re-shown %', 'Mean turns'),
+        ('win', 'wrong', 'first', 'never', 'leaked', 'named', 'reshow', 'turns'),
+        {
+            '0.0': ('0.0', '| 0.0 | 28.3 | 10.8 | 18.7 | 61 | 2.50 | 1.13 | 44.2 | 19.7 |'),
+            '0.1': ('0.1', '| 0.1 | 27.5 | 6.7 | 23.5 | 66 | 2.76 | 1.46 | 45.1 | 25.9 |'),
+            '0.5': ('0.5', '| 0.5 | 9.2 | 5.8 | 19.3 | 85 | 2.78 | 0.97 | 30.9 | 29.5 |'),
+            '2.0': ('2.0', '| 2.0 | 4.2 | 8.3 | 25.3 | 88 | 3.10 | 0.97 | 33.0 | 34.2 |'),
+        },
+    ),
+    "sweep.grid.accuse_threshold": Table(
+        GLOSSARY, 'Dial sweeps on the grid (Stage 1c)',
+        ('Accusation threshold', 'Won %', 'Wrong %', 'First accusation (turn)', 'Never accused %', 'Mean turns'),
+        ('win', 'wrong', 'first', 'never', 'turns'),
+        {
+            '0.2': ('0.2', '| 0.2 | 22.5 | 45.0 | 31.3 | 33 | 37.2 |'),
+            '0.4': ('0.4', '| 0.4 | 23.3 | 11.7 | 38.9 | 65 | 39.5 |'),
+            '0.6': ('0.6', '| 0.6 | 20.8 | 6.7 | 37.4 | 73 | 38.1 |'),
+            '0.8': ('0.8', '| 0.8 | 23.3 | 2.5 | 37.1 | 74 | 39.5 |'),
+            '1.0': ('1.0', '| 1.0 | 20.8 | 0.8 | 32.2 | 78 | 39.7 |'),
+        },
+    ),
+    "sweep.grid.bluff_rate": Table(
+        GLOSSARY, 'Dial sweeps on the grid (Stage 1c)',
+        ('Bluff rate', 'Won %', 'Wrong %', 'Never accused %', 'Own cards named', 'Mean turns'),
+        ('win', 'wrong', 'never', 'named', 'turns'),
+        {
+            '0.0': ('0.0', '| 0.0 | 25.0 | 12.5 | 63 | 0.69 | 37.5 |'),
+            '0.25': ('0.25', '| 0.25 | 22.5 | 11.7 | 66 | 1.84 | 40.8 |'),
+            '0.5': ('0.5', '| 0.5 | 20.0 | 10.0 | 70 | 3.04 | 43.5 |'),
+            '1.0': ('1.0', '| 1.0 | 5.0 | 17.5 | 78 | 4.97 | 51.9 |'),
+        },
+    ),
+    "sweep.grid.curiosity": Table(
+        GLOSSARY, 'Dial sweeps on the grid (Stage 1c)',
+        ('Curiosity', 'Won %', 'Wrong %', 'First accusation (turn)', 'Never accused %', 'Own cards named', 'Mean turns'),
+        ('win', 'wrong', 'first', 'never', 'named', 'turns'),
+        {
+            '0.0': ('0.0', '| 0.0 | 20.0 | 10.8 | 34.7 | 69 | 2.25 | 39.8 |'),
+            '0.5': ('0.5', '| 0.5 | 19.2 | 8.3 | 41.3 | 73 | 1.43 | 41.2 |'),
+            '1.0': ('1.0', '| 1.0 | 13.3 | 5.8 | 50.1 | 81 | 0.48 | 46.2 |'),
+        },
+    ),
+    "sweep.grid.secrecy": Table(
+        GLOSSARY, 'Dial sweeps on the grid (Stage 1c)',
+        ('Secrecy', 'Won %', 'Wrong %', 'Never accused %', 'Own cards shown', 'Re-shown %', 'Mean turns'),
+        ('win', 'wrong', 'never', 'leaked', 'reshow', 'turns'),
+        {
+            '0.0': ('0.0', '| 0.0 | 20.8 | 8.3 | 71 | 2.75 | 29.0 | 37.6 |'),
+            '0.5': ('0.5', '| 0.5 | 17.5 | 10.8 | 72 | 2.84 | 42.9 | 40.3 |'),
+            '1.0': ('1.0', '| 1.0 | 20.8 | 9.2 | 70 | 2.71 | 48.0 | 40.5 |'),
+        },
+    ),
+    "sweep.grid.temperature": Table(
+        GLOSSARY, 'Dial sweeps on the grid (Stage 1c)',
+        ('Temperature', 'Won %', 'Wrong %', 'First accusation (turn)', 'Never accused %', 'Own cards shown', 'Own cards named', 'Re-shown %', 'Mean turns'),
+        ('win', 'wrong', 'first', 'never', 'leaked', 'named', 'reshow', 'turns'),
+        {
+            '0.0': ('0.0', '| 0.0 | 25.0 | 11.7 | 30.7 | 63 | 2.80 | 1.88 | 51.1 | 35.0 |'),
+            '0.1': ('0.1', '| 0.1 | 20.8 | 10.8 | 36.1 | 68 | 2.75 | 1.71 | 43.5 | 39.3 |'),
+            '0.5': ('0.5', '| 0.5 | 7.5 | 8.3 | 48.4 | 84 | 2.92 | 0.79 | 31.2 | 49.8 |'),
+            '2.0': ('2.0', '| 2.0 | 1.7 | 4.2 | 63.4 | 94 | 3.24 | 0.72 | 25.2 | 58.5 |'),
+        },
+    ),
+    'leash.pooled': Table(
+        GLOSSARY, 'Leash sweep (2026-09-13)',
+        ('Leash', 'Wrong %', 'Reported +/-', 'First accusation (turn)', 'Never accused %', 'Own cards named', 'Mean turns', 'Departures per accepted choice %', 'Remarks per game'),
+        ('wrong', 'std', 'first', 'never', 'named', 'turns', 'dev', 'talk'),
+        {
+            '0': ('0', '| 0 | 25.0 | 8.8 | 41.1 | 41.7 | 6.42 | 50.4 | 0.0 | 4.92 |'),
+            '0.25': ('0.25', '| 0.25 | 16.7 | 7.6 | 24.2 | 50.0 | 1.46 | 26.9 | 1.7 | 6.21 |'),
+            '0.5': ('0.5', '| 0.5 | 0.0 | 0.0 | 19.1 | 66.7 | 0.46 | 19.1 | 11.1 | 6.08 |'),
+            '1.0': ('1.0', '| 1.0 | 8.3 | 5.6 | 20.1 | 58.3 | 0.96 | 21.4 | 4.1 | 8.88 |'),
+        },
+    ),
+    'ladder.plum': Table(
+        GLOSSARY, 'Plum',
+        ('Leash', 'Won %', 'Wrong %', 'First accusation (turn)', 'Never accused %', 'Own cards named', 'Mean turns', 'Choices played', 'Departures', 'Departures per decision'),
+        ('win', 'wrong', 'first', 'never', 'named', 'turns', 'played', 'devs', 'dev'),
+        {
+            'headless': ('headless', '| headless | 62.5 | 0.0 | 25.9 | 37.5 | 0.88 | 24.0 | -- | -- | -- |'),
+            'leash 0.25': ('leash 0.25', '| leash 0.25 | 58.3 | 0.0 | 35.1 | 41.7 | 1.33 | 30.3 | 380 | 26 | 3.0% |'),
+            'leash 0.5': ('leash 0.5', '| leash 0.5 | 45.8 | 0.0 | 40.3 | 54.2 | 0.88 | 29.8 | 515 | 44 | 5.2% |'),
+            'leash 1': ('leash 1', '| leash 1 | 58.3 | 4.2 | 37.2 | 37.5 | 1.25 | 32.8 | 817 | 81 | 8.8% |'),
+        },
+    ),
+})
+
 FACTS: dict = {
     "bench.grid.snapshots": Fact("1,080", GLOSSARY, "Belief benchmark on the grid (Stage 1a)", "1080 snapshots"),
     "bench.grid.games": Fact("60", GLOSSARY, "Belief benchmark on the grid (Stage 1a)", "benchmark --games 60 --seed 4004"),
@@ -748,8 +871,15 @@ def _code() -> dict:
     from clude_agents.character import N_TRIPLES
     from clude_agents.personality import PRESETS
     from clude_core.domain import ALL_CARDS, ROOMS, SUSPECTS, WEAPONS
+    from clude_web.tables import LLMConfig, SHOW_TIMEOUT, SPEED_TIMEOUT, STRIKES, TURN_TIMEOUT
 
     table: dict = {
+        "table.timeout": lambda: _trim(TURN_TIMEOUT),
+        "table.speed_timeout": lambda: _trim(SPEED_TIMEOUT),
+        "table.show_timeout": lambda: _trim(SHOW_TIMEOUT),
+        "table.strikes": lambda: str(STRIKES),
+        "llm.table_budget": lambda: _trim(LLMConfig.__dataclass_fields__["budget"].default),
+        "llm.daily_cap": lambda: _trim(LLMConfig.__dataclass_fields__["daily_cap"].default),
         "scarlett.boost": lambda: _trim(naive_bayes.UNREFUTED_BOOST),
         "scarlett.decay": lambda: _trim(naive_bayes.REFUTED_UNKNOWN_DECAY),
         "scarlett.decay.divisor": lambda: _trim(1 / naive_bayes.REFUTED_UNKNOWN_DECAY),

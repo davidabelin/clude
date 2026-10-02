@@ -955,9 +955,9 @@ in the accusation that follows if told to, then holds the same way for
 the next decision), `clude_say`, `clude_note` (a free-text note of its
 own, kept on the table document and never an entry) and
 `clude_autopilot` (the seat handed to the floor bot when a chat must
-end). Since Phase 9j there are ten: `clude_login` first, and
+end). Since Phase 9j there are eleven: `clude_login` first, and
 `clude_watch`, `clude_games` and `clude_replay` for looking on (below,
-"Accounts"); since 2026-10-01 eleven, with `clude_logout`. Every view is cut at a `since` cursor and kept compact -- one
+"Accounts"); since 2026-10-01 twelve, with `clude_logout`. Every view is cut at a `since` cursor and kept compact -- one
 line per seat, per event and per card -- because a chat pays for every
 token it reads: the first live game (2026-09-21) ran out of room at
 turn 30 on views of about 9,000 tokens (`docs/phase9-plan.md` 8). Its

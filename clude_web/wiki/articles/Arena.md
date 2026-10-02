@@ -16,7 +16,7 @@ Changing Scarlett's threshold can also change Plum's results. If she remains act
 
 ## Seats and runs
 
-The arena rotates roster entries and can cycle table sizes or fix one. Missing seats are filled with [[floor player|floor players]]. Characters retain their own suspect tokens; floor seats take available tokens. The rotation changes seat order and participation, not which character identity its method represents.[^arena]
+The arena rotates roster entries and can cycle table sizes or fix one. Missing seats are filled with [[floor player|floor players]]. Characters retain their own suspect tokens; floor seats take available tokens. On current code, rotation changes participation when the roster is larger than the table. Selected characters retain their tokens, and occupied seats are sorted in board order: Mustard moves before Plum whenever both participate. Earlier ring-era measurements, before 14 September 2026, rotated tokens and turn order as well.[^arena]
 
 A character can consequently play fewer seat-games than the run contains deals. In the recorded mixed-size {{fact:arena.grid.games}}-game arena, individual characters played sixteen or twenty games. Their percentages use those participation counts, not the common deal count.
 
@@ -67,7 +67,7 @@ For model-piloted seats, the arena records decisions, calls, fallbacks, departur
 
 ## See also
 
-[[Belief benchmark]] · [[Dial sweeps]] · [[Twin comparison]] · [[Determinism and seeds]]
+[[Belief benchmark]] · [[Dial sweeps]] · [[Twin comparison]] · [[Determinism and seeds]] · [[Measurement record]]
 
 ## References
 

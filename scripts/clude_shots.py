@@ -21,7 +21,7 @@ run is given a cost, so the cost bars and the games' cost column have
 something to show (Phase 9g).
 
 Wikiclude's pages (D20) are shot too: the Main Page, the three kinds of
-article, a stub, a category, a figure's own page, and the pages the wiki
+article, the app and classwork topics, a category, a figure's own page, and the pages the wiki
 keeps about itself. ``--wiki`` shoots only those, and needs no stored
 games.
 
@@ -69,7 +69,7 @@ WIKI_PAGES: tuple = (
     ("wiki-character", "/wiki/Professor_Plum"),
     ("wiki-method", "/wiki/Naive_Bayes"),
     ("wiki-concept", "/wiki/Suggestion"),
-    ("wiki-stub", "/wiki/clude"),
+    ("wiki-project", "/wiki/clude"),
     ("wiki-floor", "/wiki/Deduction_floor"),
     ("wiki-dials", "/wiki/Personality_dials"),
     ("wiki-rules", "/wiki/Rules_of_play"),
@@ -81,6 +81,19 @@ WIKI_PAGES: tuple = (
     ("wiki-counting", "/wiki/Combinatorics_of_a_deal"),
     ("wiki-benchmark", "/wiki/Belief_benchmark"),
     ("wiki-arena", "/wiki/Arena"),
+    ("wiki-measurements", "/wiki/Measurement_record"),
+    ("wiki-sweeps", "/wiki/Dial_sweeps"),
+    ("wiki-table", "/wiki/The_table"),
+    ("wiki-replay", "/wiki/Replay"),
+    ("wiki-certainty", "/wiki/The_certainty_tag"),
+    ("wiki-mcp", "/wiki/A_seat_over_MCP"),
+    ("wiki-cost", "/wiki/What_a_game_costs"),
+    ("wiki-training", "/wiki/Character_training"),
+    ("wiki-classwork", "/wiki/Classwork_archive"),
+    ("wiki-rl", "/wiki/Reinforcement_learning"),
+    ("wiki-mdp", "/wiki/Markov_decision_process"),
+    ("wiki-q-learning", "/wiki/Q-learning"),
+    ("wiki-dqn", "/wiki/Deep_Q-network"),
     ("wiki-category", "/wiki/Category:Characters"),
     ("wiki-figure", "/wiki/Figure:floor-then-method"),
     ("wiki-all", "/wiki/Special:AllPages"),
