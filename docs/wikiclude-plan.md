@@ -1,6 +1,6 @@
 # Wikiclude (D20, was 10i): the plan
 
-Status: **proposed 2026-10-01, David's four answers recorded the same day (section 7), W1 built that day on the branch `wikiclude` (section 9), awaiting his review.** Written in the shape of the other plan docs: context, what the code dictates, design, sub-phases, files, decisions, out of scope, and "as implemented". Where section 9 differs from the sections above it, section 9 is what was built.
+Status: **proposed 2026-10-01, David's four answers recorded the same day (section 7); W1 built that day on the branch `wikiclude` (section 9), merged and live as `clude-00021-fmb`; W2 built 2026-10-02 on the branch `claude/great-knuth-e8o5tl` (section 10), awaiting his review.** Written in the shape of the other plan docs: context, what the code dictates, design, sub-phases, files, decisions, out of scope, and "as implemented". Where sections 9 and 10 differ from the sections above them, they are what was built.
 
 ## 1. Context: David's brief (2026-10-01)
 
@@ -210,7 +210,46 @@ Found while checking the articles against it; the wiki follows the tables. None 
 1. "Plum -- Exact posterior enumeration" says he is "the best or joint-best belief at every checkpoint". The Phase 5 table under "Belief benchmark, FloorBot regime" has White ahead at 50% (1.28 to his 1.49) and Mustard at 25% (1.52 to 1.55). The later text has it right: "the best or joint-best method at 75% and 100%".
 2. "Scarlett -- Naive Bayes" says she is worse than uniform at every checkpoint, "the only method that is". In the same table Peacock is too (1.68, 1.45, 1.10, 0.41 against 1.60, 1.36, 1.03, 0.40), as the Peacock paragraph two below it says.
 3. The grid section says of Plum's fallback that "on the ring's FloorBot snapshots the budget held"; his own section and the Phase 5 findings say that on the ring he "falls back to sampling in nearly half of his calls" on early snapshots.
+4. (W2.) "Mustard -- Decision tree on game logs" describes the tree as splitting "ten times on `turn_fraction`, six on `possible_holders_frac`, twice on `distinct_namers`, and not yet on `named_beside_located`", and `docs/cli.md`'s `train-mustard` example shows 2,347 rows and 45 nodes; the tree as trained on the Classic board has 1,951 rows, splits seven, three, two and once on those features, and the wiki reads it from the code.
 
 ### 9.6 Tests
 
 `tests/test_wiki.py`: 18 passed, 1 skipped (the live check). The whole suite: 563 passed, 33 skipped (545 and 32 before), and the 30 browser tests pass under `CLUDE_WEB_BROWSER=1`. Run on Python 3.13 in the cloud workspace.
+
+## 10. As implemented: W2 (2026-10-02)
+
+Built on the branch `claude/great-knuth-e8o5tl` in a cloud workspace, the day after W1 went live as `clude-00021-fmb`, and pushed for David to pull. Twelve of W1's thirty stubs became articles: the other five characters, the other five methods, *Deduction floor* and *Belief*. The suite green (10.5).
+
+### 10.1 What is there
+
+- **Twelve articles**, each in the shape section 3.2 fixed and W1's exemplars set: the five methods (*Exact posterior enumeration*, *Dempster-Shafer theory*, *Decision tree*, *Bandit ensemble*, *Markov chain*) as lead, at the table, how it works, formally, in clude, measured, limitations; the five characters (*Miss Scarlett*, *Colonel Mustard*, *Mrs. White*, *Mr. Green*, *Mrs. Peacock*) as biographies on *Professor Plum*'s pattern; and the two foundations, *Deduction floor* (the rules, the floor bot, soundness and incompleteness, what a person is told) and *Belief* (the contract, masking, P(correct) and its shortcut, the certainty tag, log-loss). 2,100 to 3,400 words each, 6 to 17 Wikipedia links each, every number through `facts.py`. Fifteen articles and eighteen stubs, about 39,000 words; wanted pages none.
+- **One worked example, six answers.** The Rope question of W1 is now answered by every method on the real code: `facts.rope_question` runs `DempsterShaferAgent`, `DecisionTreeAgent`, `MarkovAgent` and `BanditAgent` beside Plum and Scarlett, scores Green's five arms against a revealed envelope and applies his one-lesson update; `facts.plum_search` traces the real `_Search` node by node; `facts.chain_example` fits White's chain to a stated sequence through the module; `facts.mustard_tree` reads the trained tree's size and splits. The *Belief* article's table is the six answers side by side (0.40 to 0.75 for one card, the count's 2/3 among them).
+- **Eight new drawn figures** in `figures.py`, each computed from the code: `belief-six` (the six answers as columns), `plum-search` (the backtracking tree, 20 steps and 3 deals), `peacock-interval` (belief to plausibility, BetP marked), `mustard-path` (the questions down the tree), `white-chain` (the two-state chain on the sequence), `green-arms` (Beta curves after one lesson), `green-trust` (the arms' means from the glossary), `floor-notepad` (the floor's grid for the position). Looked at on a phone and wide in both themes.
+- **`facts.py`**: nine new measured tables (`green.threshold`, `curiosity.grid`, `arena.ring.first`, `arena.ring`, `arena.grid.first`, `twin.ring`, `ladder.mustard`, `landing.repeats`) and about seventy new facts, each still checked against its heading in the doc; the glossary headings named once at the top. New `{{code:...}}` keys for the tree (its training set, size and splits per feature), Green's step and decay, White's prior, the certainty tag at each character's threshold, and the worked examples.
+- **`sources.py`**: the founding works (Dempster 1967, Shafer 1976, Smets and Kennes 1994, Breiman et al. 1984, Thompson 1933, Norris 1997), and the Phase 5, 6 and 7 plans citable by heading.
+- **The wooden question mark is every wiki page's logo** (David, 2026-10-02): in the side panel's home link beside the wordmark on every page, and above the welcome on the Main Page; `wiki.css` dresses it as `chrome.css` dresses the header bar's.
+- **"Did you know"** draws eight hooks at random on each visit (`Wiki.hooks`), since fifteen articles now carry thirty.
+- **Tests**: a W2 gate (`test_every_character_and_method_has_its_article`: the fourteen titles are full articles, and the six answers, the search's 20 steps and 3 deals, White's 9/14, the Dempster conflict of 1/4 and the tree's six-question path are what the articles say); the stub assertions moved to *Accusation*; the logo on the pages; `test_every_constant_an_article_prints_can_be_computed` now checks the keys the articles use rather than the static table. `clude_shots.py --wiki` shoots *Accusation* as the stub and *Deduction floor* as a twelfth page.
+
+### 10.2 Where it departs from the plan
+
+- **No new Mermaid diagrams.** Section 3.4 listed Plum's search tree, Peacock's mass function, Green's arms and White's chain as keys for `DIAGRAMS`. They were drawn in `figures.py` instead, because each is a *computed* figure, the real agents' numbers on the Rope question, which a Mermaid source written by hand could not be. The build script and the five committed diagrams are untouched.
+- **The tree in prose.** *Decision tree* narrates the six questions Mustard's tree asks on the example, with the thresholds. Those are the trained tree's, so they reach the text as `{{code:example.mustard.step.N.threshold}}` and the like, computed on demand (`facts.code` resolves the pattern; a step the path does not have is a load error), and the path's six features are pinned in the gate test. Regrow the tree and the test says which articles to reread.
+- **The glossary is stale about the tree.** Its Mustard paragraph and `docs/cli.md`'s `train-mustard` example describe the ring-era tree (ten splits on the turn, six on holders, 2,347 rows); the live tree has 45 nodes, 23 leaves, 1,951 rows and splits seven times on the turn. The articles read the tree, not the paragraph. A fourth item for 9.5's list.
+- **A finding the articles are built on.** On the Rope question Mustard's tree sends all four open cards to one leaf (0.5 each: its path never asks whether a card is in an open fact), and White's chain goes the opposite way from the count (0.4 for the card the count puts at 2/3), because she reads the asking and not the answer. Both are the character, and both are now stated, measured and pinned.
+- *Deduction floor* and *Belief* stay in the Methods category, as their stubs were.
+
+### 10.3 What I could not check from here
+
+- **Wikipedia**, as in 9.4: the articles now link to about a hundred titles, none verified from this workspace. Run the live check on Orbit before deploying: `$env:CLUDE_WIKI_LIVE = "1"; & .venv\Scripts\python.exe -m pytest tests\test_wiki.py -k wikipedia`.
+- **The six founding works** are cited from memory at the level of the work or the chapter, like 9.4's; Norris is cited to Chapter 1, Shafer to Chapters 1-3, Sutton and Barto to Chapter 2.
+- **A real phone**: 390 px in Chromium only. Python 3.11 here (3.13 for W1, 3.14 on Orbit); the suite passes on it.
+
+### 10.4 Open
+
+- W3, the game, is next in section 5's table; nothing in W2 changed its scope.
+- The certainty-tag and spectator rules are now stated in *Belief* from `CLAUDE.md`; when 10h's help layer is written it can link there.
+
+### 10.5 Tests
+
+`tests/test_wiki.py`: 19 passed, 1 skipped (the live check). The whole suite: 565 passed, 33 skipped, about three minutes with `-n auto` (564 and 33 after W1's merge), and the 30 browser tests pass under `CLUDE_WEB_BROWSER=1`. Run on Python 3.11 in the cloud workspace, Playwright on the pre-installed Chromium.

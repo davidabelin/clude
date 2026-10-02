@@ -72,7 +72,14 @@
   gap: 0.5rem 1rem;
   margin: 0 0 0.75rem;
 }
-.wiki-home { display: flex; flex-direction: column; text-decoration: none; color: var(--ink); line-height: 1.15; }
+/* The home link: the wooden question mark, the logo of every wiki page
+   (David, 2026-10-02), beside the wordmark. The same button leads here
+   from the header bar (chrome.css); on a wiki page it is the masthead. */
+.wiki-home { display: flex; flex-direction: row; align-items: center; gap: 0.6rem; text-decoration: none; color: var(--ink); line-height: 1.15; }
+.wiki-home-text { display: flex; flex-direction: column; }
+.wiki-logo { display: block; flex: none; width: 2.75rem; height: 2.75rem; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35)); }
+.wiki-home:hover .wiki-logo { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35)) brightness(1.08); }
+.wiki-home:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--w-radius); }
 .wiki-wordmark { font-family: var(--w-mark); font-weight: 600; letter-spacing: 0.04em; color: var(--accent); }
 .wiki-home .wiki-wordmark { font-size: 1.35rem; }
 .wiki-motto { font-size: 0.72rem; color: var(--ink-soft); letter-spacing: 0.02em; }
@@ -333,6 +340,44 @@
 .fig .dot.sl-scarlett { fill: var(--suspect-scarlett); stroke: var(--panel); }
 .fig .dot.sl-plum { fill: var(--suspect-plum); stroke: var(--panel); }
 .fig .dot.sl-neutral { fill: var(--w-faint); stroke: var(--panel); }
+.fig .sl-mustard { stroke: var(--suspect-mustard); }
+.fig .sl-green { stroke: var(--suspect-green); }
+.fig .sl-peacock { stroke: var(--suspect-peacock); }
+.fig .sl-white { stroke: var(--suspect-white); }
+/* White's colour is the panel's in Case-file light, so her line and her
+   bar carry an ink outline. */
+.fig .sl-under { stroke: var(--ink); stroke-width: 4; }
+.fig .bar.s-white { stroke: var(--ink); stroke-width: 1; }
+
+/* W2's figures: Plum's search tree, Peacock's interval, Mustard's path,
+   White's chain, Green's arms and the floor's notepad. */
+.fig .node { stroke-width: 1.5; }
+.fig .node-open { fill: var(--panel); stroke: var(--w-strong); }
+.fig .node-deal { fill: var(--w-brass); stroke: var(--w-strong); }
+.fig .node-dead { fill: var(--w-sunk); stroke: var(--edge); }
+.fig .node-initial { fill: var(--ink); }
+.fig .interval-track { fill: var(--w-sunk); stroke: var(--edge); stroke-width: 1; }
+.fig .interval-pl { fill: var(--suspect-peacock); fill-opacity: 0.3; }
+.fig .interval-bel { fill: var(--suspect-peacock); }
+.fig .betp { fill: var(--ink); stroke: var(--panel); stroke-width: 1; }
+.fig .badge { stroke-width: 1; }
+.fig .badge-yes { fill: var(--wiki-out); stroke: var(--wiki-out); }
+.fig .badge-no { fill: var(--accent); stroke: var(--accent); }
+.fig .badge-text-yes { fill: var(--wiki-out-ink); }
+.fig .badge-text-no { fill: var(--accent-ink); }
+.fig .plate-leaf { fill: var(--w-sunk); stroke: var(--w-brass); stroke-width: 2; }
+.fig .state { fill: var(--panel); stroke: var(--w-strong); stroke-width: 1.5; }
+.fig .state-on { fill: var(--suspect-white); stroke: var(--ink); }
+.fig .state-on-text { fill: var(--w-white-ink); }
+.fig .arc { fill: none; stroke: var(--w-strong); stroke-width: 1.5; }
+.fig .arc-head { fill: var(--w-strong); stroke: none; }
+.fig .sym-new { fill: var(--panel); stroke: var(--ink); stroke-width: 1.5; }
+.fig .sym-repeat { fill: var(--ink); stroke: var(--ink); stroke-width: 1.5; }
+.fig .cell-located { fill: var(--ink); }
+.fig .cell-env { fill: var(--accent); }
+.fig .cell-possible { fill: none; stroke: var(--ink-soft); stroke-width: 1.2; }
+.fig .cell-out { fill: var(--edge); }
+.fig .row-rule { stroke: var(--edge); stroke-width: 1; fill: none; }
 
 /* The method diagrams: Mermaid's geometry, undressed by
    scripts/build_wiki_figures.py and dressed here. */
@@ -447,6 +492,7 @@
 /* --- the Main Page ------------------------------------------------------- */
 
 .wiki-welcome { margin: 0 0 1rem; padding: 0.9rem 1rem; border: 1px solid var(--w-strong); border-radius: var(--w-radius); background: var(--w-sunk); text-align: center; }
+.wiki-welcome .wiki-logo { width: 4.5rem; height: 4.5rem; margin: 0 auto 0.4rem; }
 .wiki-welcome h1 { font-size: 1.5rem; }
 .wiki-welcome h1 .wiki-wordmark { font-size: 1.1em; }
 .wiki-welcome p { margin: 0.25rem 0 0; }

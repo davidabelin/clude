@@ -8,8 +8,11 @@
 <div class="wiki">
   <aside class="wiki-side">
     <a class="wiki-home" href="{{ url_for('main.wiki') }}">
-      <span class="wiki-wordmark">Wikiclude</span>
-      <span class="wiki-motto">The encyclopaedia of clude</span>
+      <img class="wiki-logo" src="{{ url_for('static', filename='questionmark-wood.png') }}" alt="" width="44" height="44">
+      <span class="wiki-home-text">
+        <span class="wiki-wordmark">Wikiclude</span>
+        <span class="wiki-motto">The encyclopaedia of clude</span>
+      </span>
     </a>
     <form class="wiki-search" action="{{ url_for('main.wiki_page', title='Special:Search') }}" method="get" role="search">
       <input type="search" name="q" value="{{ query|default('') }}" placeholder="Search Wikiclude" aria-label="Search Wikiclude">

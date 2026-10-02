@@ -237,6 +237,12 @@ class Wiki:
         """Every article's hooks, as HTML."""
         return [hook for a in self.pages() for hook in a.dyk]
 
+    def hooks(self, n: int = 8) -> list:
+        """Up to `n` of the hooks for the Main Page, a different draw on
+        each visit, as Wikipedia rotates its own."""
+        hooks = self.did_you_know()
+        return random.sample(hooks, n) if len(hooks) > n else hooks
+
     def random(self):
         full = [a for a in self.pages() if not a.is_stub] or self.pages()
         return random.choice(full) if full else None

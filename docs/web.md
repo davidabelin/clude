@@ -647,7 +647,9 @@ and what was built): Wikipedia-style articles on the characters, their
 methods, the game and what the measurements found, each written for
 every reader at once. It is under `/wiki`, **public** like the privacy
 page (David, 2026-10-01), and reached from the header bar's wooden
-question mark and the footer.
+question mark and the footer. The same wooden question mark is every
+wiki page's logo (David, 2026-10-02): the side panel's home link, beside
+the wordmark, and the Main Page's welcome.
 
 **An article is a Markdown file** in `clude_web/wiki/articles/`, named
 for its title (`Professor_Plum.md`), with a front-matter block (title,
@@ -685,9 +687,14 @@ from, and a test finds every one in that doc: re-measure something,
 change the glossary, and the suite fails until `facts.py` follows.
 (`docs/` is not in the image, which is why the values are copied and
 not read.) A constant is `{{code:...}}`, read from the module when the
-wiki is built, and the worked example the method articles share is run
-through the real `ExactEnumAgent` and `NaiveBayesAgent`
-(`facts.rope_question`).
+wiki is built, and the worked example the method articles share, the
+Rope question, is run through every method's real agent
+(`facts.rope_question`; `plum_search` traces Plum's search for its
+figure, `chain_example` fits White's chain, `mustard_tree` reads the
+trained tree). The questions Colonel Mustard's tree asks on it reach the
+text as `{{code:example.mustard.step.N.threshold}}` and the like,
+computed on demand, so prose narrating a path the regrown tree no
+longer takes fails at load.
 
 **The figures set no colour**, like the board and the logo: each shape
 has a class and `static/styles/wiki.css` dresses it from the look's
@@ -704,7 +711,8 @@ which writes `clude_web/wiki/figures/*.svg`, committed. Run it after a
 diagram or the code behind one changes, then look at the page.
 
 **The pages**: `/wiki` (the Main Page: the featured article, "Did you
-know", the categories), `/wiki/<Title>`, `/wiki/Category:<Name>`,
+know" with eight hooks drawn at random from every article's on each
+visit, the categories), `/wiki/<Title>`, `/wiki/Category:<Name>`,
 `/wiki/Figure:<key>`, and `/wiki/Special:` `AllPages`, `Random`,
 `WantedPages`, `WhatLinksHere/<Title>` and `Search?q=`. Titles ignore
 case and treat an underscore as a space; a redirect shows its target
