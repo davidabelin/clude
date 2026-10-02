@@ -297,7 +297,7 @@ def wiki():
     the way into every category. Public, like the privacy page (David,
     2026-10-01): the encyclopaedia shows no game's state."""
     book = _wiki()
-    return _wiki_page("wiki/main.html", featured=book.featured(), hooks=book.did_you_know())
+    return _wiki_page("wiki/main.html", featured=book.featured(), hooks=book.hooks())
 
 
 @bp.get("/wiki/<path:title>")

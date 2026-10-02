@@ -222,10 +222,12 @@ def _columns(key, title, caption, columns, reference, y_label, label) -> Figure:
         body.append(_text(cx, bottom + 16, name, "t-xs", "middle"))
         if sub:
             body.append(_text(cx, bottom + 29, sub, "t-xs t-soft", "middle"))
-    ref_y = y_of(reference[0])
-    body.append(f'<path d="M{left} {ref_y} H{right}" class="ref"/>')
+    if reference is not None:
+        ref_y = y_of(reference[0])
+        body.append(f'<path d="M{left} {ref_y} H{right}" class="ref"/>')
     body += labels  # over the reference line
-    body.append(_text(left + 4, ref_y - 5, reference[1], "t-xs t-b t-halo"))
+    if reference is not None:
+        body.append(_text(left + 4, ref_y - 5, reference[1], "t-xs t-b t-halo"))
     body.append(f'<path d="M{left} {bottom} H{right}" class="axis"/>')
     return Figure(key=key, title=title, caption=caption, svg=_svg(360, 228, "".join(body), label, "chart"))
 
@@ -329,6 +331,408 @@ def _scarlett_bench() -> Figure:
     )
 
 
+# --- one question, six answers (W2) ------------------------------------------
+
+
+def _belief_six() -> Figure:
+    """Every method's P(Mrs. White is in the envelope) on the Rope
+    question, beside the floor's own."""
+    example = facts.rope_question()
+    exact = example["plum"]["White"]
+    columns = [
+        ("the floor", "alone", example["uniform"]["White"], "bar-neutral"),
+        ("Scarlett", "naive Bayes", example["scarlett"][1]["White"], "s-scarlett"),
+        ("Mustard", "tree", example["mustard"]["White"], "s-mustard"),
+        ("White", "Markov", example["white"]["White"], "s-white"),
+        ("Peacock", "D-S", example["peacock"]["White"], "s-peacock"),
+        ("Plum", "exact", exact, "s-plum"),
+    ]
+    label = "P(Mrs. White is in the envelope), by method: " + ", ".join(
+        f"{name} {value:.2f}" for name, _, value, _ in columns
+    ) + "."
+    return _columns(
+        "belief-six", "One question, six answers",
+        "The same evidence, read six ways. The count is exactly right; every other answer is a character.",
+        columns, None, "P(Mrs. White is in the envelope)", label,
+    )
+
+
+# --- Plum's search, traced --------------------------------------------------
+
+
+def _plum_search() -> Figure:
+    """The backtracking search on the Rope question as a tree: every
+    placing tried, the dead ends, and the three complete deals."""
+    from clude_constraints import ENVELOPE
+
+    search = facts.plum_search()
+    root, order = search["tree"], search["order"]
+    names = {"White": "Mrs. White", "Peacock": "Mrs. Peacock", "Rope": "the Rope", "Wrench": "the Wrench"}
+    reasons = {
+        "hand": "Mustard's hand is full",
+        "category": "that category already has its envelope card",
+        "contradiction": "Mustard would hold neither Peacock nor the Rope",
+    }
+
+    def leaves(node) -> int:
+        return 1 if not node["children"] else sum(leaves(c) for c in node["children"])
+
+    left, right = 70, 352
+    slot = (right - left) / leaves(root)
+    xs: dict = {}
+    cursor = [0]
+
+    def place(node) -> None:
+        if not node["children"]:
+            xs[id(node)] = left + slot * (cursor[0] + 0.5)
+            cursor[0] += 1
+            return
+        for child in node["children"]:
+            place(child)
+        xs[id(node)] = sum(xs[id(c)] for c in node["children"]) / len(node["children"])
+
+    place(root)
+    top, step = 30, 58
+
+    def y_of(depth: int) -> float:
+        return top + depth * step
+
+    body = [_text(xs[id(root)], y_of(0) + 4, "start", "t-xs t-soft", "middle")]
+    for depth, card in enumerate(order):
+        body.append(_text(4, y_of(depth + 1) + 4, names.get(card, card), "t-xs t-soft"))
+    edges, nodes, deals = [], [], []
+
+    def draw(node, depth: int) -> None:
+        for child in node["children"]:
+            x1, y1, x2, y2 = xs[id(node)], y_of(depth), xs[id(child)], y_of(depth + 1)
+            edges.append(f'<path d="M{x1:.1f} {y1 + 11} L{x2:.1f} {y2 - 11}" class="ln ln-soft"/>')
+            status = child["status"]
+            cls = "node-open" if status == "open" else "node-deal" if status == "deal" else "node-dead"
+            where = "in Mustard's hand" if child["holder"] != ENVELOPE else "in the envelope"
+            note = f"{names[child['card']]} {where}" + (f": {reasons[status]}" if status in reasons else "")
+            nodes.append(f'<circle cx="{x2:.1f}" cy="{y2}" r="11" class="node {cls}"><title>{escape(note)}</title></circle>')
+            nodes.append(_text(x2, y2 + 4, "E" if child["holder"] == ENVELOPE else "M", "t-xs t-b node-initial", "middle"))
+            if status in reasons:
+                nodes.append(f'<path d="M{x2 - 4:.1f} {y2 + 16} l8 8 M{x2 + 4:.1f} {y2 + 16} l-8 8" class="ln mark-no"/>')
+            if status == "deal":
+                deals.append(child)
+                nodes.append(_text(x2, y2 + 26, str(len(deals)), "t-xs t-b", "middle"))
+            draw(child, depth + 1)
+
+    draw(root, 0)
+    body += edges + nodes
+    y = y_of(len(order)) + 46
+    body.append(f'<circle cx="14" cy="{y}" r="7" class="node node-open"/>')
+    body.append(_text(26, y + 4, "placed", "t-xs t-soft"))
+    body.append(f'<circle cx="86" cy="{y}" r="7" class="node node-deal"/>')
+    body.append(_text(98, y + 4, "a complete deal, numbered", "t-xs t-soft"))
+    body.append(f'<path d="M246 {y - 4} l8 8 M254 {y - 4} l-8 8" class="ln mark-no"/>')
+    body.append(_text(260, y + 4, "a dead end", "t-xs t-soft"))
+    y += 16
+    body.append(_text(7, y + 4, "M: in Mustard's hand.  E: in the envelope.", "t-xs t-soft"))
+    white = sum(1 for d in deals if d["deal"].get("White") == ENVELOPE)
+    body.append(_text(180, y + 24, f"{len(deals)} deals survive; Mrs. White is in the envelope in {white} of them.", "t-sm t-b", "middle"))
+    label = (
+        f"Plum's search tries each open card in Mustard's hand and in the envelope in turn, {search['nodes']} steps in all. "
+        f"Dead ends are a full hand, a category that already has its envelope card, or a placing that leaves the shown card nowhere. "
+        f"{len(deals)} complete deals survive, with Mrs. White in the envelope in {white}."
+    )
+    return Figure(
+        key="plum-search", title="Plum's search on the Rope question",
+        caption="The search, step by step: each open card is tried in Mustard's hand and in the envelope, and a branch is abandoned as soon as it breaks a rule.",
+        svg=_svg(360, int(y + 36), "".join(body), label),
+    )
+
+
+# --- Peacock's two numbers --------------------------------------------------
+
+
+def _peacock_interval() -> Figure:
+    """Belief and plausibility for the four open cards, with the single
+    number she reports between them."""
+    example = facts.rope_question()
+    belief, plaus, betp = example["peacock_belief"], example["peacock_plausibility"], example["peacock"]
+    names = [("White", "Mrs. White"), ("Peacock", "Mrs. Peacock"), ("Rope", "the Rope"), ("Wrench", "the Wrench")]
+    left, right, height = 86, 268, 14
+
+    def x_of(value: float) -> float:
+        return left + value * (right - left)
+
+    body = []
+    for tick in (0, 0.5, 1):
+        body.append(_text(x_of(tick), 14, f"{tick:g}", "t-xs t-soft t-num", "middle"))
+        body.append(f'<path d="M{x_of(tick):.1f} 20 V{20 + 40 * len(names)}" class="grid"/>')
+    y = 28
+    for card, name in names:
+        body.append(_text(left - 8, y + 11, name, "t-sm", "end"))
+        body.append(f'<rect x="{left}" y="{y}" width="{right - left}" height="{height}" class="interval-track"/>')
+        body.append(f'<rect x="{left}" y="{y}" width="{x_of(plaus[card]) - left:.1f}" height="{height}" class="interval-pl"/>')
+        body.append(f'<rect x="{left}" y="{y}" width="{x_of(belief[card]) - left:.1f}" height="{height}" class="interval-bel"/>')
+        bx = x_of(betp[card])
+        body.append(
+            f'<path d="M{bx:.1f} {y - 3} l5 10 l-5 10 l-5 -10 Z" class="betp">'
+            f"<title>{escape(name)}: belief {belief[card]:.2f}, plausibility {plaus[card]:.2f}, BetP {betp[card]:.2f}</title></path>"
+        )
+        body.append(_text(right + 8, y + 11, f"{belief[card]:.2f} to {plaus[card]:.2f}", "t-xs t-num"))
+        y += 40
+    y += 6
+    body.append(f'<rect x="8" y="{y}" width="16" height="10" class="interval-bel"/>')
+    body.append(_text(30, y + 9, "belief: what the evidence has established", "t-xs t-soft"))
+    y += 16
+    body.append(f'<rect x="8" y="{y}" width="16" height="10" class="interval-pl"/>')
+    body.append(_text(30, y + 9, "plausibility: what it has failed to rule out", "t-xs t-soft"))
+    y += 16
+    body.append(f'<path d="M16 {y - 1} l5 6 l-5 6 l-5 -6 Z" class="betp"/>')
+    body.append(_text(30, y + 9, "the one number she reports (BetP)", "t-xs t-soft"))
+    label = "Peacock's belief and plausibility for each open card: " + "; ".join(
+        f"{name} {belief[card]:.2f} to {plaus[card]:.2f}, reported as {betp[card]:.2f}" for card, name in names
+    ) + "."
+    return Figure(
+        key="peacock-interval", title="Peacock's two numbers",
+        caption="For each card, what the evidence has established (solid) and what it has failed to rule out (pale). The diamond is the one number she reports when a probability is required.",
+        svg=_svg(360, y + 24, "".join(body), label),
+    )
+
+
+# --- Mustard's path through the tree ----------------------------------------
+
+FEATURE_WORDS: dict = {
+    "possible_holders_frac": "holders still possible",
+    "or_constraint_involvement": "open facts it is in",
+    "times_named_unrefuted": "times named, undisproved",
+    "times_named_total": "times named",
+    "turn_fraction": "turn, as a share of 50",
+    "category_size_frac": "category size, of nine",
+    "distinct_namers": "players who named it",
+    "named_beside_located": "named beside placed cards",
+}
+"""Each of the tree's eight features (`decision_tree.FEATURE_NAMES`) in
+words, for the figure and the article's table."""
+
+
+def _mustard_path() -> Figure:
+    """The questions the trained tree asked about the card the Rope
+    question's suggestion named, and the leaf it reached."""
+    example = facts.rope_question()
+    path, (leaf, rows) = example["mustard_path"], example["mustard_leaf"]
+    body, y = [], 6
+    for step in path:
+        name = FEATURE_WORDS.get(step["feature"], step["feature"])
+        threshold = f"{step['threshold']:.2f}".rstrip("0").rstrip(".")
+        value = f"{step['value']:.2f}".rstrip("0").rstrip(".")
+        answer = "yes" if step["yes"] else "no"
+        body.append(f'<rect x="6" y="{y}" width="348" height="34" rx="2" class="plate"/>')
+        body.append(_text(14, y + 14, f"{name} at most {threshold}?", "t-sm t-b"))
+        body.append(_text(14, y + 28, f"this card: {value}; {step['n']:,} training rows asked this", "t-xs t-soft"))
+        body.append(f'<rect x="304" y="{y + 7}" width="42" height="20" rx="10" class="badge badge-{answer}"/>')
+        body.append(_text(325, y + 21, answer, f"t-xs t-b badge-text-{answer}", "middle"))
+        y += 34
+        body.append(f'<path d="M180 {y} v10 M176 {y + 6} l4 4 l4 -4" class="ln ln-soft fl-none"/>')
+        y += 12
+    body.append(f'<rect x="6" y="{y}" width="348" height="34" rx="2" class="plate plate-leaf"/>')
+    body.append(_text(14, y + 14, f"the leaf says {leaf:.3f}", "t-sm t-b"))
+    body.append(_text(14, y + 28, f"{rows:,} training rows ended here; the same leaf for all four open cards", "t-xs t-soft"))
+    label = "Mustard's tree asks: " + "; ".join(
+        f"{FEATURE_WORDS.get(s['feature'], s['feature'])} at most {s['threshold']:.2f}, {'yes' if s['yes'] else 'no'}" for s in path
+    ) + f". The leaf reached says {leaf:.3f}."
+    return Figure(
+        key="mustard-path", title="Mustard's tree on the Rope question",
+        caption="The questions the trained tree asked about Mrs. Peacock's card, top to bottom, and the leaf it reached. Every one of the four open cards reaches the same leaf.",
+        svg=_svg(360, y + 42, "".join(body), label),
+    )
+
+
+# --- White's chain ----------------------------------------------------------
+
+
+def _arrow(x: float, y: float, dx: float, dy: float) -> str:
+    """A small arrowhead with its tip at (x, y), pointing along (dx, dy)."""
+    from math import atan2, cos, pi, sin
+
+    angle = atan2(dy, dx)
+    points = [(x, y)]
+    for turn in (pi * 5 / 6, -pi * 5 / 6):
+        points.append((x + 8 * cos(angle + turn), y + 8 * sin(angle + turn)))
+    return '<path d="M' + " L".join(f"{px:.1f} {py:.1f}" for px, py in points) + ' Z" class="arc-head"/>'
+
+
+def _white_chain() -> Figure:
+    """One opponent's run of suggestions, and the two-state chain fitted
+    to it."""
+    example = facts.chain_example()
+    sequence = example["sequence"]
+    p01, p10, stationary = float(example["p01"]), float(example["p10"]), float(example["stationary"])
+    body = [_text(6, 14, "one opponent's suggestions, in order", "t-xs t-soft")]
+    for i, symbol in enumerate(sequence):
+        cx = 26 + i * 44
+        body.append(f'<circle cx="{cx}" cy="36" r="9" class="sym-{"repeat" if symbol else "new"}"/>')
+        body.append(_text(cx, 58, "repeat" if symbol else "new", "t-xs t-soft", "middle"))
+    ax, bx, cy, r = 96, 264, 158, 30
+    mid = (ax + bx) / 2
+    # new -> repeat, over the top; repeat -> new, under.
+    body.append(f'<path d="M{ax + 26} {cy - 15} Q{mid} {cy - 52} {bx - 26} {cy - 15}" class="arc"/>')
+    body.append(_arrow(bx - 26, cy - 15, bx - 26 - mid, 37))
+    body.append(_text(mid, cy - 36, f"{p01:.2f}", "t-sm t-b t-num t-halo", "middle"))
+    body.append(f'<path d="M{bx - 26} {cy + 15} Q{mid} {cy + 52} {ax + 26} {cy + 15}" class="arc"/>')
+    body.append(_arrow(ax + 26, cy + 15, ax + 26 - mid, -37))
+    body.append(_text(mid, cy + 46, f"{p10:.2f}", "t-sm t-b t-num t-halo", "middle"))
+    # staying put: a loop over each state
+    for x, stay in ((ax, 1 - p01), (bx, 1 - p10)):
+        body.append(f'<path d="M{x - 12} {cy - 28} C{x - 44} {cy - 72} {x + 44} {cy - 72} {x + 12} {cy - 28}" class="arc"/>')
+        body.append(_arrow(x + 12, cy - 28, -32, 44))
+        body.append(_text(x, cy - 66, f"{stay:.2f}", "t-xs t-b t-num t-halo", "middle"))
+    body.append(f'<circle cx="{ax}" cy="{cy}" r="{r}" class="state"/>')
+    body.append(_text(ax, cy + 4, "new", "t-sm t-b", "middle"))
+    body.append(f'<circle cx="{bx}" cy="{cy}" r="{r}" class="state state-on"/>')
+    body.append(_text(bx, cy + 4, "repeat", "t-sm t-b state-on-text", "middle"))
+    body.append(_text(180, 234, f"in the long run, P(repeat) = {stationary:.2f}", "t-sm t-b", "middle"))
+    label = (
+        "One opponent's suggestions, " + ", ".join("repeat" if s else "new" for s in sequence) + ". "
+        f"The fitted chain moves from new to repeat with probability {p01:.2f} and from repeat to new with {p10:.2f}; "
+        f"in the long run it repeats with probability {stationary:.2f}."
+    )
+    return Figure(
+        key="white-chain", title="White's two-state chain",
+        caption="A run of one opponent's suggestions, each a repeat of a card they had named before or all new, and the chain White fits to it.",
+        svg=_svg(360, 246, "".join(body), label),
+    )
+
+
+# --- Green's arms -----------------------------------------------------------
+
+
+def _beta_pdf(x: float, a: float, b: float) -> float:
+    from math import gamma
+
+    return x ** (a - 1) * (1 - x) ** (b - 1) * gamma(a + b) / (gamma(a) * gamma(b))
+
+
+def _green_arms() -> Figure:
+    """Each arm's Beta posterior after one lesson, the Rope question
+    scored against its answer, over the flat prior they all began with."""
+    example = facts.rope_question()
+    arms = sorted(example["green_arms"].items(), key=lambda item: -item[1][2])
+    left, right, top, bottom, top_value = 36, 346, 18, 196, 3.2
+
+    def x_of(v: float) -> float:
+        return left + v * (right - left)
+
+    def y_of(v: float) -> float:
+        return bottom - v / top_value * (bottom - top)
+
+    body = [_text(left - 30, 12, "how likely each arm is to be the best, as Green now sees it", "t-xs t-soft")]
+    for tick in (0, 0.25, 0.5, 0.75, 1):
+        body.append(f'<path d="M{x_of(tick):.1f} {top} V{bottom}" class="grid"/>')
+        body.append(_text(x_of(tick), bottom + 14, f"{tick:g}", "t-xs t-soft t-num", "middle"))
+    body.append(f'<path d="M{left} {bottom} H{right}" class="axis"/>')
+    body.append(f'<path d="M{left} {y_of(1):.1f} H{right}" class="ref"/>')
+    body.append(_text(left + 4, y_of(1) - 5, "the prior, Beta(1, 1)", "t-xs t-soft t-halo"))
+    steps = 60
+    for name, (a, b, _mean) in arms:
+        points = []
+        for i in range(steps + 1):
+            x = 0.004 + (0.992 * i) / steps
+            points.append(f"{'M' if i == 0 else 'L'}{x_of(x):.1f} {y_of(min(_beta_pdf(x, a, b), top_value)):.1f}")
+        path = " ".join(points)
+        if name == "White":
+            body.append(f'<path d="{path}" class="line sl-under"/>')
+        body.append(f'<path d="{path}" class="line sl-{name.lower()}"><title>{escape(name)}: Beta({a:g}, {b:g}), mean {_mean:.2f}</title></path>')
+    # The legend under the axis, clear of every curve.
+    for row, (name, (a, b, mean)) in enumerate(arms):
+        x, y = left + 8, bottom + 34 + 15 * row
+        if name == "White":
+            body.append(f'<path d="M{x} {y} h18" class="line sl-under"/>')
+        body.append(f'<path d="M{x} {y} h18" class="line sl-{name.lower()}"/>')
+        body.append(_text(x + 24, y + 4, f"{name}: Beta({a:g}, {b:g}), mean {mean:.2f}", "t-xs"))
+    label = "Each arm's Beta posterior after one lesson: " + "; ".join(
+        f"{name} Beta({a:g}, {b:g}), mean {mean:.2f}" for name, (a, b, mean) in arms
+    ) + ". The prior for every arm was Beta(1, 1), flat."
+    return Figure(
+        key="green-arms", title="Green's arms after one lesson",
+        caption="Every arm began at Beta(1, 1), the flat line. One question, scored against its answer, has already bent each one.",
+        svg=_svg(360, bottom + 34 + 15 * len(arms) + 4, "".join(body), label, "chart"),
+    )
+
+
+def _green_trust() -> Figure:
+    """The arms' posterior means after the ring board's benchmark."""
+    names = [("Plum", "plum", "exact"), ("Mustard", "mustard", "tree"), ("White", "white", "Markov"), ("Peacock", "peacock", "D-S"), ("Scarlett", "scarlett", "naive Bayes")]
+    columns = [(name, sub, float(facts.fact(f"green.arms.ring.{key}")), f"s-{key}") for name, key, sub in names]
+    label = "The mean of each arm's Beta posterior after sixty benchmark games on the ring board: " + ", ".join(
+        f"{name} {value:.2f}" for name, _, value, _ in columns
+    ) + "."
+    return _columns(
+        "green-trust", "Whom Green came to trust",
+        "After sixty benchmark games on the ring board: the mean of each arm's Beta posterior, against the prior's 0.5.",
+        columns, (0.5, "the prior: 0.5"), "mean of the arm's posterior", label,
+    )
+
+
+# --- the floor's notepad ----------------------------------------------------
+
+
+def _floor_notepad() -> Figure:
+    """The deduction floor's grid for the Rope question, from the
+    viewer's chair: every card against every holder."""
+    from clude_constraints import ENVELOPE
+    from clude_core.domain import ROOMS, SUSPECTS, WEAPONS
+
+    mask = facts.rope_question()["mask"]
+    holders = [(facts.ROPE_SEATS["me"], "you"), (facts.ROPE_SEATS["holder"], "Mustard"), (facts.ROPE_SEATS["third"], "Green"), (ENVELOPE, "envelope")]
+    names = {
+        "Scarlett": "Miss Scarlett", "Mustard": "Colonel Mustard", "White": "Mrs. White", "Green": "Mr. Green",
+        "Peacock": "Mrs. Peacock", "Plum": "Professor Plum", "Lead_Pipe": "Lead Pipe",
+        "Billiard": "Billiard Room", "Dining": "Dining Room",
+    }
+    x0, column, row = 118, 58, 13
+    body = []
+    for i, (_, title) in enumerate(holders):
+        body.append(_text(x0 + column * (i + 0.5), 14, title, "t-xs t-b", "middle"))
+    y = 20
+    for title, category in (("Suspects", SUSPECTS), ("Weapons", WEAPONS), ("Rooms", ROOMS)):
+        y += 5
+        body.append(_text(6, y + 10, title, "t-xs t-caps t-soft"))
+        y += 15
+        for card in category:
+            located = mask.holder_of(card)
+            body.append(_text(6, y + 10, names.get(card, card), "t-xs"))
+            for i, (holder, _) in enumerate(holders):
+                cx = x0 + column * (i + 0.5)
+                if located is not None and holder == located:
+                    cls = "cell-env" if holder == ENVELOPE else "cell-located"
+                    body.append(f'<rect x="{cx - 4:.1f}" y="{y + 2}" width="8" height="8" class="{cls}"/>')
+                elif located is None and mask.is_possible(card, holder):
+                    body.append(f'<circle cx="{cx:.1f}" cy="{y + 6}" r="3.5" class="cell-possible"/>')
+                else:
+                    body.append(f'<rect x="{cx - 3:.1f}" y="{y + 5}" width="6" height="2" class="cell-out"/>')
+            y += row
+        body.append(f'<path d="M6 {y + 2} H352" class="row-rule"/>')
+    y += 10
+    body.append(f'<rect x="8" y="{y}" width="8" height="8" class="cell-located"/>')
+    body.append(_text(20, y + 8, "held", "t-xs t-soft"))
+    body.append(f'<rect x="56" y="{y}" width="8" height="8" class="cell-env"/>')
+    body.append(_text(68, y + 8, "proven the envelope's", "t-xs t-soft"))
+    body.append(f'<circle cx="190" cy="{y + 4}" r="3.5" class="cell-possible"/>')
+    body.append(_text(198, y + 8, "still possible", "t-xs t-soft"))
+    body.append(f'<rect x="276" y="{y + 3}" width="6" height="2" class="cell-out"/>')
+    body.append(_text(286, y + 8, "ruled out", "t-xs t-soft"))
+    y += 22
+    for cards, holder in mask.or_constraints:
+        who = dict(holders)[holder]
+        body.append(_text(6, y, f"and {who} holds at least one of: " + ", ".join(names.get(c, c) for c in sorted(cards)), "t-xs t-b"))
+        y += 14
+    label = (
+        "The floor's grid for the Rope question: every card against you, Mustard, Green and the envelope. "
+        "Seventeen cards are placed, the Study is proven the envelope's, and Mrs. White, Mrs. Peacock, the Rope "
+        "and the Wrench could each be Mustard's or the envelope's; Mustard holds at least one of Peacock and the Rope."
+    )
+    return Figure(
+        key="floor-notepad", title="The floor's notepad for the Rope question",
+        caption="What the deduction floor knows in the Rope question, from the viewer's chair. The four open cards are the only ones it leaves to the methods.",
+        svg=_svg(360, int(y + 4), "".join(body), label),
+    )
+
+
 # --- the method diagrams, from files ----------------------------------------
 
 DIAGRAM_TEXT: dict = {
@@ -368,6 +772,14 @@ _DRAWN: dict = {
     "rope-bars": _rope_bars,
     "plum-budget": _plum_budget,
     "scarlett-bench": _scarlett_bench,
+    "belief-six": _belief_six,
+    "plum-search": _plum_search,
+    "peacock-interval": _peacock_interval,
+    "mustard-path": _mustard_path,
+    "white-chain": _white_chain,
+    "green-arms": _green_arms,
+    "green-trust": _green_trust,
+    "floor-notepad": _floor_notepad,
     **{f"token-{s.lower()}": (lambda s=s: _token(s)) for s in SUSPECTS},
 }
 

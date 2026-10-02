@@ -147,7 +147,9 @@ def test_every_constant_an_article_prints_can_be_computed(wiki):
     for key in facts.CODE:
         assert isinstance(facts.code(key), str) and facts.code(key), key
     used = set().union(*(article.codes for article in wiki.pages()))
-    assert used and used <= set(facts.CODE)
+    assert used
+    for key in used:  # the step keys of Mustard's path are computed on demand
+        assert isinstance(facts.code(key), str) and facts.code(key), key
 
 
 # --- the articles -----------------------------------------------------------
@@ -186,14 +188,53 @@ def test_the_three_kinds_of_exemplar_are_there_with_their_redirects(wiki):
     assert wiki.get("Disproof")[0].title == "Suggestion"
     assert wiki.get("Nothing at all") == (None, "")
     # A stub is a page, is marked as one, and is not the featured article.
-    peacock, _ = wiki.get("Mrs. Peacock")
-    assert peacock.is_stub and peacock in wiki.categories["Characters"]
+    accusation, _ = wiki.get("Accusation")
+    assert accusation.is_stub and accusation in wiki.categories["The game"]
     # What links here, and the hooks on the Main Page.
     assert plum in wiki.linking_to(wiki.get("Naive Bayes")[0])
     assert any("Professor Plum" in hook for hook in wiki.did_you_know())
     hits = wiki.search("envelope")
     assert hits and hits[0][0].title == "The envelope"
     assert wiki.search("zzzz") == [] and wiki.search("  ") == []
+
+
+def test_every_character_and_method_has_its_article(wiki):
+    """W2's gate (docs/wikiclude-plan.md 5): the six characters, the six
+    methods, the floor and Belief are full articles with their numbers
+    through `facts`; and the Rope question, answered by every method on
+    the real code, is what the articles say it is. The tree's path is
+    pinned because the prose narrates it: regrow the tree and this says
+    which articles to reread."""
+    for title in (
+        "Miss Scarlett", "Colonel Mustard", "Mrs. White", "Mr. Green", "Mrs. Peacock", "Professor Plum",
+        "Naive Bayes", "Decision tree", "Markov chain", "Bandit ensemble", "Dempster-Shafer theory",
+        "Exact posterior enumeration", "Deduction floor", "Belief",
+    ):
+        article, _ = wiki.get(title)
+        assert article is not None and not article.is_stub, title
+        assert article.facts or article.codes, title
+    example = facts.rope_question()
+    search = facts.plum_search()
+    assert search["deals"] == example["deals"] == 3 and search["nodes"] == example["nodes"] == 20
+    assert example["peacock_belief"]["White"] == pytest.approx(0.5)
+    assert example["peacock_plausibility"]["White"] == pytest.approx(1.0)
+    assert example["peacock"]["White"] == pytest.approx(0.75)
+    # Mustard's tree sends all four open cards to one leaf, by these six questions.
+    assert [step["feature"] for step in example["mustard_path"]] == [
+        "times_named_total", "times_named_unrefuted", "distinct_namers",
+        "possible_holders_frac", "possible_holders_frac", "turn_fraction",
+    ]
+    assert all(example["mustard"][card] == pytest.approx(0.5) for card in facts.ROPE_CARDS)
+    # White reads the asking, not the answer, and goes the other way.
+    assert example["white"]["White"] == pytest.approx(0.4) and example["white"]["Peacock"] == pytest.approx(0.6)
+    assert set(example["green_arms"]) == {"Scarlett", "Plum", "Peacock", "Mustard", "White"}
+    assert sorted(example["green_arms"], key=lambda a: -example["green_arms"][a][2])[0] == facts.code("example.green.best")
+    assert str(facts.chain_example()["stationary"]) == "9/14"
+    assert facts.code("example.ds.two.conflict") == "1/4" and facts.code("example.ds.two.white") == "1/3"
+    assert facts.code("certainty.triples") == "324" and facts.code("certainty.half.one_in") == "18"
+    assert float(facts.code("certainty.scarlett")) < float(facts.code("certainty.plum")) < 1
+    with pytest.raises(KeyError):
+        facts.code("example.mustard.step.8.threshold")
 
 
 # --- the markup -------------------------------------------------------------
@@ -303,7 +344,10 @@ def test_wikiclude_is_public_and_every_kind_of_page_answers(app):
     assert 'class="navbox"' in text and 'href="/wiki/Category:Characters"' in text
     assert "Redirected from" not in text
     assert "Redirected from <em>Plum</em>" in client.get("/wiki/Plum").get_data(as_text=True)
-    assert "stub" in client.get("/wiki/Mrs._Peacock").get_data(as_text=True)
+    assert "stub" in client.get("/wiki/Accusation").get_data(as_text=True)
+    # The wooden question mark is every wiki page's logo (David, 2026-10-02).
+    assert 'class="wiki-logo" src="/static/questionmark-wood.png"' in text
+    assert main.count('class="wiki-logo"') == 2  # the masthead and the welcome
 
     for path, words in (
         ("/wiki/Category:Methods", "Naive Bayes"),

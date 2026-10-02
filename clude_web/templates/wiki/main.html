@@ -2,6 +2,7 @@
 {% block wiki_title %}Main Page{% endblock %}
 {% block page %}
 <header class="wiki-welcome" id="top">
+  <img class="wiki-logo" src="{{ url_for('static', filename='questionmark-wood.png') }}" alt="" width="72" height="72">
   <h1>Welcome to <span class="wiki-wordmark">Wikiclude</span>,</h1>
   <p>the encyclopaedia of <a class="wl" href="{{ url_for('main.index') }}">clude</a>: six suspects, six ways of thinking, and one game of Clue.</p>
   <p class="wiki-count">{{ counts.articles }} article{{ '' if counts.articles == 1 else 's' }} so far, {{ counts.stubs }} stub{{ '' if counts.stubs == 1 else 's' }} and {{ counts.wanted }} <a href="{{ url_for('main.wiki_page', title='Special:WantedPages') }}">wanted</a></p>

@@ -29,6 +29,9 @@ DOCS: dict = {
     "docs/web.md": "The web app",
     "docs/cli.md": "Maintainer CLI",
     "docs/phase-plan.md": "Phase plan",
+    "docs/phase5-plan.md": "Phase 5 plan",
+    "docs/phase6-plan.md": "Phase 6 plan: the LLM wrapper",
+    "docs/phase7-plan.md": "Phase 7 plan: playerbot memory, the logbooks",
     "docs/phase8-plan.md": "Phase 8 to completion",
     "docs/phase10-plan.md": "Phase 10 plan",
     "CLAUDE.md": "clude (working notes)",
@@ -60,9 +63,33 @@ SOURCES: dict = {
         "Mnih, Volodymyr; Kavukcuoglu, Koray; Silver, David; et al. (2015). \"Human-level control through "
         "deep reinforcement learning\". <cite>Nature</cite>. <b>518</b>: 529-533."
     ),
+    "dempster-1967": (
+        "Dempster, Arthur P. (1967). \"Upper and Lower Probabilities Induced by a Multivalued Mapping\". "
+        "<cite>The Annals of Mathematical Statistics</cite>. <b>38</b> (2): 325-339."
+    ),
+    "shafer-1976": (
+        "Shafer, Glenn (1976). <cite>A Mathematical Theory of Evidence</cite>. Princeton, New Jersey: "
+        "Princeton University Press."
+    ),
+    "smets-kennes-1994": (
+        "Smets, Philippe; Kennes, Robert (1994). \"The transferable belief model\". "
+        "<cite>Artificial Intelligence</cite>. <b>66</b> (2): 191-234."
+    ),
+    "breiman-1984": (
+        "Breiman, Leo; Friedman, Jerome H.; Olshen, Richard A.; Stone, Charles J. (1984). "
+        "<cite>Classification and Regression Trees</cite>. Belmont, California: Wadsworth."
+    ),
+    "thompson-1933": (
+        "Thompson, William R. (1933). \"On the Likelihood that One Unknown Probability Exceeds Another "
+        "in View of the Evidence of Two Samples\". <cite>Biometrika</cite>. <b>25</b> (3-4): 285-294."
+    ),
+    "norris-1997": (
+        "Norris, James R. (1997). <cite>Markov Chains</cite>. Cambridge: Cambridge University Press."
+    ),
 }
 """Books and papers, each as its citation reads. The first two are
-textbooks; the last two are among the classwork papers David keeps."""
+textbooks; `perolat-2022` and `mnih-2015` are among the classwork papers
+David keeps; the rest are the founding works of the methods (W2)."""
 
 
 def github_anchor(heading: str) -> str:
