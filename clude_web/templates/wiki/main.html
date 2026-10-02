@@ -4,15 +4,16 @@
 <header class="wiki-welcome" id="top">
   <img class="wiki-logo" src="{{ url_for('static', filename='questionmark-wood.png') }}" alt="" width="72" height="72">
   <h1>Welcome to <span class="wiki-wordmark">Wikiclude</span>,</h1>
-  <p>the encyclopaedia of <a class="wl" href="{{ url_for('main.index') }}">clude</a>: six suspects, six ways of thinking, and one game of Clue.</p>
-  <p class="wiki-count">{{ counts.articles }} article{{ '' if counts.articles == 1 else 's' }} so far, {{ counts.stubs }} stub{{ '' if counts.stubs == 1 else 's' }} and {{ counts.wanted }} <a href="{{ url_for('main.wiki_page', title='Special:WantedPages') }}">wanted</a></p>
+  <p>the encyclopaedia of <a class="wl" href="{{ url_for('main.wiki_page', title='clude') }}">clude</a>: six suspects, six ways of thinking, and one game of Clue.</p>
+  <p class="wiki-count">{{ counts.articles }} article{{ '' if counts.articles == 1 else 's' }}{% if counts.stubs %}, {{ counts.stubs }} stub{{ '' if counts.stubs == 1 else 's' }}{% endif %}{% if counts.wanted %} and {{ counts.wanted }} <a href="{{ url_for('main.wiki_page', title='Special:WantedPages') }}">wanted</a>{% endif %}</p>
+  <p>New to the game? Start with <a class="wl" href="{{ url_for('main.wiki_page', title='Rules_of_play') }}">the rules of play</a>. To explore the characters, start with <a class="wl" href="{{ url_for('main.wiki_page', title='Belief') }}">one question and their different answers</a>.</p>
 </header>
 <div class="wiki-portals">
   {% if featured %}
   <section class="portal portal-featured">
     <h2>From the featured article</h2>
     <div class="portal-body">
-      {{ featured.lead|safe }}
+      {{ featured.lead_preview|safe }}
       <p class="portal-more"><a class="wl" href="{{ url_for('main.wiki_page', title=featured.slug) }}"><strong>Read the whole article: {{ featured.title }}</strong></a></p>
     </div>
   </section>
@@ -43,7 +44,7 @@
   <section class="portal portal-about">
     <h2>About Wikiclude</h2>
     <div class="portal-body">
-      <p>Every article is written for everyone at once: what the thing is and why it matters at the table first, a worked example next, the mathematics after, and what the measurements found last. Stop wherever you have what you came for.</p>
+      <p>Articles begin with the basic idea and its place in clude. Worked examples, diagrams and mathematics add depth where the subject calls for it. Recorded measurements identify the games and settings behind the results. Stop wherever you have what you came for.</p>
       <p>Links in <a class="wl" href="{{ url_for('main.wiki_page', title='Special:AllPages') }}">this colour</a> stay inside Wikiclude. Links in <a class="extw" href="https://en.wikipedia.org/wiki/Cluedo" target="_blank" rel="noopener" title="Wikipedia: Cluedo">this colour</a> leave for Wikipedia, in a new tab. A <a class="wl new" href="{{ url_for('main.wiki_page', title='Special:WantedPages') }}">dotted link</a> is an article nobody has written yet.</p>
     </div>
   </section>

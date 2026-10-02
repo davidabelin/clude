@@ -16,10 +16,11 @@ matters here (`docs/phase8.1-plan.md` 2):
   first open of a replay and 0.04 s on every one after.
 
 One honest limitation, to be shown on the screen rather than hidden: a
-trace calls `select_action` on a fresh agent and never `observe`, so for
-White and Green, who learn from what they see, the replayed bar is a
-stateless reading of the evidence rather than exactly what they believed
-live. Fixing that is out of scope for 8.1.
+trace starts fresh agents without restoring method memory and never calls
+`observe`. Green's outcome-feedback updates are therefore absent. White
+rebuilds her current-game chain from the suggestion history on each call;
+her `observe` hook is a no-op. The bars are reconstructed estimates rather
+than a recording of the original agents' state.
 """
 from __future__ import annotations
 
@@ -49,9 +50,9 @@ rebuilt rather than misread. 2 added each seat's `certainty` per frame
 (Phase 9h)."""
 
 TRACE_LIMITATION = (
-    "White's and Green's bars are a stateless reading of the evidence, not "
-    "exactly what they believed live: a trace never replays what they learned "
-    "along the way."
+    "These bars are reconstructed estimates: replay does not restore starting "
+    "method memory or Green's outcome-feedback updates. White's current-game "
+    "chain is rebuilt from the recorded suggestions."
 )
 
 
@@ -467,7 +468,8 @@ def cached_trace(store, record, every: int = 1) -> dict:
         and document.get("version") == TRACE_VERSION
         and document.get("every") == every
     ):
-        return document
+        # Explanatory copy can change without invalidating expensive frames.
+        return dict(document, limitation=TRACE_LIMITATION)
     document = trace_document(record, every=every)
     store.put_doc(key, document)
     return document

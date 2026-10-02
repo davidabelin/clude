@@ -81,7 +81,7 @@ This is the naive Bayes update in odds form: begin with the prior odds and multi
 
 Scarlett's score for a card $c$ is such a product. Let $S_j$ be the set of three cards named by the $j$-th suggestion. Then
 
-$$ s(c) = \prod_{j \,:\, c \in S_j} f_j \qquad f_j = \begin{cases} 2 & \text{nobody disproved it} \\ 2/3 & \text{disproved, card unseen} \\ 1 & \text{disproved, card seen} \end{cases} $$
+$$ s(c) = \prod_{j \,:\, c \in S_j} f_j \qquad f_j = \begin{cases} {{code:scarlett.boost}} & \text{nobody disproved it} \\ {{code:scarlett.decay}} & \text{disproved, card unseen} \\ 1 & \text{disproved, card seen} \end{cases} $$
 
 and her probability that $c$ is the envelope's card in its category $K$ is its share of the scores the deduction floor still permits. With $m(c) = 1$ if the floor allows $c$ in the envelope and $0$ if not,
 

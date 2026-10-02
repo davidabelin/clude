@@ -174,10 +174,12 @@ the generator. A test fails on any class with no rule.
 Two details worth knowing when drawing a seat's bars. A proven holder is a
 seat index **or** the string `"envelope"`: a card proven to be the
 envelope's is the strongest thing a seat can know, and a different claim
-from "nobody has shown it". And a trace never calls `observe`, so White's
-and Green's bars are a stateless reading of the evidence rather than what
-they believed live -- the document carries that caveat as `limitation`, to
-be shown on the screen rather than hidden.
+from "nobody has shown it". A trace starts fresh agents without restoring
+method memory and never calls `observe`, so Green's outcome-feedback
+updates are absent. White rebuilds her current-game chain from the
+suggestion history on each call; her `observe` hook is a no-op. These bars
+are reconstructed estimates rather than recorded live state. The document
+carries this caveat as `limitation`, including when reading cached frames.
 
 ## The lobby
 

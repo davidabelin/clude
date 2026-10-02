@@ -95,7 +95,7 @@ Plum's threshold was chosen through measurement. His original 0.95 setting perfo
 
 The [[belief benchmark]] scores each method's probabilities against the truth at four points in a game, by [[log-loss]]: lower is better, and the [[uniform baseline]] is what a player scores who knows what the deduction floor has proved and nothing more. On the ring board, the first the game was played on, Plum was the best or joint-best of the six from three-quarters of the way through a game onward.[^ring]
 
-The move to the [[Classic board]] on 15 September 2026 undid that. Games there have longer walks and fewer [[suggestion|suggestions]] per turn, so more cards are still unplaced at the same point in a game, and his search ran out of steps in {{fact:plum.fallback.calls}} of {{fact:bench.grid.snapshots}} calls. Halfway through a game he scored {{fact:budget.grid.200k-2k.50}} against the baseline's {{fact:budget.grid.uniform.50}}: the sampling fallback scored worse than the floor-only baseline, with [[w:Sampling error|sampling noise]] contributing to the loss.[^grid]
+The move to the [[Classic board]] on 15 September 2026 changed the benchmark results. The new self-play histories left more possibilities open at the recorded checkpoints, and his search ran out of steps in {{fact:plum.fallback.calls}} of {{fact:bench.grid.snapshots}} calls. Halfway through a game he scored {{fact:budget.grid.200k-2k.50}} against the baseline's {{fact:budget.grid.uniform.50}}: the sampling fallback scored worse than the floor-only baseline, with [[w:Sampling error|sampling noise]] contributing to the loss.[^grid]
 
 Four budgets were then tried on the same {{fact:bench.grid.games}} games.
 

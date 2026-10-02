@@ -28,7 +28,7 @@ A separate red mark identifies the true answer. Thus a large pale bar on the wro
 
 Board frames come directly from the [[game records|event record]]. At checkpoints the trace builds a masked observation for each seat and asks a fresh numerical agent for a reading. The enclosing replay can reveal the shown card to the viewer while still masking that card from seats that did not see it.[^trace]
 
-The trace does not call the agents' learning hook, `observe`. White's and Green's readings therefore omit the state they accumulated through that hook during live play. Remembered starting state is also not a complete recording of every historical agent's state. The screen carries this limitation; apparent changes in those bars should be interpreted as reconstructed readings rather than a precise history of the original player.
+The trace does not restore starting [[method memory]] or call the agents' learning hook, `observe`. It therefore omits remembered tree data, opponent priors and arm records, as well as Green's outcome-feedback updates. White still rebuilds her current-game suggestion chain from the masked history on each call; her learning hook is a no-op. These are reconstructed readings rather than a precise history of the original player's state.
 
 The first request computes a trace and caches it beside the game. Later requests reuse a compatible cached version; an old cache version is rebuilt. This computation can delay the first opening, especially with Plum or Green. It does not retrain a character or replay paid model decisions.
 

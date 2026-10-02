@@ -29,7 +29,7 @@ The whole table's initial {{code:envelopes}} possible envelopes and one observer
 
 ## Why hand sizes matter
 
-If Mustard has six cards and all six are located, every other card is excluded from his hand. Conversely, if six cards are the only ones still permitted there, all six must be his. The [[deduction floor]] applies these capacity constraints together with suggestions and the rule that every card has exactly one holder.
+If Mustard has six cards and all six are located, every other card is excluded from his hand. The converse is also logically valid: if only six cards could fill that hand, all six must be his. The current [[deduction floor]] implements the full-hand exclusion rule, but does not implement this converse capacity rule. Complete enumeration checks the hand size across entire assignments.
 
 A hidden answer such as 'Mustard holds Peacock or Rope' is also constrained by the space left in his hand. Treating each card as independently assignable would allow impossible hands. [[Exact posterior enumeration]] searches complete assignments with these capacities intact; the [[uniform baseline]] assigns equal probabilities to the remaining cards within each category without counting all those assignments.
 

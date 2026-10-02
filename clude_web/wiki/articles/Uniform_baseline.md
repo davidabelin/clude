@@ -3,6 +3,7 @@ title: Uniform baseline
 short: Equal envelope-card probabilities among candidates left by the floor
 categories: Measurement
 redirects: Uniform, Baseline, Uniform (baseline)
+dyk: ... that the [[uniform baseline]] gives equal card probabilities, rather than counting equally likely complete deals?
 ---
 The **uniform baseline** gives equal envelope probabilities to the cards the [[deduction floor]] still permits within each category. A proven solution card receives 1; excluded cards receive 0; the remaining candidates divide the category's probability equally. It is the reference estimate in the [[belief benchmark]].[^code]
 

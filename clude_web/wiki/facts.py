@@ -429,6 +429,10 @@ TABLES.update({
 })
 
 FACTS: dict = {
+    "cost.web.games": Fact("9", "docs/web.md", "A table", "first nine web games with model seats"),
+    "cost.web.debrief.share": Fact("38", "docs/web.md", "A table", "38% of"),
+    "cost.web.debrief.total": Fact("1.69", "docs/web.md", "A table", "$1.69 of $4.40"),
+    "cost.web.total": Fact("4.40", "docs/web.md", "A table", "$1.69 of $4.40"),
     "bench.grid.snapshots": Fact("1,080", GLOSSARY, "Belief benchmark on the grid (Stage 1a)", "1080 snapshots"),
     "bench.grid.games": Fact("60", GLOSSARY, "Belief benchmark on the grid (Stage 1a)", "benchmark --games 60 --seed 4004"),
     "bench.zero_cost": Fact("20.7", GLOSSARY, "Belief benchmark, FloorBot regime (Phase 5)", "a hard 0 on the true card would cost 20.7"),

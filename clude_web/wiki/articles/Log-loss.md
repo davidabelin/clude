@@ -46,9 +46,9 @@ Clipping prevents one zero from making the whole run unusable, but repeated near
 
 ## Other scores and Green's reward
 
-The benchmark also reports **Brier score**, the mean squared error over all {{code:cards.total}} card-membership probabilities, and **top-1 accuracy**, the fraction of categories whose highest-scoring card is correct. Brier weights rooms more heavily in its per-card average because there are more room cards; log-loss averages one contribution per category.[^benchmark]
+The benchmark also reports **Brier score**, the mean squared error over all {{code:cards.total}} card-membership probabilities, and **top-1 accuracy**, the fraction of categories whose highest-scoring card is correct. Brier divides the summed squared errors by the card count; log-loss averages one contribution per category. The measures differ in their denominators and in how strongly they penalise small probabilities on the truth.[^benchmark]
 
-Top-1 ignores how much probability the winner received. Two methods can choose the same top card yet have very different log-loss. A confident wrong answer may cost little top-1 detail beyond the error itself but receives a large logarithmic penalty.
+Top-1 ignores how much probability the winner received. Two methods can choose the same top card yet have very different log-loss. Top-1 records a confident wrong answer as a single error, while log-loss penalises it more heavily when the true card received little probability.
 
 Green ranks his five arms by their loss against the revealed envelope and converts rank into a fractional reward. That reward is not the loss itself or a binary game win. It updates decayed [[beta distribution|Beta]] records, as described in [[bandit ensemble]].[^green]
 

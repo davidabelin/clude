@@ -29,7 +29,7 @@ Phase 9 added [[a seat over MCP]], letting a chat agent occupy a human seat thro
 
 Phase 10 developed the table's stage and rail, the board's visual treatment, sound effects and named [[looks]]. Case-file light became the default, beside Gaslight dark and Developer. Stored games were grouped into practice and development, and the footer added the [[AIX Laboratories]] attribution.
 
-Wikiclude began as Phase 10's explainer work. W1 and W2 established its rendering and central character and method articles; an editorial pass and W3–W5 broadened coverage to rules, mathematics, personality, memory and evaluation. W6 covers the app and project and begins the classwork archive. A final W7 review and the next round of character training are subsequent work.[^wiki]
+Wikiclude began as Phase 10's explainer work. Its first articles introduced the characters and their methods, followed by rules, mathematics, personality, memory and evaluation. App and project articles and the classwork archive completed the initial collection. A final review checked prose, examples, navigation and presentation across the full collection. These are local development milestones, distinct from deployment.[^wiki]
 
 
 ## See also

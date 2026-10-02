@@ -302,6 +302,59 @@ def test_w6_app_archive_and_measurement_coverage(wiki):
     assert "Classwork" in wiki.categories
 
 
+def test_main_page_hooks_link_to_their_subject_and_track_dependencies(tmp_path):
+    (tmp_path / "Subject.md").write_text(
+        "---\ntitle: Subject\nshort: Test\ncategories: Test\n"
+        "dyk: ... that [[Subject]] links to [[Missing]] and [[w:Probability]], "
+        "uses {{code:scarlett.boost}} and {{fact:bench.grid.games}}, "
+        "and cites {{cite:sutton-barto}}?\n---\n**Subject** is a test.\n",
+        encoding="utf-8",
+    )
+    subject = index.Wiki(tmp_path).get("Subject")[0]
+    assert 'href="/wiki/Subject"' in subject.dyk[0]
+    assert subject.wanted == {"Missing"}
+    assert subject.wikipedia == {"Probability"}
+    assert subject.codes == {"scarlett.boost"}
+    assert subject.facts == {"bench.grid.games"}
+    assert subject.cites and subject.cites[0][0] == "sutton-barto"
+
+
+def test_main_page_excerpt_and_hooks_have_working_links(wiki, app):
+    class LinksAndIds(HTMLParser):
+        def __init__(self, text):
+            super().__init__()
+            self.ids = set()
+            self.links = []
+            self.feed(text)
+
+        def handle_starttag(self, tag, attrs):
+            attrs = dict(attrs)
+            if "id" in attrs:
+                assert attrs["id"] not in self.ids, attrs["id"]
+                self.ids.add(attrs["id"])
+            if tag == "a" and "href" in attrs:
+                self.links.append(attrs["href"])
+
+    client = app.test_client()
+    main = LinksAndIds(client.get("/wiki").get_data(as_text=True))
+    assert not any(name.startswith("fnref") for name in main.ids)
+    targets = {"/wiki": main}
+    for href in main.links + [href for hook in wiki.did_you_know() for href in LinksAndIds(hook).links]:
+        url = urllib.parse.urlsplit(href)
+        if url.netloc or not url.fragment:
+            continue
+        path = url.path or "/wiki"
+        if path not in targets:
+            response = client.get(path)
+            assert response.status_code == 200, href
+            targets[path] = LinksAndIds(response.get_data(as_text=True))
+        assert urllib.parse.unquote(url.fragment) in targets[path].ids, href
+    for article in wiki.pages():
+        for hook in article.dyk:
+            assert 'class="selflink"' not in hook, article.title
+            assert 'class="wl new"' not in hook, article.title
+
+
 def test_every_internal_section_link_resolves(wiki):
     """Title checks alone miss stale fragments and duplicate figure ids."""
     class LinksAndIds(HTMLParser):

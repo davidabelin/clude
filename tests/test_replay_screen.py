@@ -615,6 +615,23 @@ def test_a_trace_is_computed_once_and_read_back(tmp_path):
     assert first["built"] == second["built"], "the trace was rebuilt instead of read"
 
 
+def test_cached_frames_use_the_current_explanation_without_recomputing(tmp_path, monkeypatch):
+    store = LocalStore(str(tmp_path))
+    record = play()
+    first = replay_data.cached_trace(store, record)
+    key = replay_data.trace_key(record.run_id, record.game_index)
+    store.put_doc(key, dict(first, limitation="Old explanation"))
+
+    def unexpected_rebuild(*args, **kwargs):
+        pytest.fail("An explanation update must not rebuild the belief frames")
+
+    monkeypatch.setattr(replay_data, "trace_document", unexpected_rebuild)
+    second = replay_data.cached_trace(store, record)
+    assert second["frames"] == first["frames"]
+    assert second["limitation"] == replay_data.TRACE_LIMITATION
+    assert first["built"] == second["built"], "the trace was rebuilt instead of read"
+
+
 def test_every_seat_has_a_certainty_in_every_frame_and_the_floor_s_only_rises():
     """Phase 9h. A seat with no method is measured from its floor alone,
     which only ever tightens, so its certainty never falls along the

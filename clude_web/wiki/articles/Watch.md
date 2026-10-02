@@ -3,6 +3,7 @@ title: Watch
 short: Stepping through a headless game while its cards stay hidden
 categories: The app
 redirects: Watch screen
+dyk: ... that [[Watch]] keeps hands hidden until the finish and makes no language-model calls?
 ---
 **Watch** runs a game of [[clude]]'s headless characters and lets a viewer advance it a turn at a time. It uses the same engine and table driver as other games, with no language-model calls. Hands and the [[envelope]] stay hidden until the finish, so its displays describe reasoning progress without giving away the answer.[^watch]
 
@@ -22,7 +23,7 @@ Displaying all seats' exact known cards would reveal the answer at the deal: the
 
 A watched table can be rebuilt from its saved setup and progress. A seed suffices only alongside the same configuration, implementation and starting memory. Fresh agents provide the display's belief readings, keeping their random draws separate from the agents choosing moves.
 
-After completion the game is stored in practice and Watch becomes its [[replay]]. Replay reveals the cards and allows event-by-event inspection. Its reconstructed belief trace has its own limits, especially for methods that accumulated state while playing; it is not necessarily the original internal state of every live agent.[^trace]
+After completion the game is stored in practice and Watch becomes its [[replay]]. Replay reveals the cards and allows event-by-event inspection. Its reconstructed belief trace has its own limits, especially for methods that accumulated state while playing; it does not restore starting method memory or replay Green's outcome-feedback updates.[^trace]
 
 
 ## See also

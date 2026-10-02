@@ -119,7 +119,7 @@ With a model in her seat the picture changes. At a four-seat table where all six
 
 - **The decision probability depends on the model.** The pignistic transform is not the posterior from counting consistent deals. In the recorded benchmarks, it had higher log-loss than the uniform baseline.
 - **Cross-category evidence is apportioned heuristically.** The card-count rule is not derived from a generative model of deals.
-- **Caution loses races.** A belief that waits for evidence to single out a card waits longer than a probability that will act on a likelihood, and a quicker player can end the game first. Her win rate is good because her threshold is set, by measurement, where patience pays on this board.
+- **Caution loses races.** A belief that waits for evidence to single out a card waits longer than a probability that will act on a likelihood, and a quicker player can end the game first. The recorded win rates reflect her threshold, opponents and board; they do not establish that waiting is always advantageous.
 - **Evidence can overlap.** Dempster's rule assumes appropriately independent evidence sources. Repeated disproofs can share the same cause, and this implementation does not model that dependence.[^shafer]
 - **Soft updates use only open facts.** Known cards and passed-over players affect the floor's constraints. Opponents' preferences for particular questions are not modelled.
 

@@ -3,6 +3,7 @@ title: Q-learning
 short: Updating action values towards reward plus the best estimated continuation
 categories: Classwork
 redirects: Q learning
+dyk: ... that [[Q-learning]] estimates future rewards, rather than the probability of a particular hidden card?
 ---
 **Q-learning** is a reinforcement-learning method that estimates the value of taking each action in a state. After an observed transition, it updates the chosen state–action pair towards the received reward plus the best estimated value at the next state. It is an **off-policy** method: its target follows a greedy policy even when the actions gathering experience are exploratory.[^q]
 

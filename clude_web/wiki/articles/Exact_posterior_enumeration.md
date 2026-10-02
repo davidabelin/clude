@@ -42,7 +42,7 @@ A small position makes it possible to check the count by hand.
 
 {{figure:plum-search|Plum's search on the Rope question. Each open card is tried in Mustard's hand and in the envelope; a branch is abandoned the moment it breaks a rule; every branch that reaches the bottom is one complete deal.}}
 
-The example can be counted by inspection. The implementation instead [[w:Tree traversal|walks a search tree]], shown below in {{code:example.plum.nodes}} steps. It tries Mrs. White in Mustard's hand and then in the envelope, proceeding through the other open cards. A branch ends as soon as Mustard's hand is full, a category has a second envelope card, or both Peacock and the Rope are assigned to the envelope, leaving neither to explain Mustard's disproof. Three branches reach complete, valid deals.
+The example can be counted by inspection. The implementation instead [[w:Tree traversal|walks a search tree]], shown above in {{code:example.plum.nodes}} steps. It tries Mrs. White in Mustard's hand and then in the envelope, proceeding through the other open cards. A branch ends as soon as Mustard's hand is full, a category has a second envelope card, or both Peacock and the Rope are assigned to the envelope, leaving neither to explain Mustard's disproof. Three branches reach complete, valid deals.
 
 By inspection, there are four initial deals and one to exclude. The search takes {{code:example.plum.nodes}} steps because it also visits partial assignments. Larger positions can require many more steps; the number depends on the remaining cards and how strongly the constraints restrict them.
 
@@ -110,7 +110,7 @@ On the ring board the method was the best or joint-best of the six from three-qu
 
 {{table:bench.grid|The same benchmark on the Classic board, {{fact:bench.grid.games}} games and {{fact:bench.grid.snapshots}} positions, 15 September 2026. Plum's row was measured at the old sample of 2,000.}}
 
-The move to the [[Classic board]] made the early game more open. Its games have longer walks and fewer suggestions per turn, so more cards are unplaced at the same point in a game, and the search ran out of steps in {{fact:plum.fallback.calls}} of {{fact:bench.grid.snapshots}} calls. At the halfway checkpoint the exact reasoner scored {{fact:budget.grid.200k-2k.50}} against the baseline's {{fact:budget.grid.uniform.50}}, worse than the floor-only baseline, with sampling error contributing to the loss.[^grid]
+The [[Classic board]] run recorded more difficult searches at its checkpoints. These checkpoints count fractions of suggestions, not elapsed turns: longer corridor journeys alone do not explain the change. The search ran out of steps in {{fact:plum.fallback.calls}} of {{fact:bench.grid.snapshots}} calls. At the halfway checkpoint the exact reasoner scored {{fact:budget.grid.200k-2k.50}} against the baseline's {{fact:budget.grid.uniform.50}}, worse than the floor-only baseline, with sampling error contributing to the loss.[^grid]
 
 ### The budgets
 

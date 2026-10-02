@@ -112,6 +112,15 @@ class Article:
         return self.kind == "stub"
 
     @property
+    def lead_preview(self) -> str:
+        """The lead for the Main Page, with references pointing to this article.
+
+        Footnote ids belong to the full article, not its excerpt.
+        """
+        lead = re.sub(r'\s+id="fnref[^"]*"', "", self.lead)
+        return lead.replace('href="#', f'href="/wiki/{self.slug}#')
+
+    @property
     def words(self) -> int:
         return len(self.text.split())
 
@@ -180,6 +189,14 @@ class Wiki:
         for meta, body, title in sources:
             out = render.render(title, body, resolve)
             ctx = out.ctx
+            # Hooks appear on the Main Page: their subject must be a link,
+            # and their links, sources and values need the article's checks.
+            hooks = [render.render("Main Page", hook, resolve) for hook in meta.get("dyk", [])]
+            for hook in hooks:
+                for name in ("links", "wanted", "wikipedia", "categories", "facts", "codes"):
+                    getattr(ctx, name).update(getattr(hook.ctx, name))
+                ctx.cites.extend(hook.ctx.cites)
+                ctx.figures.extend(hook.ctx.figures)
             unknown = [n for n in ctx.navboxes if n not in NAVBOXES]
             if unknown:
                 raise WikiError(f"{title}: no navbox named {unknown[0]!r}")
@@ -187,7 +204,7 @@ class Wiki:
                 title=title, slug=slug_of(title), short=(meta.get("short") or [""])[0],
                 kind=(meta.get("kind") or ["article"])[0], categories=_list(meta, "categories"),
                 redirects=_list(meta, "redirects"), featured=(meta.get("featured") or [""])[0].lower() in ("yes", "true"),
-                dyk=[render.render(title, hook, resolve).lead for hook in meta.get("dyk", [])],
+                dyk=[hook.lead for hook in hooks],
                 hatnotes=out.hatnotes, lead=out.lead, body=out.body, infobox=out.infobox, toc=out.toc, navboxes=list(ctx.navboxes),
                 links=ctx.links, wanted=ctx.wanted, wikipedia=ctx.wikipedia, category_links=ctx.categories, facts=ctx.facts, codes=ctx.codes,
                 figures=ctx.figures, cites=ctx.cites, text=render.plain(out.html),

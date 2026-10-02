@@ -20,7 +20,7 @@ Usage is added after the response, so a completed call can take the recorded tot
 
 ## Debriefs belong to the game
 
-The finish can leave remembering LLM seats writing their logbook entries. These are paid calls too, and the game's cost is final only when they finish or wrapping is ended. In the recorded first nine web games with model seats, debriefs accounted for 38% of the model bill: $1.69 of $4.40. This was a small historical sample, not a fixed overhead for every game.[^sample]
+The finish can leave remembering LLM seats writing their logbook entries. These are paid calls too, and the game's cost is final only when they finish or wrapping is ended. In the recorded first {{fact:cost.web.games}} web games with model seats, debriefs accounted for {{fact:cost.web.debrief.share}}% of the model bill: {{fact:cost.web.debrief.total}} US dollars out of {{fact:cost.web.total}}. This was a small historical sample, not a fixed overhead for every game.[^sample]
 
 ## Where spending appears
 

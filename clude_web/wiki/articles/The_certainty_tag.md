@@ -1,6 +1,6 @@
 ---
 title: The certainty tag
-short: A public confidence colour based on information gained
+short: A public confidence colour on a logarithmic scale
 categories: The app
 redirects: Certainty colour
 dyk: ...that halfway on [[the certainty tag]] is about one envelope in eighteen, rather than a one-in-two chance?
@@ -9,7 +9,7 @@ dyk: ...that halfway on [[the certainty tag]] is about one envelope in eighteen,
 
 ## Reading the colour
 
-Blue represents a uniform guess over all {{code:certainty.triples}} possible envelopes. White is halfway along the information scale, and red represents certainty. Halfway does not mean a one-in-two chance of being right: it corresponds to about one triple in {{code:certainty.half.one_in}}. The scale measures reduction in uncertainty on a logarithmic scale, explained in [[entropy and bits]].
+Blue represents a uniform guess over all {{code:certainty.triples}} possible envelopes. White is halfway along the information scale, and red represents certainty. Halfway does not mean a one-in-two chance of being right: it corresponds to about one triple in {{code:certainty.half.one_in}}. The scale transforms a confidence estimate logarithmically, as explained in [[entropy and bits]]. It does not calculate the entropy of the full belief distribution.
 
 A character supplies its confidence in the leading suspect, weapon and room. The shared calculation multiplies those three category confidences. For Peacock it uses her lower-bound confidence; a person or [[floor player]] is read through the floor's uniform distribution over remaining candidates. A human tag therefore describes the automatic floor, rather than that person's private judgement.[^code]
 
@@ -27,7 +27,7 @@ This $p$ uses the common approximation described in [[belief]]. It is not genera
 
 The tag intentionally reveals a little about every seat's progress during play, without naming its candidate cards. It is visible to players as well as spectators. Fresh numerical readings supply the display without consuming the playing agents' random streams; readings are cached between changes in evidence.
 
-[[Replay]] derives its tags from the reconstructed trace. White and Green have the trace's stated limitation: it does not reproduce learning-hook updates from the live game. The historical decision to display the tags publicly superseded the earlier policy that a seated person saw no indication of other seats' reasoning.
+[[Replay]] derives its tags from the reconstructed trace. The trace does not restore starting method memory or reproduce Green's learning-hook updates. White rebuilds her current-game chain from the recorded suggestions rather than through that hook. The historical decision to display the tags publicly superseded the earlier policy that a seated person saw no indication of other seats' reasoning.
 
 
 ## See also

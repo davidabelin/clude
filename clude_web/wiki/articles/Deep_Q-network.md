@@ -3,6 +3,7 @@ title: Deep Q-network
 short: Neural approximation of action values with replay and a target network
 categories: Classwork
 redirects: DQN, Deep Q-networks, Dueling DQN, Prioritised experience replay, Prioritized experience replay
+dyk: ... that learning from stored transitions in a [[deep Q-network]] is different from watching a finished game's [[replay]]?
 ---
 A **deep Q-network** (DQN) uses a neural network to estimate the expected return of actions. The influential 2015 DQN system combined Q-learning-style targets with stored experience and a separate target network, and evaluated the method on Atari games. The [[classwork archive]] holds that paper and two extensions, dueling networks and prioritised experience replay. Clude's current characters do not implement DQN.[^dqn][^clude]
 

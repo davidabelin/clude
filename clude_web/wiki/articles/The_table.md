@@ -3,6 +3,7 @@ title: The table
 short: A live game with private hands, legal choices and table talk
 categories: The app
 redirects: Table, Live table
+dyk: ... that an eliminated player still refutes [[suggestion|suggestions]], even though their own turns have ended?
 ---
 **The table** is [[clude]]'s live game screen. It combines the board, the current legal decision, a player's private hand and [[detective notepad]], the public record and [[table talk]]. A signed-in person who holds no seat can watch the table. The views preserve hidden cards, while the public [[certainty tag]] gives a limited indication of each seat's confidence.[^table]
 

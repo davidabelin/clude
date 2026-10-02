@@ -61,7 +61,11 @@ Every card the [[deduction floor]] has not placed starts at a score of {{code:wh
 
 ### A two-state chain
 
-A [[w:Markov chain|Markov chain]] on states $\{0, 1\}$ ("new", "repeat") is a sequence $X_1, X_2, \dots$ in which $P(X_{t+1} = j \mid X_t = i, X_{t-1}, \dots) = P(X_{t+1} = j \mid X_t = i) = p_{ij}$: the next symbol depends on the present one and on nothing earlier. Its transition matrix is
+A [[w:Markov chain|Markov chain]] on states $\{0, 1\}$ ("new", "repeat") is a sequence $X_1, X_2, \dots$ whose next-state probabilities depend only on the current state:
+
+$$ P(X_{t+1} = j \mid X_t = i, X_{t-1}, \dots) = P(X_{t+1} = j \mid X_t = i) = p_{ij}. $$
+
+Here $p_{ij}$ is the probability of moving from state $i$ to state $j$, and $t$ indexes steps in the sequence. Its transition matrix is
 
 $$ P = \begin{pmatrix} 1 - p_{01} & p_{01} \\ p_{10} & 1 - p_{10} \end{pmatrix} $$
 

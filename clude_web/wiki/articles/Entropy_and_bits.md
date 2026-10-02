@@ -3,6 +3,7 @@ title: Entropy and bits
 short: Measuring uncertainty and information on a logarithmic scale
 categories: Mathematics
 redirects: Entropy, Bits, Information gain
+dyk: ... that four equally likely possibilities carry two [[entropy and bits|bits]] of uncertainty?
 ---
 **Entropy** measures the average uncertainty of a probability distribution. A **bit** is the information unit obtained by using base-two logarithms. For equally likely possibilities, entropy is the logarithm of their count: four equally likely outcomes carry two bits of uncertainty.[^shannon]
 

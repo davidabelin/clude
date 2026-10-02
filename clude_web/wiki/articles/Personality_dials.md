@@ -3,6 +3,7 @@ title: Personality dials
 short: The settings that turn numerical beliefs into playing choices
 categories: Personality
 redirects: Dials, Personality, Presets, Accusation threshold, Accuse threshold, Bluff rate, Curiosity, Secrecy, Temperature
+dyk: ... that [[secrecy]] cannot change which card is shown when only one matches a suggestion?
 ---
 The **personality dials** are numerical settings that govern how a character uses its [[belief]] to play. Five control headless decisions: accusation timing, held-card suggestions, movement priorities, disclosure preferences and randomness. Three further settings control a model-piloted seat's discretion, conversation and narrative-memory depth.[^profile]
 

@@ -3,6 +3,7 @@ title: Method memory
 short: Numerical state learned across games by Mustard, White and Green
 categories: Memory
 redirects: Numerical memory
+dyk: ... that a headless character can use numerical [[method memory]] without a model-written [[logbook]]?
 ---
 **Method memory** is numerical information retained across games by three [[clude]] methods. Mustard accumulates training rows, White retains opponent-specific transition counts, and Green retains the parameters used to choose among his five arms. It can be loaded and updated for either headless or model-piloted seats when remembering is enabled.[^memory]
 
