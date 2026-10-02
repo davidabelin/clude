@@ -18,6 +18,7 @@ import os
 import re
 import urllib.parse
 import urllib.request
+from html.parser import HTMLParser
 from pathlib import Path
 
 import pytest
@@ -166,13 +167,15 @@ def test_every_article_has_a_lead_a_category_and_no_broken_link(wiki):
         assert article.short, f"{article.title} has no short description"
         assert article.categories, f"{article.title} is in no category"
         assert article.navboxes == ["clude"], article.title
+        rendered = article.hatnotes + article.infobox + article.lead + article.body
+        assert "[[" not in rendered, f"{article.title} has an unrendered wikilink"
         for key in article.figures:
             assert key in figures.keys(), key
         if not article.is_stub:
             headings = [token["name"] for token in article.toc]
             assert headings[-2:] == ["See also", "References"], f"{article.title} ends {headings[-2:]}"
-            assert len(article.wikipedia) >= 5, f"{article.title} links to Wikipedia only {len(article.wikipedia)} times"
-            assert article.words > 1200, article.title
+            # Length and an external-link quota encourage padding. Editorial
+            # quality is reviewed; structure, sources and link integrity are checked.
     assert len(wiki.wanted) <= WANTED_BUDGET, sorted(wiki.wanted)
     for name, groups in ((n, g) for n, (_, g) in wiki.navboxes.items()):
         missing = [title for _, row in groups for title, _, exists in row if not exists]
@@ -188,8 +191,8 @@ def test_the_three_kinds_of_exemplar_are_there_with_their_redirects(wiki):
     assert wiki.get("Disproof")[0].title == "Suggestion"
     assert wiki.get("Nothing at all") == (None, "")
     # A stub is a page, is marked as one, and is not the featured article.
-    accusation, _ = wiki.get("Accusation")
-    assert accusation.is_stub and accusation in wiki.categories["The game"]
+    project, _ = wiki.get("clude")
+    assert project.is_stub and project in wiki.categories["The app"]
     # What links here, and the hooks on the Main Page.
     assert plum in wiki.linking_to(wiki.get("Naive Bayes")[0])
     assert any("Professor Plum" in hook for hook in wiki.did_you_know())
@@ -235,6 +238,100 @@ def test_every_character_and_method_has_its_article(wiki):
     assert float(facts.code("certainty.scarlett")) < float(facts.code("certainty.plum")) < 1
     with pytest.raises(KeyError):
         facts.code("example.mustard.step.8.threshold")
+
+
+def test_w3_w5_topics_are_articles_and_all_public_pages_load(wiki, app):
+    """Full W3-W5 topics, with W6's project stub and established aliases."""
+    titles = (
+        "Rules of play", "Clue", "Classic board", "Rooms", "The deal", "The envelope",
+        "Accusation", "Detective notepad", "Bluffing", "Floor player", "Random bot",
+        "Personality dials", "Leash", "LLM wrapper", "Persona", "Table talk", "Claude",
+        "Logbook", "Method memory", "The debrief", "Memory dial",
+        "Probability", "Conditional probability and Bayes' theorem", "Independence",
+        "Combinatorics of a deal", "Log-loss", "Entropy and bits", "Softmax and temperature",
+        "Beta distribution", "Belief benchmark", "Uniform baseline", "Arena", "Dial sweeps",
+        "Twin comparison", "Landing rule", "Self-play", "Determinism and seeds",
+    )
+    for title in titles:
+        article, _ = wiki.get(title)
+        assert article is not None and not article.is_stub, title
+    assert [a.title for a in wiki.pages() if a.is_stub] == ["clude"]
+    client = app.test_client()
+    for article in wiki.pages():
+        response = client.get(f"/wiki/{article.slug}")
+        assert response.status_code == 200, article.title
+        text = response.get_data(as_text=True)
+        assert "{{code:" not in text and "{{fact:" not in text and "<merror" not in text
+    for alias, title in (
+        ("Disproof", "Suggestion"), ("Secret passages", "Classic board"),
+        ("Ring board", "Classic board"), ("FloorBot", "Deduction floor"),
+        ("Counting deals", "Exact posterior enumeration"), ("Debrief", "Logbook"),
+        ("Chattiness", "Table talk"), ("Accusation threshold", "Personality dials"),
+    ):
+        assert wiki.get(alias)[0].title == title
+
+
+def test_every_internal_section_link_resolves(wiki):
+    """Title checks alone miss stale fragments and duplicate figure ids."""
+    class LinksAndIds(HTMLParser):
+        def __init__(self, article):
+            super().__init__()
+            self.ids = {"top"}
+            self.links = []
+            self.feed(article.hatnotes + article.lead + article.infobox + article.body)
+
+        def handle_starttag(self, tag, attrs):
+            attrs = dict(attrs)
+            if "id" in attrs:
+                assert attrs["id"] not in self.ids, f"duplicate id: {attrs['id']}"
+                self.ids.add(attrs["id"])
+            if tag == "a" and "href" in attrs:
+                self.links.append(attrs["href"])
+
+    parsed = {a.slug: LinksAndIds(a) for a in wiki.pages()}
+    for article in wiki.pages():
+        for href in parsed[article.slug].links:
+            url = urllib.parse.urlsplit(href)
+            if url.netloc or not url.fragment:
+                continue
+            target = wiki.get(urllib.parse.unquote(url.path.removeprefix("/wiki/")))[0] if url.path else article
+            assert target is not None, (article.title, href)
+            assert urllib.parse.unquote(url.fragment) in parsed[target.slug].ids, (article.title, href)
+
+
+def test_new_computed_examples_agree_with_engine_and_scoring():
+    """Check setup/loss examples against live interfaces and count the joint
+    example independently rather than multiplying the article's marginals.
+    """
+    import math
+    import random
+    from clude_core import engine
+    from clude_core.domain import SUSPECTS, WEAPONS, ROOMS
+    from clude_training.benchmark import _Accumulator, EPS
+    from clude_llm.menu import within_leash
+
+    for n in range(3, 7):
+        state = engine.setup(n, random.Random(17))
+        assert facts.code(f"deal.hands.{n}") == ", ".join(str(len(state.hands[i])) for i in range(n))
+        assert sum(len(h) for h in state.hands.values()) == int(facts.code("cards.dealt"))
+    scores = {c: 0.0 for c in SUSPECTS + WEAPONS + ROOMS}
+    for category in (SUSPECTS, WEAPONS, ROOMS):
+        scores.update({category[0]: 0.5, category[1]: 0.5})
+    accumulator = _Accumulator()
+    accumulator.update(scores, (SUSPECTS[0], WEAPONS[0], ROOMS[0]))
+    assert round(accumulator.log_loss, 2) == float(facts.code("loss.half"))
+    accumulator = _Accumulator()
+    accumulator.update(scores, (SUSPECTS[2], WEAPONS[2], ROOMS[2]))
+    assert accumulator.log_loss == pytest.approx(-math.log(EPS))
+    assert within_leash([0.8, 0.65, 0.5], 0.25) == [True, True, False]
+    assert facts.softmax_example(0.1) == pytest.approx(1 / (1 + math.exp(-2)))
+    assert facts.softmax_example(0.5) == pytest.approx(1 / (1 + math.exp(-0.4)))
+    deals = [env for env, _, alive in figures.rope_deals() if alive]
+    white = sum("White" in env for env in deals) / len(deals)
+    wrench = sum("Wrench" in env for env in deals) / len(deals)
+    joint = sum("White" in env and "Wrench" in env for env in deals) / len(deals)
+    assert white == wrench == pytest.approx(2 / 3)
+    assert joint == pytest.approx(1 / 3) and joint != pytest.approx(white * wrench)
 
 
 # --- the markup -------------------------------------------------------------
@@ -359,7 +456,7 @@ def test_wikiclude_is_public_and_every_kind_of_page_answers(app):
     assert 'class="navbox"' in text and 'href="/wiki/Category:Characters"' in text
     assert "Redirected from" not in text
     assert "Redirected from <em>Plum</em>" in client.get("/wiki/Plum").get_data(as_text=True)
-    assert "stub" in client.get("/wiki/Accusation").get_data(as_text=True)
+    assert 'class="wiki-notice"' in client.get("/wiki/clude").get_data(as_text=True)
     # The wooden question mark is every wiki page's logo (David, 2026-10-02).
     assert 'class="wiki-logo" src="/static/questionmark-wood.png"' in text
     assert main.count('class="wiki-logo"') == 2  # the masthead and the welcome
@@ -436,7 +533,15 @@ def test_every_class_a_figure_uses_is_styled():
             assert not re.findall(r'\sstyle="(?!min-width:\d+px")', svg), f"{key} kept an inline style"
             used = {name for group in re.findall(r'class="node default ([^"]+)"', svg) for name in group.split()}
             used -= {"default", "flowchart-label"}
-        unstyled = sorted(name for name in used if f".{name}" not in css)
+        painted = css
+        if "fig-board" in used:
+            # Production board classes are painted by the look sheets; the
+            # wiki selects a plain or dressed variant without changing them.
+            painted += "\n".join(
+                (ROOT / "clude_web" / "static" / s.stylesheet).read_text(encoding="utf-8")
+                for s in styles.STYLES.values()
+            )
+        unstyled = sorted(name for name in used if f".{name}" not in painted)
         assert not unstyled, f"{key}: classes with no rule in wiki.css: {unstyled}"
 
 

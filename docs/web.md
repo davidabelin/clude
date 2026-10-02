@@ -651,6 +651,13 @@ question mark and the footer. The same wooden question mark is every
 wiki page's logo (David, 2026-10-02): the side panel's home link, beside
 the wordmark, and the Main Page's welcome.
 
+W1–W5 now supply 52 full articles and one remaining project stub
+(*clude*), with no wanted pages. The game guide covers a complete turn
+and the local house rules; the later articles cover personality, the
+model wrapper, memory, mathematics and measurement. The inventory and
+local verification are recorded in the plan's section 12. W6 covers
+the app and project, and W7 remains the final editorial pass.
+
 **An article is a Markdown file** in `clude_web/wiki/articles/`, named
 for its title (`Professor_Plum.md`), with a front-matter block (title,
 a short description, categories, redirects, "Did you know" hooks,
@@ -699,7 +706,11 @@ longer takes fails at load.
 **The figures set no colour**, like the board and the logo: each shape
 has a class and `static/styles/wiki.css` dresses it from the look's
 tokens. The pawns, the worked examples and the charts are drawn by
-`figures.py` when the wiki is built. The method diagrams are the
+`figures.py` when the wiki is built. The board figures reuse the real
+`board_svg` map and carry plain and dressed variants selected by the
+look, with larger room names and an enlarged doorway detail. Leash
+scores come from the menu rule, and arena bars from the recorded fact
+table. The method diagrams are the
 `DIAGRAMS` registry of `docs/ux/diagrams/build_diagrams.py`, drawn by
 the vendored Mermaid under Playwright and stripped of its colours by
 

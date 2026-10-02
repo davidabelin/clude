@@ -16,11 +16,13 @@ Two kinds:
   Mermaid on a maintainer's machine and stripped of its colours by
   ``scripts/build_wiki_figures.py``; nothing ships Mermaid to a reader.
 
-Every drawn figure is laid out 360 units wide, so at a phone's 390 px
-its 12-unit type is 12 px type.
+The explanatory drawings are laid out 360 units wide, so their type
+remains readable on a phone. Native board figures keep the production
+grid's coordinate system and provide a separate enlarged door detail.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from functools import lru_cache
 from html import escape
@@ -733,7 +735,96 @@ def _floor_notepad() -> Figure:
     )
 
 
+# --- the board, decisions and arena -----------------------------------------
+
+
+def _board_figure(detail: bool = False) -> Figure:
+    """The production board renderer, with a CSS-selected look variant.
+
+    Namespace definitions because a whole-board figure and a detail can
+    occur on one page. Room fills are local references to those definitions.
+    No live game state is supplied.
+    """
+    from clude_web.board_svg import board_svg
+    from clude_core import board
+
+    key = "conservatory-door" if detail else "classic-board"
+    label = (
+        "Conservatory door at row 4, column 18, opening down onto row 5, column 18; the left side is a wall."
+        if detail else "Classic board with nine named rooms, seventeen doors and six marked start squares."
+    )
+    variants = []
+    for dressed in (False, True):
+        svg = board_svg(title=label, dressed=dressed)
+        inner = svg[svg.index(">") + 1 : svg.rindex("</svg>")]
+        prefix = f"wiki-{key}-"
+        inner = re.sub(r'id="([^"]+)"', lambda m: f'id="{prefix}{m[1]}"', inner)
+        inner = re.sub(r'url\(#([^)]+)\)', lambda m: f'url(#{prefix}{m[1]})', inner)
+        if dressed:
+
+            def local_fill(match):
+                name = match[2].lower()
+                contents = match[3].replace('<rect ', f'<rect style="fill:url(#{prefix}floor-{name})" ')
+                return match[1] + contents + "</g>"
+
+            inner = re.sub(r'(<g class="board-room" data-room="([^"]+)">)(.*?)</g>', local_fill, inner, flags=re.S)
+        # The plain variant must override Engraved's unconditional pattern fill.
+        else:
+            inner = re.sub(
+                r'(<g class="board-room"[^>]*>)(.*?)</g>',
+                lambda m: m[1] + m[2].replace('<rect ', '<rect style="fill:var(--board-room)" ') + "</g>",
+                inner,
+                flags=re.S,
+            )
+        cls = "wiki-board-dressed board-engraved" if dressed else "wiki-board-plain"
+        variants.append(f'<g class="{cls}">{inner}</g>')
+    svg = _svg(board.N_COLS * 24, board.N_ROWS * 24, "".join(variants), label, "board")
+    if detail:
+        svg = svg.replace(f'viewBox="0 0 {board.N_COLS * 24} {board.N_ROWS * 24}"', 'viewBox="384 48 144 144"')
+        # A cropped room name would look like broken text. This detail
+        # explains the opening, with the complete room named in its caption.
+        svg = re.sub(r'<text class="board-label".*?</text>', '', svg)
+    return Figure(key, "Conservatory doorway" if detail else "The Classic board", label, svg)
+
+
+def _leash_band() -> Figure:
+    """A score menu evaluated by the real leash cutoff."""
+    from clude_llm.menu import within_leash
+
+    scores, leash = [0.8, 0.65, 0.5], 0.25
+    allowed = within_leash(scores, leash)
+    body = [_text(8, 20, "Best score 0.80; leash 0.25", "t-b")]
+    body.append(_text(8, 40, "Cutoff = 0.75 x 0.80 = 0.60", "t-sm"))
+    for i, (score, admits) in enumerate(zip(scores, allowed)):
+        y = 63 + i * 44
+        body.append(_text(8, y + 15, "ABC"[i], "t-b"))
+        cls = "bar s-green" if admits else "bar-neutral"
+        body.append(f'<rect x="30" y="{y}" width="{score * 240}" height="22" class="{cls}"/>')
+        body.append(_text(235, y + 15, f"{score:.2f}: " + ("allowed" if admits else "excluded"), "t-sm"))
+    body.append('<path d="M174 54 V184" class="ref"/>')
+    label = "At leash 0.25 the cutoff is 0.60: scores 0.80 and 0.65 are allowed, while 0.50 is excluded."
+    return Figure("leash-band", "The leash score cutoff", label, _svg(360, 196, "".join(body), label))
+
+
+def _arena_rates() -> Figure:
+    """Wins and wrong accusations from the historical tuned grid arena."""
+    table = facts.TABLES["arena.grid"]
+    body = [_text(6, 18, "Tuned Classic-board arena, September 2026", "t-sm t-b")]
+    body.append(_text(6, 38, "Won / accused wrongly (% of seat-games)", "t-sm"))
+    for i, suspect in enumerate(SUSPECTS):
+        row = table.cells(suspect)
+        win, wrong = float(row[1]), float(row[2])
+        y = 58 + i * 40
+        body.append(_text(6, y + 15, suspect, "t-sm"))
+        body.append(f'<rect x="84" y="{y}" width="{win * 5}" height="12" class="bar s-green"/>')
+        body.append(f'<rect x="84" y="{y + 15}" width="{wrong * 5}" height="8" class="bar s-scarlett"/>')
+        body.append(_text(252, y + 18, f"{win:g} / {wrong:g}", "t-sm t-num"))
+    label = "Historical tuned grid arena: labelled win and wrong-accusation percentages for all six characters, each with sixteen or twenty seat-games."
+    return Figure("arena-rates", "Wins and wrong accusations", label, _svg(360, 306, "".join(body), label, "chart"))
+
+
 # --- the method diagrams, from files ----------------------------------------
+
 
 DIAGRAM_TEXT: dict = {
     "floor-then-method": (
@@ -767,6 +858,10 @@ def _diagram(key: str) -> Figure:
 
 
 _DRAWN: dict = {
+    "classic-board": _board_figure,
+    "conservatory-door": lambda: _board_figure(detail=True),
+    "leash-band": _leash_band,
+    "arena-rates": _arena_rates,
     "suggestion-round": _suggestion_round,
     "rope-deals": _rope_deals,
     "rope-bars": _rope_bars,

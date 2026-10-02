@@ -290,6 +290,16 @@
 
 .fig { font-family: var(--w-ui); }
 .fig .t { fill: var(--ink); font-size: 13px; }
+/* Native board shapes are painted by the selected look sheet. Both
+   variants exist because articles are rendered once at process startup. */
+.fig-board { width: 100%; }
+.fig-board .board-label { fill: var(--ink); font-size: 20px; }
+.wiki-board-dressed { display: none; }
+.wiki-board-plain { display: inline; }
+html[data-style="casefile"] .wiki-board-dressed,
+html[data-style="gaslight"] .wiki-board-dressed { display: inline; }
+html[data-style="casefile"] .wiki-board-plain,
+html[data-style="gaslight"] .wiki-board-plain { display: none; }
 .fig .t-sm { font-size: 12px; }
 .fig .t-xs { font-size: 10.5px; }
 .fig .t-b { font-weight: 600; }

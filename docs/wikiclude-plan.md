@@ -1,8 +1,8 @@
 # Wikiclude (D20, was 10i): the plan
 
-Status: **proposed 2026-10-01, David's four answers recorded the same day (section 7); W1 built that day on the branch `wikiclude` (section 9), merged and live as `clude-00021-fmb`; W2 built 2026-10-02 on the branch `claude/great-knuth-e8o5tl` (section 10), awaiting his review.** Written in the shape of the other plan docs: context, what the code dictates, design, sub-phases, files, decisions, out of scope, and "as implemented". Where sections 9 and 10 differ from the sections above them, they are what was built.
+Status: **W1–W5 built; W6 and W7 remain.** Proposed 2026-10-01, with David's four answers recorded that day (section 7). W1 was built on `wikiclude`, merged and made live as `clude-00021-fmb` (section 9); W2 followed on `claude/great-knuth-e8o5tl` (section 10). The editorial pass and W3–W5 were completed locally on 2026-10-02 (sections 11–12). Where the implementation records differ from the original design, the later records describe what was built.
 
-Current local status (2026-10-02): the editorial pass on W1–W2 is complete (section 11). W3–W5 article creation is the next task. The implementation and deployment records in sections 9–10 are retained as history.
+Current local status (2026-10-02): **52 full articles and one project stub, with no wanted pages.** W3–W5 article creation and local verification are complete (section 12). W6, the app and project, is next. These changes have not been deployed; sections 9–11 retain the earlier implementation and editorial records.
 
 ## 1. Context: David's brief (2026-10-01)
 
@@ -291,3 +291,47 @@ Article titles, routes, redirects, categories and section headings are unchanged
 - All 33 edited pages also loaded publicly without authentication. Mobile verification remains Chromium at 390 px, rather than a physical phone, as in 9.3 and 10.3. The prose was reread for terminology, repetition, relevance and unsupported claims; editorial quality was assessed through review rather than article length.
 
 W3, W4 and W5 remain the subsequent writing phases in section 5. This pass establishes the voice and accuracy conventions for them without changing their scope.
+
+## 12. As implemented: W3–W5 (2026-10-02)
+
+Written locally after David approved section 11's editorial pass. Seventeen remaining stubs became full articles and twenty new articles were added: **37 articles written or expanded, 52 full articles in total, one stub (*clude*) and no wanted pages.** The six characters and their method articles retain the preceding editorial pass.
+
+### 12.1 Article inventory
+
+| Phase | Expanded stubs | New articles |
+|---|---|---|
+| W3: the game | Clue; Classic board; The envelope; Accusation; Detective notepad; Bluffing | Rules of play; Rooms; The deal; Floor player; Random bot |
+| W4: personality, wrapper and memory | Personality dials; Leash; Persona; Table talk; Claude; Logbook | LLM wrapper; Method memory; The debrief; Memory dial |
+| W5: mathematics and measurement | Log-loss; Uniform baseline; Belief benchmark; Arena; Landing rule | Probability; Conditional probability and Bayes' theorem; Independence; Combinatorics of a deal; Entropy and bits; Softmax and temperature; Beta distribution; Dial sweeps; Twin comparison; Self-play; Determinism and seeds |
+
+*Rules of play* gives a newcomer the setup, turn sequence, movement, private disproofs, notepad, accusation and elimination rules. *Rooms* has one section for each of the nine rooms. The remaining articles explain the controls and experiments with checkable examples before their notation and implementation details, following section 11.1.
+
+### 12.2 Organisation and compatibility
+
+The catalogue in section 4 was provisional. Closely related small topics stay together where a separate page would repeat the same explanation: cards in *Clue*, passages and ring-board history in *Classic board*, the five decision dials and presets in *Personality dials*, chattiness in *Table talk*, constraint propagation in *Deduction floor*, and Thompson sampling in *Bandit ensemble*.
+
+All existing titles, redirects, categories and section anchors are preserved. In particular, *FloorBot* still redirects to *Deduction floor*, *Debrief* to *Logbook*, and *Counting deals* to *Exact posterior enumeration*. The new titles *Floor player*, *The debrief* and *Combinatorics of a deal* provide the additional depth without changing those established destinations. New links connect the complementary articles.
+
+The shared navbox now includes game rules, other players, personality, memory, mathematics and measurement. `scripts/clude_shots.py --wiki` includes nine additional W3–W5 pages and uses *clude* as the remaining stub exemplar. Public APIs, game decisions and recorded measurements are unchanged.
+
+### 12.3 Accuracy and illustrations
+
+- Movement follows the current engine: a full roll except on room entry, explicit door-facing squares, no route revisits, occupied corridor blocking, passages as a movement alternative, and the one-turn stay permission after an actual summoning. Eliminated players retain their cards and refutation duty; the last active player still needs a correct accusation.
+- The leash explanation follows the current menu code, including its held-card bluff exception and the absence of an upper confidence boundary forcing accusation at positive leash. Zero leash does not generally reproduce headless softmax or bluff choices; an always-failing backend is the tested identical-event control.
+- Narrative memory, numerical method state and immutable game records have separate explanations. Memory depth zero still supplies the logbook head. The debrief sees the revealed deal only after play, and its tally counts successfully written entries rather than all participation.
+- The Rope-question articles state Green's Hall ownership and the remaining hand capacities. They distinguish marginals of 2/3 from a joint probability of 1/3 and the product approximation of 4/9. Enumeration's exactness remains conditional on completed search and its uniform consistent-deal model.
+- Benchmark checkpoints count suggestion prefixes, not elapsed turns. The articles explain that snapshots reconstruct card evidence rather than a full historical board state, and that Green receives revealed-outcome feedback between snapshots, including later views of the same game. His benchmark row describes that adaptive evaluation.
+- Arena metrics identify their denominators, including seat-games, actual accusations, calls and accepted model choices. Historical tables name their board, seeds, recorded dates and configuration; the major grid tables precede the landing-rule change. Sampling-call frequency remains distinct from time spent sampling during a game.
+- `facts.py` adds live setup, dial, memory-depth, loss and softmax examples. The softmax example reads the actual sampler's weights; the tests independently check its formula. New source entries link Shannon's entropy paper, the Thompson-sampling tutorial, the scoring-rule paper and NIST's Beta-distribution reference.
+- Four new SVG figures show the production Classic board, an enlarged Conservatory door, the leash score band, and historical arena win/wrong-accusation rates. The board carries plain and dressed variants selected by the current look, with names enlarged for phone reading and namespaced floor-pattern references. `legacy.css` is untouched.
+
+### 12.4 Verification and remaining work
+
+- `tests/test_wiki.py` and `tests/test_web.py`: **70 passed, 1 skipped**. The wiki suite is 24 passed and one opt-in live check skipped. New checks cover the W3–W5 inventory, every public article route, internal section links, duplicate HTML/SVG identifiers, and independently computed examples. A rendered-markup assertion catches wikilinks accidentally split by Markdown tables. The old minimum-length and external-link quotas were removed; editorial quality is reviewed through the content.
+- Separate `CLUDE_WIKI_LIVE=1` Wikipedia-title check: **1 passed, 24 deselected**. Access succeeded, with no missing titles reported. This does not validate Wikipedia section fragments.
+- Compatibility review checked all 33 pre-existing articles against the committed baseline: titles, redirects, categories and heading anchors remain. All 53 article pages loaded publicly without authentication.
+- Twelve representative W3–W5 pages were inspected in Chromium at 1440 px and 390 px in Case-file light, Gaslight dark, Developer light and Developer dark: **96 page/layout combinations**. Leads, tables, equations, captions, figures and navigation were reviewed. No page-wide horizontal overflow, browser errors, missing images, MathML errors, unresolved mathematical substitutions, broken local anchors or missing board-pattern references were found. Wide equations and result tables retain their scrolling containers.
+- Screenshot review caught two labelled links split by Markdown table delimiters and board labels too small at phone width. After correction, the board, personality-dial and benchmark pages passed another **24 layout checks** across the same looks and widths. Phone verification remains Chromium at 390 px, not a physical device.
+- The 37 authored articles were reread for terminology, grammar, relevance, assumptions and unsupported claims. The existing measured-value checks still agree with the recorded source tables. This completes W3–W5 locally; it does not constitute deployment or a final featured-article assessment.
+
+W6 remains the app and project articles, followed by W7's corpus-wide featured-article pass. The *clude* stub is deliberately left for W6. The historical records in sections 9–11 remain unchanged.

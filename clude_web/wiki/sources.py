@@ -39,6 +39,27 @@ DOCS: dict = {
 """Each citable doc and the title a citation gives it."""
 
 SOURCES: dict = {
+    "gneiting-raftery-2007": (
+        'Gneiting, Tilmann; Raftery, Adrian E. (2007). '
+        '<a class="src" href="https://sites.stat.washington.edu/raftery/Research/PDF/Gneiting2007jasa.pdf" '
+        'target="_blank" rel="noopener"><cite>Strictly Proper Scoring Rules, Prediction, and Estimation</cite></a>. '
+        '<cite>Journal of the American Statistical Association</cite>. <b>102</b> (477): 359-378.'
+    ),
+    "nist-beta": (
+        'NIST/SEMATECH. <a class="src" href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda366h.htm" '
+        'target="_blank" rel="noopener"><cite>e-Handbook of Statistical Methods</cite></a>, section 1.3.6.6.17, Beta Distribution.'
+    ),
+    "shannon-1948": (
+        'Shannon, Claude E. (1948). <a class="src" href="https://people.math.harvard.edu/~ctm/home/text/others/shannon/entropy/entropy.pdf" '
+        'target="_blank" rel="noopener"><cite>A Mathematical Theory of Communication</cite></a>. '
+        '<cite>Bell System Technical Journal</cite>. <b>27</b>: 379-423, 623-656.'
+    ),
+    "russo-2018": (
+        'Russo, Daniel; Van Roy, Benjamin; Kazerouni, Abbas; Osband, Ian; Wen, Zheng (2018). '
+        '<a class="src" href="https://web.stanford.edu/~bvr/pubs/TS_Tutorial.pdf" target="_blank" rel="noopener">'
+        '<cite>A Tutorial on Thompson Sampling</cite></a>. '
+        '<cite>Foundations and Trends in Machine Learning</cite>. <b>11</b> (1): 1-96.'
+    ),
     "sutton-barto": (
         "Sutton, Richard S.; Barto, Andrew G. (2018). <cite>Reinforcement Learning: An Introduction</cite> "
         "(2nd ed.). Cambridge, Massachusetts: MIT Press."

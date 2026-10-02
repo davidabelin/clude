@@ -885,6 +885,67 @@ CODE: dict = _code()
 an article is rendered, not at import."""
 
 
+def _publishing_values() -> dict:
+    """Live constants and computed illustrations for W3-W5 articles."""
+    from clude_agents.features import DISTANCE_DISCOUNT
+    from clude_agents.character import N_TRIPLES
+    from clude_agents.personality import NEUTRAL
+    from clude_core import board, engine
+    from clude_core.bots import ACCUSE_PROBABILITY, SUGGEST_PROBABILITY
+    from clude_llm.player import LLMSettings
+    from clude_storage.logbooks import memory_counts
+    from clude_training.benchmark import EPS
+    from clude_training.self_play import DEFAULT_CHECKPOINTS
+    from math import log, log2
+
+    table = {
+        "board.columns": lambda: str(board.N_COLS),
+        "board.rows": lambda: str(board.N_ROWS),
+        "board.doors": lambda: str(len(board.DOORS)),
+        "random.suggest": lambda: _trim(SUGGEST_PROBABILITY),
+        "random.accuse": lambda: _trim(ACCUSE_PROBABILITY),
+        "movement.discount": lambda: _trim(DISTANCE_DISCOUNT),
+        "benchmark.epsilon": lambda: f"{EPS:g}",
+        "benchmark.checkpoints": lambda: ", ".join(f"{c * 100:g}%" for c in DEFAULT_CHECKPOINTS),
+        "loss.half": lambda: _trim(-log(0.5), 2),
+        "loss.sixth": lambda: _trim(log(6), 2),
+        "loss.tenth": lambda: _trim(log(10), 2),
+        "entropy.envelopes": lambda: _trim(log2(N_TRIPLES), 2),
+    }
+    for temperature in (0.1, 0.5):
+        table[f"softmax.{temperature}"] = lambda t=temperature: f"{softmax_example(t) * 100:.1f}%"
+    dealt = len(engine.ALL_CARDS) - 3
+    for n in range(engine.MIN_PLAYERS, engine.MAX_PLAYERS + 1):
+        table[f"deal.hands.{n}"] = lambda n=n: ", ".join(
+            str(divmod(dealt, n)[0] + (i < dealt % n)) for i in range(n)
+        )
+    for dial in NEUTRAL.to_dict():
+        table[f"neutral.{dial}"] = lambda d=dial: _trim(getattr(NEUTRAL, d))
+    for name in ("debrief_max_tokens", "debrief_timeout"):
+        table[f"llm.{name}"] = lambda n=name: _trim(getattr(LLMSettings(), n))
+    for depth in (0, 0.25, 0.5, 0.75, 1):
+        for index, label in enumerate(("index", "full")):
+            table[f"memory.{depth}.{label}"] = lambda d=depth, i=index: str(memory_counts(10, d)[i])
+    return table
+
+
+def softmax_example(temperature: float) -> float:
+    """Read the real sampler's weights for the illustrated 0.8/0.6 menu."""
+    from clude_agents.features import sample_softmax
+
+    class WeightReader:
+        def choices(self, population, weights, k):
+            self.weights = weights
+            return [population[0]]
+
+    reader = WeightReader()
+    sample_softmax([0.8, 0.6], temperature, reader)
+    return reader.weights[0] / sum(reader.weights)
+
+
+CODE.update(_publishing_values())
+
+
 _STEP = re.compile(r"example\.mustard\.step\.(\d+)\.(threshold|value|answer|feature)$")
 
 
