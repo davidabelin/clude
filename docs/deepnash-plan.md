@@ -465,4 +465,29 @@ Measured here, on this workspace's four cores, before any real run:
   out of sample. So the unit test asserts the in-sample fit, and
   generalisation is measured on the smoke run below and, for real, on
   Orbit.
+- **The smoke run** (`train_plum.py --games 4096 --batch 128 --workers 4
+  --eval-every 8 --seed 2026`, the defaults otherwise; 32 updates in
+  220 s on four cores shared with the suite) learnt nothing yet that
+  the evaluation can see, and this is recorded as the baseline the
+  real run must beat, not as a result:
+
+  | Games | Belief log-loss at 25 / 50 / 75% (uniform) | Plum's win rate, tuned table / Plum table |
+  |---|---|---|
+  | 1,024 | 1.564 / 1.305 / 0.982 (1.560 / 1.299 / 0.976) | 0.04 / 0.00 |
+  | 4,096 | 1.563 / 1.303 / 0.979 (1.560 / 1.299 / 0.976) | 0.04 / 0.00 |
+
+  The training-batch belief loss moved from 1.458 to 1.450 over the
+  run, the network seats' win fraction from 0.017 to 0.020, and half
+  the games (the all-network half) still hit the 150-turn cap, since
+  an untrained Plum never reaches his accusation threshold. For
+  Orbit's run, three things follow. The belief head is the early
+  signal to watch: Scarlett's naive Bayes beats uniform by about 0.1
+  nats mid-game on the same features the encoder carries (`docs/strategy-glossary.md`),
+  so a run that has not left uniform by a few tens of thousands of
+  games points at the encoding or the learning rate, not at patience.
+  The capped all-network games cost the most time and teach nothing
+  until he accuses, so `--max-turns 80` or `--population mixed` with
+  more opponent seats early is the cheaper start. And at about 0.07 s
+  a game per worker, a million games is a day on eight cores: the
+  size the plan's budget assumed, with the GPU beside the point.
 
