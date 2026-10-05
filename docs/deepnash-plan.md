@@ -1,10 +1,10 @@
 # Phase 12, a new Plum: PlumOG mothballed, Plum rebuilt on a DeepNash variant
 
-Status: **proposed 2026-10-05, nothing built.** David's four answers of
-that day are in section 7; the rest waits on his review of this doc.
-(The number is provisional: Phase 11 is the release, and this work is
-meant to land before it closes. Wikiclude's named doc is the precedent
-for a plan outside the numbered run.)
+Status: **proposed 2026-10-05; N2 and N3 built the same day** (section
+10), on David's word "Call it Phase 12, go ahead with N2 and N3". His
+four answers of that day are in section 7. N1's logbook commands, N4
+training and N5-N7 are not started. (Phase 11 is the release, and this
+work is meant to land before it closes.)
 
 ## 1. Context
 
@@ -272,3 +272,104 @@ PlumOG's preset: `accuse_threshold` 0.9, `bluff_rate` 0.05, `curiosity`
 
 A seatable PlumOG. V-trace, a transformer trunk, learning from records.
 Any change to the other five characters beyond Green's arm.
+
+## 10. As implemented: N2 and N3 (2026-10-05)
+
+David's word the same day: "Call it Phase 12, go ahead with N2 and
+N3." Both built on `claude/sleepy-heisenberg-vl6uxz`: 579 passed, 34
+skipped with `-n auto` (the one fixture that cannot pass until N6 is
+skipped, below; the browser tests not run in this workspace).
+
+### N2, the seams
+
+- `AgentProtocol` (`clude_agents/base.py`) documents two optional,
+  pure hooks: `movement_scores(obs, choices, features, profile)` and
+  `suggestion_scores(obs, candidates, category)`, each one score in
+  [0, 1] per option in order.
+- `Character.movement_scores` returns the agent's scores when it has
+  the hook, the curiosity blend otherwise; a new
+  `Character.suggestion_scores(obs, category)` does the same for a
+  suggestion slot over `suggestion_candidates`, and
+  `_pick_suggestion_card` runs its softmax over it, the bluff coin flip
+  still first. `clude_llm.menu.suggestion_menu` reads
+  `character.suggestion_scores`, so the menu and the headless pick now
+  agree for every method (`tests/test_llm.py`,
+  `test_menus_rank_by_a_hooked_agents_own_scores`: at temperature 0
+  Plum's headless move is the menu's top and the suggestion menu's
+  scores are his distribution).
+- `explain.format_extra` prints `method: "policy"` as
+  ``[policy: value +0.12]``; `exact` and `sampled` stay for PlumOG's
+  output in the wiki.
+
+### N3, the agent on random weights
+
+- `clude_agents/deep_nash.py`: `encode_state` (356 numbers: per card
+  the floor's holder bits counted from this seat round the table, the
+  resolution, the or-constraint count, Mustard's naming features and
+  own-hand; per seat active, hand size, present; turn and table size),
+  `encode_choices` (25 per legal move), `forward` (trunk 356-128-128,
+  heads belief 21, suspect 6, weapon 6, value 1) and `move_scores`
+  (the scorer over hidden plus choice features, 153-64-1);
+  `WEIGHT_SHAPES` the one statement of the layout; `init_weights`,
+  `save_weights`, `load_weights` (float32 on disk, float64 in play,
+  checked against the shapes); `DeepNashAgent`, `name = "Plum"`, with
+  `select_action` (the belief head softmaxed per category through
+  `mask_and_normalize`, `extra = {"method": "policy", "value": v}`),
+  the two hooks as distributions over the options, and
+  `choose_destination` a seeded softmax draw over its own scores at the
+  profile's temperature. Every score is rounded to nine places before
+  a pick. The trunk runs once per observation object, cached like the
+  Character's belief.
+- `clude_agents/weights/plum.npz` (280 KB) is `init_weights(2026)`:
+  heads scaled by 0.01, so this Plum's every distribution is close to
+  uniform. `weights/README.md` says what the file is and that the
+  goldens pin it.
+- The registry's Plum is `DeepNashAgent` with the description
+  "Self-play policy by regularised Nash dynamics over the floor (a
+  DeepNash variant)"; `METHOD_SHORT["Plum"]` is "Self-play policy";
+  Green's `"Plum"` arm is the new agent (his stored posterior for that
+  arm is reset in N1's bucket pass).
+- `ExactEnumAgent.name` is `"PlumOG"`, the module docstring headed
+  "Archived 2026-10-05"; the class stays importable and out of the
+  registry. `personality.PLUM_OG` keeps his dials under his name, and
+  Plum's preset comment says curiosity is inert for the new Plum and
+  which dials are to be re-measured. `users.RESERVED_NAMES` adds
+  `plumog`.
+- numpy is in both requirements files (the first numerical dependency
+  of the agents, David's call); the Dockerfile is unchanged.
+- `tests/test_web_tables.play_out`, the helper that drives a web table
+  through the JSON routes, now stops the off-turn talk's clock
+  (`chat.delay`) as well as the work interval: it counts steps, not
+  seconds, and a queued reaction otherwise waits out its two to eight
+  seconds while `work` answers "waiting". PlumOG's slow calls had let
+  that clock run unnoticed; with the new Plum answering in milliseconds,
+  seven table tests ran out of steps on one reaction at turn 29.
+- Tests: `tests/test_agents.py` gains four (the contract and the
+  `ValueError` without a mask, PlumOG's name and absence, the encoding
+  and weights layout with a round trip and a refused file, the hooks
+  as pure distributions and the seeded pick); `tests/test_determinism.py`
+  runs PlumOG's sampled path by class and Plum's policy path by
+  registry under two hash seeds; `tests/test_explain.py` the policy
+  line. `GOLDEN_FOUR_CHARACTER_GAME` re-captured (100 events, where
+  PlumOG's game ended in 49: a Plum who knows nothing wanders) and
+  commented as pinning the weights file too. `llm_seed2` is skipped
+  with its reason until N6 re-records it.
+
+### Measured
+
+- A table `Plum,Mustard,Green,White` at four seats: 0.31 s a game
+  against 7.5 s with PlumOG (three games, seed 7007, this workspace's
+  CPU); the mean turns 96, the random policy's wandering.
+- Belief, movement and suggestion from the random weights all sit
+  within a few hundredths of uniform, as the head scale intends.
+
+### Left for the next steps
+
+- N1's storage half: `logbook copy Plum PlumOG` and `logbook reset-arm
+  Green Plum`, and the pass over `data/llm` and the bucket.
+- N4: `scripts/train_plum.py` and `clude_training/rollout.py`.
+- The wiki still describes Plum as the enumerator, the lobby still
+  prices him at $0.25 and Watch still calls him slow: N7.
+- The goldens were captured on Linux; the plan says Orbit. The
+  nine-place rounding is meant to make that moot, and N4's first
+  export re-captures them on Orbit anyway.

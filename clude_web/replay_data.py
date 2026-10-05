@@ -284,7 +284,7 @@ METHOD_SHORT = {
     "White": "Markov chain",
     "Green": "Bandit ensemble",
     "Peacock": "Dempster-Shafer",
-    "Plum": "Enumeration",
+    "Plum": "Self-play policy",
 }
 """`seat_method` cut to fit a phone's seat chip (10a's artboards, Phase
 10e): six chips across 390 px cannot carry the one-liner, which stays

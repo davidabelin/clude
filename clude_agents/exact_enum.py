@@ -1,4 +1,12 @@
-"""Plum -- exact posterior by enumerating consistent deals.
+"""PlumOG -- exact posterior by enumerating consistent deals.
+
+**Archived 2026-10-05 (Phase 12, `docs/deepnash-plan.md`).** This was
+Plum's method from Phase 2 to Phase 11; Plum is now
+`deep_nash.DeepNashAgent`, and this agent, PlumOG, sits in no registry
+and plays no seat. It stays importable: the wiki's Rope question and
+its search figure run on it (`clude_web/wiki/facts.py`), the brute-force
+differential test checks it, and his logbook, copied to
+`logbooks/PlumOG/`, keeps his entries under his name.
 
 Built fresh (no legacy basis). Correct and slow by design: a real
 backtracking CSP search over every still-unresolved card, respecting
@@ -220,7 +228,7 @@ class ExactEnumAgent(SeededAgentMixin):
     """Correct in principle, exhaustive when it can afford to be, honest
     about sampling noise when it can't."""
 
-    name = "Plum"
+    name = "PlumOG"
 
     def __init__(
         self,

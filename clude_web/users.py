@@ -37,7 +37,7 @@ USERS_PREFIX = "users"
 DEFAULT_PASSWORD = "password"
 
 RESERVED_NAMES: frozenset = frozenset(
-    {suspect.lower() for suspect in SUSPECTS} | {"floor", "random", "web", "envelope"}
+    {suspect.lower() for suspect in SUSPECTS} | {"floor", "random", "web", "envelope", "plumog"}
 )
 """Names an account may not take, compared in key form (lower-cased): a
 login name is a logbook identity (`SeatRecord.label`), and an account

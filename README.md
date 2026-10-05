@@ -120,7 +120,7 @@ screens, served locally with `flask run` or from Cloud Run
 | Suspect | Method | Module | Intended flavor |
 |---|---|---|---|
 | Scarlett | Naive Bayes | `naive_bayes.py` | Overconfident, accuses early |
-| Plum | Exact posterior enumeration | `exact_enum.py` | Correct but slow |
+| Plum | Self-play policy, a DeepNash variant (`docs/deepnash-plan.md`; PlumOG's enumeration in `exact_enum.py`, archived) | `deep_nash.py` | Learned at the table; to be found in training |
 | Peacock | Dempster-Shafer belief/plausibility | `dempster_shafer.py` | Cautious until plausibility collapses |
 | Mustard | Decision tree on self-play logs | `decision_tree.py` | Pattern-matches, confidently wrong on unusual deals |
 | Green | Bandit ensemble over the other five | `bandit.py` | Opportunistic, only as good as his arms |

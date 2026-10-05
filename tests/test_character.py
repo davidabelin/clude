@@ -275,8 +275,11 @@ GOLDEN_CHARACTER_GAMES = {
         "cbf2e6ccb9254cd6e60d5158365dc32b8bc6f57391e9f588f41e2b668df7bcc3", 62,
     ),
 }
+# Re-captured on 2026-10-05 (Phase 12, N3): Plum became the policy agent
+# on `weights/plum.npz`, which this digest therefore also pins (the
+# training script's export replaces the file and this line together).
 GOLDEN_FOUR_CHARACTER_GAME = (
-    "d8abc56749882ab2234d129ed2c2aa45f67712b1f0ca7d4886292ea72ca3ca90", 49,
+    "65798e479bcd87318555451fb6f48cd61da0814464071cd1811412835b694ad8", 100,
 )
 
 

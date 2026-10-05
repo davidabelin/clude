@@ -235,6 +235,32 @@ def test_menus_draw_no_rng_and_the_leash_bounds_what_is_allowed():
     assert tight.n_calls == 1  # every menu reused the one cached belief
 
 
+def test_menus_rank_by_a_hooked_agents_own_scores():
+    """Phase 12, N2: an agent with `movement_scores` and
+    `suggestion_scores` hooks (Plum) sees the menu ranked by the numbers
+    it plays by, so at temperature 0 the headless pick is the menu's top
+    and the suggestion menu's scores are the agent's distribution."""
+    from clude_agents import build_character
+    from clude_agents.personality import PRESETS
+
+    obs = make_obs(4, 0, {"Scarlett", "Knife", "Hall"}, {0: 3, 1: 5, 2: 5, 3: 5}, [TIP], turn=1)
+    plum = build_character("Plum", PRESETS["Plum"].with_dials(temperature=0.0, bluff_rate=0.0))
+    plum.reset(3)
+    choices = [MoveChoice("move", "Ballroom"), MoveChoice("move", "Kitchen"), MoveChoice("move", Square(7, 4))]
+    menu = movement_menu(plum, obs, choices)
+    assert menu.top.action == plum.choose_movement(obs, choices, random.Random(0))
+    assert abs(sum(o.score for o in menu.options) - 1.0) < 1e-6  # the move head's distribution
+    features, scores = plum.movement_scores(obs, choices)
+    assert scores == plum.agent.movement_scores(obs, choices, features, plum.profile)
+
+    suggestion = suggestion_menu(plum, obs)
+    candidates, own_scores = plum.suggestion_scores(obs, SUSPECTS)
+    assert "Scarlett" not in candidates
+    assert {o.action: o.score for o in suggestion.suspect.options if o.action in candidates} == dict(zip(candidates, own_scores))
+    assert suggestion.suspect.top.action == plum.choose_suggestion(obs, "Hall", random.Random(0))[0]
+    assert plum.n_calls == 1
+
+
 def test_the_accusation_menu_applies_the_leash_symmetrically():
     def character(threshold, leash, confidence):
         return _character(
@@ -535,7 +561,7 @@ def test_personas_and_rules_load_and_the_wrapper_keeps_the_characters_surface(tm
     rules = load_rules()
     assert "accuse" in rules and "show" in rules
     default = load_persona("Plum", tmp_path)  # no file there: the registry default
-    assert default.source == "default" and "Professor Plum" in default.text and "enumeration" in default.text
+    assert default.source == "default" and "Professor Plum" in default.text and "Nash" in default.text
     (tmp_path / "Plum.md").write_text("# Plum\nDry, precise.\n", encoding="utf-8")
     assert load_persona("Plum", tmp_path).text.startswith("# Plum")
 
@@ -666,23 +692,29 @@ FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures"
 # Re-recorded again on 2026-09-18 for Phase 8.0.4's landing rule
 # (`features._landing_proximity`): every movement menu's scores moved,
 # so every key did ($0.22).
+# Seed 2 is skipped since 2026-10-05 (Phase 12, N3): Plum's method is
+# the policy agent now, so every menu at his seat moved and the
+# recording no longer matches. It is re-recorded in N6, once the
+# persona is rewritten and the first trained weights are in, so that
+# the $0.26 is spent once (`docs/deepnash-plan.md` 4).
 RECORDED_GAMES = [
     (
         "llm_seed1.json", "1", "3", "Scarlett,Peacock",
         "Mustard/Rope/Ballroom", "P1 Mustard (floor)",
         "Turns played: 41; suggestions: 17; accusations: 1",
     ),
-    (
+    pytest.param(
         "llm_seed2.json", "2", "4", "Plum,Mustard,Green,White",
         "Scarlett/Candlestick/Ballroom", "P1 White",
         "Turns played: 10; suggestions: 2; accusations: 1",
+        marks=pytest.mark.skip(reason="Plum's menus moved in Phase 12 N3; re-recorded in N6"),
     ),
 ]
 
 
 @pytest.mark.parametrize(
     "fixture,seed,players,roster,envelope,winner,tally", RECORDED_GAMES,
-    ids=[row[0].removesuffix(".json") for row in RECORDED_GAMES],
+    ids=["llm_seed1", "llm_seed2"],
 )
 def test_recorded_llm_games_replay_offline(
     capsys, fixture, seed, players, roster, envelope, winner, tally

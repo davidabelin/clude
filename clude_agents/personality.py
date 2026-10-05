@@ -118,12 +118,17 @@ PRESETS: dict = {
     "Scarlett": Profile(
         accuse_threshold=0.3, bluff_rate=0.2, curiosity=0.7, secrecy=0.4, temperature=0.15
     ),
-    # Correct but slow: near-certainty before accusing, no bluffing to
-    # speak of. Threshold tuned off the losing extreme (0.95) the ring
-    # sweeps found. Curiosity was 0.8 on the ring; on the grid chasing
-    # the most probable room is a long walk and every corridor turn is
-    # a turn without a suggestion, so 0.5 (2026-09-15) wins more than
-    # 0.8 or 0.3 did with only his dial moved.
+    # PlumOG's dials, unchanged (Phase 12, 2026-10-05: the new Plum
+    # starts from exactly these; `PLUM_OG` below keeps them under his
+    # name). Near-certainty before accusing, no bluffing to speak of.
+    # Threshold tuned off the losing extreme (0.95) the ring sweeps
+    # found. Curiosity was 0.8 on the ring; on the grid chasing the
+    # most probable room is a long walk and every corridor turn is a
+    # turn without a suggestion, so 0.5 (2026-09-15) won more than 0.8
+    # or 0.3 did with only his dial moved. For the new Plum curiosity is
+    # inert: his move head owns the destination (`deep_nash`), and the
+    # dial stays here for the record. `accuse_threshold` and `leash`
+    # are to be re-measured for him (`docs/deepnash-plan.md` 5).
     "Plum": Profile(
         accuse_threshold=0.9, bluff_rate=0.05, curiosity=0.5, secrecy=0.7, temperature=0.05
     ),
@@ -151,6 +156,12 @@ PRESETS: dict = {
         bluff_rate=0.3, curiosity=0.4, secrecy=0.8, temperature=0.1,
     ),
 }
+
+
+PLUM_OG: Profile = PRESETS["Plum"]
+"""The dials PlumOG played with, archived 2026-10-05 (Phase 12): the
+same `Profile` the new Plum starts from. Not a preset: PlumOG is in no
+registry."""
 
 
 def preset(name: str) -> Profile:

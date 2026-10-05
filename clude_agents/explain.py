@@ -89,11 +89,13 @@ def format_belief(probabilities: dict, mask, top: int = 3, all_cards: bool = Fal
 
 def format_extra(belief: ClueBelief) -> str:
     """The method-specific diagnostics an agent put in `ClueBelief.extra`,
-    compactly: Plum's exact/sampled path, Green's chosen arm, Peacock's
+    compactly: Plum's value head, PlumOG's exact/sampled path, Green's chosen arm, Peacock's
     belief/plausibility bounds for her top card per category. Empty for
     methods that report nothing extra."""
     extra = belief.extra
     if "method" in extra:
+        if extra["method"] == "policy":
+            return f"[policy: value {extra.get('value', 0.0):+.2f}]"
         if extra["method"] == "exact":
             return f"[exact: {extra['completions']} deals, {extra['nodes']} nodes]"
         if extra["method"] == "sampled":

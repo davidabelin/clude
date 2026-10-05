@@ -70,6 +70,7 @@ def test_format_extra_covers_each_method_and_is_empty_otherwise():
     assert "sampled" in format_extra(
         ClueBelief(flat, {"method": "sampled", "valid_samples": 40, "nodes": 999})
     )
+    assert format_extra(ClueBelief(flat, {"method": "policy", "value": 0.125})) == "[policy: value +0.12]"
     assert format_extra(ClueBelief(flat, {"selected_arm": "Plum"})) == "[arm: Plum]"
     ds = ClueBelief(
         flat,

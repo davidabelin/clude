@@ -29,8 +29,8 @@ from dataclasses import dataclass
 
 from clude_agents.base import ClueBelief, SeededAgentMixin
 from clude_agents.decision_tree import DecisionTreeAgent
+from clude_agents.deep_nash import DeepNashAgent
 from clude_agents.dempster_shafer import DempsterShaferAgent
-from clude_agents.exact_enum import ExactEnumAgent
 from clude_agents.markov import MarkovAgent
 from clude_agents.naive_bayes import NaiveBayesAgent
 from clude_core.state import ClueObservation
@@ -63,7 +63,7 @@ class _Candidate:
 def _build_arms() -> dict:
     return {
         "Scarlett": NaiveBayesAgent(),
-        "Plum": ExactEnumAgent(),
+        "Plum": DeepNashAgent(),
         "Peacock": DempsterShaferAgent(),
         "Mustard": DecisionTreeAgent(),
         "White": MarkovAgent(),

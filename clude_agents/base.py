@@ -50,6 +50,26 @@ class AgentProtocol(Protocol):
     `choose_destination` is the one decision the protocol itself owns,
     so a method can reason about rooms its own way; the shared default
     lives on `SeededAgentMixin`.
+
+    Two further hooks are optional (Phase 12, N2): an agent that scores
+    moves or suggestions its own way, rather than through the shared
+    curiosity blend and the belief per card, defines `movement_scores`
+    and/or `suggestion_scores` with the signatures below, and
+    `Character` reads its menus from them -- so the LLM menu (built by
+    `clude_llm.menu` from `Character.movement_scores` and
+    `Character.suggestion_scores`) ranks the options exactly as the
+    headless agent does, and the leash binds to the numbers the agent
+    plays by. An agent without them gets the shared arithmetic. Both
+    must be pure: no random draws, no state change, so a wrapper can
+    call them and then fall back to the sampled decision with the RNG
+    where the headless character had it.
+
+    ``movement_scores(obs, choices, features, profile) -> list[float]``
+        One score in [0, 1] per legal move, in `choices` order;
+        `features` is `room_features(obs, belief, choices)`.
+    ``suggestion_scores(obs, candidates, category) -> list[float]``
+        One score in [0, 1] per honest candidate (the cards of
+        `category` not in the agent's hand), in `candidates` order.
     """
 
     name: str
