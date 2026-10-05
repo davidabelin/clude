@@ -242,3 +242,31 @@ def test_new_game_reaches_white_and_leaves_the_rest_alone():
     plum = build_character("Plum")
     plum.new_game(["Plum", "White", "floor"])  # no set_table: no error, no effect
     plum.new_game()
+
+
+def test_reset_arm_puts_one_of_greens_arms_back_to_its_prior(tmp_path):
+    """Phase 12: Green's Plum arm forgets PlumOG; the others keep what
+    they learnt, and the arm is written as the prior, not removed."""
+    store = LocalStore(tmp_path)
+    logbook = Logbook(store, "Green")
+    with pytest.raises(ValueError):
+        memory.reset_arm(logbook, "Plum")  # no state memory yet
+    green = build_character("Green")
+    green.reset(0)
+    _teach_green(green.agent)
+    memory.update(logbook, _record(), green)
+    arms = logbook.method()["arms"]
+    assert arms["Plum"] != [1.0, 1.0] and arms["Scarlett"] != [1.0, 1.0]
+    with pytest.raises(ValueError):
+        memory.reset_arm(logbook, "Nobody")
+    document = memory.reset_arm(logbook, "Plum")
+    assert document == logbook.method()
+    after = logbook.method()["arms"]
+    assert after["Plum"] == [1.0, 1.0] and after["Scarlett"] == arms["Scarlett"]
+    assert memory.n_games(logbook.method()) == 1
+    fresh = build_character("Green")
+    fresh.reset(0)
+    assert memory.load_into(fresh, logbook)
+    assert (fresh.agent.candidates["Plum"].alpha, fresh.agent.candidates["Plum"].beta) == (1.0, 1.0)
+    with pytest.raises(ValueError):
+        memory.reset_arm(Logbook(store, "Mustard"), "Plum")

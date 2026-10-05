@@ -268,8 +268,39 @@ def _exercise_logbook(store):
     assert logbook.reset() == 0
 
 
+def _exercise_copy(store):
+    """Phase 12: `copy_to` archives a logbook under another identity."""
+    source = Logbook(store, "Plum")
+    for entry in _entries(3):
+        source.add_entry(entry)
+    source.save_method({"version": 1, "kind": "state", "games": 2, "arms": {"Plum": [3.0, 1.0]}})
+    before = [e.to_dict() for e in source.entries()]
+
+    assert source.copy_to("PlumOG") == 3
+    target = Logbook(store, "PlumOG")
+    assert target.serials() == [1, 2, 3]
+    assert target.head().identity == "PlumOG" and target.head().serial == 3
+    assert target.head().tally == source.head().tally
+    assert set(target.head().dossiers) == set(source.head().dossiers)
+    for original, copy in zip(source.entries(), target.entries()):
+        assert copy.identity == "PlumOG" and copy.token == original.token
+        assert copy.seat == original.seat and copy.summary == original.summary
+        own = next(row for row in copy.table if row["seat"] == copy.seat)
+        assert own["label"] == "PlumOG" and own["token"] == copy.token
+        others = [row["label"] for row in copy.table if row["seat"] != copy.seat]
+        assert others == [row["label"] for row in original.table if row["seat"] != original.seat]
+    assert target.method() == source.method()
+    assert [e.to_dict() for e in source.entries()] == before  # the source is untouched
+    with pytest.raises(ValueError):
+        source.copy_to("PlumOG")  # the target exists
+    with pytest.raises(ValueError):
+        source.copy_to("Plum")
+    assert Logbook(store, "Nobody").copy_to("Somebody") == 0 and not Logbook(store, "Somebody").exists()
+
+
 def test_logbook_over_a_local_store(tmp_path):
     _exercise_logbook(LocalStore(tmp_path / "records"))
+    _exercise_copy(LocalStore(tmp_path / "copies"))
     assert Logbook(LocalStore(tmp_path), "Plum").head().is_empty()
     with pytest.raises(ValueError):
         Logbook(LocalStore(tmp_path), "no/slashes")
@@ -277,3 +308,4 @@ def test_logbook_over_a_local_store(tmp_path):
 
 def test_logbook_over_a_gcs_store_double():
     _exercise_logbook(GcsStore("clude-game-data", "arena", client=_FakeClient()))
+    _exercise_copy(GcsStore("clude-game-data", "copies", client=_FakeClient()))

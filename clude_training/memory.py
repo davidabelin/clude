@@ -280,6 +280,34 @@ def update(logbook: Logbook, record: GameRecord, character) -> bool:
     return True
 
 
+def reset_arm(logbook: Logbook, arm: str) -> dict:
+    """Put one of Green's arms back to its prior, Beta(1, 1), in his
+    stored ``state`` document, the others untouched (Phase 12: the
+    `"Plum"` arm, whose method changed, forgets what it learnt of
+    PlumOG). The arm is written as ``[1.0, 1.0]`` rather than removed:
+    a table in play reloads the document when it finishes and
+    `BanditAgent.load_state` skips an arm that is missing, which would
+    let the old posterior be written back. Returns the saved document.
+
+    Raises
+    ------
+    ValueError
+        If the logbook holds no ``state`` memory or `arm` is not one of
+        Green's arms.
+    """
+    from clude_agents.bandit import _build_arms
+
+    memory = logbook.method()
+    if memory is None or memory.get("kind") != "state":
+        raise ValueError(f"{logbook.identity}: no state memory to reset an arm in")
+    arms = list(_build_arms())
+    if arm not in arms:
+        raise ValueError(f"{arm!r} is not one of Green's arms ({', '.join(arms)})")
+    memory.setdefault("arms", {})[arm] = [1.0, 1.0]
+    logbook.save_method(memory)
+    return memory
+
+
 class Rebuilt(NamedTuple):
     """What `rebuild` did: games absorbed, and records skipped as older
     than its `min_version`."""

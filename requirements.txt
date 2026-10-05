@@ -5,7 +5,8 @@ pytest-xdist>=3.8
 # Plum's forward pass (clude_agents.deep_nash, Phase 12; David's call of
 # 2026-10-05 that numpy may enter the agents package). Everything else in
 # the engine and the agents is the standard library. Training him
-# (scripts/train_plum.py, N4) wants torch, optional like Playwright below:
+# (scripts/train_plum.py, N4) wants torch, optional like Playwright below
+# and never in the image; tests/test_train_plum.py is skipped without it:
 #     pip install torch
 numpy>=2.0
 # Only needed for gs:// record stores (clude_storage.GcsStore); everything

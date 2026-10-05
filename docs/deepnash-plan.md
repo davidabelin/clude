@@ -365,11 +365,104 @@ skipped, below; the browser tests not run in this workspace).
 
 ### Left for the next steps
 
-- N1's storage half: `logbook copy Plum PlumOG` and `logbook reset-arm
-  Green Plum`, and the pass over `data/llm` and the bucket.
-- N4: `scripts/train_plum.py` and `clude_training/rollout.py`.
+- N1's storage half and N4: section 11.
 - The wiki still describes Plum as the enumerator, the lobby still
   prices him at $0.25 and Watch still calls him slow: N7.
 - The goldens were captured on Linux; the plan says Orbit. The
   nine-place rounding is meant to make that moot, and N4's first
   export re-captures them on Orbit anyway.
+
+## 11. As implemented: N1's storage half and N4 (2026-10-05)
+
+N2 and N3 were merged the same day (pull requests 5 and 6 of
+`davidabelin/clude`); David: "Merged. Please proceed." Built on the
+branch restarted from main.
+
+### N1, the storage half
+
+- `Logbook.copy_to(identity)` (`clude_storage/logbooks.py`): every
+  entry stored again under the new identity, its `identity` and the
+  label of its own seat's `table` row rewritten and its `token` kept,
+  the target's head built by `add_entry` (never copied, so the tally,
+  dossiers and flags agree with the entries), the method document
+  copied as it is; refuses the same identity or a target with any
+  logbook; the source untouched.
+- `memory.reset_arm(logbook, arm)` (`clude_training/memory.py`): one of
+  Green's arms back to `[1.0, 1.0]` in his `state` document, the
+  others untouched. Written, not removed: a table in play reloads the
+  document at its finish and `BanditAgent.load_state` skips a missing
+  arm, which would write the old posterior back.
+- `logbook copy --identity A --to B` and `logbook reset-arm --arm NAME`
+  (`--identity` Green by default) on the CLI, both exiting 1 when
+  refused; `docs/cli.md` and `docs/logbooks.md`.
+- Tests: `_exercise_copy` in `tests/test_logbooks.py` over the local
+  store and the fake bucket; `test_reset_arm_...` in
+  `tests/test_memory.py`; both commands in `tests/test_cli.py` on the
+  two-game Green store.
+- **The pass is David's, on Orbit, after the merge**, with no table in
+  play on the service:
+  ```
+  python scripts/clude_cli.py logbook copy --uri data/llm --identity Plum --to PlumOG
+  python scripts/clude_cli.py logbook reset --uri data/llm --identity Plum
+  python scripts/clude_cli.py logbook reset-arm --uri data/llm --identity Green --arm Plum
+  ```
+  then the same three with `--uri gs://clude-game-data/llm`.
+
+### N4, the rollouts and the trainer
+
+- `clude_training/rollout.py` (numpy, no torch): `RecordingCharacter`,
+  a `Character` over `DeepNashAgent` at Plum's preset with temperature
+  1 that writes down each move (the encoded state, the choice matrix,
+  the index drawn from the agent's own scores and RNG, exactly as
+  `choose_destination` draws) and each honest suggestion slot (the
+  candidate indices and the index drawn; a bluff is the dial's coin and
+  goes unrecorded); `draw_table`, seeded, `n_players` tokens in board
+  order and per seat the network, a floor bot or the token's own
+  character (Plum's token never his character, since that is the
+  network; at least one network seat; `"self"` all network, `"mixed"` a
+  coin per game); `play_one`, the engine with those seats and the
+  outcome (winner from the last event, a seat out on a wrong
+  accusation; rewards +1, -1, 0; the envelope; `capped`); `GameTrace`
+  and `to_arrays` (the ragged options as one array plus offsets);
+  `rollout_batch`, serial or a `multiprocessing.Pool` with the weights
+  through the initializer, the same result either way; `evaluate`, the
+  arena's per-game loop with Plum's agent injected on the tuned table
+  and the Plum table. Characters at the table get `new_game` and
+  `observe` as the arena gives them.
+- `scripts/train_plum.py` (torch): `TorchNet` is `WEIGHT_SHAPES` as
+  parameters with the same arithmetic (a test checks every head
+  against `deep_nash.forward` to 1e-4); `stack_traces` and
+  `option_logits` put a batch's ragged options through the right head
+  with one logit per option row; `losses` is the policy gradient on the
+  regularised reward (the seat's outcome less `--eta` times the log
+  ratio to the reference policy, the advantage against the value
+  head), the value regression, the belief cross-entropy over the cards
+  the floor allows, and the entropy bonus; the reference is refreshed
+  every `--refresh` updates; AdamW with `--weight-decay`, the gradient
+  clipped at 1. A run writes `args.json`, `curve.jsonl`, `ckpt-NNNN.npz`
+  and `eval.jsonl` (`rollout.evaluate` and the belief benchmark against
+  uniform), `final.npz`, and with `--export` the weights file Plum
+  reads. The script is the one place torch is imported;
+  `requirements.txt` lists it as optional.
+- Tests: four in `tests/test_training.py` (the draw, one rollout's
+  decisions and outcome and arrays, serial equals pool, the two
+  tables) and two in `tests/test_train_plum.py`, skipped without torch
+  (the forward-pass equivalence; a one-batch run fitted hard, its
+  records, the export and a resumed run through the pool).
+
+### What a short run showed
+
+Measured here, on this workspace's four cores, before any real run:
+
+- An untrained network at a self-play table never accuses, so those
+  games cap at 150 turns; with floor bots and the characters in the
+  mix, games end and rewards flow. Rollouts with recording cost
+  0.1-0.3 s a game.
+- A few hundred games of untrained play carry no envelope signal the
+  belief head can generalise: on a held-out batch its loss stays at the
+  masked-uniform floor (1.66 nats a category on 40-turn games) while
+  one batch fitted repeatedly goes to 0.001 in sample and above uniform
+  out of sample. So the unit test asserts the in-sample fit, and
+  generalisation is measured on the smoke run below and, for real, on
+  Orbit.
+

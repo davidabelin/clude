@@ -400,6 +400,39 @@ stored game), and the training-set line says how many memory rows from
 how many games joined the base. Run it with and without the flag to
 see what memory changes.
 
+## `train_plum.py`
+
+Not a `clude_cli.py` subcommand: a script of its own, since it needs
+torch, which is a developer's dependency and never in the image
+(Phase 12, N4; `docs/deepnash-plan.md` 3.2 and 11).
+
+```
+pip install torch
+python scripts/train_plum.py --games 200000 --batch 256 --workers 8 --eval-every 20 --out data/plum-training/run1
+python scripts/train_plum.py --resume data/plum-training/run1/ckpt-0700.npz --games 50000 --out data/plum-training/run2 --export clude_agents/weights/plum.npz
+```
+
+Each update rolls out `--batch` games through `clude_training.rollout`
+(the real engine; `--population mixed` is a coin per game between
+every seat the network and a per-seat draw among the network, a floor
+bot and the token's own character; `--workers` processes play with the
+current numpy weights) and takes `--epochs` AdamW steps: the policy
+gradient on the reward regularised toward a reference policy
+(`--eta`, refreshed every `--refresh` updates), the value head, the
+belief head's cross-entropy against the envelope (`--lambda-belief`)
+and an entropy bonus (`--entropy`). The run folder gets `args.json`,
+`curve.jsonl` (a line per update: every loss term, the network seats'
+mean reward and win fraction, the capped fraction, the share of
+self-play games, seconds), and every `--eval-every` updates a
+`ckpt-NNNN.npz` and an `eval.jsonl` line (`rollout.evaluate` on the two
+standard tables, 24 games each from seed 7007, and the belief
+benchmark's log-loss at the four checkpoints against uniform's).
+`--export PATH` writes the final weights where Plum reads them,
+`clude_agents/weights/plum.npz`; re-capture the goldens on purpose
+after it (`tests/test_character.py`). `--resume PATH` continues from
+a checkpoint. The GPU is optional (`--device cuda`): the network is
+small and the engine is the cost, so `--workers` matters more.
+
 ## `snapshots`
 
 ```
@@ -622,6 +655,8 @@ python scripts/clude_cli.py logbook show --uri data/llm --identity Plum --entry 
 python scripts/clude_cli.py logbook show --uri data/llm --identity Plum --memory 0.75
 python scripts/clude_cli.py logbook rebuild --uri data/llm --identity Mustard
 python scripts/clude_cli.py logbook reset --uri data/llm --identity Plum --keep-entries
+python scripts/clude_cli.py logbook copy --uri data/llm --identity Plum --to PlumOG
+python scripts/clude_cli.py logbook reset-arm --uri data/llm --identity Green --arm Plum
 ```
 
 Phase 7's memory, per identity (`docs/logbooks.md`). `list` prints
@@ -639,7 +674,18 @@ the bootstrap for Mustard and White from the games already in
 `data/llm`, and the recovery path; Green's posteriors are accumulated
 live and cannot be rebuilt. `reset` is the fairness control: it forgets
 the head and method memory, and the entries too unless
-`--keep-entries`.
+`--keep-entries`. `copy --to NAME` (Phase 12) archives a logbook under
+another identity, every entry re-stored with the new name (its own
+seat's label too, its token kept) and the target's head built from
+them, the method memory copied as it is, the source untouched; it
+refuses a target that already has a logbook. `reset-arm --arm NAME`
+puts one of Green's arms back to Beta(1, 1) and leaves the others:
+the arm is written as the prior rather than removed, since a table in
+play reloads the document when it finishes and would write a missing
+arm's old posterior back. Both exit 1 when refused. PlumOG's
+mothballing (`docs/deepnash-plan.md` 3.4) is `copy --identity Plum
+--to PlumOG`, then `reset --identity Plum`, then `reset-arm --arm Plum`,
+on `data/llm` and on the bucket.
 
 ## `tables`
 

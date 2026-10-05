@@ -779,6 +779,42 @@ class Logbook:
         """True if any document of this logbook is stored."""
         return bool(self.serials()) or not self.head().is_empty() or self.method() is not None
 
+    def copy_to(self, identity: str) -> int:
+        """Archive this logbook under another `identity` (Phase 12:
+        Plum's becomes PlumOG's), leaving this one untouched.
+
+        Every entry is stored again under the new identity, its
+        `identity` field and the label of its own seat's `table` row
+        rewritten (so `seat_label` and the dossiers of its readers say
+        the new name) and its `token` kept; the target's head is built
+        from those entries by `add_entry`, never copied, so its tally,
+        dossiers and flags agree with them; the method document, if
+        any, is copied as it is. Returns the number of entries copied.
+
+        Raises
+        ------
+        ValueError
+            If the target is this identity or already has a logbook.
+        """
+        target = Logbook(self.store, identity)
+        if target.identity == self.identity:
+            raise ValueError(f"{self.identity!r}: a logbook cannot be copied onto itself")
+        if target.exists():
+            raise ValueError(f"{target.identity!r} already has a logbook; reset it first")
+        copied = 0
+        for entry in self.entries():
+            data = entry.to_dict()
+            data["identity"] = target.identity
+            for row in data.get("table", []):
+                if row.get("seat") == entry.seat and row.get("label") == self.identity:
+                    row["label"] = target.identity
+            target.add_entry(LogbookEntry.from_dict(data))
+            copied += 1
+        method = self.method()
+        if method is not None:
+            target.save_method(method)
+        return copied
+
     # -- what a character reads ---------------------------------------
 
     def memory(self, depth: float, opponents=None) -> str:

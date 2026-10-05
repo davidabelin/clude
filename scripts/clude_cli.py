@@ -25,6 +25,8 @@ Usage
     python scripts/clude_cli.py play --roster Plum,Mustard,Green --store data/llm
     python scripts/clude_cli.py logbook list --uri data/llm
     python scripts/clude_cli.py logbook show --uri data/llm --identity Plum --memory 0.5
+    python scripts/clude_cli.py logbook copy --uri data/llm --identity Plum --to PlumOG
+    python scripts/clude_cli.py logbook reset-arm --uri data/llm --identity Green --arm Plum
 """
 from __future__ import annotations
 
@@ -1480,6 +1482,41 @@ def cmd_logbook_reset(args) -> int:
     return 0
 
 
+def cmd_logbook_copy(args) -> int:
+    """Archive a logbook under another identity (Phase 12: Plum's as
+    PlumOG's), the source untouched."""
+    store = open_store(args.uri)
+    source = Logbook(store, args.identity)
+    if not source.exists():
+        print(f"{args.identity}: no logbook in {store.describe()}")
+        return 1
+    try:
+        copied = source.copy_to(args.to)
+    except ValueError as exc:
+        print(f"refused: {exc}")
+        return 1
+    target = Logbook(store, args.to)
+    method = "and its method memory " if target.method() is not None else ""
+    print(
+        f"copied {copied} entries {method}from {source.identity} to {target.identity} "
+        f"in {store.describe()} ({_tally_line(target.head())}); {source.identity} is unchanged"
+    )
+    return 0
+
+
+def cmd_logbook_reset_arm(args) -> int:
+    """Put one of Green's arms back to its prior."""
+    store = open_store(args.uri)
+    logbook = Logbook(store, args.identity)
+    try:
+        memory = method_memory.reset_arm(logbook, args.arm)
+    except ValueError as exc:
+        print(f"refused: {exc}")
+        return 1
+    print(f"{args.identity}'s {args.arm} arm is Beta(1, 1) again: {method_memory.describe_memory(memory)}")
+    return 0
+
+
 def cmd_logbook_rebuild(args) -> int:
     """Recompute a logbook's head from its entries and its method memory
     from every game record in a store."""
@@ -1954,6 +1991,22 @@ def build_parser() -> argparse.ArgumentParser:
         help="Skip records older than this version. 1 and 2 are ring-era, 3 the first on the Classic grid.",
     )
     lb_rebuild.set_defaults(fn=cmd_logbook_rebuild)
+    lb_copy = logbook_sub.add_parser(
+        "copy", help="Archive a logbook under another identity, the source untouched (Phase 12).",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    lb_copy.add_argument("--uri", default=DEFAULT_STORE, help="Store location.")
+    lb_copy.add_argument("--identity", required=True, help="Whose logbook to copy.")
+    lb_copy.add_argument("--to", required=True, help="The identity to copy it to (must have no logbook).")
+    lb_copy.set_defaults(fn=cmd_logbook_copy)
+    lb_arm = logbook_sub.add_parser(
+        "reset-arm", help="Put one of Green's arms back to its prior, the others untouched (Phase 12).",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    lb_arm.add_argument("--uri", default=DEFAULT_STORE, help="Store location.")
+    lb_arm.add_argument("--identity", default="Green", help="Whose state memory (Green's).")
+    lb_arm.add_argument("--arm", required=True, help="The arm to reset, e.g. Plum.")
+    lb_arm.set_defaults(fn=cmd_logbook_reset_arm)
 
     tables_p = sub.add_parser(
         "tables",

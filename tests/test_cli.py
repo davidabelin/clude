@@ -133,6 +133,21 @@ def test_play_and_arena_with_logbooks_feed_method_memory(cli, capsys, tmp_path):
     out = _run(cli, capsys, "logbook", "rebuild", "--uri", uri, "--identity", "Plum")
     assert "memoryless" in out
 
+    # Phase 12: an arm back to its prior, a logbook archived under another name.
+    arms_before = Logbook(store, "Green").method()["arms"]
+    out = _run(cli, capsys, "logbook", "reset-arm", "--uri", uri, "--arm", "Plum")
+    assert "Green's Plum arm is Beta(1, 1) again" in out
+    arms_after = Logbook(store, "Green").method()["arms"]
+    assert arms_after["Plum"] == [1.0, 1.0] and arms_after["White"] == arms_before["White"]
+    assert cli.main(["logbook", "reset-arm", "--uri", uri, "--arm", "Nobody"]) == 1
+    assert cli.main(["logbook", "reset-arm", "--uri", uri, "--identity", "Mustard", "--arm", "Plum"]) == 1
+    out = _run(cli, capsys, "logbook", "copy", "--uri", uri, "--identity", "White", "--to", "WhiteOG")
+    assert "copied 0 entries and its method memory from White to WhiteOG" in out
+    out = _run(cli, capsys, "logbook", "list", "--uri", uri)
+    assert "WhiteOG" in out
+    assert cli.main(["logbook", "copy", "--uri", uri, "--identity", "White", "--to", "WhiteOG"]) == 1
+    assert cli.main(["logbook", "copy", "--uri", uri, "--identity", "Nobody", "--to", "Anybody"]) == 1
+
     out = _run(
         cli, capsys, "arena", "--games", "2", "--players", "3", "--roster", "Mustard,floor",
         "--seed", "3", "--logbook", uri,

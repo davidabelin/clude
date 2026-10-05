@@ -167,6 +167,8 @@ python scripts/clude_cli.py logbook show --uri data/llm --identity Plum --entry 
 python scripts/clude_cli.py logbook show --uri data/llm --identity Plum --memory 0.5
 python scripts/clude_cli.py logbook rebuild --uri data/llm --identity Mustard
 python scripts/clude_cli.py logbook reset --uri data/llm --identity Plum --keep-entries
+python scripts/clude_cli.py logbook copy --uri data/llm --identity Plum --to PlumOG
+python scripts/clude_cli.py logbook reset-arm --uri data/llm --identity Green --arm Plum
 python scripts/clude_cli.py prompt --roster Plum,Mustard,Green --players 3 --logbook data/llm --memory 0.5
 python scripts/clude_cli.py train-mustard --logbook data/llm --eval-games 8
 ```
@@ -189,6 +191,14 @@ python scripts/clude_cli.py train-mustard --logbook data/llm --eval-games 8
   `--min-version` (default 3, the first on the Classic grid), so ring
   games cannot leak back into a reset memory; `--min-version 1` reads
   every era.
+- `logbook copy --to NAME` (Phase 12, 2026-10-05) archives a logbook
+  under another identity (`Logbook.copy_to`): every entry re-stored
+  with the new name, its token kept, the head rebuilt from them, the
+  method memory copied; the source untouched, a target with a logbook
+  refused. `logbook reset-arm --arm NAME` (`memory.reset_arm`) puts one
+  of Green's arms back to its prior and leaves the others. Together
+  they are how PlumOG keeps his memory when Plum's method changes:
+  copy Plum to PlumOG, reset Plum, reset Green's Plum arm.
 - The arena's LLM table gains an `entries` column; the footer says
   which store the logbooks came from and whether they were written.
 

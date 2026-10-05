@@ -6,6 +6,8 @@ from __future__ import annotations
 import json
 import math
 
+import numpy as np
+
 import pytest
 
 from clude_agents import build_agent
@@ -230,3 +232,99 @@ def test_benchmark_counts_plums_sampling_fallbacks():
     cell = result.per_agent["Plum"][0.5]
     assert cell.sampled_calls > 0
     assert cell.sampled_calls <= cell.n_calls
+
+
+# ---------------------------------------------------------------------
+# Phase 12, N4: rollouts for training Plum
+# ---------------------------------------------------------------------
+
+
+def _weights():
+    from clude_agents.deep_nash import init_weights
+
+    return init_weights(seed=5)
+
+
+def test_draw_table_seats_the_network_at_least_once_and_is_seeded():
+    from clude_core.domain import SUSPECTS
+    from clude_training import rollout
+
+    seen = set()
+    for seed in range(40):
+        suspects, kinds = rollout.draw_table(seed, 3 + seed % 4, "mixed")
+        assert len(suspects) == len(kinds) == 3 + seed % 4
+        assert list(suspects) == [s for s in SUSPECTS if s in suspects]  # board order
+        assert rollout.NET in kinds
+        for token, kind in zip(suspects, kinds):
+            assert kind in (rollout.NET, rollout.FLOOR, token) and not (token == "Plum" and kind == "Plum")
+        seen.update(kinds)
+        assert rollout.draw_table(seed, 3 + seed % 4, "mixed") == (suspects, kinds)
+    assert rollout.FLOOR in seen and any(k not in (rollout.NET, rollout.FLOOR) for k in seen)
+    assert rollout.draw_table(3, 4, "self")[1] == [rollout.NET] * 4
+    with pytest.raises(ValueError):
+        rollout.draw_table(1, 3, "league")
+
+
+def test_play_one_records_legal_decisions_and_the_outcome():
+    from clude_agents.deep_nash import CHOICE_SIZE, STATE_SIZE
+    from clude_core.domain import ALL_CARDS
+    from clude_training import rollout
+
+    weights = _weights()
+    trace = rollout.play_one(weights, seed=5, n_players=4, population="mixed", max_turns=80)
+    assert trace.n_players == 4 and len(trace.rewards) == 4 and trace.net_seats
+    assert trace.decisions, "the network seat decided nothing"
+    for d in trace.decisions:
+        assert d.seat in trace.net_seats and d.head in rollout.HEADS
+        assert d.state.shape == (STATE_SIZE,) and d.possible.shape == (len(ALL_CARDS),)
+        if d.head == "move":
+            assert d.choices is not None and d.choices.shape[1] == CHOICE_SIZE
+            assert 0 <= d.action < len(d.choices) and d.candidates is None
+        else:
+            assert d.choices is None and 0 <= d.action < len(d.candidates) <= 6
+    for card in trace.envelope:
+        assert card in ALL_CARDS
+    if trace.winner is not None:
+        assert trace.rewards[trace.winner] == 1.0 and not trace.capped
+    assert all(r in (-1.0, 0.0, 1.0) for r in trace.rewards)
+    assert sum(1 for r in trace.rewards if r == 1.0) <= 1
+
+    arrays = trace.to_arrays()
+    n = len(trace.decisions)
+    assert arrays["states"].shape == (n, STATE_SIZE) and arrays["envelope"].shape == (n, len(ALL_CARDS))
+    assert arrays["envelope"][0].sum() == 3.0 and arrays["possible"].shape == (n, len(ALL_CARDS))
+    assert arrays["choice_offsets"].shape == (n + 1,) and arrays["candidate_offsets"].shape == (n + 1,)
+    assert arrays["choice_offsets"][-1] == len(arrays["choices"])
+    assert arrays["candidate_offsets"][-1] == len(arrays["candidates"])
+    moves = arrays["head"] == 0
+    assert (np.diff(arrays["choice_offsets"])[moves] > 0).all() and (np.diff(arrays["choice_offsets"])[~moves] == 0).all()
+    assert (arrays["reward"] == np.array([trace.rewards[s] for s in arrays["seat"]])).all()
+
+    again = rollout.play_one(weights, seed=5, n_players=4, population="mixed", max_turns=80)
+    assert [d.action for d in again.decisions] == [d.action for d in trace.decisions] and again.rewards == trace.rewards
+
+
+def test_rollout_batch_is_the_same_in_a_pool_as_in_this_process():
+    from clude_training import rollout
+
+    weights = _weights()
+    seeds = list(range(4))
+    serial = rollout.rollout_batch(weights, seeds, lambda s: 3 + s % 2, "mixed", workers=1, max_turns=60)
+    parallel = rollout.rollout_batch(weights, seeds, lambda s: 3 + s % 2, "mixed", workers=2, max_turns=60)
+    assert [t.seed for t in serial] == seeds
+    for a, b in zip(serial, parallel):
+        assert a.kinds == b.kinds and a.rewards == b.rewards and a.turns == b.turns
+        assert [d.action for d in a.decisions] == [d.action for d in b.decisions]
+    fixed = rollout.rollout_batch(weights, seeds[:2], 3, "self", workers=1, max_turns=60)
+    assert all(t.n_players == 3 and t.kinds == [rollout.NET] * 3 for t in fixed)
+
+
+def test_evaluate_reports_plum_on_the_two_standard_tables():
+    from clude_training import rollout
+
+    report = rollout.evaluate(_weights(), n_games=2, seed=7007, max_turns=60)
+    assert set(report) == {"tuned", "plum"}
+    for table in report.values():
+        assert table["games"] == 2
+        assert 0.0 <= table["win_rate"] <= 1.0 and 0.0 <= table["wrong_rate"] <= 1.0
+        assert 0.0 <= table["capped"] <= 1.0 and table["mean_turns"] > 0
