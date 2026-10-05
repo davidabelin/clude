@@ -2,6 +2,12 @@ pytest>=8.0
 # Runs the suite in parallel: `python -m pytest -q -n auto` (about half the
 # serial ~220 s on Orbit). Optional; plain `pytest` still works.
 pytest-xdist>=3.8
+# Plum's forward pass (clude_agents.deep_nash, Phase 12; David's call of
+# 2026-10-05 that numpy may enter the agents package). Everything else in
+# the engine and the agents is the standard library. Training him
+# (scripts/train_plum.py, N4) wants torch, optional like Playwright below:
+#     pip install torch
+numpy>=2.0
 # Only needed for gs:// record stores (clude_storage.GcsStore); everything
 # else is the standard library, and the package is imported lazily.
 google-cloud-storage>=3.0
@@ -12,7 +18,7 @@ anthropic>=1.5
 # The web app (clude_web, Phase 8.1). Werkzeug comes with Flask and is
 # what hashes account passwords; Jinja is its templating. Nothing outside
 # clude_web and `clude_cli.py users` imports any of them, so the engine
-# and the agents still run on the standard library alone.
+# and the agents still run on the standard library alone (numpy aside).
 flask>=3.0
 python-dotenv>=1.0
 # Serves the app on Cloud Run (the Dockerfile, which installs only

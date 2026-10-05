@@ -2,6 +2,10 @@
 registry, and the Phase 5 personality layer (`Profile`, `Character`).
 See docs/architecture.md for the method-to-suspect mapping and
 docs/strategy-glossary.md for per-method write-ups.
+
+Plum has been `deep_nash.DeepNashAgent` since Phase 12 (2026-10-05);
+the enumeration agent he was, `exact_enum.ExactEnumAgent`, is PlumOG:
+archived, importable, in no registry (`docs/deepnash-plan.md` 3.4).
 """
 from __future__ import annotations
 
@@ -17,8 +21,8 @@ from .character import (
     probabilities_confidence,
 )
 from .decision_tree import DecisionTreeAgent
+from .deep_nash import DeepNashAgent
 from .dempster_shafer import DempsterShaferAgent
-from .exact_enum import ExactEnumAgent
 from .markov import MarkovAgent
 from .naive_bayes import NaiveBayesAgent
 from .personality import NEUTRAL, PRESETS, Profile
@@ -73,8 +77,8 @@ def _build_specs() -> dict[str, AgentSpec]:
         ),
         "Plum": AgentSpec(
             "Plum",
-            "Exact posterior by enumeration over consistent deals (samples when too slow).",
-            ExactEnumAgent,
+            "Self-play policy by regularised Nash dynamics over the floor (a DeepNash variant).",
+            DeepNashAgent,
             PRESETS["Plum"],
         ),
         "Peacock": AgentSpec(

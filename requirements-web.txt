@@ -10,6 +10,10 @@
 # uvicorn is the worker gunicorn runs it under.
 flask>=3.1
 gunicorn>=23.0
+# Plum's forward pass (clude_agents.deep_nash, Phase 12): the one
+# numerical dependency the agents have. Training (scripts/train_plum.py)
+# needs torch, which is a developer's dependency and never installed here.
+numpy>=2.0
 google-cloud-storage>=3.0
 anthropic>=1.5
 mcp>=2.0

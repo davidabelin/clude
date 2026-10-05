@@ -493,3 +493,96 @@ def test_rank_rewards_are_linear_in_rank_with_shared_ties():
     assert rank_rewards({"only": 2.0}) == {"only": 1.0}
     all_tied = rank_rewards({"a": 1.0, "b": 1.0})
     assert all_tied == {"a": 0.5, "b": 0.5}
+
+
+# ---------------------------------------------------------------------
+# Plum: the DeepNash variant (Phase 12, N3)
+# ---------------------------------------------------------------------
+
+
+def _plum_position(seed=2, n_players=4, turns=20):
+    bots = {p: clude_constraints.FloorBot() for p in range(n_players)}
+    state, _events = engine.run_game(
+        n_players, bots, seed=seed, max_turns=turns, observer=clude_constraints.observe
+    )
+    return clude_constraints.observe(state, 0)
+
+
+def test_plum_is_the_policy_agent_and_keeps_the_belief_contract():
+    from clude_agents.deep_nash import DeepNashAgent
+
+    obs = _plum_position()
+    plum = clude_agents.build_agent("Plum")
+    assert isinstance(plum, DeepNashAgent) and plum.name == "Plum"
+    plum.reset(0)
+    belief = plum.select_action(obs)
+    _assert_sums_to_one(belief.probabilities)
+    _assert_never_contradicts_mask(belief.probabilities, obs.mask)
+    assert belief.extra["method"] == "policy" and -1.0 <= belief.extra["value"] <= 1.0
+    from dataclasses import replace
+
+    with pytest.raises(ValueError):
+        plum.select_action(replace(obs, mask=None))
+
+
+def test_plum_og_is_archived_under_his_own_name():
+    assert ExactEnumAgent().name == "PlumOG"
+    assert "PlumOG" not in clude_agents.AGENT_SPECS
+    with pytest.raises(KeyError):
+        clude_agents.build_agent("PlumOG")
+
+
+def test_plum_encoding_and_weights_have_the_documented_layout(tmp_path):
+    from clude_agents import deep_nash
+    from clude_agents.features import room_features
+
+    obs = _plum_position()
+    x = deep_nash.encode_state(obs)
+    assert x.shape == (deep_nash.STATE_SIZE,) and x.min() >= 0.0 and x.max() <= 1.0
+    own = [c for c in ALL_CARDS if c in obs.own_hand]
+    assert all(x[ALL_CARDS.index(c) * deep_nash.CARD_FEATURES + 15] == 1.0 for c in own)
+    plum = clude_agents.build_agent("Plum")
+    plum.reset(0)
+    choices = [engine.MoveChoice("move", "Kitchen"), engine.MoveChoice("move", "Study")]
+    rows = deep_nash.encode_choices(room_features(obs, plum.select_action(obs), choices))
+    assert rows.shape == (2, deep_nash.CHOICE_SIZE)
+    assert rows[0, 7 + ROOMS.index("Kitchen")] == 1.0 and rows[1, 3] == 1.0
+
+    weights = deep_nash.init_weights(seed=5)
+    assert {k: v.shape for k, v in weights.items()} == deep_nash.WEIGHT_SHAPES
+    path = tmp_path / "w.npz"
+    deep_nash.save_weights(weights, path)
+    back = deep_nash.load_weights(path)
+    assert all(abs(back[k] - weights[k]).max() < 1e-6 for k in weights)
+    bad = dict(weights)
+    del bad["value_b"]
+    with pytest.raises(ValueError):
+        deep_nash.save_weights(bad, path)
+
+
+def test_plum_hooks_are_pure_distributions_and_the_pick_is_seeded():
+    from clude_agents.features import room_features
+    from clude_agents.personality import Profile
+
+    obs = _plum_position(seed=3, n_players=5)
+    plum = clude_agents.build_agent("Plum")
+    plum.reset(7)
+    belief = plum.select_action(obs)
+    choices = [engine.MoveChoice("stay", "Lounge"), engine.MoveChoice("move", "Hall"), engine.MoveChoice("secret_passage", "Conservatory")]
+    features = room_features(obs, belief, choices)
+    profile = Profile(temperature=0.3)
+    scores = plum.movement_scores(obs, choices, features, profile)
+    assert len(scores) == 3 and abs(sum(scores) - 1.0) < 1e-6 and all(0.0 <= s <= 1.0 for s in scores)
+    assert scores == plum.movement_scores(obs, choices, features, profile)  # pure
+    candidates = [c for c in SUSPECTS if c not in obs.own_hand]
+    sugg = plum.suggestion_scores(obs, candidates, SUSPECTS)
+    assert len(sugg) == len(candidates) and abs(sum(sugg) - 1.0) < 1e-6
+    assert len(plum.suggestion_scores(obs, [c for c in WEAPONS if c not in obs.own_hand], WEAPONS)) == len(
+        [c for c in WEAPONS if c not in obs.own_hand]
+    )
+
+    picks = [plum.choose_destination(obs, choices, features, profile) for _ in range(20)]
+    plum.reset(7)
+    plum.select_action(obs)
+    again = [plum.choose_destination(obs, choices, features, profile) for _ in range(20)]
+    assert picks == again and all(p in choices for p in picks)

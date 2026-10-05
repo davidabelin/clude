@@ -126,8 +126,19 @@ def simple_answer(pending: dict):
 def play_out(app, table_id, clients: dict, max_steps=4000, on_payload=None):
     """Drive a table to its end through the JSON routes: whoever the game
     waits on answers, and anyone fires the bot work. `clients` maps an
-    account key to its client."""
+    account key to its client.
+
+    The loop counts steps, not seconds, so both pacing clocks are
+    stopped for its duration: the bot work interval and the off-turn
+    talk's delay (`chat.delay`), which a queued reaction otherwise waits
+    out while `work` answers ``"waiting"``. Until Phase 12 the second
+    went unnoticed: PlumOG's slow calls let the clock run; the new Plum
+    answers in milliseconds and a game at his table ran out of steps on
+    one reaction (2026-10-05)."""
+    from clude_web import chat
+
     tables.WORK_INTERVAL, saved = 0.0, tables.WORK_INTERVAL
+    chat.delay, saved_delay = (lambda rng: 0.0), chat.delay
     try:
         first = next(iter(clients.values()))
         payload = poll(first, table_id)
@@ -150,6 +161,7 @@ def play_out(app, table_id, clients: dict, max_steps=4000, on_payload=None):
         raise AssertionError("the game did not end")
     finally:
         tables.WORK_INTERVAL = saved
+        chat.delay = saved_delay
 
 
 # --- the form -------------------------------------------------------------

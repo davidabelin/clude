@@ -28,7 +28,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from clude_agents.character import Character, cards_exposed, show_scores, suggestion_candidates
+from clude_agents.character import Character, cards_exposed, show_scores
 from clude_agents.features import ChoiceFeatures
 from clude_constraints import ENVELOPE
 from clude_core.board import HallwayCell, Square
@@ -208,16 +208,18 @@ def _card_note(card: str, obs: ClueObservation, belief) -> str:
 def suggestion_menu(
     character: Character, obs: ClueObservation, leash: Optional[float] = None
 ) -> SuggestionMenu:
-    """Suspect and weapon menus: the honest candidates scored by belief,
-    plus the character's own cards as bluff options (allowed only with
-    some rope and a nonzero `bluff_rate`)."""
+    """Suspect and weapon menus: the honest candidates scored as the
+    character scores them (`Character.suggestion_scores`: the belief per
+    card, or the agent's own hook), plus the character's own cards as
+    bluff options (allowed only with some rope and a nonzero
+    `bluff_rate`)."""
     _require_mask(obs)
     leash = _leash_of(character, leash)
     belief = character.select_action(obs)
     bluffs_open = leash > 0.0 and character.profile.bluff_rate > 0.0
     menus = []
     for category, title in ((SUSPECTS, "the suspect to name"), (WEAPONS, "the weapon to name")):
-        candidates, scores = suggestion_candidates(obs, belief, category)
+        candidates, scores = character.suggestion_scores(obs, category)
         entries = [
             Option("", c, s, f"name {c}", _card_note(c, obs, belief), a)
             for c, s, a in zip(candidates, scores, within_leash(scores, leash))

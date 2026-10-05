@@ -13,11 +13,14 @@ The four decisions, and the dial each one answers to:
 
 - **movement** -- shared per-choice features (`features.room_features`)
   handed to the agent's own `choose_destination`; `curiosity`,
-  `temperature`.
+  `temperature`. An agent with its own `movement_scores` hook (Phase
+  12) also supplies the scores the menu ranks by.
 - **suggestion** -- always suggests when in a room. Suspect and weapon
   are each an honest softmax over the belief (never a card in this
   seat's own hand) unless a `bluff_rate` coin flip names one of its own
-  cards instead; `temperature`.
+  cards instead; `temperature`. An agent with its own
+  `suggestion_scores` hook (Phase 12) supplies the scores the softmax
+  runs over instead of the belief.
 - **accusation** -- accuse the best triple once its confidence product
   reaches `accuse_threshold`. Confidence is `probabilities` for five
   characters and the Dempster-Shafer lower bound for Peacock
@@ -254,14 +257,34 @@ class Character:
 
         Notes
         -----
-        Draws no random numbers. The scores are those of
-        `SeededAgentMixin.choose_destination`'s default; an agent that
-        overrides `choose_destination` may weigh the same features
-        differently, so these describe the menu, not necessarily the
-        agent's pick.
+        Draws no random numbers. The scores are the agent's own when it
+        defines the optional `movement_scores` hook (`AgentProtocol`),
+        and otherwise those of `SeededAgentMixin.choose_destination`'s
+        default blend -- so an agent that scores moves its own way
+        shows the menu the numbers it plays by (Phase 12, N2).
         """
         features = room_features(obs, self.select_action(obs), choices)
+        hook = getattr(self.agent, "movement_scores", None)
+        if hook is not None:
+            return features, list(hook(obs, choices, features, self.profile))
         return features, score_choices(features, self.profile)
+
+    def suggestion_scores(self, obs: ClueObservation, category: list) -> tuple:
+        """The honest candidates for one suggestion slot and the scores
+        this character's softmax runs over: the agent's own when it
+        defines the optional `suggestion_scores` hook, otherwise the
+        belief per card (`suggestion_candidates`). Draws no random
+        numbers (Phase 12, N2).
+
+        Returns
+        -------
+        (candidates, scores) : tuple[list[str], list[float]]
+        """
+        candidates, scores = suggestion_candidates(obs, self.select_action(obs), category)
+        hook = getattr(self.agent, "suggestion_scores", None)
+        if hook is not None:
+            scores = list(hook(obs, candidates, category))
+        return candidates, scores
 
     def accusation_test(self, obs: ClueObservation) -> tuple:
         """The best triple and this character's P(correct) for it,
@@ -297,10 +320,11 @@ class Character:
         softmax over the belief among cards I don't hold
         (`suggestion_candidates`). The coin flip comes first, so the RNG
         stream is unchanged from before the scoring was split out."""
+        del belief  # `suggestion_scores` reads the cached belief itself
         own = [c for c in category if c in obs.own_hand]
         if own and self.rng.random() < self.profile.bluff_rate:
             return self.rng.choice(own)
-        candidates, scores = suggestion_candidates(obs, belief, category)
+        candidates, scores = self.suggestion_scores(obs, category)
         return candidates[sample_softmax(scores, self.profile.temperature, self.rng)]
 
     def choose_accusation(self, obs: ClueObservation, rng: Random) -> Optional[tuple]:

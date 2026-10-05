@@ -12,7 +12,8 @@ clude/
   clude_agents/        # AgentProtocol + AgentSpec registry + one module per method
     base.py
     naive_bayes.py        # Scarlett
-    exact_enum.py          # Plum
+    deep_nash.py           # Plum (Phase 12: a policy by regularised Nash dynamics; weights/plum.npz)
+    exact_enum.py          # PlumOG, archived 2026-10-05: exact enumeration, in no registry
     dempster_shafer.py      # Peacock
     decision_tree.py         # Mustard
     bandit.py                  # Green
@@ -350,7 +351,7 @@ all any agent has needed so far.
 | Character | Method | Legacy starting point | Failure mode as personality |
 |---|---|---|---|
 | Scarlett | Naive Bayes over reveal events | `belief_tracker.py`, demoted (see below) | Independence assumption is false here, so she's overconfident — accuses early, sometimes brilliantly, sometimes disastrously |
-| Plum | Exact posterior by world enumeration | new | Correct and slow; needs sampling at 5-6 players to stay in budget, and gets noisy under it |
+| Plum | A policy learned by regularised Nash dynamics over the floor, a DeepNash variant (Phase 12, `docs/deepnash-plan.md`); was exact posterior by world enumeration until 2026-10-05, now PlumOG, archived | new | To be found in training: the first Plum was correct and slow, needed sampling at 5-6 players to stay in budget, and got noisy under it |
 | Peacock | Dempster-Shafer belief/plausibility | new | Won't commit until plausibility collapses — cautious, sometimes too cautious to win the race |
 | Mustard | Decision tree trained on game logs | new (needs `clude_training` self-play data first) | Pattern-matches past games rather than reasoning; confidently wrong on unusual deals |
 | Green | Bandit ensemble over the other five | ports from `rps_agents/heuristic/multi_armed_bandit.py` | Opportunistic, hedges; only as good as his arms |
