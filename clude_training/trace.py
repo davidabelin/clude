@@ -1,18 +1,9 @@
-"""Post-game replay of the deduction floor and of the agents' beliefs.
+"""Analyze floor and method beliefs over a finished game's visible history.
 
-The seed of the "post-game replay of all six belief traces" feature
-(docs/architecture.md): given one *finished* game's omniscient
-`GameState`, rebuild one viewer's masked observation after each
-suggestion in turn and ask each agent what it believed at that point.
-Nothing here plays a game -- `clude_core.engine.run_game` does that --
-and nothing here touches the agents beyond `select_action`, so a trace
-is a pure read of the event log and can be re-run for any viewer or any
-subset of agents on the same game.
-
-Like `clude_training.benchmark`, this depends on `clude_agents` (for
-the protocol type only) and so must never be imported from
-`clude_training/__init__.py`, or `clude_agents.decision_tree`'s import
-of `clude_training.self_play` would cycle.
+Each requested viewer uses a redacted observation. Methods are queried at
+suggestion checkpoints; this reconstructs estimates rather than recording
+live memory/feedback or model choices. Rendering is shared with CLI/prompts.
+See docs/cli.md and docs/web.md for trace limitations.
 """
 from __future__ import annotations
 

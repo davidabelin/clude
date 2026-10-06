@@ -1,23 +1,10 @@
-"""The app's own accounts: one `users/<name>.json` document per player.
+"""CLI-created accounts persisted as users/<normalized-key>.json.
 
-Accounts are made from the CLI and never from a sign-up page
-(`docs/phase8.1-plan.md` 3.4), so nothing reachable from the web can
-create one. A password is only ever stored as a Werkzeug hash -- scrypt
-by default in Werkzeug 3 -- and the plaintext never reaches the store,
-the event log or a record.
-
-Everything else here leans towards convenience, on purpose (David,
-2026-09-17; CLAUDE.md, "Settled decisions"): a new account gets
-`DEFAULT_PASSWORD`, any non-empty password is accepted, and a player is
-asked once whether they want to change it. After that only David can,
-from the CLI.
-
-The login name is the player's identity, not just a credential: Phase
-8.2 writes it into `SeatRecord.label`, so a human's logbook follows the
-name across whichever suspect they sit as (`docs/architecture.md`,
-"Seats and player identity"). It is therefore stored as typed, and
-matched case-insensitively -- `David` and `david` are one account, and
-the account remembers which of the two to show.
+Account keys are case-insensitive identities reused in records/dossiers;
+display_name capitalizes separately. Passwords persist only as hashes.
+Private-game policy accepts nonempty passwords, defaults new accounts to
+password and offers a change once; later changes use CLI administration.
+Accounts also store look choice and MCP login epoch. See docs/web.md.
 """
 from __future__ import annotations
 
@@ -91,16 +78,11 @@ def normalise(name: str) -> str:
 
 
 def display_name(label) -> str:
-    """How a person's name is shown (Phase 9j): the account key, which
-    is lower-case, with the first letter of each part capitalised, parts
-    split at ``-``, ``_`` and ``.``: ``zenbot`` is shown as ``Zenbot``,
-    ``mary-jo`` as ``Mary-Jo``. Anything else stays as typed.
+    """Capitalize account-key parts for display without changing identity.
 
-    For display only. The key is what records, logbooks and seats are
-    stored under, and is never changed. A bot's label (a character, or
-    one of `RESERVED_NAMES` such as ``floor``) is returned untouched, so
-    this is safe on any seat label. None and empty come back as they
-    are."""
+    Parts split at -, _ and .; reserved bot/character labels are unchanged.
+    None/empty inputs pass through. Records and dossiers keep stored keys.
+    """
     if not label or str(label).lower() in RESERVED_NAMES:
         return label
     return re.sub(r"(^|[-_.])([a-z])", lambda m: m.group(1) + m.group(2).upper(), str(label))
@@ -211,8 +193,8 @@ def chosen_style(document):
 
 
 def style_of(document) -> str:
-    """The key of the look this account wears (Phase 9h): its choice,
-    or the default when it has made none."""
+    """Return the account's explicit look or current default when unchosen.
+    """
     return styles.style_named(chosen_style(document)).key
 
 

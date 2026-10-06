@@ -1,31 +1,11 @@
-"""A table with seats answered from outside the engine: who sits where,
-the players built for it, and a game driven through `engine.game_steps`
-that stops whenever such a seat has to decide (Phase 8.2,
-docs/phase8-plan.md 3.1).
+"""Flask-free resumable table driver for terminal and web seats.
 
-Every seat has a `SeatSpec`: a token, a kind, a label, and an LLM-only
-memory-depth dial. New setups default to remembering through the web
-registry; its memory snapshot joins the setup and entries for rebuilds.
-A character
-plays its own token, as it always has (`arena.seat_lineup`); a floor bot
-takes a free one; a *human* seat -- and in Phase 8.3 an LLM-piloted seat
-driven from here rather than from inside the engine -- has no player
-object at all and is listed in `game_steps`'s `external` set, so the
-generator yields a `DecisionRequest` for each of its decisions and waits.
-`TableGame` holds that generator, keeps the request it is stopped on as
-`pending`, and takes answers as plain data (`encode_answer` /
-`decode_answer`), checked before they are sent in: an answer that fails
-`engine.check_answer` inside the generator would finish it for everyone,
-so the check runs here first and a bad answer is only ever a refusal.
-
-Every answer becomes an *entry* in an ordered log, with the length of
-the event log at the moment it was applied. A game is deterministic per
-seed, every pause is deterministic given the entries before it, and a
-paused game is therefore fully described by its setup and its entries:
-`TableGame.rebuild` replays them into a fresh generator and lands on the
-same pause, which is how a web table survives a cold instance
-(`docs/architecture.md`, "Resumable"). Nothing here imports Flask; the
-CLI drives a terminal seat through the same class (``play --human``).
+SeatSpec/TableSetup assign tokens, kinds, labels and narrative depth.
+Human/LLM decisions are external DecisionRequests; TableGame validates them
+before sending into game_steps, so bad input cannot close the generator.
+Entries and snapshots describe each pause. Rebuild needs the same setup,
+entries and player/memory inputs; the web registry supplies persistence and
+memory I/O. Nothing here independently reads a logbook. See architecture.
 """
 from __future__ import annotations
 
@@ -360,7 +340,7 @@ def build_table(setup: TableSetup, llm_backend=None) -> tuple:
     seed, each floor bot with a private RNG from `fill_seed`, and every
     character told who it is sitting with -- humans by their labels, so
     White's per-opponent priors find them. External seats get no player
-    object. An ``llm`` seat (Phase 8.3a) gets an `LLMCharacter` in
+    object. An ``llm`` seat gets an `LLMCharacter` in
     `Table.wrappers`, reset and told the table like a character, when
     `llm_backend(seat)` is given to build its backend; without one -- a
     rebuild, which must never call a model -- the seat has no wrapper and
@@ -532,7 +512,7 @@ class TableSnapshot:
 
 
 class Speaker:
-    """An external seat's voice in the engine (Phase 8.3a): what
+    """An external seat's voice in the engine: what
     `game_steps` drains and makes hear in that seat's place.
 
     Live, it fronts the seat's `LLMCharacter`: the lines the wrapper
@@ -718,7 +698,7 @@ class TableGame:
             ``"llm"``, or ``"mcp"`` (a chat seat, Phase 9: a human seat
             answered through the MCP server, with no audit attached).
         audit : dict or None
-            An LLM seat's `Decision.to_dict()` for the entry (Phase 8.3a),
+            An LLM seat's `Decision.to_dict()` for the entry,
             which becomes the record's `llm_log` and rebuilds the
             wrapper's audit on a cold instance.
 
@@ -764,7 +744,7 @@ class TableGame:
                 self._publish()
 
     def llm_answer(self) -> None:
-        """Let the pending seat's LLM wrapper decide (Phase 8.3a): one
+        """Let the pending seat's LLM wrapper decide: one
         `choose_*` call on the request's own observation, within the
         character's leash and with the character as the fallback, stored
         as an entry with its audit and the lines it said, so a rebuild
@@ -799,7 +779,7 @@ class TableGame:
     def remark(self, seat: int, text: str, about: str = "chat", audit: Optional[dict] = None) -> None:
         """Append a line of table talk from an external seat as a
         `RemarkEvent`, logged as an entry so a rebuild puts it back at the
-        same place (Phase 8.3). Allowed only while the game is paused,
+        same place. Allowed only while the game is paused,
         which is the only time a driver holds it. `audit` is the model's
         `Decision.to_dict()` behind an off-turn line, stored so a rebuild
         can give it back to the wrapper (8.3d)."""
@@ -844,7 +824,7 @@ class TableGame:
         an entry like any other so a rebuild never needs the stand-in.
         `by` is what the entry says: ``"autopilot"`` for a seat handed
         over, ``"timeout"`` for a turn the stand-in played because its
-        person let the clock run out (Phase 9h)."""
+        person let the clock run out."""
         request = self.pending
         if request is None:
             raise TableError("nothing is waiting for an answer")

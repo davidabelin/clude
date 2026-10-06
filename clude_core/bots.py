@@ -1,11 +1,8 @@
-"""Uniform-random dumb bot -- Phase 1's only player. No inference.
+"""Uniform-random PlayerProtocol implementation for exercising rules.
 
-Implements `engine.PlayerProtocol`, ignoring the observation it is
-given. Suggestion and accusation probabilities are arbitrary constants
-tuned only so headless test games exercise every code path (refutation,
-elimination, a correct accusation) without an implausible number of
-turns; they carry no game-design meaning. For a dumb bot whose games
-actually end by deduction, see `clude_constraints.FloorBot`.
+Decision probabilities are test-data choices, not inference or tuned
+strategy. RandomBot draws from the engine RNG. Use FloorBot for purposeful
+self-play that gathers information and ends by deduction.
 """
 from __future__ import annotations
 

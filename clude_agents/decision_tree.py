@@ -1,45 +1,13 @@
-"""Mustard -- decision tree trained on self-play game logs.
+"""Mustard's smoothed regression tree over per-card game features.
 
-Built fresh (no legacy basis); needed a headless engine plus self-play to
-train on, which Phase 1 already provides. A hand-rolled CART-style
-regression tree (Gini-guided binary splits, smoothed leaf means) is
-trained once, per Mustard's character: pattern-matches what self-play
-looks like, and can be confidently wrong on a deal that doesn't
-resemble that training distribution -- e.g. once real LLM/human play
-replaces bots.
+The default tree trains lazily on FloorBot snapshots and is cached by
+hyperparameters. Gini-guided splits and m-estimated leaves predict raw
+scores; the deduction mask enforces impossibilities. Distribution mismatch
+can still make predictions confidently wrong.
 
-Notes
------
-Training data comes from `clude_training.self_play.generate_snapshots`
-(Phase 4). Since Phase 5b the default regime is `FloorBot` self-play
-(`training_bot="floor"`, docs/phase5-plan.md 4.1): games that end by
-deduction and carry information throughout, instead of the `RandomBot`
-plateau the Phase 4 tree learned. Two features were added at the same
-time that only smarter play makes informative: how many distinct
-suggesters have named a card, and how often it was named alongside
-cards the floor has already located (a probe). Retraining on richer
-play later (Phase 7's logbooks) is expected to change his behavior,
-not just his accuracy.
-
-Leaf values are m-estimates, ``(positives + m * base_rate) / (n + m)``
-with `smoothing_m` rows of the training set's base rate mixed in, so a
-leaf with no positive rows predicts a small number rather than exactly
-0 (Phase 5b, docs/phase5-plan.md 4.2). Hard zeros accounted for 69% of
-Mustard's Phase 4 log-loss and, once a character accuses on a product
-of category maxima, would have read as certainty. He stays
-miscalibrated -- that is the character -- but never *impossible*.
-
-The tree is trained lazily on first use and cached at module level
-(keyed by its hyperparameters), so repeated `DecisionTreeAgent()`
-construction -- e.g. inside Green's ensemble, `clude_agents/bandit.py`
--- doesn't retrain from scratch each time.
-
-Phase 7 memory: `extra_rows` (or `set_extra_rows`) appends rows built by
-`rows_from_view` from stored games to the self-play base before
-training. `clude_training.memory` keeps those rows in Mustard's logbook
-and loads them at table setup; a tree with memory is built per agent,
-not cached, and an agent with no extra rows uses the cached default, so
-nothing changes when memory is off.
+Stored-game extra_rows append to the self-play base and build a per-agent
+tree rather than altering the cached default. Empty memory uses the
+baseline. See docs/strategy-glossary.md and docs/logbooks.md.
 """
 from __future__ import annotations
 
@@ -411,7 +379,7 @@ class DecisionTreeAgent(SeededAgentMixin):
         m-estimate weight for leaf values; 0 restores plain means (and
         hard zeros).
     extra_rows : iterable of (features, label) or None
-        Memory rows (Phase 7) appended to the self-play base before
+        Memory rows appended to the self-play base before
         training; see `rows_from_view` and `set_extra_rows`.
     """
 

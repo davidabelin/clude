@@ -1,30 +1,9 @@
-"""Unified maintainer CLI: play, trace, inspect, benchmark, train, and
-run the arena for clude's headless pieces from the terminal.
+"""Maintainer CLI for play, inspection, measurement and administration.
 
-Every subcommand is headless and deterministic for a given ``--seed``,
-so anything printed here can be reproduced exactly and pasted into a doc
-or a bug report. Mirrors ``rps/scripts/rps_cli.py``'s subcommand shape.
-See docs/cli.md for what each command shows and how to read it.
-
-Usage
------
-    python scripts/clude_cli.py --help
-    python scripts/clude_cli.py agents
-    python scripts/clude_cli.py play --players 4 --seed 1 --verbose --hands
-    python scripts/clude_cli.py play --roster Scarlett,Plum,Peacock,floor --verbose
-    python scripts/clude_cli.py trace --seed 1 --viewer 0 --agents Plum,Scarlett
-    python scripts/clude_cli.py floor --seed 1 --viewer 0 --at 10
-    python scripts/clude_cli.py floor --seed 1 --convergence
-    python scripts/clude_cli.py benchmark --games 20 --show-green --json data/exports/bench.json
-    python scripts/clude_cli.py train-mustard --games 50 --max-depth 8 --render
-    python scripts/clude_cli.py snapshots --games 40 --bot floor
-    python scripts/clude_cli.py arena --games 24 --store data
-    python scripts/clude_cli.py sweep --dial accuse_threshold --values 0.3 0.6 0.9
-    python scripts/clude_cli.py store --uri data --list
-    python scripts/clude_cli.py store copy --uri data/llm --to gs://clude-game-data/llm --dry-run
-    python scripts/clude_cli.py play --roster Plum,Mustard,Green --store data/llm
-    python scripts/clude_cli.py logbook list --uri data/llm
-    python scripts/clude_cli.py logbook show --uri data/llm --identity Plum --memory 0.5
+Numerical games reproduce with fixed code, seed, weights and memory;
+real model replies/timings and account/storage operations do not. Commands
+can read/write local or live stores; clude.bat has distinct live defaults.
+Use --help for flags and docs/cli.md for workflows/side effects.
 """
 from __future__ import annotations
 
@@ -135,8 +114,8 @@ than imported so that the CLI still runs without Flask installed;
 
 
 def _player_label(state, player: int, labels=None) -> str:
-    """``P2 White``, or ``P2 White (Plum)`` when a different character
-    occupies the White token."""
+    """Render token plus occupant, e.g. P2 White (david).
+    """
     return seat_label(state.suspects_in_play, player, labels)
 
 
@@ -169,7 +148,8 @@ def _add_game_args(parser: argparse.ArgumentParser) -> None:
 
 
 def _add_llm_args(parser: argparse.ArgumentParser) -> None:
-    """The Phase 6 flags: pilot the roster's characters with an LLM."""
+    """Add backend/model/filter flags for LLM-piloted character seats.
+    """
     parser.add_argument(
         "--llm", action="store_true",
         help="Wrap every character seat in an LLMCharacter (docs/phase6-plan.md).",
@@ -216,7 +196,8 @@ def _llm_kwargs(args) -> dict:
 
 
 def _add_logbook_args(parser: argparse.ArgumentParser) -> None:
-    """The Phase 7 flags: give every character its logbook."""
+    """Add explicit memory-store, read-only and character-filter flags.
+    """
     parser.add_argument(
         "--logbook", nargs="?", const="", default=None, metavar="URI",
         help="Give every character its logbook from this store (with no URI, the --store "
@@ -1606,11 +1587,10 @@ def cmd_tables_costs(args) -> int:
 
 
 def cmd_users_add(args) -> int:
-    """Create an app account (Phase 8.1; docs/phase8.1-plan.md 3.4).
+    """Create an account and print its supplied/default password.
 
-    No prompt: the password defaults to `users.DEFAULT_PASSWORD` unless
-    one is given, and it is printed so it can be passed on (David,
-    2026-09-17 -- convenience over secrecy for this project).
+    No prompt: omitted password uses users.DEFAULT_PASSWORD. See Web
+    account policy; only the hash is written to the selected store.
     """
     from clude_web import users as web_users
 
@@ -1989,7 +1969,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     users_sub = users_p.add_subparsers(dest="action", required=True)
     for action, fn, blurb in (
-        ("add", cmd_users_add, "Create an account; prompts for the password."),
+        ("add", cmd_users_add, "Create an account; omitted password defaults to password."),
         ("list", cmd_users_list, "Every account in the store."),
         ("passwd", cmd_users_passwd, "Change an account's password."),
         ("remove", cmd_users_remove, "Delete an account."),

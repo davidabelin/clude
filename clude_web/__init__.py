@@ -1,19 +1,9 @@
-"""clude's web app: the Flask scaffold in front of the headless game.
+"""Flask application factory: configuration, stores, routes and login gate.
 
-`clude_web` imports every other package and nothing imports it
-(`docs/architecture.md`), so the engine, the agents and the store stay
-exactly as testable headless as they were.
-
-Run it locally with Flask's own loader, which finds `create_app`::
-
-    & .venv\\Scripts\\python.exe -m flask --app clude_web run --debug
-
-It needs a session secret in `FLASK_SECRET_KEY` (the environment, or the
-gitignored `.env`; see `config.secret_key`) and at least one account,
-made with ``clude_cli.py users add NAME``.
-
-On Cloud Run the `Dockerfile` serves it with gunicorn's factory form,
-``gunicorn "clude_web:create_app()"`` (`docs/web.md`, "Deploying").
+Local browser-only serving: python -m flask --app clude_web run --debug.
+Cloud Run and local MCP serving use clude_web.mcp.combined_app, sharing one
+registry with Flask. A stable session secret and CLI-created account are
+needed outside tests. See docs/web.md for settings and deployment.
 """
 from __future__ import annotations
 
@@ -46,22 +36,18 @@ def _llm_config(app_config, testing: bool):
 
 
 def create_app(settings=None) -> Flask:
-    """Build the app.
+    """Build Flask, its store and the shared table registry.
 
     Parameters
     ----------
     settings : dict or None
-        Overrides, for tests and for 8.1b. ``STORE_URI`` picks the record
-        store, ``SECRET_KEY`` the session secret, ``TESTING`` relaxes the
-        secret to an ephemeral one; ``LLM_KEY``, ``LLM_MODEL``,
-        ``LLM_BUDGET``, ``LLM_DAILY_CAP`` and ``LLM_BACKEND`` (a
-        ``(model, key) -> backend`` factory) configure model seats
-        (Phase 8.3a; outside tests the key and the caps default to the
-        environment, `config.anthropic_key` and friends, and under
-        ``TESTING`` only what is passed counts, so a test never finds the
-        developer's key); anything else is passed straight to Flask's
-        config, so `SESSION_COOKIE_SECURE` and friends can be set from
-        outside.
+        ``STORE_URI`` selects storage; ``SECRET_KEY`` overrides the session
+        secret. ``TESTING`` permits an ephemeral secret only when none is
+        configured, and prevents discovering an ambient LLM key.
+        ``LLM_KEY``, ``LLM_MODEL``, ``LLM_BUDGET``, ``LLM_DAILY_CAP`` and
+        ``LLM_BACKEND`` (a ``(model, key) -> backend`` factory) configure model
+        seats. Remaining keys override Flask config. See config.py for
+        environment/file fallbacks.
 
     Notes
     -----

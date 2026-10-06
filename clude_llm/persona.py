@@ -1,12 +1,7 @@
-"""Personas: who each character is when it speaks (Phase 6).
+"""Load executable persona Markdown and shared rules for system prompts.
 
-A persona is prose, one Markdown file per suspect in `personas/`
-(`Scarlett.md`, ...), plus `rules.md`, the standing rules every character
-gets. The files are the source of truth so a voice can be tuned without
-touching code; a suspect without a file gets a one-line default built
-from its `AgentSpec.description`. Persona prose carries voice and
-self-image; the numbers carry the behaviour ("don't encode the flaw
-twice", docs/phase6-plan.md).
+Exact text contributes to recording/replay keys. A prose edit can change
+model behavior and invalidate fixtures; refresh only after spend approval.
 """
 from __future__ import annotations
 

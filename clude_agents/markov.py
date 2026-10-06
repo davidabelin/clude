@@ -1,53 +1,16 @@
-"""White -- Markov model over opponents' suggestion patterns.
+"""White's repeat/new Markov model over opponents' suggestions.
 
-Starting point: `legacy/opponent_model.py`'s heuristic ("a player who
-repeats a card probably doesn't hold it"), reworked into an actual
-first-order Markov chain and its documented-inversion bug fixed (the
-legacy README flags `estimated_knowledge` as ambiguous between "knows
-where it is" and "probably doesn't hold it" -- this module commits to
-one direction, stated below).
+A repeat names any card that opponent previously named. A smoothed
+first-order chain estimates repeat probability; repeated unresolved cards
+gain envelope suspicion. This direction is a heuristic, not a deduction.
+Every unresolved card starts at raw score 1, avoiding hard zeros for
+unnamed cards. The chain is reconstructed from visible history each call;
+reset/observe do not learn outcome feedback.
 
-For each opponent, encodes their suggestion history as a sequence of
-repeat(1)/new(0) symbols -- did this suggestion re-name at least one
-card they'd already named before, or was it all new cards -- and fits a
-two-state first-order Markov chain to it. A player currently in a
-high-P(repeat) regime is read as still fishing for information about
-those cards (hasn't been shown them, doesn't hold them), which raises
-suspicion toward the *envelope* for cards they keep re-naming without
-resolution. This is White's character: he reads suggestion behavior, not
-card content -- strong on who's close to solving, weak on the envelope
-itself if a player's pattern is atypical (a chatty human, say).
-
-Notes
------
-Recomputes from scratch every call from `obs.suggestion_log`; `reset`/
-`observe` are no-ops. Direction of the heuristic (repeats raise, not
-lower, suspicion for envelope) is a stated modeling choice, not a
-derived fact -- see module docstring above.
-
-Absence of evidence (changed in Phase 5b, docs/phase5-plan.md 4.3):
-every still-unresolved card starts at the floor's uniform prior (raw
-score 1) and the Markov evidence is *added* on top, so a card no
-opponent has named yet is merely unsuspicious, not impossible. Before
-this, such cards scored exactly 0 and accounted for 79% of White's
-log-loss in the Phase 4 benchmark. The method itself is unchanged.
-
-`ClueBelief.extra` also carries per-opponent ``repeat_probability`` and
-a ``closeness`` proxy (how much evidence that opponent has been shown:
-each refuted suggestion of theirs showed them one card, each unrefuted
-one proved them up to three, squashed to [0, 1)). Nothing consumes
-``closeness`` yet; it is there so an `urgency` dial has something to
-read if one is ever added.
-
-Phase 7 memory: the chain's Laplace prior (one phantom count per
-transition cell) can be replaced, per opponent *identity*, by the
-transition frequencies that identity showed in earlier games
-(`prior_cells`), at the same total mass by default, so the live
-sequence weighs exactly as it did and only the starting shape of the
-chain is informed. `priors` maps a roster label to its `transition_counts`
-summed over stored games (`clude_training.memory` keeps them in White's
-logbook); `set_table` says which label sits in which seat this game.
-With no priors, or no table, nothing changes.
+Remembered per-identity transition counts reshape the fixed-mass prior;
+set_table maps labels to seats. Without priors/table, the baseline stands.
+Extra reports repeat_probability and a closeness proxy. See the glossary
+for assumptions and docs/logbooks.md for persistent memory.
 """
 from __future__ import annotations
 

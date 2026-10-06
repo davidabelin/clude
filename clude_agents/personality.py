@@ -1,34 +1,10 @@
-"""Personality profiles: the numeric dials that turn a character's
-belief into choices (Phase 5c), the two Phase 6 dials that govern how
-an LLM pilots the same character, and the Phase 7 dial that sets how
-much of its own logbook it reads back before a game.
+"""Eight numeric Profile dials and the six suspect presets.
 
-A `Profile` is all-numeric and slider-ready. Each dial owns exactly one
-engine decision and is meant to move exactly one arena metric
-(docs/phase5-plan.md, section 3); a dial that fails to move its metric
-monotonically in a sweep gets cut, not tuned.
-
-| Dial | Decision | Meaning | Metric it should move |
-|---|---|---|---|
-| `accuse_threshold` | accusation | accuse once P(correct) reaches this | wrong-accusation rate, turn of first accusation |
-| `bluff_rate` | suggestion | P(naming one of my own cards instead of an honest pick) | own cards named in suggestions |
-| `curiosity` | movement | 1 = chase the most probable room, 0 = enter the nearest room | (with the rest) win rate |
-| `secrecy` | card to show | 1 = re-show what this player has already seen, 0 = indifferent | own cards leaked |
-| `temperature` | all three sampled decisions | softmax temperature over scores in [0, 1]; 0 = greedy | win rate (down as it rises) |
-| `leash` | every LLM-piloted decision (Phase 6) | how far below its method's best-scored option an LLM character may pick: 0 = only the headless pick, 1 = any legal option; also widens the accusation window symmetrically around `accuse_threshold` | deviation rate; wrong-accusation rate against the headless twin |
-| `chattiness` | table talk (Phase 6) | P(a line the LLM offered is actually said) | remarks per game |
-| `memory` | logbook read-back (Phase 7) | how much of its own logbook an LLM-piloted character reads before a game: 0 = the head only (standing instructions, dossiers on the opponents present, tally), 0.5 = plus every entry's summary and flags, 1 = every entry in full | tokens per game; win rate against depth |
-
-How the first five are consumed is in `clude_agents.character`; the
-headless `Character` ignores `leash`, `chattiness` and `memory`, which
-only `clude_llm.LLMCharacter` reads (docs/phase6-plan.md,
-docs/phase7-plan.md). The six presets
-below are the intended flavors from CLAUDE.md as a first pass, tuned in
-Phase 5e against the arena (`docs/strategy-glossary.md`); the two Phase 6
-dials start at their defaults for everyone until 6d's sweep. Mustard and
-White stay on the neutral `accuse_threshold` deliberately, so that any
-wrong accusation of theirs is attributable to their belief method, not
-to a dial (the "don't encode the flaw twice" rule).
+accuse_threshold, bluff_rate, curiosity, secrecy and temperature govern
+Character decisions. leash/chattiness/memory govern LLM discretion, talk
+and narrative depth. Curiosity is inert for Plum's policy movement hook.
+Unit dials lie in [0, 1]; temperature is nonnegative. Defaults/presets are
+code configuration; dated tuning evidence belongs in the strategy glossary.
 """
 from __future__ import annotations
 

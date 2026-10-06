@@ -1,145 +1,42 @@
 # Strategy Glossary (Developer)
 
-Links each suspect to their implementation module and documents the method
-in plain language, then the personality dials that turn each method's
-belief into moves and what the arena measured (Phase 5).
+This guide explains methods and preserves dated measurement evidence. Beliefs cover 21 cards and normalize separately within suspect/weapon/room categories; hard deductions always override method estimates. [Architecture](architecture.md) owns API/data-flow details.
 
-Belief encoding used throughout: each agent returns a distribution over the
-21 cards (6 suspects, 6 weapons, 9 rooms), already masked and renormalized
-against the shared deduction floor (`clude_constraints`). Reading `belief[c]`
-is "probability card `c` is in the envelope" unless noted otherwise.
+**Reading historical results:** measurements before 2026-09-15 used the ring board; earlier Phase 5/6 seating also rotated characters through tokens. Classic-grid sections supersede those baselines. All measured Plum results below describe the enumeration agent now called **PlumOG**, and Green then included that arm. The current network's smoke runs have not established a trained replacement or revalidated presets. Tables, commands, dates, sample counts and limitations remain as evidence, not recommendations to spend.
 
-**Every measurement below dated before 2026-09-15 was made on the ring
-board** (nine rooms in a cycle, four-cell corridors, "up to" the roll, a
-free "stay" every turn; `docs/board.md`, "History"). That day the engine
-moved to the Classic grid and rules, which changes game length, room
-visits and the parking mechanism, so those numbers describe the old
-game. The re-run is Phase 8.0 (`docs/phase8.0-plan.md`; its "Stage 1a"
-is step 8.0.1a, and so on): each step appends a dated section here
-beside the one it supersedes, and the presets were retuned on the grid
-on 2026-09-15 ("Tuned presets on the grid", below).
+## Current Plum -- policy and belief network
+
+Module: `clude_agents/deep_nash.py`. NumPy inference supplies masked envelope beliefs, movement/honest suggestion scores and value. The trainer uses a regularised Nash-dynamics variant over mixed self-play; this is not a proved equilibrium solver for multiplayer Clue. Character retains accusation, bluffing and show logic; curiosity is inert for Plum's movement hook.
+
+Committed `weights/plum.npz` still contains seeded initial weights. N4 smoke runs improved belief after adding a replay buffer, while policy improvement remained weak; nothing was exported. [Phase 12](deepnash-plan.md) retains the run record, calibration/dial requirements and acceptance ladder. Do not apply PlumOG's timing, menu-width, parking or win-rate claims to this agent.
 
 ## Scarlett -- Naive Bayes
 
-- Module: `clude_agents/naive_bayes.py`
-- Legacy basis: `legacy/belief_tracker.py`, demoted (see `docs/architecture.md`
-  for why: row-normalized marginals can't express joint hand constraints,
-  which is wrong for an exact posterior but is Scarlett's actual character).
-- Summary: Starts every card at raw score 1, then applies a
-  multiplicative, independence-assuming boost or decay per suggestion:
-  an unrefuted suggestion boosts its three cards (`x2`, nobody could show
-  them); a suggestion refuted by an unknown card decays them (`/1.5`,
-  someone holds one, so each is individually less likely to be the
-  envelope's). No joint accounting across suggestions -- that's the
-  "naive" part, and it's what lets repeated unrefuted evidence compound
-  into overconfidence. Measured: worse than the uniform baseline at every
-  checkpoint of a FloorBot game (table below), the only method that is.
+Module: `clude_agents/naive_bayes.py`, informed by the legacy belief tracker. Start raw scores at 1; unrefuted suggestions boost named cards, unknown-card refutations decay them. Independence ignores joint hand constraints, so repeated evidence compounds into overconfidence. The floor masks/normalizes the result. This is intentionally approximate, not an exact posterior.
 
 ## Plum -- Exact posterior enumeration
 
-- Module: `clude_agents/exact_enum.py`
-- Legacy basis: none; built fresh.
-- Summary: A real backtracking CSP search over every still-unresolved
-  card, respecting hand-size capacity, the one-envelope-card-per-category
-  rule, and `mask.or_constraints` jointly. Counts how many complete,
-  consistent deals place each card in the envelope; that count, per
-  card, is the exact marginal. Falls back to randomized-constructive
-  rejection sampling once the search exceeds a 200,000-node budget --
-  noisier, and biased toward whichever construction order happens to
-  survive, which is an honest approximation rather than a fix. Verified
-  against an independent brute-force enumerator in `tests/test_agents.py`.
-  Measured: the best or joint-best belief at every checkpoint, and by far
-  the most expensive -- about 450 ms per call on early FloorBot snapshots,
-  where he falls back to sampling in nearly half of his calls. On the
-  Classic board he falls back that often too, and the noise costs him
-  enough that his sample budget was raised to 10,000 on 2026-09-15
-  ("Tuned presets on the grid").
+**Historical PlumOG**, module `clude_agents/exact_enum.py`, archived/unregistered since 2026-10-05. Backtracking counts complete deals consistent with holder sets, hand capacities, category rules and joint OR constraints. The exact branch is checked against independent brute force. A 200,000-node limit triggers constructive rejection sampling; construction order can bias samples. The Classic-grid sample budget was raised to 10,000. Older claims of strong belief and expensive/noisy calls apply to this implementation only.
+
+The Phase 5 ring-board baseline cost about 450 ms per call; retain this as historical timing, not a measurement of the network.
 
 ## Peacock -- Dempster-Shafer belief/plausibility
 
-- Module: `clude_agents/dempster_shafer.py`
-- Legacy basis: none; built fresh.
-- Summary: Per category, starts from a vacuous mass function over all
-  still-possible envelope candidates and combines in one piece of
-  evidence per `mask.or_constraint` via Dempster's rule -- each
-  constraint's "this holder has at least one of these cards" burden is
-  apportioned across the categories it touches, in proportion to how
-  many of its cards fall in that category (a stated modeling choice, not
-  a theorem -- see the module docstring). Reports the pignistic
-  transform (BetP) as the probability, and raw Belief/Plausibility
-  bounds in `ClueBelief.extra` -- literally the two-tone belief bar from
-  the visual design notes (`CLAUDE.md`). Her *character* accuses on the
-  Belief bound, not on BetP (see the dials below). Measured: on
-  FloorBot snapshots her BetP is slightly worse than uniform at every
-  checkpoint, so the apportioning rule is the first thing to revisit if
-  she is ever meant to be a stronger reasoner; nothing depends on it yet.
+Module: `clude_agents/dempster_shafer.py`. Per-category vacuous mass is combined with unresolved OR evidence. Cross-category apportioning is a modeling choice. Masked pignistic probabilities are the common belief; lower Belief/upper Plausibility remain diagnostics. Accusation uses the lower bound, so caution comes from the method rather than an extra artificial flaw. Historical weak benchmark results do not justify replacing the algorithm silently.
 
 ## Mustard -- Decision tree on game logs
 
-- Module: `clude_agents/decision_tree.py`
-- Legacy basis: none; built fresh. Trained on `clude_training.self_play`
-  snapshots -- since Phase 5, `FloorBot` self-play (games that end by
-  deduction) rather than the `RandomBot` regime Phase 4 used.
-- Summary: A hand-rolled CART-style regression tree (Gini-guided binary
-  splits), trained once and cached at module level, on eight engineered
-  per-card features (remaining possible-holder count, or-constraint
-  involvement, times named [un]refuted, turn fraction, category size,
-  distinct namers, named beside located cards). Leaf values are
-  m-estimates -- three phantom rows at the training base rate mixed into
-  each leaf -- so a leaf with no positive rows predicts about 0.001, not
-  0.0 (Phase 5b; hard zeros were 69% of his Phase 4 log-loss and would
-  have read as certainty to the accusation test). Predicts each
-  still-unresolved card's envelope probability from whatever pattern the
-  training games happened to show: measured, that means the best belief
-  of all six at the end of a game and the worst mid-game, where he is
-  confidently wrong (log-loss 1.50 against uniform's 1.36 at the halfway
-  checkpoint). The tree splits ten times on `turn_fraction`, six on
-  `possible_holders_frac`, twice on `distinct_namers`, and not yet on
-  `named_beside_located`.
+Module: `clude_agents/decision_tree.py`. Gini-guided regression splits on eight per-card features; smoothed leaf means avoid hard zeros. Default training uses FloorBot snapshots and a hyperparameter-keyed lazy cache; stored-game extra rows fit a per-agent tree. Richer data changes the learned patterns. Calibration and unfamiliar-deal errors remain distinct from logical impossibility, which the floor handles.
 
 ## Green -- Bandit ensemble over the other five
 
-- Module: `clude_agents/bandit.py`
-- Legacy basis: ports from `rps_agents/heuristic/multi_armed_bandit.py`
-  (Thompson sampling over predictor arms).
-- Summary: A Beta(alpha, beta) posterior per arm -- the other five
-  agents, queried every turn -- decayed toward its prior each `observe`
-  call like `rps`'s bandit. Samples each arm's posterior and plays the
-  single highest-sampled arm's belief outright (no blending). `observe`
-  takes a `RevealedOutcome` (the solved envelope) and, since Phase 5b,
-  scores the arms by *rank* on that snapshot: lowest log-loss 1, highest
-  0, linear in between. The Phase 4 reward (mean probability on the
-  three true cards) was dominated by the shared floor, so all five arms
-  sat within a percent of each other and he picked among them at
-  random; with ranks his arms separate by about 0.4 in posterior mean
-  over 60 games and he ends up trusting Plum and Mustard (0.71, 0.69)
-  over White (0.46), Peacock (0.35) and Scarlett (0.29) -- the same
-  order the benchmark ranks them at game end. Only as good as whichever
-  arm currently looks best, and as slow as Plum plus everyone else.
+Module: `clude_agents/bandit.py`, shaped after rps's bandit. Decaying Beta posteriors are Thompson-sampled; the selected arm supplies its belief without blending. Revealed-envelope feedback ranks arm log-loss rather than rewarding an absolute score dominated by the floor. He receives feedback per snapshot in benchmarks, per game in arenas, and can persist posteriors. Historical arm shares used PlumOG; the current ensemble uses the network and needs new measurement.
+
+In the Phase 5 ring-board benchmark, his arms separate by about 0.4 in posterior mean over 60 games: Plum and Mustard (0.71, 0.69) over White (0.46), Peacock (0.35) and Scarlett (0.29). These are the historical arms, not a ranking of the current ensemble.
 
 ## White -- Markov model over suggestion sequences
 
-- Module: `clude_agents/markov.py`
-- Legacy basis: `legacy/opponent_model.py`, starting point -- its
-  documented ambiguity (does high `estimated_knowledge` mean "knows
-  where it is" or "probably doesn't hold it"?) is resolved here: this
-  module commits to the latter.
-- Summary: Encodes each opponent's suggestion history as a repeat(1)/
-  new(0) symbol sequence (did this suggestion re-name a card they'd
-  already named?) and fits a two-state first-order Markov chain to it.
-  A player currently in a high-P(repeat) regime is read as still
-  fishing -- hasn't been shown those cards, doesn't hold them -- which
-  raises suspicion toward the envelope for cards they keep re-naming
-  without resolution. Since Phase 5b every still-unresolved card starts
-  at the floor's prior and the Markov evidence is added on top, so a
-  card nobody has named yet is merely unsuspicious rather than
-  impossible (those hard zeros were 79% of his Phase 4 log-loss).
-  Measured: the change plus the FloorBot regime, where players do
-  re-name what they haven't resolved, turned him from the worst belief
-  of the six into the second-best mid-game. `ClueBelief.extra` also
-  carries per-opponent `repeat_probability` and a `closeness` proxy (how
-  much each opponent has been shown), unconsumed until an `urgency` dial
-  exists.
+Module: `clude_agents/markov.py`, informed by the old opponent heuristic. Each opponent's suggestion sequence is repeat/new; a first-order chain adds suspicion to repeatedly named unresolved cards. Every unresolved card starts at raw score 1, so unmentioned means unsuspicious rather than impossible. Repetition as envelope evidence is a heuristic, not a deduction. Current-game chains reconstruct from visible history; remembered identity counts reshape a fixed-mass prior. Extra closeness/repeat diagnostics are not an implemented urgency dial.
 
 ## Belief benchmark, FloorBot regime (Phase 5)
 
@@ -429,14 +326,7 @@ accusations, and White, Peacock and Plum at zero.
 
 ## Phase 6: LLM-piloted characters
 
-The wrapper (`docs/llm-wrapper.md`) lets a model choose within a leash
-of each character's own scores and adds table talk; the design and the
-four decisions behind it are in `docs/phase6-plan.md`. On fake backends,
-a backend that never answers reproduces every character golden byte for
-byte, and an adversarial one with full rope cannot move an event. Two
-dials joined `Profile`: `leash` (0.25 for everyone) and `chattiness`
-(0.5). The live measurements below, on Opus 5, left both where they
-were.
+[LLM wrapper](llm-wrapper.md) owns menu/fallback semantics. These ring-era Opus 5 runs measured the original characters with leash 0.25/chattiness 0.5; both defaults stood. Fake-backend equivalence is separate evidence from the live results below.
 
 ### Twin comparison (2026-09-13)
 
@@ -1493,7 +1383,7 @@ corridor more often, and suggestions per game fall by a third, which is
 the wasted ones going: every game still ends in a correct accusation.
 
 **Kept.** The goldens in `tests/test_character.py` were re-captured and
-both LLM fixtures re-recorded ($0.26); the open question in `CLAUDE.md`
+both LLM fixtures re-recorded ($0.22 actual against $0.26 quoted); the open question in `CLAUDE.md`
 closes as answered. Not run: 2c and 2d, the paid ladders, which measure
 the model where the mechanism was the leash. The first form's runs stay
 in the store as the record of the overshoot.

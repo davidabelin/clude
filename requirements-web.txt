@@ -1,26 +1,14 @@
-# What the Cloud Run image installs (the Dockerfile), and nothing more.
-# The web app needs Flask (with Werkzeug and Jinja), gunicorn to serve it,
-# google-cloud-storage for its gs:// store and, since Phase 8.3a, the
-# anthropic SDK for the model seats at a table, which the service reaches
-# with the key Secret Manager hands it (docs/web.md, "Deploying").
-# requirements.txt is the developer's list and adds the test runner and
-# Playwright. Since Phase 9 the image also serves an MCP endpoint beside
-# the Flask app (clude_web.mcp.combined_app): mcp is the server SDK
-# (2.x, with Starlette), asgiref bridges Flask into the ASGI app, and
-# uvicorn is the worker gunicorn runs it under.
+# Cloud Run runtime only. Developer/test/training tools are in requirements.txt.
 flask>=3.1
 gunicorn>=23.0
-# Plum's forward pass (clude_agents.deep_nash, Phase 12): the one
-# numerical dependency the agents have. Training (scripts/train_plum.py)
-# needs torch, which is a developer's dependency and never installed here.
+# Plum inference; PyTorch training stays outside the image.
 numpy>=2.0
 google-cloud-storage>=3.0
 anthropic>=1.5
+# MCP SDK, Flask-to-ASGI bridge and gunicorn's ASGI worker.
 mcp>=2.0
 asgiref>=3.8
 uvicorn>=0.30
-# Wikiclude (clude_web.wiki, D20): Python-Markdown renders the articles
-# and latex2mathml their mathematics, to MathML, once at start-up. Both
-# are pure Python.
+# Article/MathML renderers at app startup.
 markdown>=3.6
 latex2mathml>=3.77

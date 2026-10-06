@@ -1,46 +1,14 @@
-"""Self-play rollouts for training Plum (Phase 12, N4;
-`docs/deepnash-plan.md` 3.2).
+"""Gather whole-game Episodes for Plum's policy/value/belief training.
 
-The training script (`scripts/train_plum.py`, torch) never touches the
-engine: it hands this module a set of weights and a list of game seeds,
-and gets back one `Episode` per network seat per game, holding every
-decision that seat made as the numbers the network saw and the option
-it took, the seat's reward, and the envelope the game turned out to
-hide. Workers in a process pool run `play_games`; nothing here needs
-torch, so the pool imports only what the agents already do (numpy).
+RecordingPlum samples network policies through the real rules engine. Mixed
+population games include self-play, other characters and FloorBot. Episodes
+carry per-seat encoded states, candidates/actions, envelope, outcome reward
+and deduction bits; reward belongs to the recorded seat. Shaping is optional
+and defaults to zero because it can reward information without winning.
 
-The seat that records is `RecordingPlum`, a `Character` over a
-`DeepNashAgent` with the given weights. It plays the accusation and the
-card to show exactly as the deployed Plum does, and the bluff coin flip
-comes first as it does for him, so that the only difference between a
-training seat and the table's Plum is the sampler: a training seat
-draws its move and its suggestion cards from the network's own
-distribution (softmax of the logits at `RolloutConfig.policy_temperature`,
-1 by default), so that the policy gradient is on-policy and the
-exploration is the policy's own, where the deployed Plum runs the
-`Character`'s sharpening sampler over the same distribution
-(`DeepNashAgent.choose_destination`). What is learned is the
-distribution; what is played is its peak.
-
-The population (David's third answer, 2026-10-05): with probability
-`self_play` every seat at a table is the current network; otherwise each
-seat is drawn from the network, the five other characters and the floor
-bot, each character at most once and at its own token, with at least
-one network seat so the game yields something. Table sizes cycle 3 to 6
-as `self_play.generate_snapshots` cycles them.
-
-Rewards are the outcome alone: +1 for the seat that wins, -1 for a seat
-put out by a wrong accusation, 0 otherwise (a game that hits the turn
-cap is 0 for everyone). Dense signal comes from the belief head's
-cross-entropy against the envelope, which every sample carries, and
-from the regulariser the learner adds (both in the training script).
-Each episode also carries `gains`: at every belief step, the bits the
-seat's floor gained since its last turn on the certainty tag's scale
-(`clude_agents.character.certainty`: 0 at a uniform guess over the 324
-triples, 1 at certain), so a game's gains sum to at most 1. The learner
-may add them to the reward, scaled by ``--shaping``, as a dense
-stand-in for the outcome while the policy cannot yet end a game; off
-by default, since the plan's reward is the outcome.
+Workers use deterministic task seeds and return task order. This module uses
+NumPy inference, not PyTorch; scripts/train_plum.py owns fitting/export.
+See docs/deepnash-plan.md for losses, replay buffer and smoke limitations.
 """
 from __future__ import annotations
 
@@ -57,9 +25,9 @@ from clude_agents.character import N_TRIPLES, Character
 from clude_agents.deep_nash import DeepNashAgent, encode_choices, move_scores
 from clude_agents.features import room_features
 from clude_agents.personality import Profile
+from clude_constraints import ENVELOPE
 from clude_core import engine
 from clude_core.domain import ROOMS, SUSPECTS, WEAPONS
-from clude_constraints import ENVELOPE
 from clude_core.events import GameOverEvent
 from clude_core.state import ClueObservation
 
@@ -370,6 +338,8 @@ class RolloutStats:
 
     @classmethod
     def of(cls, episodes: list) -> "RolloutStats":
+        """Tally `episodes`: games are counted once however many network
+        seats they held, wins and outs per episode."""
         stats = cls()
         seen: set = set()
         for ep in episodes:
@@ -387,6 +357,9 @@ class RolloutStats:
         return stats
 
     def to_dict(self) -> dict:
+        """The tally as the curve file's ``rollout`` entry: counts, mean
+        turns, the network's win and out rates, and its win rate in the
+        mixed games alone (None when there were none)."""
         return {
             "games": self.games,
             "episodes": self.episodes,

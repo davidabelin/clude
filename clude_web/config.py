@@ -1,10 +1,10 @@
-"""Where the web app gets its secret, its store and its cookie policy.
+"""Resolve web settings from environment and selected .env fallbacks.
 
-Nothing here reads a credential from the repo. The session secret comes
-from the environment (and, locally, from the gitignored `.env` as a
-convenience); the store is reached exactly as `clude_storage` reaches it
-everywhere else, which on Cloud Run means the service's own identity and
-no key file at all (`docs/phase8.1-plan.md` 3.4).
+Secrets/model key/MCP path/public URL have direct file fallbacks; store,
+HTTPS, model and budgets read environment defaults. Flask's CLI may load
+.env separately through python-dotenv; direct scripts do not export it.
+Cloud Run uses environment/Secret Manager and runtime GCS identity.
+See docs/web.md for the configuration table.
 """
 from __future__ import annotations
 
@@ -24,17 +24,15 @@ HTTPS_ENV = "CLUDE_WEB_HTTPS"
 """Set to 1 wherever the app is served over HTTPS, so the session cookie
 is marked `Secure`. Left unset for a local http server, which would
 otherwise never receive the cookie back. The Cloud Run deploy sets it
-(`docs/phase8.1-plan.md` 3.6)."""
+(see docs/web.md)."""
 
 DEFAULT_STORE = "data/llm"
-"""Every grid-era run lives here (CLAUDE.md, "Environment and how to
-run"), so the replay list is the real one out of the box."""
+"""Default local record/logbook/account store."""
 
 KEY_ENV = "ANTHROPIC_API_KEY"
-"""The workspace-scoped key for LLM seats on the web (Phase 8.3a). On
-Cloud Run it arrives from Secret Manager; locally the `.env` fallback
-serves, as for the session secret. Without it the lobby disables LLM
-seats and nothing reachable from the URL can spend."""
+"""Service key for LLM seats: environment first, then .env.
+Without a key the lobby disables LLM seats. Cloud Run uses Secret Manager.
+"""
 
 BUDGET_ENV = "CLUDE_WEB_LLM_BUDGET"
 """Dollars one table may spend with Claude, the lobby form's default."""
@@ -44,7 +42,7 @@ DAILY_CAP_ENV = "CLUDE_WEB_LLM_DAILY_CAP"
 
 DEFAULT_BUDGET = 2.0
 DEFAULT_DAILY_CAP = 10.0
-"""David's 8.3 budgets (docs/phase8-plan.md 9)."""
+"""Approved table/day defaults; see docs/web.md for metering limits."""
 
 MODEL_ENV = "CLUDE_LLM_MODEL"
 DEFAULT_MODEL = "claude-opus-5"
@@ -52,12 +50,10 @@ DEFAULT_MODEL = "claude-opus-5"
 variable the live smoke test reads."""
 
 MCP_SECRET_ENV = "CLUDE_MCP_SECRET"
-"""The secret path segment the MCP endpoint is mounted under (Phase 9,
-`clude_web.mcp.combined_app`): ``/mcp/<secret>``. The mount sits
-outside the login gate, so the secret is the whole guard on it, the
-same trade the login makes (`docs/web.md`, "Convenience over secrecy").
-On Cloud Run it arrives from Secret Manager; locally the `.env`
-fallback serves. Without it the endpoint is not mounted at all."""
+"""Secret transport path, /mcp/<secret>, outside Flask's login gate.
+Gameplay tools additionally require a game-account login. Environment
+precedes .env; no secret means no mount. Cloud Run uses Secret Manager.
+"""
 
 PUBLIC_URL_ENV = "CLUDE_PUBLIC_URL"
 """The address people reach the app at, such as the Cloud Run URL. Set
@@ -70,28 +66,20 @@ def mcp_secret():
 
 
 def public_url():
-    """The service's own address, without a trailing slash, or None:
-    the environment first, then `.env`. What makes a replay link a
-    whole URL for a chat seat, which has no page to be relative to
-    (Phase 9i)."""
+    """Return configured public base URL without trailing slash, or None.
+
+    Environment precedes .env; MCP uses it for absolute replay links.
+    """
     found = (os.environ.get(PUBLIC_URL_ENV) or read_env_file(PUBLIC_URL_ENV) or "").strip().rstrip("/")
     return found or None
 
 
 def read_env_file(name: str, path=None):
-    """The value of `name` in a ``KEY=value`` file, or None.
+    """Read one value from a KEY=value file without exporting its contents.
 
-    Nothing in clude loads `.env` automatically (CLAUDE.md), and this
-    does not change that for any other package: it is a fallback used
-    only by `secret_key`, so that running the app on Orbit does not need
-    an export every time. A deployed service has the variable in its own
-    environment and never reaches this.
-
-    With `python-dotenv` installed, ``flask run`` loads `.env` into the
-    environment before the app is even built, so this fallback does
-    nothing on that path -- the environment is checked first and wins.
-    It still covers the ways the app is made without Flask's CLI:
-    gunicorn in 8.1b, the tests, and `create_app` called directly.
+    Web secret/key/MCP/public-URL accessors use this fallback after checking
+    environment. Flask CLI loading through python-dotenv is separate. Missing
+    files/empty values return None. This is not a general dotenv parser.
     """
     path = Path(path) if path else ROOT / ".env"
     if not path.is_file():
@@ -107,18 +95,15 @@ def read_env_file(name: str, path=None):
 
 
 def secret_key(testing: bool = False):
-    """The session secret: the environment first, then the local `.env`.
+    """Resolve session secret from environment, then .env.
 
-    Under `testing` an ephemeral random key is made instead, so a test
-    never depends on the developer's environment and never signs a
-    cookie with the real secret.
+    If neither exists, testing permits an ephemeral key. A configured secret
+    still wins under testing; callers needing isolation should override it.
 
     Raises
     ------
     RuntimeError
-        If there is no secret and this is not a test, with the command
-        that sets one -- signing sessions with a generated key would log
-        everyone out on every restart and hide the mistake.
+        If no secret is configured outside testing.
     """
     found = os.environ.get(SECRET_ENV) or read_env_file(SECRET_ENV)
     if found:

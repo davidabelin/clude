@@ -692,22 +692,23 @@ FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures"
 # Re-recorded again on 2026-09-18 for Phase 8.0.4's landing rule
 # (`features._landing_proximity`): every movement menu's scores moved,
 # so every key did ($0.22).
-# Seed 2 is skipped since 2026-10-05 (Phase 12, N3): Plum's method is
-# the policy agent now, so every menu at his seat moved and the
-# recording no longer matches. It is re-recorded in N6, once the
-# persona is rewritten and the first trained weights are in, so that
-# the $0.26 is spent once (`docs/deepnash-plan.md` 4).
+# Both recordings are historical after Phase 11's shared-rules edit
+# (2026-10-06). Seed 2 also predates Phase 12's network menus and the
+# revised Plum persona. Keep exact old recordings; paid refresh is pending
+# separate approval, preferably after validated weights so it is done once.
+# Commands and scope are recorded in docs/phase11-plan.md.
 RECORDED_GAMES = [
-    (
+    pytest.param(
         "llm_seed1.json", "1", "3", "Scarlett,Peacock",
         "Mustard/Rope/Ballroom", "P1 Mustard (floor)",
         "Turns played: 41; suggestions: 17; accusations: 1",
+        marks=pytest.mark.skip(reason="Phase 11 changed shared rules; paid fixture refresh awaits approval"),
     ),
     pytest.param(
         "llm_seed2.json", "2", "4", "Plum,Mustard,Green,White",
         "Scarlett/Candlestick/Ballroom", "P1 White",
         "Turns played: 10; suggestions: 2; accusations: 1",
-        marks=pytest.mark.skip(reason="Plum's menus moved in Phase 12 N3; re-recorded in N6"),
+        marks=pytest.mark.skip(reason="Phase 11 prompts and Phase 12 Plum menus changed; paid refresh awaits approval"),
     ),
 ]
 

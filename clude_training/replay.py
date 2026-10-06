@@ -1,22 +1,9 @@
-"""Rebuild a finished game from its stored `GameRecord` (Phase 7a): the
-engine's omniscient `GameState`, any seat's masked `ClueObservation` at
-any point, and the same `Snapshot`s that
-`clude_training.self_play.generate_snapshots` would have yielded for it.
+"""Reconstruct GameState, masked seat views and snapshots from GameRecord.
 
-`clude_storage.records` has promised since Phase 5d that "a seat's own
-redacted view is rebuilt from `events`"; this is where that happens. A
-record carries the deal, the seats and the ordered event log but not
-positions or who is still active, so those are folded from the events:
-a `MoveEvent` places its player, a `SuggestionEvent` also drags the
-named suspect's token into the room (as `engine.resolve_suggestion`
-does, without a move event of its own), and a wrong `AccusationEvent`
-eliminates its accuser. Folding in event order reproduces the engine's
-final state field for field (`tests/test_replay.py`).
-
-Consumers: Phase 7's method memory (Mustard's training rows and White's
-per-opponent counts come from `snapshots_from_record` and `seat_view`),
-the debrief prompt, and later Phase 8's post-game replay of every
-character's belief trace.
+Records are omniscient; ClueObservation redacts for the requested seat.
+Replay restores events/positions without calling players or models. Agent
+belief traces are separate reconstructed analysis, not stored live state.
+Ring-era records remain decodable. See docs/architecture.md.
 """
 from __future__ import annotations
 

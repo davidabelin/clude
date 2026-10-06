@@ -1,23 +1,9 @@
-"""Off-turn talk at a web table (Phase 8.3b, docs/phase8-plan.md 4.3).
+"""Bound and pace off-turn LLM reactions at a live table.
 
-An *opportunity* opens whenever something worth answering lands in the
-event log: a line a person typed, a character's on-turn remark, a
-suggestion resolving, an accusation. Each model seat other than the
-actor joins with probability `chattiness` on its wrapper's own RNG (the
-dial gating participation, as `CLAUDE.md` proposes), squared for a reply
-to a reply so a conversation tails off. Of those that want to speak at
-most `MAX_QUEUED` are queued, each due a few seconds later, and
-`TableRegistry.work` serves one due reaction per request, so replies
-arrive one at a time a few seconds apart and the table reads at a human
-pace; bot turns wait while a reaction is queued, so the chatter lands
-before the next move. A queued reaction is dropped once the turn has
-moved on. `PER_TURN` and `PER_GAME` cap the lines, and the table's
-dollar budget bounds the rest.
-
-The queue lives in memory only. A served line is a ``reaction`` entry
-(`TableGame.remark`) and so rebuilds exactly; what was still queued on a
-cold instance is simply gone, which a table with people at it accepts:
-the past is exact, the future may branch.
+Human lines, suggestions and accusations can queue participation draws.
+Reply-to-reply probability tapers, with speaker/turn/game caps. Work requests
+serve due reactions; no background task advances the queue. Chat is public
+narration, never formal card evidence. Metered backends include its cost.
 """
 from __future__ import annotations
 
@@ -66,7 +52,7 @@ def refusing(wrapper) -> bool:
     call and gets an error result, so it returns None. Queueing it
     anyway used to hold every bot turn for the reaction's two to eight
     seconds and then serve nothing, so a table whose budget ran out
-    crawled and went quiet at the same time (Phase 9e). It still plays
+    crawled and went quiet at the same time. It still plays
     on with its own headless method; it just no longer talks.
     """
     return bool(getattr(getattr(wrapper, "backend", None), "last_refusal", None))

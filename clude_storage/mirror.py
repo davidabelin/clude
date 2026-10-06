@@ -1,24 +1,9 @@
-"""Copying one store into another: how the cloud store mirrors Orbit's.
+"""Copy selected records, summaries, traces and logbooks between stores.
 
-Phase 8.1b deploys the web app against `gs://clude-game-data`, which has
-to hold what `data/llm` holds for the lobby and the replays to be the
-real ones (`docs/phase8.1-plan.md` 3.5). This picks the documents worth
-copying and copies them, through the generic document methods every
-store has, so any store can be mirrored into any other.
-
-What a mirror takes, and why:
-
-- **Runs whose every record is grid-era** (`min_version`, by default
-  `GRID_RECORD_VERSION`): the run summary and each game record. A
-  ring-era record replays onto a board it was not played on.
-- **Their cached belief traces** (``traces/<run_id>/``), so a replay
-  already opened on Orbit opens at once in the cloud instead of taking
-  ten seconds on its first visit.
-- **The logbooks** (``logbooks/``), rebuilt from grid records in 8.0.3.
-
-What it leaves: accounts (``users/``, which are made in each store with
-``clude_cli.py users add --uri``), games in progress (``watch/``),
-``logbooks-ring`` and anything else at the root, such as report scripts.
+Only runs whose records meet min_version are selected (default grid version
+3). Accounts, live tables/watch state and ring archives are excluded. Matching
+keys overwrite; destination-only objects are not deleted. Dry run previews
+without writes. This is data copying, not deployment. See docs/cli.md.
 """
 from __future__ import annotations
 

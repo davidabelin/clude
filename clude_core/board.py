@@ -1,29 +1,13 @@
-"""Board topology: the Classic 24 x 25 grid, its rooms, doors, secret
-passages and start squares, and movement under the Classic rules.
+"""Classic board geometry and movement on a 24-column by 25-row grid.
 
-The board is `BOARD_MAP`, a text picture measured from the reference
-image (`docs/board.md` has the source and the measurement). Everything
-else in this module is parsed from it at import, except `DOORS`, which
-is stated explicitly because a door's *facing* is not in the map: three
-door cells touch two corridor squares and open onto only one of them.
+BOARD_MAP supplies room/corridor/cellar/start cells; DOORS records facing
+explicitly where adjacency is ambiguous. Positions are room names or
+Square(row, col). HallwayCell exists only to decode ring-era records.
 
-Nodes
------
-A position is a `Node`: a room name (`str`) or a `Square(row, col)` in
-the corridor. Rooms have no interior geometry -- a token in a room is
-"in the room". `HallwayCell` is the pre-2026-09-15 ring position, kept
-only so that stored records from the ring era still load
-(`clude_storage.records`); nothing places a token on one.
-
-Rules (David, 2026-09-15; `docs/board-plan.md` section 6)
----------------------------------------------------------
-One die. The full roll must be used unless the token enters a room,
-which ends the move. No diagonal steps, no passing through or landing
-on an occupied corridor square, no square visited twice in one move,
-no leaving a room and re-entering it in the same move. Any number of
-tokens may share a room. Secret passages are a separate move type
-(`engine.legal_moves`), as is "stay", which the engine offers only to
-a token that a suggestion moved into its room.
+Reachability uses the full die roll for corridor endings and stops on room
+entry. Paths cannot revisit squares, cross occupied squares or re-enter the
+room just left. Rooms have unlimited occupancy. Engine legal_moves adds
+passage/stay choices. See docs/board.md for provenance and rules.
 """
 from __future__ import annotations
 
@@ -342,12 +326,11 @@ def room_distances(node: Node) -> dict[str, int]:
 
 
 def node_sort_key(node) -> tuple:
-    """A total order over positions that does not depend on Python's
-    per-process string-hash randomization: rooms by name, then squares
-    by (row, col), then legacy cells. `reachable` returns a set; sort by
-    this key before any seeded RNG indexes into it (see the Phase 5
-    note that used to live here: an identical seed once produced a
-    different game per process for want of it)."""
+    """Return a stable total order: rooms, grid squares, then legacy cells.
+
+    Sort set-valued destinations before seeded sampling; process hash order
+    must not change a game.
+    """
     if isinstance(node, str):
         return (0, node, 0, 0, "")
     if isinstance(node, Square):

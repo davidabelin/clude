@@ -1,20 +1,8 @@
-"""Self-play data generation: many dumb-bot games, snapshotted at
-several points each. Shared by Mustard's tree (`clude_agents.decision_tree`,
-which needs (features, label) rows) and the benchmark
-(`clude_training.benchmark`, which needs full masked observations) --
-the two consumers extract different things from the same underlying
-snapshots, so the game-running and truncation logic lives here once.
+"""Generate masked per-seat snapshots from seeded bot games.
 
-Two self-play regimes, selected by `bot`:
-
-- ``"floor"`` (default since Phase 5): `clude_constraints.FloorBot`
-  games, which end by deduction and carry information throughout.
-- ``"random"``: Phase 1's `RandomBot` games -- long, nobody deduces
-  anything on purpose, and the deduction floor plateaus early (see the
-  measurements in docs/phase5-plan.md). Kept for comparison.
-
-Deliberately depends only on `clude_core` and `clude_constraints`, never
-`clude_agents`, so agents can depend on this module without a cycle.
+FloorBot is the default information-gathering regime; RandomBot exercises
+rules. Checkpoints are fractions of suggestions, not turns. Mustard training
+and belief benchmarks share this generator so their data definitions agree.
 """
 from __future__ import annotations
 

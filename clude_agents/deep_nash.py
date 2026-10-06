@@ -1,56 +1,16 @@
-"""Plum -- a policy learned by regularised Nash dynamics over the floor
-(Phase 12; `docs/deepnash-plan.md`).
+"""Plum's NumPy policy/value/belief network over the deduction floor.
 
-The second Plum. The first, now PlumOG (`exact_enum.py`, archived
-2026-10-05), enumerated every deal consistent with the floor and fell
-back to sampling when the search ran past its budget, which on the
-Classic grid it did in nearly half of all calls. This Plum is a small
-neural network trained by self-play in the manner of DeepNash (Perolat
-et al., 2022): a NeuRD policy gradient on rewards regularised toward a
-reference policy that is refreshed every so often, the variant dropping
-V-trace and letting each seat keep its own value, since Clue is neither
-two-player nor zero-sum. The deduction floor's mask is the state the
-network reads, so what it learns is what the floor cannot say: which of
-the still-possible cards the table's behaviour points at, and where to
-go and what to ask to find out.
+A shared hidden state feeds masked envelope beliefs, legal-move scores,
+honest suspect/weapon scores and a value estimate. Character retains
+bluffing, accusation and card-show decisions; curiosity is inert for the
+network movement hook. Training uses a DeepNash variant described in
+docs/deepnash-plan.md, not an equilibrium guarantee for multiplayer Clue.
 
-One network, five heads, all read from one hidden vector per
-observation:
-
-- `belief`, 21 logits -> `ClueBelief.probabilities` through
-  `mask_and_normalize`, so the accusation test, the certainty tag, the
-  notes and Green's arm see Plum as they see anyone;
-- `move`, a scorer over ``[hidden ; the choice's features]`` applied to
-  every legal move, so any number of options is ranked -- this is
-  `choose_destination` and the `movement_scores` hook;
-- `suspect` and `weapon`, 6 logits each over the honest candidates --
-  the `suggestion_scores` hook (the `bluff_rate` coin flip stays the
-  `Character`'s, and comes first);
-- `value`, this seat's expected outcome in [-1, 1], reported in
-  `extra` for the trace.
-
-The accusation and the card to show stay the `Character`'s, so
-`accuse_threshold` and `secrecy` keep their meaning
-(`docs/deepnash-plan.md` 3.1).
-
-The forward pass is numpy in float64 (David's call, 2026-10-05: numpy
-may enter this package; torch stays a developer dependency of the
-training script). Every score is rounded to `SCORE_DECIMALS` places
-before a softmax or an argmax, so BLAS rounding between Windows and
-Linux cannot flip a pick and a seeded game is the same on both. The
-weights are `weights/plum.npz`, loaded once at module level like
-Mustard's cached tree; determinism is per seed *and* that file. Until
-`scripts/train_plum.py` (N4) has run, the file holds `init_weights`'s
-seeded random draw, a Plum who knows nothing and plays close to
-uniformly -- which is what lets the suite stay green between N3 and
-the first training run.
-
-Notes
------
-Nothing here iterates a set or a dict whose order could depend on the
-process (`exact_enum._holder_order` records why that matters): cards
-go in `ALL_CARDS` order, holders are looked up by membership, logs are
-tuples.
+weights/plum.npz is loaded once and still holds seeded initial weights;
+smoke checkpoints have not been exported. Determinism depends on this file,
+seed and memory. Float64 inference rounds scores to SCORE_DECIMALS before
+sampling/argmax to limit platform-dependent picks. Card/holder iteration
+uses stable order. PyTorch is needed only by the separate trainer.
 """
 from __future__ import annotations
 

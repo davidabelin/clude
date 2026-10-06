@@ -1,26 +1,13 @@
-"""Headless rules engine: setup, movement, suggestion/refutation,
-accusation, and the turn loop. No inference, no LLM.
+"""Headless rules engine with one resumable turn loop.
 
-Every seat is asked its four decisions through `PlayerProtocol`, each
-call receiving that seat's `ClueObservation` first (Phase 5a). The
-observation is built by an injectable `observer`, defaulting to
-`ClueObservation.for_player`, so this package still never imports the
-deduction floor -- callers who want a masked view pass
-`clude_constraints.observe` (see docs/architecture.md).
+PlayerProtocol receives the deciding seat's observation for movement,
+suggestion, accusation and card show. The default observer redacts state
+without inference; pass clude_constraints.observe for a deduction mask.
+SpeakingPlayer adds public remarks without changing game rules.
 
-A seat that also implements `SpeakingPlayer` (Phase 6) has its buffered
-table talk appended to the event log as `RemarkEvent`s right after each
-decision; every other seat's game is untouched by that hook.
-
-The turn loop is written once, as the generator `game_steps` (Phase
-8.1). A seat listed in its `external` set has no player object to call:
-the generator yields a `DecisionRequest` and waits for the driver to
-send the answer back in, which is what lets a web request hold a seat
-open across requests without threads. `run_game` is `game_steps` driven
-with no external seats, so it never pauses and plays exactly the game it
-always did; `resolve_suggestion` stands in the same relation to
-`resolve_suggestion_steps`, so the refuter's off-turn choice can be
-external too.
+game_steps yields LiveGame, external DecisionRequests and TurnComplete.
+Drivers send validated answers; run_game drains the same loop without
+external seats. See docs/architecture.md for driver/rebuild contracts.
 """
 from __future__ import annotations
 
@@ -101,20 +88,11 @@ class DecisionRequest:
 
 @dataclass(frozen=True)
 class LiveGame:
-    """The game a `game_steps` generator is playing, yielded once before
-    its first turn.
+    """Handle onto the mutable state/events of a running game_steps loop.
 
-    `state` and `events` are the generator's own objects, not copies, so
-    a driver that keeps this handle can read the game as it stands at
-    every later pause -- the board, the tokens, the log so far. A
-    `DecisionRequest` deliberately carries only one seat's masked view
-    instead, so that what the referee can see and what a player is told
-    stay separate things (docs/architecture.md, "Reveal integrity").
-
-    `rolls` is every turn's die as ``(turn, seat, roll)``, appended as
-    the turn starts (2026-10-01), so a table can say who rolled what.
-    It is kept beside the log, never in it: a roll is narration, not a
-    record, and no stored game or golden changes for it.
+    Yielded once before play. Drivers may inspect it between pauses; players
+    receive redacted DecisionRequests instead. rolls stores narration tuples
+    (turn, seat, die) beside events and is not serialized in GameRecord.
     """
 
     state: GameState
@@ -139,18 +117,11 @@ class TurnComplete:
 
 
 class PlayerProtocol(Protocol):
-    """The four decisions the engine asks of every seat.
+    """Four legal decisions asked with the deciding seat's observation.
 
-    Each takes the seat's own `ClueObservation` first, built by
-    `run_game`'s `observer` from that seat's perspective. With the
-    default observer `obs.mask` is None; pass `clude_constraints.observe`
-    to `run_game` for a masked view (every Phase 3+ agent needs one).
-
-    `rng` is the engine's seeded RNG. Phase 1's `RandomBot` draws from
-    it, so seeded random games are reproducible; a player with its own
-    RNG (Phase 5's `Character`) should leave it untouched, so that the
-    dice sequence depends only on the seed and games played under
-    different personality settings share the same deal *and* rolls.
+    The default observer leaves mask unset; numerical characters need
+    clude_constraints.observe. A player with its own RNG should leave the
+    engine RNG untouched so paired comparisons share deals and dice.
     """
 
     def choose_movement(
@@ -183,15 +154,10 @@ class PlayerProtocol(Protocol):
 
 @runtime_checkable
 class SpeakingPlayer(Protocol):
-    """Optional extension of `PlayerProtocol` for seats that talk
-    (Phase 6's LLM characters).
+    """Optional buffered talk/hearing extension of PlayerProtocol.
 
-    After each decision the engine asks the deciding seat -- and, once a
-    suggestion has resolved, its refuter -- for the lines it buffered,
-    and appends them to the event log as `RemarkEvent`s in order, right
-    after the decision's own event; every other speaking seat is told each
-    line through `hear`. A player without these methods is never asked,
-    so nothing about its games changes.
+    Remarks drain after decisions and refutation, in order, as public events.
+    They do not change rules; peers hear each published line.
     """
 
     def take_remarks(self) -> list[str]:
@@ -295,26 +261,16 @@ def apply_move(state: GameState, player: int, choice: MoveChoice) -> None:
 
 
 def check_answer(request: DecisionRequest, answer):
-    """Check an external seat's answer before it is allowed to touch the
-    game, and return it.
+    """Validate an external answer and return it unchanged.
 
-    A movement must be one of the choices actually offered, and a
-    refutation one of the cards that seat actually holds: the
-    reveal-integrity rule in docs/architecture.md, which the engine keeps
-    impossible to break by accident, and which a seat answering over a
-    network would otherwise be the first thing able to break. A
-    suggestion or an accusation only has to name real cards -- naming the
-    wrong ones is the game.
-
-    `_ask` runs this on every answer sent into `game_steps`, but a
-    `ValueError` raised there finishes the generator, so a driver that
-    wants to refuse a bad answer and keep the game alive calls this
-    itself first (Phase 8.2, `clude_training.table.TableGame.answer`).
+    Movement must be offered, show must name a held matching card, and
+    suggestion/accusation must name valid cards. Drivers must call this before
+    sending into game_steps: a ValueError inside the generator closes it.
 
     Raises
     ------
     ValueError
-        With a message that says what was wrong.
+        If the answer violates the request, without mutating the game.
     """
     if request.kind == "movement":
         if answer not in request.choices:
@@ -351,14 +307,7 @@ def _ask(
     request: DecisionRequest,
     rng: random.Random,
 ):
-    """Get one decision from a seat: call its player object, as the engine
-    always has, or, for a seat in `external`, yield `request` out to the
-    driver and take the checked answer it sends back.
-
-    This is a generator, so its callers reach it with `yield from`. For a
-    seat with a player object it yields nothing at all, which is what
-    lets `run_game` drive a table of headless seats to the end without
-    ever pausing.
+    """Call a local player or yield an external request and validate its answer.
     """
     if request.seat in external:
         return check_answer(request, (yield request))
@@ -413,9 +362,7 @@ def resolve_suggestion(
     docs/architecture.md). The refuter only chooses *which* matching
     card to show, given their own observation from `observer`.
 
-    This is `resolve_suggestion_steps` driven with no external seats, so
-    it never pauses; its signature and its result are what they have
-    always been.
+    Drains `resolve_suggestion_steps` without external seats; never pauses.
     """
     return _drive(
         resolve_suggestion_steps(
@@ -503,9 +450,8 @@ def resolve_accusation(
 
 
 class _Talkers:
-    """The seats that may speak: the players, and the external seats'
-    speakers (Phase 8.3), read afresh at every drain so a driver may
-    install or swap a speaker while the generator is paused."""
+    """Drain/hear through current local and external speakers at each decision.
+    """
 
     def __init__(self, bots: dict, speakers) -> None:
         self.bots = bots
@@ -574,9 +520,7 @@ def run_game(
 
     Notes
     -----
-    This is `game_steps` driven with no external seats, so it never
-    pauses. Its signature and its result are what they have always been,
-    and the goldens in `tests/test_character.py` are what prove it.
+    Drains `game_steps` without external seats; never pauses.
     """
     return _drive(game_steps(n_players, bots, seed, max_turns, observer, suspects))
 
@@ -601,10 +545,10 @@ def game_steps(
         Seats with no player object in `bots`. Each of their four
         decisions pauses the generator on a `DecisionRequest`, which the
         driver answers with ``steps.send(answer)``; the answer is checked
-        before it touches the game (`_checked`). Default empty, which is
+        before it touches the game (`check_answer`). Default empty, which is
         `run_game`.
     speakers : dict[int, SpeakingPlayer] or None
-        Table talk for external seats (Phase 8.3): a seat's speaker is
+        Table talk for external seats: a seat's speaker is
         drained and made to hear exactly where a player object in that
         seat would be, so an LLM seat answered from outside has its
         remarks land after the event they accompany and the other
@@ -626,10 +570,10 @@ def game_steps(
     tuple[GameState, list[GameEvent]]
         The same pair `run_game` returns, delivered on `StopIteration`.
 
-    Because a game is deterministic per seed, a paused game is fully
-    described by its setup plus the answers sent in so far: feeding a
-    fresh generator that list rebuilds it exactly, which is how a web
-    session survives a cold instance (docs/phase8.1-plan.md 3.3).
+    With the same code, weights, seeds and player-memory inputs, replaying
+    external answers rebuilds the paused game. Web drivers also persist
+    model audits/remarks. Validate answers before sending: an exception
+    inside this generator closes it. See docs/architecture.md.
     """
     rng = random.Random(seed)
     state = setup(n_players, rng, suspects)

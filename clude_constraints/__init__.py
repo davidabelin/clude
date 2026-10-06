@@ -21,15 +21,10 @@ __all__ = [
 
 
 def observe(state: GameState, viewer: int) -> ClueObservation:
-    """Build `viewer`'s `ClueObservation` with a freshly computed `mask`.
+    """Build viewer's redacted observation and attach freshly propagated mask.
 
-    `ClueObservation.for_player` (in `clude_core`, which knows nothing
-    about this package -- see its docstring) builds every field except
-    `mask`. This is the one place that attaches it, so every Phase 3+
-    agent that receives an observation through here can trust `mask` is
-    present and fresh. Pass this as `run_game`'s `observer` to drive a
-    live game with players that need the floor (`FloorBot`, Phase 5's
-    characters).
+    Pass this as the engine observer for FloorBot and numerical characters.
+    The core factory itself supplies no mask, avoiding an import cycle.
     """
     obs = ClueObservation.for_player(state, viewer)
     return replace(obs, mask=propagate(obs))

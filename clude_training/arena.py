@@ -1,52 +1,11 @@
-"""Phase 5d: the arena -- N full games among characters and/or dumb
-bots, with the metrics that make a personality dial's effect visible.
+"""Full-game measurement of characters, bots and optional LLM seats.
 
-Where the Phase 4 benchmark scores *beliefs* on shared snapshots, the
-arena plays whole games through `engine.run_game` with
-`clude_constraints.observe` as the observer, so every decision a
-`Character` makes is one it made live. Per roster entry it reports:
-
-- **win rate** -- games won / games played, with a binomial std so a
-  sweep's claim is honest (docs/phase5-plan.md, 4.5);
-- **wrong-accusation rate** -- games in which the player accused
-  wrongly (and was eliminated) / games played;
-- **turn of first accusation** -- mean game turn of the player's first
-  accusation, over games where it made one, plus the never-accused rate;
-- **own cards leaked** -- distinct own cards shown to opponents;
-- **own cards named** -- suggestions that named one of the player's
-  own cards (the bluff dial's footprint);
-- **re-show rate** -- of the refutations where the player held two or
-  more of the named cards and so had a choice, the fraction in which it
-  showed a card it had already shown to somebody (the secrecy dial's
-  footprint; the choice itself is rare, which is why "cards leaked"
-  barely moves with the dial);
-- **ms/call** -- mean wall-clock per `select_action`, like the benchmark;
-- for LLM-piloted seats (Phase 6, `llm_backend`): decisions, how many
-  were the model's to make (not single-option menus), fallback and
-  deviation rates, remarks and tokens per game, ms per model call, and
-  (Phase 7, with a `logbook_store`) logbook entries written.
-
-Seats rotate: game `g` seats the roster rotated by `g`, truncated to
-the table size, so every entry moves first equally often and sits out
-equally often at small tables; the table size cycles like
-`generate_snapshots`. Missing seats are filled with `FloorBot`s, which
-is also the "does a character beat a purely logical player" baseline.
-Characters are built once per run and reset once, so Green's bandit
-posteriors persist across games and his `observe` at each game's end
-is what "learns across games" means.
-
-Every character draws from its own RNG and each fill `FloorBot` gets a
-private one, so a game's deal *and* dice depend only on ``seed + g``:
-two arena runs with the same seed but different profiles play the same
-deals with the same rolls -- a paired comparison. A ``"random"`` roster
-entry (`RandomBot`) breaks that, since it draws from the engine RNG.
-
-With a `logbook_store` (Phase 7) every character reads its method
-memory from its logbook before each game and, unless
-`logbooks_readonly`, writes to it after (`clude_training.memory`), so a
-run becomes a learning curve rather than independent games: the
-comparison to make is then between runs on one seed with the logbooks
-in the same state, read-only.
+Report wins, wrong accusations, information disclosure, calls and cost.
+Characters use their own tokens; larger rosters rotate who sits out.
+Independent player RNGs pair deals/dice across dial settings. Real model
+answers and timings are not deterministic. Green receives revealed-envelope
+feedback once per game; optional logbooks load/update through memory.py.
+Records preserve omniscient events and audits. See docs/cli.md.
 """
 from __future__ import annotations
 
@@ -303,7 +262,7 @@ class PlayerStats:
 class GameSummary:
     """One line per game for the run summary. `cost` is what the game's
     LLM seats spent, their logbook entries included, at list prices
-    (Phase 9g): None, and left out of the line, for a game with none."""
+   : None, and left out of the line, for a game with none."""
 
     game_index: int
     seed: int
@@ -570,7 +529,7 @@ class Table:
         still covers.
     wrappers : dict[int, LLMCharacter]
         Seat -> the LLM wrapper piloting an ``llm`` seat from outside the
-        engine (Phase 8.3a); such a seat is external and absent from
+        engine; such a seat is external and absent from
         `players`. Empty when the table was built without a backend.
     """
 
@@ -589,7 +548,7 @@ def headless_table(roster, n_players: int, seed: int) -> Table:
     Each character is built with its preset dials and reset with the game
     seed, each fill `FloorBot` gets a private RNG seeded apart from the
     engine (`fill_seed`), and every character is told who it is sitting
-    with. The web app's Watch screen plays from this (Phase 8.1), and a
+    with. The web app's Watch screen plays from this, and a
     test pins a game played here to the one `play` produces for the same
     roster and seed, so the two cannot drift apart unnoticed.
 
@@ -620,7 +579,7 @@ def seat_kind(label: str) -> str:
 def _seat_costs(lineup, wrapped, characters, before: dict, model: str) -> dict:
     """Seat -> dollars for this game's LLM seats: each wrapper's tokens
     since `before` (its `summary()` when the game began, so a logbook
-    entry written since is included) at `model`'s list price (Phase 9g).
+    entry written since is included) at `model`'s list price.
     Empty for a game with no LLM seat, and when the model is unpriced."""
     out = {}
     for seat, label in enumerate(lineup):
@@ -686,7 +645,7 @@ def run_arena(
         with a backend.
     llm_backend : LLMBackend or None
         If given, the roster's characters (or just `llm_characters`) are
-        wrapped in `LLMCharacter`s sharing this backend (Phase 6): their
+        wrapped in `LLMCharacter`s sharing this backend: their
         `kind` is ``"llm"``, each gets `new_game` before every game, and
         the LLM columns fill in. `clude_llm.NullBackend` is the control:
         it plays the headless game exactly, so two runs on one seed with

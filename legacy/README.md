@@ -1,10 +1,10 @@
 # legacy/
 
 Code from an earlier claude.ai chat, "Machine learning for Clue game in Python."
-It was written for a different goal (one strong all-round agent), so treat it as
-material to port from, not as the clude architecture. Every file has the code
-exactly as it appeared in that chat; only module docstrings and imports were
-added so the files import as a package.
+It aimed at one strong all-round agent; current packages use six distinct
+methods over a shared floor. These files are reference material, never imported
+by the application. Chat code is preserved; only module docstrings/imports were
+added. Use [architecture](../docs/architecture.md) for current contracts.
 
 Torch-free modules (`domain`, `belief_tracker`, `constraints`, `info_agent`,
 `opponent_model`, `reward_shaping`) need only numpy and scipy. `dqn`, `gnn`, and
@@ -12,13 +12,13 @@ Torch-free modules (`domain`, `belief_tracker`, `constraints`, `info_agent`,
 
 ## What each file is for now
 
-| File | Contents | Planned fate |
+| File | Contents | Current disposition |
 |---|---|---|
-| `domain.py` | Card lists, `Suggestion`, `GameState` | Reuse; extend into the observation contract |
-| `constraints.py` | `ConstraintPropagator` (OR-constraints, propagation) | Basis of the shared deduction floor, but unfinished (see below) |
-| `belief_tracker.py` | `BayesianBeliefTracker` (card × holder marginals) | Scarlett's naive-Bayes method |
-| `opponent_model.py` | `OpponentModel` (suggestion-history heuristics) | Starting point for White's Markov model |
-| `info_agent.py` | `InformationAgent` (suggestion chooser) | Possibly shared suggestion logic; math is a placeholder |
+| `domain.py` | Card lists, `Suggestion`, `GameState` | Informed `clude_core`; current contracts are separate |
+| `constraints.py` | `ConstraintPropagator` (OR-constraints, propagation) | Informed `clude_constraints`; defects below belong to this legacy solver |
+| `belief_tracker.py` | `BayesianBeliefTracker` (card × holder marginals) | Informed Scarlett's naive-Bayes method |
+| `opponent_model.py` | `OpponentModel` (suggestion-history heuristics) | Informed White's Markov model |
+| `info_agent.py` | `InformationAgent` (suggestion chooser) | Reference only; its information math is a placeholder |
 | `reward_shaping.py`, `dqn.py`, `gnn.py` | RL reward, Dueling DQN, card-player GNN | Deferred; none is one of the six methods |
 | `ml_agent.py` | `ClueMLAgent` wiring everything together | Reference only |
 
@@ -26,12 +26,14 @@ Torch-free modules (`domain`, `belief_tracker`, `constraints`, `info_agent`,
 
 Items marked ✔ are reproduced by `python -m legacy.known_issues_check`.
 
-**constraints.py.** The solver needs real work before it can serve as the deduction floor.
+These are legacy limitations, not defects in the current deduction floor.
+
+**constraints.py.**
 - ✔ `_possible_holders` doesn't track eliminations (its own comment says "track eliminations in production"), so `add_no_refutation` can never deduce anything.
 - It has no category rule, meaning exactly one suspect, one weapon, and one room are in the envelope, and the last unlocated card of a category must be the envelope's.
 - Hand sizes are stored but never used.
 - Contradictions are silently skipped in `_propagate`, and `_set_known` doesn't check consistency when a card is reassigned.
-- It labels the envelope `'envelope'` while the tracker uses holder index 0. Pick one convention.
+- It labels the envelope `'envelope'` while the tracker uses holder index 0.
 
 **belief_tracker.py.**
 - ✔ When someone refutes, the players asked before them who passed are not zeroed out, so that information is lost.

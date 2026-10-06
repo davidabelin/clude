@@ -15,14 +15,10 @@ the Engraved look's faces in `clude_web/static/fonts/`.
 
 ## Why here and not `clude_web/static/`
 
-This is a **build-time** dependency, not a served asset. Wikiclude
-(D20) is to embed diagrams as pre-rendered, classed SVG -- generated on
-a maintainer's machine under Playwright, stripped of Mermaid's inline
-hex fills and coloured by the look's stylesheet, the way
-`clude_web/board_svg.py` and `clude_web/logo.py` already emit
-uncoloured SVG. Nothing ships this file to a player's browser, so it
-stays out of the Cloud Run image: `.dockerignore` and `.gcloudignore`
-exclude `docs/`, and 3.3 MB of it.
+This is a **build-time** dependency, not a served asset. Generated diagrams
+can be rendered to classed SVG with Playwright for embedding. Nothing ships
+this file to a player's browser: `.dockerignore` and `.gcloudignore`
+exclude `docs/`, keeping its 3.3 MB out of the Cloud Run image.
 
 The UMD build, not the ESM one: a page opened over `file://` cannot
 load an ES module (CORS), and these pages are meant to open by
@@ -30,7 +26,7 @@ double-clicking, as the Phase 10a artboards do.
 
 ## Updating
 
-Fetch the same two paths from a pinned version, replace the file, and
+Fetch the UMD file from a pinned version, replace it, and
 update the version, date, hash and size above:
 
     Invoke-WebRequest -Uri "https://cdn.jsdelivr.net/npm/mermaid@<version>/dist/mermaid.min.js" -OutFile docs\ux\vendor\mermaid.min.js

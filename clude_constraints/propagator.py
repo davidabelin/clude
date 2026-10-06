@@ -1,24 +1,13 @@
-"""The shared deduction floor: hard logical constraint propagation.
+"""Recompute hard logical constraints from one seat's visible evidence.
 
-Masks what is still *possible* for every card from one player's point of
-view, so that every Phase 3 agent's probabilities can be renormalized over
-that surviving set. No agent may ever assign nonzero probability to a card
-this has already resolved, or to a holder this has already ruled out --
-see docs/architecture.md.
+Possible holders are seat indices or the string 'envelope'. Own hands,
+refutations, category rules, OR constraints and hand sizes propagate to a
+fixpoint; contradictions raise. Satisfied OR constraints are removed.
+Agents mask envelope probabilities against these allowed holders.
 
-Replaces `legacy/constraints.py`, fixing the five issues its own README
-listed: elimination is actually tracked (no more "simplified; track
-eliminations in production" stub), the category rule is implemented, hand
-sizes are enforced, contradictions raise instead of being silently
-dropped, and the envelope holder is the single string `'envelope'`
-everywhere.
-
-`possible_holders` is exposed per card rather than collapsed to
-known/unknown, since Peacock's Dempster-Shafer method (Phase 3) wants
-exactly that mass-assignment-shaped structure. `or_constraints` is exposed
-too, separately from `possible_holders`, because per-card marginals lose
-the joint "holds at least one of these three" structure that Plum's exact
-enumeration (Phase 3) needs to search the true joint posterior correctly.
+The full per-card holder sets and unresolved joint OR constraints support
+methods such as Peacock's mass assignment and archived PlumOG's search.
+See docs/architecture.md for encodings and privacy boundaries.
 """
 from __future__ import annotations
 

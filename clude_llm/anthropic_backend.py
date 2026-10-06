@@ -1,24 +1,9 @@
-"""The real backend: Claude, through Anthropic's Python SDK (Phase 6c).
+"""Anthropic SDK adapter for structured choices, remarks and debriefs.
 
-One `messages.create` per decision: the persona + rules as a cached
-system block, the per-turn text as the user message, the fixed JSON
-schema as `output_config.format`, and a low effort setting, since a
-Clue move is a short pick. A character's logbook block (Phase 7), when
-it has one, goes as a second cached system block: stable for a whole
-game, so it is written to the cache once and read cheaply after, while
-the persona block stays the prefix every game shares. A request may
-override effort, `max_tokens` and the timeout (the debrief does all three: at medium
-effort it runs well past the 30 s a move gets). Credentials resolve exactly as the SDK does
-(`ANTHROPIC_API_KEY`, or an `ant auth login` profile); an explicit
-`api_key` wins, and a `client` double can be injected for tests, the way
-`clude_storage.GcsStore` takes one. Nothing here prints or stores a key.
-
-Every failure -- a rate limit, a timeout, a bad request, no credentials
--- comes back as an `LLMResult` with `error` set rather than raising:
-the wrapper's answer to any failure is the character's own decision, and
-nothing is retried at this layer beyond the SDK's own `max_retries`.
-The SDK is imported lazily, so the rest of the package (and the test
-suite) needs no network and no package unless this backend is opened.
+The SDK is imported lazily. Persona/rules and optional memory are cached
+system blocks; the request supplies user text/schema. SDK errors become
+LLMResult errors so the wrapper can fall back. The adapter may use one SDK
+retry; no live call is needed at construction. See docs/llm-wrapper.md.
 """
 from __future__ import annotations
 

@@ -1,53 +1,24 @@
+# Developer/test dependencies; Cloud Run installs requirements-web.txt.
 pytest>=8.0
-# Runs the suite in parallel: `python -m pytest -q -n auto` (about half the
-# serial ~220 s on Orbit). Optional; plain `pytest` still works.
+# Optional parallel suite: python -m pytest -q -n auto.
 pytest-xdist>=3.8
-# Plum's forward pass (clude_agents.deep_nash, Phase 12; David's call of
-# 2026-10-05 that numpy may enter the agents package). Everything else in
-# the engine and the agents is the standard library.
+# Plum inference; developer-only PyTorch trains it.
 numpy>=2.0
-# Training Plum (scripts/train_plum.py, Phase 12 N4): a developer's
-# dependency, installed here by default (David, 2026-10-06) and never in
-# the Cloud Run image (requirements-web.txt). The PyPI wheel on Windows
-# is CPU-only, which is all the training needs: the engine, not the
-# network, is the cost. For CUDA on Orbit's RTX 3080 instead:
-#     pip install torch --index-url https://download.pytorch.org/whl/cu128
 torch>=2.9
-# Only needed for gs:// record stores (clude_storage.GcsStore); everything
-# else is the standard library, and the package is imported lazily.
+# Lazy clients for gs:// storage and paid model calls.
 google-cloud-storage>=3.0
-# Only needed to pilot characters with a real model (clude_llm's
-# AnthropicBackend); imported lazily, so the suite and every other backend
-# run without it. Credentials: ANTHROPIC_API_KEY (docs/architecture.md).
 anthropic>=1.5
-# The web app (clude_web, Phase 8.1). Werkzeug comes with Flask and is
-# what hashes account passwords; Jinja is its templating. Nothing outside
-# clude_web and `clude_cli.py users` imports any of them, so the engine
-# and the agents still run on the standard library alone (numpy aside).
+# Browser app, password hashing/templates and Flask CLI dotenv loading.
 flask>=3.0
 python-dotenv>=1.0
-# Serves the app on Cloud Run (the Dockerfile, which installs only
-# requirements-web.txt). Listed here for completeness; it does not run on
-# Windows, so locally the app is served by `flask run` instead.
+# Cloud server; use Flask/uvicorn locally on Windows.
 gunicorn>=23.0; sys_platform != "win32"
-# A seat over MCP (clude_web.mcp, Phase 9): the MCP server SDK (2.x; the
-# in-memory client in tests/test_mcp.py comes with it), asgiref to put
-# Flask inside the combined ASGI app, and uvicorn to serve that app
-# locally (`python -m uvicorn "clude_web.mcp:combined_app" --factory`)
-# and, as gunicorn's worker, on Cloud Run.
+# MCP SDK, Flask-to-ASGI bridge and combined-app server.
 mcp>=2.0
 asgiref>=3.8
 uvicorn>=0.30
-# Wikiclude (clude_web.wiki, D20; docs/wikiclude-plan.md): Python-Markdown
-# renders the articles and latex2mathml their mathematics, to MathML, once
-# when the app starts. Both are pure Python. The app imports them, so
-# unlike the lines around this one they are not optional.
+# Required article/MathML renderers at app startup.
 markdown>=3.6
 latex2mathml>=3.77
-# Optional, and only for looking at the web app: `scripts/clude_shots.py`
-# screenshots every screen and `tests/test_browser.py` drives the real
-# thing, both skipped without it. An SVG rasteriser is no substitute --
-# clude_web/board_svg.py sets no colour, leaving it all to style.css, so
-# only a browser renders the board at all. After installing:
-#     python -m playwright install chromium
+# Optional browser checks/screenshots; also run python -m playwright install chromium.
 playwright>=1.50

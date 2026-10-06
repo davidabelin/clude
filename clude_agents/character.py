@@ -1,45 +1,15 @@
-"""`Character`: one seat's decision layer (Phase 5c).
+"""Turn an agent's belief and Profile into four legal engine decisions.
 
-Each character's turn works in two steps (CLAUDE.md): it calls its own
-strategy agent for numbers -- one `select_action` per distinct
-observation -- then combines those numbers with its `Profile` to choose
-an action. `Character` implements `clude_core.engine.PlayerProtocol`,
-so it drops straight into `engine.run_game` (with
-``observer=clude_constraints.observe``), and it also exposes
-`select_action`, so the trace and benchmark tooling can treat it as an
-agent.
+Belief is cached per observation. Movement uses the agent's destination
+policy; honest suggestions sample scored candidates; bluff_rate can choose
+an own-hand card. Accusation tests the product of category maxima using a
+per-spec confidence function (Peacock's lower bound). Secrecy prefers
+re-showing a known card. Decisions use the character/agent RNG, leaving
+engine deal/dice randomness independent.
 
-The four decisions, and the dial each one answers to:
-
-- **movement** -- shared per-choice features (`features.room_features`)
-  handed to the agent's own `choose_destination`; `curiosity`,
-  `temperature`. An agent with its own `movement_scores` hook (Phase
-  12) also supplies the scores the menu ranks by.
-- **suggestion** -- always suggests when in a room. Suspect and weapon
-  are each an honest softmax over the belief (never a card in this
-  seat's own hand) unless a `bluff_rate` coin flip names one of its own
-  cards instead; `temperature`. An agent with its own
-  `suggestion_scores` hook (Phase 12) supplies the scores the softmax
-  runs over instead of the belief.
-- **accusation** -- accuse the best triple once its confidence product
-  reaches `accuse_threshold`. Confidence is `probabilities` for five
-  characters and the Dempster-Shafer lower bound for Peacock
-  (`ds_belief_confidence`), supplied per `AgentSpec` rather than as a
-  dial. No temperature: a threshold test, not a sample.
-- **card to show** -- prefer a card this player has already seen, then
-  one anyone has seen; `secrecy`, `temperature`.
-
-The character draws every random number from its own RNG, never the
-engine's, so the dice sequence of a seeded game depends only on the
-seed (see `PlayerProtocol`).
-
-Phase 6a split each decision's *scoring* from its *sampling*:
-`suggestion_candidates`, `cards_exposed` and `show_scores` at module
-level, and `Character.movement_scores` / `accusation_test`, are pure
-functions that draw nothing from the RNG. The LLM wrapper (`clude_llm`)
-builds its menus from those same numbers and, when it falls back, calls
-the sampled decision with the RNG stream exactly where the headless
-character would have had it.
+Pure scoring helpers also build LLM menus. Optional agent movement and
+suggestion hooks must not mutate state or draw randomness, so fallback
+matches ordinary numerical play. See docs/architecture.md for contracts.
 """
 from __future__ import annotations
 
@@ -80,7 +50,7 @@ floor of every seat's certainty (`certainty`)."""
 
 
 def certainty(confidence: dict) -> float:
-    """How far a seat has come from guessing to knowing, 0 to 1 (Phase 9h).
+    """How far a seat has come from guessing to knowing, 0 to 1.
 
     Let P be `best_triple`'s product, the seat's own P(correct) for the
     triple it would accuse. Linear in P a seat sits near 0 all game and
@@ -223,10 +193,10 @@ class Character:
         self.agent.observe(transition)
 
     def new_game(self, table=None) -> None:
-        """Start a game (Phase 7): drop the cached observation and, when
-        `table` (roster labels by seat) is given, tell the agent who sits
-        where if it has `set_table` (White's per-opponent memory). Draws
-        no random numbers, so a seeded game is unchanged by it."""
+        """Clear cached belief and supply seat-order identities to supporting agents.
+
+        Agents such as White use table labels to select per-opponent priors.
+        """
         self._cached_obs = None
         self._cached_belief = None
         if table is not None and hasattr(self.agent, "set_table"):

@@ -1,39 +1,10 @@
-"""`GameRecord`: the JSON shape one finished game is stored in, and the
-event/node codecs it needs.
+"""JSON codecs and omniscient GameRecord/SeatRecord documents.
 
-A record is *omniscient* -- it holds every hand and every card shown,
-straight from the engine's `GameState` and event log -- because it is
-the source everything downstream derives from: the arena's metrics, a
-paired re-analysis of a sweep, Mustard's training rows, and (Phase 7)
-each seat's logbook entry. A seat's own redacted view is rebuilt from
-`events` with the same rule as `ClueObservation.for_player`: a
-suggestion's `card_shown` is visible only to its suggester and its
-refuter. Nothing in a record is meant to be shown to a player during
-the game it describes.
-
-What Phase 7 should expect to find here, per game: `seats` (who sat
-where -- seat index, suspect token, roster label, kind, and the
-character's `Profile` dials at the time), the deal (`envelope`,
-`hands`), the full `events` list in order -- including, since Phase 6,
-every `RemarkEvent` of table talk, interleaved with the actions it
-accompanied -- and the outcome (`winner`, `turns`, counts). Human
-identities are not here yet; `SeatRecord.label` is the roster label
-("Plum", "floor"), which Phase 8's seat assignment is expected to
-extend rather than replace.
-
-`RECORD_VERSION` history: 1 (Phase 5d) the shape above without remarks;
-2 (Phase 6a) adds the ``remark`` event type; 3 (the board rebuild,
-2026-09-15) writes a corridor position as ``{row, col}`` on the Classic
-grid, where 1 and 2 wrote a ring cell as ``{room_a, room_b, k}``. A
-version-1 document loads
-unchanged, since it simply contains no remarks.
-
-What a game cost (Phase 9g) is ``cost`` on the record and on each model
-seat's `SeatRecord`, in dollars at list prices, and only on a game that
-had a model seat: written only when set, so every headless record reads
-exactly as it did and no version was needed. A web game's cost includes
-the logbook entries written after it, so its record is written again
-once the last of them is in (`clude_web.tables`).
+Records hold deal, events, seats/profiles, outcome and optional model audit/
+costs. Never expose them directly to a live player. Version 3 is the Classic
+grid; versions 1/2 retain ring-node decoding. Optional added fields default
+when missing, preserving old records. Logbook documents reference games
+rather than changing their schema. See docs/architecture.md.
 """
 from __future__ import annotations
 
@@ -212,7 +183,7 @@ class SeatRecord:
         The model id behind an ``"llm"`` seat; None otherwise.
     cost : float or None
         Dollars this seat's model spent on the game, its logbook entry
-        included (Phase 9g); None for a seat with no model, and for a
+        included; None for a seat with no model, and for a
         game recorded before costs were.
     """
 
@@ -274,7 +245,7 @@ class GameRecord:
     n_suggestions, n_accusations : int
     llm_log : dict or None
         Seat -> that seat's LLM decision audit, a list of
-        `clude_llm.Decision.to_dict()` objects (Phase 6); None when no
+        `clude_llm.Decision.to_dict()` objects; None when no
         seat was LLM-piloted.
     created_at : str
         ISO-8601 UTC timestamp of when the record was built.
@@ -282,7 +253,7 @@ class GameRecord:
         `RECORD_VERSION`, for future schema changes.
     cost : float or None
         Dollars the game's model seats spent, at list prices, their
-        logbook entries included (Phase 9g); None for a game with no
+        logbook entries included; None for a game with no
         model seat, and for one recorded before costs were.
     """
 

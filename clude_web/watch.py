@@ -1,25 +1,10 @@
-"""Watching a headless game being played, a turn at a time.
+"""All-bot Watch adapter over the same persisted table registry.
 
-Since Phase 8.2 a watched game is a table with nobody human at it
-(`clude_web.tables`): the same driver, registry and documents as a game
-people play, advanced by the Watch screen's two buttons instead of by
-polling. What this module keeps is the shape the Watch screen and its
-tests speak: a `WatchSetup` (a roster, a table size and a seed, the
-lobby's all-bot form), `WatchGame` (a `WebGame` built from one, with
-`advance`) and `WatchRegistry` (the one registry).
-
-**What a spectator may see.** The hands and the envelope stay hidden
-until the game is over (`docs/phase8.1-plan.md` 3.2). That rules out the
-replay's per-card bars here, and not only for the obvious reason: every
-seat's own hand is proven to that seat from the first turn, and all the
-hands together are exactly the eighteen cards that are *not* the answer.
-So a seat's block here is Direction D's compact bar -- how many cards it
-has placed, and how sure it is in each category -- naming no card. A
-refutation is described as *who* disproved it, never *what* they showed.
-When the game ends it is saved as an ordinary record and opens as a
-replay, where everything is laid face up.
-
-Nothing here spends money: every seat is headless.
+WatchSetup supplies roster/size/seed/remembering; WatchGame/WatchRegistry
+retain the adapter API. Buttons advance games rather than automated polling.
+Hands/envelope/private shown cards stay unnamed until replay, but compact
+readings can reveal hand composition indirectly by accepted policy.
+Remembering updates method memory without model calls or narrative entries.
 """
 from __future__ import annotations
 

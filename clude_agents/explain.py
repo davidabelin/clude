@@ -1,18 +1,8 @@
-"""Plain-text views of what one seat knows and believes (Phase 6a).
+"""Render a seat's deduction, belief, history and accusation test as text.
 
-Every function here is a pure function of a `ClueObservation`, a
-`ClueBelief`, a `Character`, a `ConstraintResult`, or a list of seat
-labels -- never of `GameState` -- so the same text can be printed by the
-maintainer CLI (`trace`, `floor`, `play --verbose`), put in front of an
-LLM (`clude_llm`, which must never be shown anything its seat cannot
-see), and later shown to a human player. Lifted out of
-`scripts/clude_cli.py`, where these started as private helpers.
-
-Seat labels are plain strings, one per seat index, built with
-`seat_labels`: ``P1 Mustard``, or ``P1 Mustard (Plum)`` when Plum's
-method is piloting the Mustard token. `ClueObservation.suspects` names
-the token in each seat, so a caller with only an observation can build
-them.
+Inputs are masked observations and character/belief data, never omniscient
+GameState. CLI and model prompts share these renderers so private-card
+visibility and holder names follow one contract.
 """
 from __future__ import annotations
 
@@ -29,8 +19,8 @@ CATEGORY_TAGS = (("S", SUSPECTS), ("W", WEAPONS), ("R", ROOMS))
 
 
 def seat_label(suspects: Sequence[str], seat: int, labels: Optional[Sequence[str]] = None) -> str:
-    """``P2 White``, or ``P2 White (Plum)`` when a different occupant
-    (`labels[seat]`) is piloting the White token."""
+    """Render token and occupant, e.g. P2 White (david), from seat-order labels.
+    """
     text = f"P{seat} {suspects[seat]}"
     if labels is not None and labels[seat] != suspects[seat]:
         text += f" ({labels[seat]})"

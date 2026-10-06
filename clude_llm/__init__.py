@@ -1,7 +1,6 @@
-"""The LLM wrapper (Phase 6): an LLM chooses, within a leash, among the
-legal options a character's own method has scored, and adds a line of
-table talk; anything else falls back to the character's own decision.
-Design and David's decisions: docs/phase6-plan.md.
+"""LLM choices within a Character's legal leash, plus persona and table talk.
+
+Invalid/failed replies fall back numerically. See docs/llm-wrapper.md.
 """
 from __future__ import annotations
 

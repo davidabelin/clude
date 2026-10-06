@@ -1,28 +1,13 @@
-"""`LLMCharacter`: an LLM piloting a `Character` (Phase 6b).
+"""LLMCharacter: legal model choices and voice around a numerical Character.
 
-For each of the four engine decisions the wrapper builds the character's
-leashed menu (`menu.py`), and if more than one option is allowed asks the
-backend for a choice and a line of table talk, under a per-game budget.
-A reply that names an allowed option is played and the line is buffered
-for the engine (`take_remarks`), gated by `chattiness`. Anything else --
-a single-option menu, the budget, a backend error or timeout, a refusal,
-malformed JSON, an unknown or disallowed letter -- falls back to the
-wrapped character's own method, which then draws from the character's
-RNG exactly as it would have headless. A backend that never answers
-(`NullBackend`) therefore reproduces the headless game byte for byte;
-the tests pin that. Every decision is recorded as a `Decision`, the
-audit trail the arena's columns and Phase 7's logbooks read.
+Build a leashed menu; ask only when choices exist and budget permits.
+Allowed replies play, remarks pass chattiness, and failures fall back using
+the numerical character's RNG path. Decisions audit choices/fallbacks and
+usage. NullBackend reproduces numerical play.
 
-`LLMCharacter` implements `PlayerProtocol` and `SpeakingPlayer`, and the
-duck-typed surface the arena and trace rely on (`name`, `profile`,
-`select_action`, `reset`, `observe`, `n_calls`, `seconds`).
-
-Phase 7c adds the logbook: `attach_logbook` gives the wrapper its
-`clude_storage.Logbook`; `new_game` then renders the memory block the
-`memory` dial asks for, sent with every decision as a second cached
-system block; `debrief` asks the model to write the game's entry
-afterwards (`clude_llm.logbook`). With no logbook attached, or an empty
-one, every request is byte-identical to Phase 6's.
+Attached logbooks render a stable memory block at new_game and can receive
+a post-game debrief. Off-turn react calls produce talk, not engine actions.
+See docs/llm-wrapper.md and docs/logbooks.md for lifecycle/contracts.
 """
 from __future__ import annotations
 
@@ -65,13 +50,13 @@ class LLMSettings:
         Enable the API's server-side refusal fallbacks (6c).
     debrief : bool
         Write a logbook entry after each game when a logbook is attached
-        (Phase 7c); False skips the call.
+       ; False skips the call.
     debrief_effort, debrief_max_tokens, debrief_timeout
         The debrief's own effort, room and patience: a reflective task,
         unlike a move, gets ``medium``, 4096 tokens and 180 s by default
         (at medium effort it runs 40-90 s, past a move's 30 s).
     remark_max_tokens
-        Room for an off-turn line (Phase 8.3b): one short sentence.
+        Room for an off-turn line: one short sentence.
     """
 
     model: str = DEFAULT_MODEL

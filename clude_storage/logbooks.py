@@ -1,30 +1,10 @@
-"""Logbooks: one identity's persistent memory (Phase 7), as documents in
-a `RecordStore` beside the game records.
+"""Per-identity method memory, narrative entries and rolling logbook heads.
 
-An identity is a `SeatRecord.label`: a character name whichever token
-it plays, or later a human's display name. Under ``logbooks/<identity>``
-a logbook holds::
-
-    entries/NNNN.json   one immutable entry per game, zenbot-shaped
-                        (docs/zenbot_memories.json minus the koans):
-                        computed facts plus what the identity's own
-                        model wrote about the game
-    head.json           the rolling state the identity reads back: its
-                        standing instructions, a dossier per opponent
-                        it has met, a tally, and an index of the flags
-                        its entries carry
-    method.json         the method's numeric memory (Mustard's rows,
-                        White's counts, Green's posteriors); an opaque
-                        document owned by `clude_training.memory`
-
-`render_memory` turns the head and entries into the text block an
-LLM-piloted character is given before a game, at the depth its
-`memory` dial asks for (docs/phase7-plan.md): the head alone at 0, a
-one-line index of entries (summary and flags) up to 0.5, and whole
-entries above that, every entry at 1. It is pure text so the CLI can
-show exactly what a character would read.
-
-Nothing here calls a model; `clude_llm.logbook` writes the entries.
+Identity is SeatRecord.label: character name or normalized account key,
+independent of a human's token. Documents live under logbooks/<identity>/.
+Entries retain immutable game narratives; the head carries derived tally,
+instructions, dossiers and flag index. Method memory is separate numerical
+state. render_memory selects depth without writing. See docs/logbooks.md.
 """
 from __future__ import annotations
 
@@ -527,8 +507,8 @@ def _share(n: int, fraction: float) -> int:
 def memory_counts(n_entries: int, depth: float) -> tuple:
     """``(indexed, full)``: how many of the most recent entries appear
     in the one-line index and how many in full at `depth`:
-    none below 0, the whole index at 0.5, half the entries in full at
-    0.75, everything at 1 (docs/phase7-plan.md, "Read-back").
+    no entries at 0, the whole index at 0.5, half the entries in full at
+    0.75, everything at 1. See docs/logbooks.md for proportional selection.
 
     Raises
     ------

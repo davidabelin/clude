@@ -1,27 +1,10 @@
-"""Menus: the scored, leashed list of legal options for one decision
-(Phase 6b).
+"""Pure scored legal menus for an LLM-piloted Character.
 
-A menu is built from the wrapped `Character`'s own numbers, never from
-`GameState`: the legal `MoveChoice`s the engine offered, scored by the
-character's `movement_scores`; the honest suggestion candidates and
-their belief; the refutation candidates the engine computed from ground
-truth, scored by `secrecy`; the accusation test. Building one draws
-nothing from any RNG, so a wrapper that falls back to the character's
-sampled decision leaves the character's RNG stream exactly where the
-headless character would have had it.
-
-The leash: an option is `allowed` when its score is at least
-``(1 - leash)`` of the best score, so `leash = 0` admits only the
-character's best (and its ties) and `leash = 1` admits every legal
-option. Two exceptions, both from docs/phase6-plan.md: own-hand cards
-are listed in the suggestion menu as bluff options and allowed whenever
-the character has any rope and any `bluff_rate` at all; and the
-accusation menu applies the leash symmetrically around
-`accuse_threshold` (see `accusation_menu`).
-
-Options come best first, labelled ``A``, ``B``, ... (`schema.LABELS`),
-and capped at `MAX_OPTIONS`. A Phase 8 human seat is meant to be shown
-this same object.
+Scores come from the same helpers/policy hooks used in numerical play.
+Leash admits scores >= (1-leash)*best; ties can remain at zero leash.
+Accusation opens a threshold window, and own-hand suggestion cards are
+explicit bluff options. Menu construction consumes no RNG; single-choice
+menus need no model call. See docs/llm-wrapper.md for exact rules.
 """
 from __future__ import annotations
 
@@ -237,11 +220,12 @@ def suggestion_menu(
 
 
 def accusation_menu(character: Character, obs: ClueObservation, leash: Optional[float] = None) -> Menu:
-    """``[accuse the best triple, pass]`` under the symmetric leash of
-    docs/phase6-plan.md: accusing is allowed once P(correct) reaches
-    ``(1 - leash) * accuse_threshold``, passing whenever P is below the
-    threshold or there is any rope at all. At `leash = 0` exactly the
-    headless answer is allowed."""
+    """Build accuse/pass options around the threshold and leash.
+
+    Accuse is allowed at P(correct) >= (1-leash)*threshold; pass is allowed
+    below threshold or with any nonzero leash. Zero leash matches the
+    character's numerical threshold answer.
+    """
     _require_mask(obs)
     leash = _leash_of(character, leash)
     triple, p = character.accusation_test(obs)

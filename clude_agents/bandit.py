@@ -1,26 +1,11 @@
-"""Green -- Thompson-sampling bandit ensemble over the other five.
+"""Green's Thompson-sampling ensemble over the other five agents.
 
-Ports the structure of `rps_agents/heuristic/multi_armed_bandit.py`
-almost directly: a Beta(alpha, beta) posterior per arm, decayed each
-`observe` call so old evidence fades, with the arm sampled highest this
-turn chosen outright (not blended). Here the five arms are literal
-instances of the other five methods rather than move-predictor
-heuristics, so "the arm sampled highest" means "whichever method's
-belief Green trusts most right now" -- opportunistic, hedges, only as
-good as his arms.
-
-The arm reward is a *rank* (Phase 5b, docs/phase5-plan.md 4.4): on
-each revealed envelope the arm with the lowest log-loss scores 1, the
-highest 0, linear in between, ties sharing their mean position. The
-Phase 4 reward -- mean probability on the three true cards -- was
-dominated by the shared deduction floor, so all five arms scored within
-a percent of each other and Thompson sampling picked among them at
-random. Ranking compares the arms against each other on the same
-snapshot, which is the only thing Green needs to learn.
-
-`random.betavariate` (stdlib) stands in for `numpy.random.beta` so this
-package doesn't need to add numpy as a dependency the rest of the repo
-doesn't otherwise require.
+Each arm has a decaying Beta posterior. The highest sampled arm supplies
+its belief without blending. RevealedOutcome ranks arm log-loss for
+feedback; benchmark updates occur per snapshot, arena updates per game.
+Plum's arm uses DeepNashAgent, not archived enumeration. Persistent
+posteriors can be restored through method memory. See the strategy glossary
+for algorithm assumptions and historical reward comparisons.
 """
 from __future__ import annotations
 
@@ -40,10 +25,7 @@ EPS = 1e-9
 
 @dataclass
 class RevealedOutcome:
-    """Minimal ground-truth signal for scoring bandit arms: the solved
-    envelope. A placeholder for a fuller `ClueTransition` (see
-    docs/architecture.md) -- Green only needs the solution to score arms
-    against, not the full transition contract."""
+    """Solved envelope used to score Green's saved arm predictions."""
 
     envelope: tuple
 

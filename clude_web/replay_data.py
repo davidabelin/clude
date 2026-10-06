@@ -1,26 +1,10 @@
-"""What the replay screen needs from a stored game, in two halves.
+"""Build event/board frames and cached reconstructed belief traces.
 
-The halves are split by cost, because that is the only thing that
-matters here (`docs/phase8.1-plan.md` 2):
-
-- **Cheap, per request.** `event_frames` folds the event log once, giving
-  the board after every event and the line that describes it. This is
-  the scrubber's spine, and a fold over a few hundred events costs
-  nothing.
-- **Slow, cached once.** `trace_document` asks every seat's own method
-  what it believed after every suggestion. Measured on the grid records:
-  a 4-seat, 28-suggestion game takes 8.7 s and a 3-seat game with Plum
-  in it 11.9 s -- far too slow for a request, though not the minute the
-  plan first estimated. It is computed once and stored beside the record
-  as ``traces/<run_id>/<index>.json``; served, that is 10.4 s on the
-  first open of a replay and 0.04 s on every one after.
-
-One honest limitation, to be shown on the screen rather than hidden: a
-trace starts fresh agents without restoring method memory and never calls
-`observe`. Green's outcome-feedback updates are therefore absent. White
-rebuilds her current-game chain from the suggestion history on each call;
-her `observe` hook is a no-op. The bars are reconstructed estimates rather
-than a recording of the original agents' state.
+Event folding is cheap; fresh-agent belief analysis is cached by trace
+version/checkpoint interval. Traces do not restore live method memory or
+Green's outcome feedback and use current weights; limitation accompanies
+the payload. Player visibility is handled separately by table/MCP views.
+Board decoration, certainty and sound metadata derive from the same events.
 """
 from __future__ import annotations
 

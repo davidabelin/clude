@@ -1,24 +1,13 @@
-"""PlumOG -- exact posterior by enumerating consistent deals.
+"""Archived PlumOG: bounded enumeration of consistent complete deals.
 
-**Archived 2026-10-05 (Phase 12, `docs/deepnash-plan.md`).** This was
-Plum's method from Phase 2 to Phase 11; Plum is now
-`deep_nash.DeepNashAgent`, and this agent, PlumOG, sits in no registry
-and plays no seat. It stays importable: the wiki's Rope question and
-its search figure run on it (`clude_web/wiki/facts.py`), the brute-force
-differential test checks it, and his logbook, copied to
-`logbooks/PlumOG/`, keeps his entries under his name.
+Removed from the suspect registry and Green's arms on 2026-10-05; current
+Plum is DeepNashAgent. Kept for historical analysis, worked examples and
+correctness tests, not seating.
 
-Built fresh (no legacy basis). Correct and slow by design: a real
-backtracking CSP search over every still-unresolved card, respecting
-per-holder hand-size capacity, the one-envelope-card-per-category rule,
-and `mask.or_constraints` jointly -- the joint structure a per-card
-marginal (Scarlett's method) cannot see, which is exactly why
-`clude_constraints.propagator` exposes `or_constraints` separately (see
-docs/architecture.md).
-
-Falls back to weighted random sampling once the search tree exceeds a
-node budget (early game, 5-6 players), trading exactness for a noisier
-but still-informative estimate -- see `Notes` below.
+Search respects hand capacity, category rules and joint OR constraints.
+Exceeding the node budget falls back to constructive rejection samples;
+these can be noisy and biased by construction order. Holder traversal must
+be stable across processes. See docs/strategy-glossary.md for old results.
 """
 from __future__ import annotations
 

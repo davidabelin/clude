@@ -1,188 +1,58 @@
 # The LLM wrapper (`clude_llm`)
 
-How a character gets a voice and a little discretion, without losing
-its method. Design and David's decisions are in `docs/phase6-plan.md`;
-this is the working guide.
-
-The web lobby calls this **X (LLM)**; **X (headless)** is the same
-numerical character without Claude or chat. New web tables remember by
-default, attaching each LLM character's narrative logbook and loading
-supported method memory for both kinds. Each LLM seat's lobby memory-depth
-dial is saved in `SeatSpec.memory` and applied to `Profile.memory` when
-the wrapper is built. Unchecking "the characters remember" disables
-cross-game memory, independently of choosing LLM or headless play.
-CLI logbooks still require `--logbook`.
+An LLMCharacter wraps the same numerical Character shown as **X (headless)** in the lobby. **X (LLM)** adds persona, leashed choices and talk. Memory is independent of this choice: [Logbooks](logbooks.md) owns attachment/depth rules and [Web](web.md) owns spend caps/lifecycle.
 
 ## What happens on one decision
 
-The engine asks a seat one of four questions: where to move, what to
-suggest, whether to accuse, which card to show. For a headless
-`Character` the answer comes from its method's numbers and its five
-dials. An `LLMCharacter` wraps that character and, for each question:
+1. Build a legal menu from Character's pure scoring helpers, including any agent policy hooks. Movement, accusation and show use one letter; suggestion uses suspect/weapon letters. Own-hand bluff options are labelled explicitly.
+2. Allow scores at least `(1 - leash) * best_score`. Zero leash retains best ties; one opens all legal options. A single allowed choice needs no model call.
+3. Send persona/rules, optional stable memory block, the seat's observation and a fixed JSON response schema to the backend.
+4. Validate the response and play an allowed choice. Budget exhaustion, backend errors/timeouts/refusals, malformed JSON and invalid letters fall back to Character, consuming its RNG as ordinary numerical play would. NullBackend therefore reproduces the numerical twin.
+5. Audit the menu, choice, fallback, deviation, proposed/spoken line, tokens and time in Decision; persisted games keep per-seat `llm_log`.
 
-1. **Builds a menu** from the character's own scores: every legal option
-   the engine offered, lettered `A`, `B`, ... best first, with the
-   number behind it ("P(envelope room = Library) 0.31", "already shown
-   to this player"). Own-hand cards appear in the suggestion menu as
-   labelled bluff options.
-2. **Applies the leash.** An option is allowed when its score is at
-   least `(1 - leash)` of the best. `leash = 0` leaves only the
-   character's best-scored options (ties included, so the model may still
-   be asked to break one); `leash = 1` opens every legal option. The
-   accusation menu, `[accuse, pass]`, uses the same rope on both sides
-   of the character's threshold: the model may jump early once
-   `P(correct) >= (1 - leash) * accuse_threshold`, and may hold back
-   whenever there is any rope. If one option is left, no call is made
-   and the character decides as it would headless.
-3. **Asks the model**, with the persona and rules as a cached system
-   prompt and the seat's view as the user prompt (below), and a fixed
-   JSON schema for the reply: a letter (two for a suggestion) and a
-   `say` line.
-4. **Plays the letter** if it is an allowed option, and hands the line
-   to the engine as a `RemarkEvent`, published with probability
-   `chattiness`. Anything else -- the per-game budget, a backend error
-   or timeout, a refusal, malformed JSON, a letter that is not on the
-   menu or not allowed -- **falls back to the character's own method**.
-   The fallback spends the character's RNG exactly as the headless
-   character would have, so a backend that never answers plays the
-   identical game, event for event; `tests/test_llm.py` checks that
-   against the character goldens, and checks that an adversarial
-   backend with full rope cannot change a single event either.
-5. **Records a `Decision`**: the menu, the letter, the fallback reason
-   if any, whether the choice deviated from the character's top option,
-   the line, tokens, seconds. Records keep these per seat
-   (`GameRecord.llm_log`), and the arena turns them into columns.
+The accusation menu allows the best triple once `P(correct) >= (1 - leash) * accuse_threshold`; passing is allowed below threshold or whenever leash is nonzero. At zero leash it matches Character's threshold test. Peacock uses her lower belief bound rather than pignistic probabilities.
 
-**Off-turn talk** (Phase 8.3b) is a fifth request kind, `remark`:
-`LLMCharacter.react(obs, trigger, names)` shows the seat's view, the
-recent table talk and what just happened (a line someone typed, a
-suggestion resolving, an accusation) and asks for one short line or an
-empty string, against `REMARK_SCHEMA` (`say` alone) with 200 tokens of
-room. It is audited as a `Decision` of kind `remark`, counts toward the
-game's budget, and falls silent on any failure. Whether to ask is the
-caller's draw on `chattiness`, made by the web table's reaction queue
-(`clude_web.chat`), so the wrapper's RNG moves only where the caller
-says and the on-turn gate is untouched. No persona or rules text
-changed for it, so both recorded fixtures still replay.
-
-**On the web** (Phase 8.3a) a model seat is an external seat: the web
-driver calls `choose_*` on the request's own observation and stores the
-answer with its audit and lines, so a cold instance replays the game
-without a call; the engine's `speakers` hook lands the lines where a
-player object's would. Every backend there is a
-`clude_llm.metered.MeteredBackend`: it prices each call with
-`estimate_cost`, keeps a daily ledger in the store (`spend/<date>.json`)
-and, since Phase 9g, one a table split by seat
-(`spend/tables/<id>.json`), and refuses -- as an error result the
-fallback absorbs -- an unpriced model, a table past its budget (on
-every day it was played) or a day past its cap. What a game cost is
-recorded with it, never shown to the model (`docs/web.md`).
+On-turn remarks pass a `chattiness` gate and become RemarkEvents. Off-turn `react` requests use a `say`-only schema and fail silently; the web reaction queue decides participation/pacing. Budget usage includes reactions and debriefs. Web LLM seats are driven externally and their answers/audits/remarks stored, so cold rebuild never repeats a call.
 
 ## What the model is shown, and what it is not
 
-The user prompt is rendered from the seat's `ClueObservation` only,
-never from `GameState`, so the model can be shown nothing its seat
-could not know. It contains: who the character is and which token it
-plays; who is at the table and who is out; its hand; what the shared
-deduction floor has proven (envelope cards) and located (cards held by
-named seats); its method's top cards per category and any method
-diagnostics (Plum's exact/sampled count, Green's arm, Peacock's
-belief/plausibility bounds); its best accusation with `P(correct)` and
-its threshold; the suggestion log as that seat saw it, with cards it
-was not shown marked hidden; the last few lines of table talk; and the
-menu, allowed options only.
+Live decision/remark prompts use the observing seat's ClueObservation, not omniscient GameState: identity/token, public seats, own hand, floor, method probabilities/diagnostics, accusation test, redacted history, recent talk and legal menu. Other hands, the envelope and private shown cards remain hidden. Post-game debrief deliberately sees the whole deal face up.
 
-`python scripts/clude_cli.py prompt ...` prints exactly this for any
-seat, any point in a game, any decision, without making a call. Read it
-before editing a persona, and read it when checking that nothing leaks.
-
-The system prompt is `clude_llm/personas/<Suspect>.md` followed by
-`clude_llm/personas/rules.md`. It is byte-stable per character, which is
-what lets the API cache it (Opus 5 caches prefixes of 512 tokens or
-more; the two files together are well past that).
+Use `clude_cli.py prompt` to inspect the actual prompt without spending. Persona plus rules form the stable system prefix; attached memory is a second block stable within a game. Backend caching is an optimization, not a correctness condition.
 
 ## Personas
 
-One Markdown file per suspect. Each says who the character is, how it
-thinks (its method, in plain words, as self-image rather than
-instruction) and how it talks. The rule they follow is the one the
-personality layer already follows: **do not encode the flaw twice.**
-Scarlett's early accusations come from her 0.15 threshold and her naive
-Bayes numbers; her file says she is sure of herself, not that she
-should accuse early. Tune voices by editing the files; tune behaviour by
-editing dials.
+`personas/<Suspect>.md` describes identity, method and voice; `rules.md` supplies shared behavior. These are executable prompts. Keep numerical flaws in agents/dials, rather than ordering the persona to make deliberately wrong decisions. Scarlett's current preset threshold is 0.3; Plum's method is the policy/belief network, not PlumOG's enumeration.
+
+Phase 11 updated Plum's method description and condensed shared rules. Exact system text participates in LLMRequest replay keys, so both historical fixtures are stale. Keep them as historical recordings; do not rewrite keys to pretend they are fresh. Paid re-recording and outcome/tally updates require separate approval. Phase 12's trained-weight validation can change menus again.
 
 ## The two Phase 6 dials
 
-| Dial | What it does | Arena footprint |
-|---|---|---|
-| `leash` | how far below the character's best-scored option Claude may pick, and how wide the accusation window opens around the threshold | deviation rate; wrong-accusation rate against the headless twin |
-| `chattiness` | the probability a line the model offered is actually said | remarks per game |
-
-Both live on `Profile`, so `--set Plum.leash=0.5`, `sweep --dial leash`
-and the presets all work as for the other five. The headless
-`Character` ignores them. Presets start at `leash = 0.25`,
-`chattiness = 0.5` for everyone until the 6d sweep sets them.
+`leash` governs allowable choices; `chattiness` gates proposed talk. Both are Profile dials, ignored by numerical Character. Current defaults are 0.25/0.5. A policy agent can have different score spread from enumeration, so the same leash value does not imply the same menu width. Phase 12 must re-measure Plum's leash.
 
 ## Memory (Phase 7)
 
-With a logbook attached (`LLMCharacter.attach_logbook`; `--logbook` on
-the CLI) the wrapper reads the character's logbook back before each
-game at the depth of a third dial, `memory` (default 0: the head only;
-0.5 every entry's summary and flags; 1 every entry in full), and sends
-it with every decision as a **second cached system block** after the
-persona and rules (`LLMRequest.memory`). The block is stable for a
-game, so it is written to the cache once and read cheaply after, and
-the persona block stays the prefix every game shares. With no logbook,
-or an empty one, the request and its replay key are exactly the ones
-above, so every recorded fixture still replays.
-
-After the game the wrapper asks the model for the game's logbook entry
-(`debrief`): the same persona and rules, a prompt with the outcome, the
-deal face up, the seat's own view of the game, its decisions, its
-final belief against the truth and its logbook so far, and a third
-fixed schema, `LOGBOOK_SCHEMA`, at effort `medium` with 4096 tokens
-and 180 s (`LLMSettings.debrief_effort`, `debrief_max_tokens`,
-`debrief_timeout`; `debrief=False`
-skips it). A failed or malformed debrief writes nothing and leaves the
-reason in `last_debrief`. `docs/logbooks.md` has the rest.
+A logbook attachment supplies a stable cached block at Profile.memory depth. Zero reads the condensed head; one reads full entries. Empty/unattached memory sends no block. After a game, `debrief` requests an entry against LOGBOOK_SCHEMA; failure leaves `last_debrief` and writes nothing. [Logbooks](logbooks.md) explains schema, model-visible content and administration.
 
 ## Backends
 
-`--llm-backend` on `play`, `arena` and `sweep`:
-
-| Backend | What it does | When |
+| `--llm-backend` | Behavior | Can call the service? |
 |---|---|---|
-| `anthropic` | the real API (`clude_llm.anthropic_backend`, SDK imported lazily) | play, measurement |
-| `null` | never answers; every decision falls back | the control: the headless twin |
-| `record:PATH` | the real API, every exchange saved to a JSON file | building a replay |
-| `replay:PATH` | serves a recording back, keyed by a digest of the request | re-analysis and tests, no spend |
+| `anthropic` | AnthropicBackend; SDK imported lazily | Yes |
+| `null` | Always fails; numerical fallback | No |
+| `record:PATH` | Real backend plus saved requests/replies | Yes |
+| `replay:PATH` | Reply lookup by request digest; ReplayMiss on mismatch | No |
 
-A replay raises `ReplayMiss` on a request it has not seen, so a prompt
-change shows up as a miss rather than a silent divergence.
+The backend delegates authentication to the SDK; direct scripts should export `ANTHROPIC_API_KEY` explicitly. Web config also supports selected `.env` fallbacks. In earlier live checks, organization keys failed because the backend does not supply a workspace header; use the workspace-scoped key provisioned for the service. Missing/bad credentials produce fallback, which must be distinguished from a successful model run.
 
-Credentials: `ANTHROPIC_API_KEY`, or an `ant auth login` profile,
-resolved by the SDK; nothing is stored in the repo. With no credentials
-the backend returns an authentication error on every call and the game
-falls back throughout, which the `play --llm` trailer makes visible.
+Defaults in LLMSettings: configured model `claude-opus-5`, low effort, 2048 tokens, 30 s timeout, 200 calls/500K tokens per game, eight recent talk lines; debrief medium effort/4096 tokens/180 s; reaction 200 tokens. AnthropicBackend defaults to one SDK retry. These are code settings, not verified current provider capabilities/pricing.
 
-The key has to be **workspace-scoped**. An organisation-level key fails
-every call with a 400 -- "not scoped to a workspace, so this request
-must include the anthropic-workspace-id header" -- and since the backend
-sends no such header, every seat falls back and the run is worthless.
-Create the key inside a workspace. A `.env` at the repo root is
-gitignored but nothing loads it: export the variable into the
-environment before running, or the SDK will not see it.
-
-Call settings (`LLMSettings`): model `claude-opus-5`, `effort` low,
-`max_tokens` 2048, timeout 30 s, one SDK retry, server-side refusal
-fallbacks on, budget 200 calls or 500K tokens per game, eight lines of
-recent table talk in the prompt; the debrief (Phase 7) at effort
-`medium` with 4096 tokens and its own 180 s timeout (at medium effort
-it runs 40-90 s; the smoke run's first six debriefs all timed out at
-30 s before it had one).
+MeteredBackend wraps web calls, pricing model IDs from the repository table. It checks table/day caps before calls; actual usage can overshoot the remaining allowance by the final accepted call. It refuses unpriced models. Table/seat ledger persists across UTC midnight; daily ledger is service-wide. Model-visible prompts/logbooks contain no spend.
 
 ## Cost
+
+These are historical ring-board measurements of PlumOG and the old presets,
+not a current quote for the network or hosted provider prices.
 
 Most menus have one allowed option at the default leash (refutations
 especially), so a game asks the model far less often than it decides:
@@ -216,17 +86,6 @@ since the cached system block is fixed while the per-turn state grows.
 
 ## Measuring it
 
-The comparison is always against the headless twin on the same seeds:
+Compare numerical/model twins on the same seeds and fixed memory state. Arena reports calls, fallback/deviation rates, remarks, usage and latency; sweep varies one dial. Real backend choices are not deterministic. Record model, dates, seeds, board version, weights and memory alongside measurements. Old Plum costs/results refer to enumeration; they do not price or validate the new network. [The glossary](strategy-glossary.md) owns the dated evidence.
 
-```
-python scripts/clude_cli.py arena --games 12 --players 4 --roster Scarlett,Plum,Peacock,floor --seed 7007
-python scripts/clude_cli.py arena --games 12 --players 4 --roster Scarlett,Plum,Peacock,floor --seed 7007 --llm
-```
-
-Same deals, same dice; the difference in win rate and wrong-accusation
-rate is what the rope cost or bought each character. The `--llm` run
-adds an LLM table: decisions, calls, fallback rate, deviation rate
-(played options that scored below the character's best), remarks per
-game, tokens per game, and milliseconds per call. `sweep --dial leash
---llm` is the keep-a-dial test for the leash. Results go in
-`docs/strategy-glossary.md` as they are run.
+Fixture refresh after approval uses `play --llm --llm-backend record:PATH --verbose` with each fixture's seed, players and roster; update RECORDED_GAMES from its transcript. Commands and pending status are in [Phase 11](phase11-plan.md). Restore current-prompt replay tests only after fresh recordings exist.

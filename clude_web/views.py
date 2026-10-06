@@ -1,8 +1,7 @@
-"""The app's own pages: the lobby, a run's games, the replay, Watch, the
-tables people play at (Phase 8.2), and Wikiclude (D20).
+"""Browser routes for lobby, tables, Watch, replay, privacy and Wikiclude.
 
-`docs/phase8.1-plan.md` 3.2 has what the first screens are for and
-`docs/phase8-plan.md` 3.2-3.4 the table; `docs/web.md` how to use them.
+Templates adapt registry payloads to the current viewer/look; centralized
+auth gates routes unless marked public. See docs/web.md for operations.
 """
 from __future__ import annotations
 
@@ -56,7 +55,7 @@ extra threads opening and throwing away connections."""
 
 def _board(positions: dict, title: str) -> str:
     """The board for this page in the viewer's look: dressed for an
-    Engraved one (Phase 10f), as frozen for Legacy."""
+    Engraved one, as frozen for Legacy."""
     return board_svg.board_svg(positions, title=title, dressed=current_style().engraved)
 
 
@@ -141,9 +140,7 @@ def run_listing(store) -> list:
 
     Read from each run's summary, which already carries every game's
     seats, winner and length, so the lobby opens no game record at all.
-    The summaries are fetched in parallel: on Cloud Run each is a round
-    trip to the bucket, and one after another the lobby took 3.5 s for 38
-    runs (`docs/phase8.1-plan.md`, section 8, step 8).
+    Summaries are fetched in parallel because each GCS read is a round trip.
     """
 
     def fetch(run_id):
@@ -174,7 +171,7 @@ def run_listing(store) -> list:
 
 def run_cost(games: list):
     """What a run's games spent with Claude in all, from each game's
-    ``cost`` in the summary (Phase 9g), or None when no game records
+    ``cost`` in the summary, or None when no game records
     one: a headless run, or one stored before costs were."""
     costs = [float(g["cost"]) for g in games if g.get("cost") is not None]
     return round(sum(costs), 6) if costs else None
@@ -696,7 +693,7 @@ def table_answer(table_id):
 
 @bp.post("/tables/<table_id>/say")
 def table_say(table_id):
-    """One line of chat from the viewer's seat (Phase 8.3b)."""
+    """One line of chat from the viewer's seat."""
     game = _live(table_id)
     viewer = tables.viewer_seat(game.setup, _me())
     if viewer is None:
@@ -716,7 +713,7 @@ def table_say(table_id):
 def table_typing(table_id):
     """The viewer's page says their chat box holds text (``on=1``) or
     was emptied (``on=0``), for "so-and-so is typing" at the other
-    seats (Phase 9h). A heartbeat, not a view: the next poll carries
+    seats. A heartbeat, not a view: the next poll carries
     the answer, so this returns nothing but an acknowledgement."""
     game = _live(table_id)
     viewer = tables.viewer_seat(game.setup, _me())
@@ -729,10 +726,8 @@ def table_typing(table_id):
 
 @bp.post("/tables/<table_id>/autopilot")
 def table_autopilot(table_id):
-    """Hand a seat to the stand-in or take it back: the seat's owner
-    only. (Until Phase 9h anyone seated could hand over a seat that had
-    stalled three minutes; the time-out plays a stalled turn itself now,
-    so nobody needs to.)"""
+    """Hand over or reclaim a seat as its owner, preserving recorded identity.
+    """
     game = _live(table_id)
     registry = _registry()
     viewer = tables.viewer_seat(game.setup, _me())
@@ -802,8 +797,10 @@ def watch_next(table_id):
 
 @bp.post("/watch/<table_id>/end")
 def watch_end(table_id):
-    """Play every remaining turn, then open the replay. A whole game is
-    around twenty seconds for a table with Plum on it."""
+    """Finish the all-bot game and open its face-up replay.
+
+    Runtime depends on table size, weights and method memory.
+    """
     game = _watched(table_id)
     with game.lock:
         game.play_to_end()

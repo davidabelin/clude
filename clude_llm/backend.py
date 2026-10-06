@@ -1,21 +1,10 @@
-"""LLM backends: the one call the wrapper makes, behind a protocol so
-that tests, replays and the real API are interchangeable (Phase 6b).
+"""Backend protocol and offline/recorded implementations for LLMCharacter.
 
-`LLMBackend.complete(request) -> LLMResult` is the whole surface. The
-real one, `AnthropicBackend`, lives in `anthropic_backend.py` (6c) and
-imports the SDK lazily; everything here is standard library:
-
-- `NullBackend` always fails, so every decision falls back -- an LLM
-  character on it plays exactly like its headless twin.
-- `ScriptedBackend` serves canned replies (text, dicts, results, or
-  exceptions to raise) and remembers every request, for tests.
-- `RecordingBackend` wraps another backend and writes every request and
-  reply to a JSON file; `ReplayBackend` serves that file back, keyed by
-  a hash of the request, so a recorded game replays with no spend and a
-  changed prompt surfaces as a `ReplayMiss`.
-
-`open_backend("anthropic" | "null" | "record:PATH" | "replay:PATH")` is
-what the CLI's ``--llm-backend`` resolves through.
+complete(request) returns LLMResult. NullBackend always fails; ScriptedBackend
+serves test replies; RecordingBackend saves exchanges; ReplayBackend looks
+up request digests and raises ReplayMiss for missing keys. Persona/rules,
+menu or state changes can invalidate recordings. open_backend resolves CLI
+backend specifications; only the real adapter imports the SDK lazily.
 """
 from __future__ import annotations
 
@@ -36,7 +25,7 @@ class LLMRequest:
     """One call: the cached `system` prefix, the per-turn `user` text, the
     fixed response `schema`, and the decision `kind` it is for.
 
-    `memory` (Phase 7) is the character's logbook block, sent as a second
+    `memory` is the character's logbook block, sent as a second
     cached system block after the persona; empty when the character has
     nothing to read back, in which case the request, its `key` and the
     API call are exactly the Phase 6 ones. `effort`, `max_tokens` and

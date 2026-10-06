@@ -1,12 +1,7 @@
-"""Event log types.
+"""Omniscient event types used by the engine, records and replay.
 
-Every engine action appends one of these. The log is the single source of
-truth for building each player's `ClueObservation` (state.py) and, later,
-for post-game replay of all six belief traces (see docs/architecture.md).
-Some fields are private to specific players; `ClueObservation` is
-responsible for redacting them, not this module. `RemarkEvent` (Phase 6)
-is the one kind with no game effect: a line of table talk, public to
-every seat, kept in order with the actions it accompanied.
+ClueObservation redacts private shown cards for each viewer. RemarkEvent is
+public table talk with no game effect, including off-turn chat.
 """
 from __future__ import annotations
 
@@ -46,12 +41,11 @@ class GameOverEvent:
 
 @dataclass(frozen=True)
 class RemarkEvent:
-    """One line of table talk from `seat`, appended by the engine right
-    after the decision it accompanied (Phase 6). `about` names that
-    decision: ``"move"``, ``"suggest"``, ``"accuse"`` (also when the
-    seat chose not to accuse) or ``"show"`` (said while refuting). Phase
-    8's off-turn chat is meant to reuse this type with new `about`
-    values. Nothing in the engine reads or acts on `text`."""
+    """Public table talk with no rules effect.
+
+    about identifies the accompanying move/suggest/accuse/show decision or
+    off-turn chat/reaction. Nothing in the engine interprets text as evidence.
+    """
 
     turn: int
     seat: int

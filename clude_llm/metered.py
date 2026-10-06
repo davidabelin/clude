@@ -1,28 +1,11 @@
-"""Spend caps for the model on the web (Phase 8.3a, docs/phase8-plan.md 4.1).
+"""Wrap a backend with persisted per-table, per-seat and UTC-day spend.
 
-`MeteredBackend` wraps any backend and prices every call with
-`estimate_cost`, keeping the running totals in a `Ledger`: one document a
-day in the store (``spend/<date>.json``) with the day's total and each
-table's share, and one document a table (``spend/tables/<id>.json``)
-with the table's total and each seat's share (Phase 9g). Before a call it
-refuses -- with an error `LLMResult`, never an exception -- when the
-model is unpriced, when the table has spent its budget, or when the day
-has spent its cap; the wrapper's own fallback then plays the headless
-character, exactly as it does for a timeout, and the audit's `fallback`
-says ``error: budget: ...``. After a call it adds the cost, so one call
-may run a few cents past a cap and never more.
-
-A table's budget is the table's, whatever the date: until Phase 9g it
-was read from the day's document alone, so a game that crossed midnight
-UTC (8 pm Eastern) started its budget again and its screen froze at the
-figure it had reached before midnight.
-
-The ledger is read-modify-write under a process lock: a store put per
-call is a round trip on GCS, which is nothing beside a 2-3 s model call,
-and the service runs one instance, so the lock is the whole story. For
-the same reason a `Ledger` keeps the table documents it has read or
-written in memory, so a screen polling every few seconds never reads
-the store for them.
+Prices come from the repository's estimate_cost table. Unpriced models or
+exhausted caps return errors absorbed by numerical fallback. Daily ledgers
+use spend/<date>.json; spend/tables/<id>.json keeps a table's allowance across
+midnight and includes decisions, reactions and debriefs. Checks precede a
+call, so the last accepted call can exceed the remaining allowance.
+The ledger assumes the single-process registry/lock deployment model.
 """
 from __future__ import annotations
 
@@ -120,7 +103,7 @@ class Ledger:
 
     def days_total(self, table_id: str) -> float:
         """What this table spent, summed from the daily documents: the one
-        place spend was recorded before the table documents (Phase 9g),
+        place spend was recorded before the table documents,
         so the way to price a game played before them. Reads every day's
         document, so it is for the CLI, never a request."""
         total = 0.0
@@ -166,7 +149,7 @@ class MeteredBackend:
         else `DEFAULT_MODEL`. An unpriced model is refused, not uncapped.
     seat : int or None
         The seat the calls are made for, whose share of the table's spend
-        they count toward (Phase 9g); None counts them to the table alone.
+        they count toward; None counts them to the table alone.
     """
 
     name = "metered"

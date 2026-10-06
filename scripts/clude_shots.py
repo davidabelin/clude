@@ -1,41 +1,10 @@
-"""Screenshot the web app, so a UI change can actually be looked at.
+"""Capture styled browser screens against a throwaway store with fake LLMs.
 
-An SVG rasteriser is no use for clude: `clude_web.board_svg` sets no
-colour at all, leaving every shape to the stylesheet (`static/styles/legacy.css`), so rendering
-the SVG on its own gives an unstyled blank. Only a real browser applies
-the stylesheet, runs `replay.js` and honours dark mode and a phone
-width. Hence Playwright.
-
-This is a maintainer tool, not part of the app and not imported by it.
-It boots the app on a spare port against a throwaway store seeded from
-real records, signs in, and writes a PNG per screen: the login, the
-lobby (including an LLM seat's memory dial), a run's games, a watched game as dealt and a few turns in, a
-table with a person at it on their move and a few answers later, a
-table with two model seats as a player and as a spectator sees it (each
-seat's share of the spend), a table waiting for players, and a replay
-at its start, middle and end.
-
-The model here never answers, so it never spends: the spend on the model
-table is seeded into the app's ledger, and the first game of the copied
-run is given a cost, so the cost bars and the games' cost column have
-something to show (Phase 9g).
-
-Wikiclude's pages (D20) are shot too: the Main Page, the three kinds of
-article, the app and classwork topics, a category, a figure's own page, and the pages the wiki
-keeps about itself. ``--wiki`` shoots only those, and needs no stored
-games.
-
-Usage
------
-    python scripts/clude_shots.py
-    python scripts/clude_shots.py --store data/llm --run grid-twin-base-24
-    python scripts/clude_shots.py --out docs/ux/shots --dark --phone
-    python scripts/clude_shots.py --wiki --phone
-
-Playwright and its browser are optional and not needed to run clude:
-
-    python -m pip install playwright
-    python -m playwright install chromium
+Playwright applies the board CSS/scripts that standalone SVG rendering
+misses. --dark/--phone add schemes/widths; --look narrows selectable looks;
+--out selects output. Default captures include Wikiclude; --wiki selects it
+alone without stored games. Screens exercise cost fields using seeded ledgers
+and never make paid calls. See docs/web.md for setup and inspect the PNGs.
 """
 from __future__ import annotations
 

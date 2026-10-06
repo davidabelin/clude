@@ -1,33 +1,10 @@
-"""`FloorBot`: a characterless player that acts on the deduction floor
-alone -- Phase 5's standard self-play opponent (docs/phase5-plan.md,
-section 4.1).
+"""Deduction-only player and standard purposeful self-play baseline.
 
-No belief method and no personality, so it is still "dumb" in the
-six-methods sense, but unlike `clude_core.bots.RandomBot` it never
-wastes a suggestion on a card it holds or one the floor has already
-located, it heads for rooms the floor has not located yet, and it
-accuses exactly when the floor has proven the envelope, never
-otherwise. Its games therefore carry information and end by deduction,
-which is what Mustard's training data, the benchmark's snapshots, and
-the arena's fill seats all need. It is also the "does a character beat
-a purely logical player" baseline, the way `uniform` is the belief
-baseline in `clude_training.benchmark`.
-
-Movement deviates from the plan's "uniform over legal moves", which
-was measured not to work: suggesting drags the named suspect's token
-into the suggester's room, so a table of uniform movers piles up in one
-room that some player holds, and every later suggestion there is
-refuted by the same player with the same card -- the floor plateaus
-exactly as it does in `RandomBot` games (see the convergence note in
-docs/cli.md). So a `FloorBot` prefers a legal move that lands in an
-*open* room (one the floor has not located); failing that, the move
-that gets closest to one; and once every room is located, a room
-nobody else can refute (the envelope's or its own), where a suggestion
-tests suspect and weapon cleanly. Uniform among ties, and uniform over
-everything only when no room qualifies.
-
-Implements `clude_core.engine.PlayerProtocol` and needs a masked
-observation: run it with ``observer=clude_constraints.observe``.
+FloorBot seeks unlocated rooms, then rooms nobody else can refute with. It
+names unlocated suspect/weapon cards, falling back to a proven envelope
+card when a category is exhausted, and accuses only on a proven solution.
+Ties and matching card shows are uniform. It has no belief method or
+personality and requires observer=clude_constraints.observe.
 """
 from __future__ import annotations
 

@@ -1,29 +1,9 @@
-"""The looks a player can choose between (Phase 9h).
+"""Account-selectable looks and their content/style policy.
 
-A style is one stylesheet under ``static/styles/``: every colour, the
-type, the sizes, the board's dressing. `clude_web.board_svg` draws the
-board's geometry and sets no colour, so a style dresses what it draws
-and the geometry stays in one place. Each account picks a style
-(`clude_web.users.set_style`), changed at any time from the header bar,
-mid-game included; `base.html` links the chosen sheet and marks
-``<html data-style="...">`` so a rule can tell one look from another.
-
-Three looks since 2026-09-29 (David's fourth round, D17): Case-file
-light, the default, and Gaslight dark, Phase 10's "engraved, not
-brass-plated" in its two themes on one sheet, each fixing
-``<html data-theme="...">``; and Developer, which was Legacy, the look
-of Phases 8.1 to 9h frozen on 2026-09-26. ``legacy.css`` is still never
-edited; Developer differs from the other two in content as well as
-dress (a game's cost is shown only there).
-
-"Engraved (auto)", which followed the device, is gone: on a dark device
-it was Gaslight dark, and David could not tell them apart. A key stored
-or held in a session from before is read through `RENAMED`.
-
-A look is `engraved` when it wears the Phase 10 screens: the table's
-stage and rail, the decorated board, the header bar's mark. Developer
-keeps the markup Legacy was frozen with, since its sheet has no rules
-for anything newer and never will.
+Case-file light is default, Gaslight dark fixes the dark theme, and Developer
+uses frozen legacy.css and alone displays costs. Old keys map through
+RENAMED; absent/unknown choices fall back. Templates/scripts use the style's
+flags rather than duplicating names. See docs/web.md for token/assets.
 """
 from __future__ import annotations
 

@@ -1,15 +1,9 @@
-"""Shared, deterministic feature extraction and scoring for the
-personality layer's sampled decisions (Phase 5c).
+"""Pure movement features, scores and softmax sampling for Character.
 
-Room choice is not the same problem as belief (docs/architecture.md):
-this module is the *shared arithmetic* half of that split -- per-choice
-numbers computed from the agent's own belief and the board -- while the
-pick itself is per-character (`AgentProtocol.choose_destination`, whose
-default `SeededAgentMixin` implementation is `pick_destination` below,
-overridable by any agent).
-
-No opponent-danger feature yet: docs/phase5-plan.md defers `w_danger`
-until a measured signal exists.
+The shared policy blends room information/proximity with curiosity. Landing
+in a room held by another seat is scored as travel onward; own-hand or
+envelope rooms remain useful suggestion destinations. Plum may override
+scores through policy hooks. Pure feature extraction consumes no RNG.
 """
 from __future__ import annotations
 

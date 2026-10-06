@@ -1,37 +1,13 @@
-"""Phase 4: measure the six methods' relative belief quality across
-shared self-play snapshots.
+"""Measure belief quality on shared self-play snapshots, not win rate.
 
-Actions are still `RandomBot`-driven -- turning belief into a chosen
-move is Phase 5's personality layer, which doesn't exist yet -- so this
-can only compare *belief quality*, not win rate. Three metrics per
-agent, per checkpoint (fraction of the game's suggestions played so
-far):
+FloorBot is the default regime; RandomBot is a historical baseline. Report
+Brier error over 21 cards, per-category log-loss/top-1, call time and optional
+method diagnostics at fractions of suggestions. Uniform over the floor's
+allowed candidates is the control.
 
-- **Brier score** -- mean squared error between each of the 21 cards'
-  predicted probability and its true 0/1 envelope membership. A proper
-  scoring rule (lower is better); 0 is perfect.
-- **Log loss** -- mean ``-log(P(true card))`` per category (lower is
-  better). Punishes confident wrong answers harder than Brier does,
-  which is exactly the number that should make Scarlett's overconfidence
-  and Mustard's confident-but-wrong failure mode visible.
-- **Top-1 accuracy** -- fraction of categories where the agent's
-  highest-probability card is the true one. The most intuitive number,
-  and a rough proxy for "would this method have won if it could act on
-  its own top guess."
-
-Alongside those, each (agent, checkpoint) cell records wall-clock cost
-per `select_action` call and, for methods that report it in
-`ClueBelief.extra` (Plum), how often the call fell back to sampling --
-the raw material for the speed question Phase 5's arena has to answer.
-
-Green's bandit posteriors are deliberately *not* reset between games in
-this module (each agent instance is built once and reused for the whole
-run) -- David's call: the benchmark should show Green actually learning
-which method to trust over many games, not just his one-shot cold-start
-quality. Every agent's `observe` is called with the revealed envelope
-after every snapshot; only Green's does anything today, since every
-other agent is either stateless (`select_action` is a pure function of
-`obs`) or trained once at construction (Mustard).
+Agent instances persist across games; Green learns from RevealedOutcome
+at every snapshot, unlike the arena's once-per-game feedback. Timings do
+not reproduce from a seed. See docs/strategy-glossary.md for dated results.
 """
 from __future__ import annotations
 

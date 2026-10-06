@@ -1,32 +1,10 @@
-"""Tier 1 of Phase 7's memory: the numeric, method-level kind, fed from
-stored game records and kept as the ``method.json`` document of a
-character's logbook (`clude_storage.logbooks`). No model is involved;
-this is what "learns across games" means for the three methods that
-have anything numeric to learn:
+"""Load, update and rebuild numerical method memory from stored games.
 
-- **Mustard** (`kind == "rows"`): `decision_tree.rows_from_view` rows
-  from every seat's view of every stored game at Mustard's training
-  checkpoints, appended to his self-play base before the tree is
-  trained (`DecisionTreeAgent.set_extra_rows`). He learns from games
-  he did not sit in too: the rows are the same kind of evidence, and
-  the tree wants volume.
-- **White** (`kind == "counts"`): `markov.transition_counts` of every
-  seat's suggestion sequence in every stored game, summed per roster
-  label, so his chain for a known opponent starts from how that
-  opponent actually plays (`MarkovAgent.set_priors` + `set_table`).
-- **Green** (`kind == "state"`): his Beta posteriors, saved after every
-  game and restored after `reset` (`BanditAgent.state_dict` /
-  `load_state`). Only accumulated live: they depend on what his arms
-  predicted, which no record holds, so `rebuild` cannot recompute them.
-
-The other three methods (Scarlett, Plum, Peacock) are memoryless by
-construction; their memory is the narrative tier only.
-
-Documents are keyed by game id (``<run_id>/<index>``) so an incremental
-`update` and a `rebuild` from the whole store agree, and updating twice
-with one game changes nothing. With no logbook, or an empty one,
-`load_into` leaves a character exactly as built, which is what keeps the
-golden games golden.
+Mustard stores masked training contributions; White stores per-identity
+repeat/new counts. Game IDs make those contributions idempotent/rebuildable.
+Green's live arm predictions are absent from records, so his posteriors can
+only be persisted/updated, not reconstructed. New web tables remember;
+CLI attachment is opt-in. See docs/logbooks.md for tiers and operations.
 """
 from __future__ import annotations
 
@@ -219,7 +197,7 @@ def load_into(character, logbook: Logbook) -> bool:
 
 def snapshot(logbook: Logbook, identity: str) -> Optional[dict]:
     """What `load_into` would load for `identity` right now, in a form
-    small enough to store beside a web table (Phase 8.2): Green's arms
+    small enough to store beside a web table: Green's arms
     themselves, and for Mustard and White the ids of the games their
     document holds. A table rebuilt on a cold instance loads the same
     memory through `load_snapshot`, not a document that has moved on

@@ -1,26 +1,9 @@
-"""The debrief (Phase 7c): after a game, an LLM-piloted character writes
-its own logbook entry.
+"""Render post-game debrief prompts and resolve opponent identities.
 
-`debrief_prompt` renders what the character is told, in the same voice
-as the in-game prompt but with the game over: the outcome, its hand,
-the whole deal face up (David's decision 1: a post-mortem with cards on
-the table, so a tell can be checked against the truth), the
-suggestions as it saw them live, the table talk, the decisions the
-model was asked to make (with deviations and fallbacks marked), its
-final belief against the envelope, its logbook so far (the head and an
-index of earlier entries, so flags get reused and entries connect), and
-the instructions for each field of `LOGBOOK_SCHEMA` with the bounds
-`clude_storage.logbooks` enforces. The system prompt is the character's
-persona + rules block unchanged, so the API cache hits; the request
-carries no memory block, since the logbook is in the prompt itself.
-
-`resolve_opponents` maps whatever the model called an opponent ("Mrs.
-Peacock", "the Scarlett token", ``P2 White (Green)``) to the roster
-label the logbook keys dossiers by. `LLMCharacter.debrief` does the
-call and the write.
-
-This module sits above `clude_training.replay` (for the seat's live
-view); `clude_training.arena` sits above both.
+Debrief deliberately sees the whole deal face up plus the seat's live-view
+history, audits and prior memory. It writes narrative schema fields, not
+code-computed facts. Opponent names map back to persistent roster labels.
+See docs/logbooks.md; model calls/validation live in player.py.
 """
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-# The Engraved look's faces
+# Self-hosted fonts for Case-file and Gaslight
 
 Latin-subset variable woff2 files, fetched from Google Fonts on
 2026-09-28 (Phase 10b) and served from here so the app makes no
@@ -14,7 +14,7 @@ names are respected; they are not modified here.
 | `inter-normal-400-700.woff2` | Inter (wght) | Rasmus Andersson, <https://github.com/rsms/inter> |
 | `ibm-plex-mono-normal-400.woff2`, `ibm-plex-mono-normal-500.woff2`, `ibm-plex-mono-italic-400.woff2` | IBM Plex Mono | IBM, <https://github.com/IBM/plex> |
 
-`styles/engraved.css` declares the `@font-face` rules; the roles are
-in `docs/phase10-plan.md` 5.3 (Bodoni Moda the wordmark, Playfair
+[`engraved.css`](../styles/engraved.css) declares the `@font-face` rules; roles are
+in [Phase 10](../../../docs/phase10-plan.md) 5.3 (Bodoni Moda the wordmark, Playfair
 Display headings and captions, Inter the text, IBM Plex Mono the
 numbers). `faces.txt` is the fetch's manifest.

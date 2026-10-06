@@ -1,31 +1,11 @@
-"""Record stores: one interface, a local-directory backend and a Google
-Cloud Storage backend, and `open_store` to pick one from a path or a
-``gs://`` URI.
+"""Local/GCS RecordStore backends with shared validated JSON keys.
 
-Both backends use the same keys, so a run written locally and one
-written to a bucket have the same layout::
-
-    runs/<run_id>.json              the run's settings and metrics
-    games/<run_id>/<index>.json     one GameRecord per game (index zero-padded)
-    logbooks/<identity>/...         Phase 7's logbooks (`clude_storage.logbooks`)
-
-The run and game methods are the Phase 5d surface. Phase 7 added the
-generic document methods (`put_doc`, `get_doc`, `delete_doc`,
-`list_docs`, `list_folders`) that the logbooks are built on; a key is
-a ``/``-separated path of safe segments ending in ``.json``
-(`validate_key`).
-
-Credentials for `GcsStore`: an explicit ``credentials_path``, else the
-``CLUDE_GCS_CREDENTIALS`` environment variable, else the service-account
-key file `DEFAULT_CREDENTIALS_FILE` next to the repo root if it exists
-(that file is gitignored; never commit it), else whatever
-``google.cloud.storage.Client()`` finds on its own (application
-default credentials). The key file is read only by the client library;
-nothing here prints or copies it.
-
-Mirrors the shape of ``rps_storage/object_store.py`` (``gs://``
-detection, lazy client construction) but keyed by run and game rather
-than by free-form path, since that is the only thing clude stores yet.
+Run/game helpers and generic document methods support records, logbooks,
+accounts, tables and spend. Keys use safe slash-separated segments.
+GCS resolves explicit credentials_path, CLUDE_GCS_CREDENTIALS, ignored
+clude-game-sa.json, then application default credentials; the SDK imports
+lazily. Cloud Run uses its identity. Never print or commit keys.
+See docs/architecture.md for layout and docs/cli.md for copying.
 """
 from __future__ import annotations
 

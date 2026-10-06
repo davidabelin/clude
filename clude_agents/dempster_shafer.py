@@ -1,30 +1,10 @@
-"""Peacock -- Dempster-Shafer belief/plausibility.
+"""Peacock's per-category Dempster-Shafer belief/plausibility model.
 
-Built fresh (no legacy basis). Per category (suspects/weapons/rooms),
-maintains a mass function over subsets of still-possible envelope
-candidates, combines evidence via Dempster's rule, and reports both
-Belief (mass on that card alone) and Plausibility (mass on any subset
-containing it) in `ClueBelief.extra` -- the two-tone belief/plausibility
-bar from the visual design notes (`CLAUDE.md`) is literally this pair.
-`ClueBelief.probabilities` itself is the pignistic transform (BetP),
-which always lies within [Belief, Plausibility] for every card and is
-what the rest of the system treats as "the" probability.
-
-Notes
------
-Evidence source: `mask.or_constraints` (a holder holds at least one of a
-set of cards spanning up to all three categories -- exactly a
-Dempster-Shafer-shaped fact, and exactly why the deduction floor exposes
-it separately from per-card marginals; see docs/architecture.md). Each
-constraint's "holder holds >= 1 of these" burden is apportioned across
-the categories it touches in proportion to how many of its cards fall in
-that category -- a stated modeling choice, not a theorem, since the true
-per-category split would require knowing which specific card the holder
-actually has. This is Peacock's honest-but-approximate DS, matching her
-cautious-until-forced character rather than a from-the-literature-exact
-implementation.
-
-Recomputes from scratch every call; `reset`/`observe` are no-ops.
+Start with vacuous mass over allowed envelope cards and combine evidence
+from unresolved OR constraints. Apportioning a cross-category constraint
+is a modeling choice, not a theorem. Masked pignistic probabilities form
+ClueBelief; extra retains lower belief and upper plausibility bounds.
+Character's accusation uses the lower bound. See the strategy glossary.
 """
 from __future__ import annotations
 

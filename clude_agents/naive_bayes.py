@@ -1,18 +1,9 @@
-"""Scarlett -- naive Bayes over suggestion evidence.
+"""Scarlett's multiplicative, independence-assuming suggestion evidence.
 
-Demoted from `legacy/belief_tracker.py`'s `BayesianBeliefTracker` (see
-docs/architecture.md for why): that tracker's row-normalized card x holder
-marginals can't express "these two cards are in the same hand" and can
-drift past what the evidence actually supports. That is wrong for an
-exact posterior, but it is deliberately Scarlett's character here --
-overconfident, accuses early, sometimes brilliantly, sometimes
-disastrously.
-
-Notes
------
-Recomputes from scratch every call from `obs.suggestion_log`, like the
-deduction floor itself (`clude_constraints.propagator`) -- no incremental
-state, so `reset`/`observe` are no-ops and there is nothing to go stale.
+Unrefuted suggestions boost their cards; unknown-card refutations decay
+them. Raw scores are masked/normalized per category. Repeated evidence can
+compound into overconfidence because joint hand constraints are not a
+posterior model here. See docs/strategy-glossary.md.
 """
 from __future__ import annotations
 

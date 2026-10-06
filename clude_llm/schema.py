@@ -1,27 +1,9 @@
-"""Fixed response schemas for the LLM wrapper (Phase 6b, 7c).
+"""Structured reply schemas and validation for model requests.
 
-Two JSON schemas cover the four decisions: `CHOICE_SCHEMA` for movement,
-accusation and card-to-show (`choice` + `say`) and `SUGGEST_SCHEMA` for
-the suggestion (`suspect` + `weapon` + `say`). Every label field is an
-enum over the fixed `LABELS`, so the schemas never change from call to
-call -- the API compiles a new schema once and caches it for a day, and
-a per-call schema would pay that cost every turn. The menu maps the
-letters to options; a letter the menu does not have is caught client
-side by the wrapper and falls back.
-
-A third, `LOGBOOK_SCHEMA`, is the shape of a logbook entry's narrative
-(Phase 7c): the fields the character's model writes at the debrief.
-Its lists carry no length keywords -- structured outputs support only a
-subset of JSON Schema -- so the bounds are stated in the prompt and
-enforced by `clude_storage.logbooks.LogbookEntry.build`.
-
-A fourth, `REMARK_SCHEMA` (Phase 8.3b), is off-turn table talk: `say`
-alone, an empty string for silence. Fixed like the others, and never
-part of a decision, so the two recorded fixtures are untouched by it.
-
-`parse_response` is the client-side half: it turns the model's text into
-a validated dict or raises `ValueError` with the reason, which the
-wrapper records as the fallback cause.
+Choice uses one letter, suggestion suspect/weapon letters, remark only say,
+and debrief the logbook fields. Schemas constrain shape; the wrapper still
+checks letters against allowed menu entries. Failure leads to fallback or
+an unwritten debrief, never an unchecked engine answer.
 """
 from __future__ import annotations
 

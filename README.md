@@ -1,153 +1,67 @@
 # clude
 
-A web app for playing Clue with a mix of human and LLM players. Each of
-the six suspects is an LLM character backed by a genuinely different
-probabilistic method -- naive Bayes, exact posterior enumeration,
-Dempster-Shafer, a decision tree, a bandit ensemble, and a Markov model
--- all sharing one logical deduction floor, so they differ in how they
-reason under uncertainty and never in what is certain.
+Clue for human players, numerical agents, and LLM characters. The six suspects use different methods above a shared logical deduction floor. A character can play silently or let an LLM choose from its scored legal options and supply table talk. A chatbot can also play its own seat over MCP.
 
-Private project, shared with family and friends. The name is a nod to
-Claude. See [CLAUDE.md](CLAUDE.md) for the design decisions and the
-working notes that drive development.
-
-## Status
-
-Phases 1-5 of the [phase plan](docs/phase-plan.md) are done: a headless
-rules engine and event log, the deduction floor, the six strategy
-agents, a self-play benchmark of their belief quality, and now the
-personality layer that turns each agent's belief into moves, with an
-arena and dial sweeps to measure it and game records stored locally or
-in Cloud Storage. Phase 6, the LLM wrapper (`clude_llm`), is done: a
-model chooses within a leash of each character's own scores and adds a
-line of table talk, and anything illegal or failed falls back to the
-character. It is live-checked, persona-tuned and measured on Opus 5
-([docs/phase6-plan.md](docs/phase6-plan.md), results in
-[docs/strategy-glossary.md](docs/strategy-glossary.md)). Phase 7,
-logbooks, is built: every character has a persistent memory in the
-record store, numeric for the three methods that can use one and, for
-an LLM-piloted seat, a zenbot-shaped entry its own model writes after
-each game and reads back before the next at the depth of a `memory`
-dial ([docs/phase7-plan.md](docs/phase7-plan.md),
-[docs/logbooks.md](docs/logbooks.md)), live-checked and measured on
-Opus 5: at leash 0.5 Plum's own notes cut his stalls by more than half
-over 24 games, at the price of two early accusations
-([docs/strategy-glossary.md](docs/strategy-glossary.md)). Since
-2026-09-14 every character is locked to its own token: Plum is always
-Plum. Phase 8.1 put the first screens in front of it: a Flask app with a
-login, a lobby, a replay scrubber and a Watch screen, run locally or on
-Cloud Run for family and friends ([docs/web.md](docs/web.md)). Since
-Phase 8.2 people sit at the table too: a table in the lobby seats you
-beside the characters and the game is played from the browser, or from
-the terminal with `play --human`. Since Phase 8.3 a character can play
-as **X (LLM)** at a web table under a spend cap, people talk at the
-table and the model seats answer off-turn, and a remembering table ends
-with each model seat writing its logbook. Phase 9 seats a Claude in a
-chat window at the table: through an MCP server mounted beside the Flask
-app, a conversation at claude.ai takes an open seat and plays it like
-anyone else, reasoning from the log, its hand and the deduction sheet
-([docs/phase9-plan.md](docs/phase9-plan.md)).
-
-New Play and Watch tables **remember by default**, with a checkbox to
-opt out. The seat choices are **empty**, **open**, **floorbot**,
-**me (signed-in name)**, **X (LLM)** and **X (headless)**. X is that seat's
-named character: LLM adds Claude's choices, voice and narrative logbook;
-headless plays silently using its numerical method. Mustard, White and
-Green retain method memory in either mode. LLM seats have a memory-depth
-dial (0 = condensed notes, 1 = full entries); they require a service key.
-CLI memory still requires `--logbook`. See [the lobby guide](docs/web.md#the-lobby).
+This is a private project shared with family and friends. The name is a nod to Claude. Start here, then read [the architecture](docs/architecture.md) and the guide for the part you intend to change.
 
 ## Quick start
 
-```
-C:\Users\David\AppData\Local\Python\pythoncore-3.14-64\python.exe -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-python -m pytest
-python scripts/clude_cli.py --help
-```
+Python 3.14 in a plain virtual environment. From the repo root in PowerShell:
 
-Python 3.14 in a plain venv, no conda. `pytest`, `google-cloud-storage`
-and `anthropic` are the only dependencies; the last two are imported
-lazily (for `gs://` record stores and for LLM-piloted seats), so
-everything else runs on the standard library.
-
-## Try it
-
-```
-python scripts/clude_cli.py play --seed 1 --roster floor --verbose      # watch a deduction-driven game
-python scripts/clude_cli.py play --roster Plum,Scarlett,Peacock,floor    # watch three characters play
-python scripts/clude_cli.py trace --seed 1 --roster floor --viewer 0     # replay every character's belief from one seat
-python scripts/clude_cli.py floor --seed 1 --roster floor --convergence  # watch the deduction floor close in
-python scripts/clude_cli.py benchmark --games 12                         # score the six methods' beliefs
-python scripts/clude_cli.py arena --games 24                             # who wins, who accuses wrongly
-python scripts/clude_cli.py sweep --dial accuse_threshold --values 0.2 0.6 1.0
-python scripts/clude_cli.py play --roster Plum,Scarlett,floor --llm --verbose   # LLM-piloted seats (needs ANTHROPIC_API_KEY)
-python scripts/clude_cli.py prompt --roster Plum,Scarlett,floor --viewer 1     # what that seat's model would be sent
-python scripts/clude_cli.py play --roster Plum,Mustard,Green --players 3 --store data --logbook   # play with memory on
-python scripts/clude_cli.py logbook show --uri data --identity Mustard        # what a character has remembered
+```powershell
+py -3.14 -m venv .venv
+& .venv\Scripts\python.exe -m pip install -r requirements.txt
+& .venv\Scripts\python.exe -m pytest -q -n auto
+& .venv\Scripts\python.exe scripts\clude_cli.py play --seed 1 --roster floor --verbose
 ```
 
-[docs/cli.md](docs/cli.md) explains every subcommand and how to read
-its output.
+Use the venv interpreter explicitly; shell calls do not activate it for later calls. `requirements.txt` installs the developer tools, including NumPy for Plum and PyTorch for training. `requirements-web.txt` is the smaller deployment set and excludes PyTorch, pytest and Playwright. Headless games need no credentials. GCS and real LLM calls use lazy imports.
 
-## Layout
+To use the browser app, put `FLASK_SECRET_KEY` in the environment or the ignored `.env`, create an account, then start Flask:
 
-```
-clude_core/          domain model, board, event log, GameState/ClueObservation, rules engine
-clude_constraints/   the shared deduction floor (constraint propagation) and FloorBot
-clude_agents/        AgentProtocol, the AgentSpec registry, one module per method,
-                     and the personality layer (Profile, features, Character)
-clude_llm/           the LLM wrapper: menus, personas, prompts, backends, LLMCharacter, the debrief
-clude_training/      self-play snapshots, the belief benchmark, trace, record replay, method memory, arena, sweeps
-clude_storage/       game records and logbooks; local-directory and Cloud Storage stores
-clude_web/           the Flask app: the login gate, accounts, the lobby, tables people play at, Watch and the replay; `mcp.py`, a seat a Claude in a chat window plays over MCP; and `wiki/`, Wikiclude
-Dockerfile           the Cloud Run image (with requirements-web.txt, .gcloudignore, .dockerignore)
-scripts/             clude_cli.py, the maintainer CLI
-tests/               pytest suite
-docs/                architecture, phase plan, strategy glossary, CLI guide
-legacy/              code from an earlier chat; ported from, never imported
+```powershell
+& .venv\Scripts\python.exe scripts\clude_cli.py users add NAME --uri data/llm
+& .venv\Scripts\python.exe -m flask --app clude_web run --debug
 ```
 
-The structure mirrors the `rps` repo (a shared protocol, a name-keyed
-registry, sibling packages by concern). `clude_web/` is the newest: the
-login gate, the lobby, the table you play at, the replay and Watch
-screens, served locally with `flask run` or from Cloud Run
-(`docs/web.md`, "Deploying").
+Open <http://127.0.0.1:5000/>. The account's default password is `password`; the first login offers a change. See [the web guide](docs/web.md) for configuration, MCP serving, accounts and deployment.
 
-## The six
+## Current state
 
-| Suspect | Method | Module | Intended flavor |
-|---|---|---|---|
-| Scarlett | Naive Bayes | `naive_bayes.py` | Overconfident, accuses early |
-| Plum | Self-play policy, a DeepNash variant (`docs/deepnash-plan.md`; PlumOG's enumeration in `exact_enum.py`, archived) | `deep_nash.py` | Learned at the table; to be found in training |
-| Peacock | Dempster-Shafer belief/plausibility | `dempster_shafer.py` | Cautious until plausibility collapses |
-| Mustard | Decision tree on self-play logs | `decision_tree.py` | Pattern-matches, confidently wrong on unusual deals |
-| Green | Bandit ensemble over the other five | `bandit.py` | Opportunistic, only as good as his arms |
-| White | Markov model over suggestion sequences | `markov.py` | Reads people rather than cards |
+The engine, deduction floor, six characters, benchmarks, personality dials, logbooks, web play, Watch, replay and MCP seats are implemented. Phase 10's main visual work and sound effects are built; its help layer remains open. Phase 11 reviews documentation and docstrings.
 
-Every agent implements `reset` / `select_action` / `observe`, returns a
-belief over the 21 cards already masked and renormalized against the
-floor, and plays through a `Character` that combines that belief with
-five personality dials. Each is documented in
-[docs/strategy-glossary.md](docs/strategy-glossary.md).
+Phase 12 is replacing Plum's enumeration method with a DeepNash variant. The registry and Green's ensemble already use the new network; the committed weights are still the seeded initial weights. Training infrastructure and smoke runs exist, but trained weights have not been exported. Evaluation, dial calibration and production rollout remain separate work. Older results for Plum describe **PlumOG**, the archived enumeration agent. See [the roadmap](docs/phase-plan.md) and [Phase 12](docs/deepnash-plan.md).
 
-## Documentation
+## The six methods
 
-- [CLAUDE.md](CLAUDE.md) -- settled decisions, proposals, and how to work on this repo
-- [docs/architecture.md](docs/architecture.md) -- package layout, the deduction floor, `ClueObservation`, the engine seam, `AgentProtocol`, the personality layer, storage
-- [docs/phase-plan.md](docs/phase-plan.md) -- what each phase delivered and what is out of scope
-- [docs/phase5-plan.md](docs/phase5-plan.md) -- the Phase 5 plan, David's decisions, and how the build departed from it
-- [docs/phase6-plan.md](docs/phase6-plan.md) -- the Phase 6 plan, David's decisions, and what was built
-- [docs/phase7-plan.md](docs/phase7-plan.md) -- the Phase 7 plan, David's decisions, and what was built
-- [docs/phase8-plan.md](docs/phase8-plan.md) -- Phase 8 to completion: the landing rule, human players, the model and chat on the web, and what was built
-- [docs/phase9-plan.md](docs/phase9-plan.md) -- Phase 9, a seat over MCP: the seven tools, the design, and what was built
-- [docs/phase10-plan.md](docs/phase10-plan.md) -- Phase 10, the shippable look: typography, ornament, the decorated board, motion and sound
-- [docs/web.md](docs/web.md) -- the Flask app: running it, accounts, the table, Watch, the replay, Wikiclude, and deploying to Cloud Run
-- [docs/wikiclude-plan.md](docs/wikiclude-plan.md) -- Wikiclude, the encyclopaedia at `/wiki`: the plan, David's decisions, and what was built
-- [docs/llm-wrapper.md](docs/llm-wrapper.md) -- how an LLM pilots a character: menus, leash, personas, backends, cost
-- [docs/logbooks.md](docs/logbooks.md) -- playerbot memory: the three tiers, the `memory` dial, the debrief, the CLI
-- [docs/strategy-glossary.md](docs/strategy-glossary.md) -- each method in plain language, with benchmark and arena results
-- [docs/cli.md](docs/cli.md) -- the maintainer CLI
-- [docs/board.md](docs/board.md) -- board topology and its simplifications
-- [legacy/README.md](legacy/README.md) -- what the legacy code is and what is wrong with it
+| Suspect | Method | Module in `clude_agents/` |
+|---|---|---|
+| Scarlett | Naive Bayes over suggestion evidence | `naive_bayes.py` |
+| Plum | Neural policy and belief heads; training uses regularised Nash dynamics | `deep_nash.py` |
+| Peacock | Dempster-Shafer belief/plausibility | `dempster_shafer.py` |
+| Mustard | Decision tree trained on game snapshots | `decision_tree.py` |
+| Green | Thompson-sampling ensemble over the other five | `bandit.py` |
+| White | Markov model over opponents' suggestion sequences | `markov.py` |
+
+Every belief respects the observing seat's deduction floor. Character agents are locked to their own suspect tokens. Human and MCP identities follow their accounts across tokens.
+
+New Play and Watch tables remember by default, with an opt-out. The lobby choices are **empty**, **open**, **floorbot**, **me**, **X (LLM)** and **X (headless)**. LLM seats add persona, leashed choices and narrative memory; Mustard, White and Green also have numerical method memory in either mode. CLI memory is opt-in with `--logbook`.
+
+## Maintainer reading map
+
+| Guide | Use it for |
+|---|---|
+| [Architecture](docs/architecture.md) | Package boundaries, data flow, contracts, determinism and extension points |
+| [CLI](docs/cli.md) | Reproducible games, measurement, training and store/account operations |
+| [Web](docs/web.md) | Configuration, player visibility, table lifecycle, MCP and deployment |
+| [LLM wrapper](docs/llm-wrapper.md) | Legal menus, fallbacks, prompts, backends and metering |
+| [Logbooks](docs/logbooks.md) | Numerical and narrative memory, identity, reset and rebuild |
+| [Strategy glossary](docs/strategy-glossary.md) | Method explanations and dated measurement evidence |
+| [Board](docs/board.md) | Map provenance, topology and movement rules |
+| [Roadmap](docs/phase-plan.md) | Completed phases, current scope and unfinished work |
+| [Docstring guidelines](docs/docstring-guidelines.md) | Concise public API documentation |
+| [CLAUDE.md](CLAUDE.md) | Repository working rules and settled product decisions |
+
+`clude_core/` owns rules and observations; `clude_constraints/` owns the floor; `clude_agents/` owns inference and character decisions; `clude_llm/` owns model calls; `clude_training/` owns drivers and measurement; `clude_storage/` owns persistence; `clude_web/` owns the web/MCP adapters. `scripts/` contains maintainer entry points and `tests/` the checks. `legacy/` is reference code and is never imported.
+
+Wikiclude is the public encyclopaedia under `clude_web/wiki/`; its [plan](docs/wikiclude-plan.md) is maintained separately and is outside this Phase 11 pass.

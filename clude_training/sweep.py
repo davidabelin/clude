@@ -1,12 +1,9 @@
-"""Phase 5d: dial sweeps -- the arena run once per value of one dial,
-on the same deals and dice each time.
+"""Compare one Profile dial across paired arena seed sequences.
 
-The rule for keeping a dial (docs/phase5-plan.md, section 2): it must
-move at least one arena metric monotonically across a sweep, or it is
-cut. `SweepResult.monotone` is that test, applied to the pooled metrics
-of the swept characters. Games are paired across values -- same
-`seed`, so the same deals and rolls (see `clude_training.arena`) --
-which is what lets a sweep of a few dozen games say anything at all.
+Optional logbooks are read-only at every value; keep memory inputs fixed.
+Report per-value results/variation rather than claiming significance from
+small runs. Real LLM choices can spend money and are not deterministic.
+See docs/cli.md and docs/strategy-glossary.md.
 """
 from __future__ import annotations
 
@@ -174,13 +171,13 @@ def sweep_dial(
     n_games, seed, roster, player_counts, max_turns, store
         Passed to `run_arena`; the same `seed` for every value.
     llm_backend, llm_settings, llm_characters
-        Passed to `run_arena` (Phase 6): sweep a dial with the characters
+        Passed to `run_arena`: sweep a dial with the characters
         LLM-piloted, the `leash` sweep being the point.
     run_id : str or None
         Prefix for each value's run id (``<run_id>-<dial>-<value>``);
         default ``sweep-<seed>-<n_games>``.
     logbook_store : RecordStore or None
-        Passed to `run_arena` read-only (Phase 7): every value's run
+        Passed to `run_arena` read-only: every value's run
         reads the same logbooks and none writes, so the comparison stays
         paired. The `memory` dial is swept this way.
     logbook_characters : iterable of str or None

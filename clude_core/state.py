@@ -1,15 +1,9 @@
-"""`GameState` (engine-internal, omniscient) and `ClueObservation` (the
-per-player-perspective contract every future agent consumes).
+"""Omniscient GameState and the per-seat ClueObservation contract.
 
-`ClueObservation.mask` carries the deduction floor's `ConstraintResult`
-(Phase 3, `clude_constraints`). It defaults to `None` here rather than
-being required, purely to avoid a circular import: `clude_constraints`
-already depends on `clude_core` (for `ClueObservation` itself), so
-`clude_core` cannot import it back at runtime -- the `ConstraintResult`
-import below is `TYPE_CHECKING`-only. `ClueObservation.for_player` never
-populates `mask`; use `clude_constraints.observe(state, viewer)` to get a
-fully masked observation. By convention every observation an agent's
-`select_action` receives has `mask` populated -- see `clude_agents/base.py`.
+for_player redacts shown cards but leaves mask unset. Use
+clude_constraints.observe to attach fresh deduction results. The mask type
+is imported only under TYPE_CHECKING to avoid a core/constraints cycle.
+Agents receive observations, never the full deal.
 """
 from __future__ import annotations
 
@@ -79,12 +73,10 @@ class ClueObservation:
 
     @staticmethod
     def for_player(state: GameState, viewer: int) -> "ClueObservation":
-        """Build `viewer`'s observation of `state` (no `mask`).
+        """Build viewer's redacted observation, leaving mask unset.
 
-        Called before every decision of every turn since Phase 5a, so it
-        is kept cheap: a suggestion the viewer is entitled to see in full
-        (they suggested or refuted it) or that has nothing to hide is
-        reused as-is; only the rest are copied with `card_shown` redacted.
+        Reuse suggestions visible to the suggester/refuter; copy others with
+        card_shown=None. Use clude_constraints.observe to attach deductions.
         """
         redacted = []
         for s in state.suggestion_log:

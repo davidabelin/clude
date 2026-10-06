@@ -1,54 +1,19 @@
-"""Train Plum by regularised Nash dynamics over the floor (Phase 12,
-N4; `docs/deepnash-plan.md` 3.2).
+"""Train Plum's policy/value/belief heads from engine self-play rollouts.
 
-    python scripts/train_plum.py --iterations 20 --games 256 --workers 8
-    python scripts/train_plum.py --iterations 200 --games 512 --out data/plum-training/long --export
+PyTorch is developer-only; deployment uses NumPy inference. Each iteration
+collects ordered seeded Episodes, fits a regularised NeuRD policy gradient
+(or --policy-grad softmax), regresses value to return, and fits belief with
+masked cross-entropy from a multi-iteration replay buffer. Advantages are
+standardized unless --no-adv-norm; --refresh updates the reference policy.
+Outcome reward is +1 win/-1 eliminated/0 otherwise, with optional deduction
+shaping defaulting to zero.
 
-Developer-only: needs torch, which the Cloud Run image never installs.
-Each iteration plays `--games` games through the real engine
-(`clude_training.rollout`, a process pool of `--workers`), with the
-network's seats sampling from its own distribution, then takes
-`--epochs` passes of minibatch updates over everything recorded:
-
-- the policy heads (move, suspect, weapon) by a NeuRD policy gradient
-  on the *regularised* return -- the reward less `--eta` times
-  ``log(pi / pi_ref)`` summed over the seat's own steps -- against the
-  value head as baseline, the advantages standardised over the
-  iteration (`--no-adv-norm` to leave them raw), the reference policy
-  `pi_ref` refreshed to the current network every `--refresh`
-  iterations (the R-NaD outer loop; `--policy-grad softmax` swaps in
-  the ordinary score-function gradient for comparison);
-- the value head by regression to the same return;
-- the belief head by cross-entropy against the true envelope over the
-  cards the floor still allows (weight `--lambda-belief`), drawn not
-  from the iteration's own games but from a replay buffer of the last
-  `--replay` iterations' states (a `--replay-fraction` of each): every
-  step of a game shares one envelope, so a head fitted to one
-  iteration's few hundred games memorises them and scores worse than
-  the floor's uniform on anything else (the smoke runs of 2026-10-06
-  did exactly that; `docs/deepnash-plan.md` 10);
-- an entropy bonus `--entropy` on the policy heads.
-
-The reward is the outcome, +1 won, -1 put out, 0 otherwise, plus
-`--shaping` times the floor's bits gained each turn (zero by default:
-`clude_training.rollout`'s module docstring says why it exists).
-
-Every `--eval-every` iterations the numpy agent is built from the
-current weights and measured free: belief log-loss on the benchmark's
-floor-bot snapshots and the win rate at two standard tables, the Plum
-table (`Plum,Mustard,Green`, three seats) and the six-character table,
-both 24 games at seed 7007. A run writes to `--out`
-(`data/plum-training/<run>/`, gitignored): `config.json`, `curve.jsonl`
-(one line per iteration), `checkpoint-<iteration>.npz` at every
-evaluation, `best.npz` (the best Plum-table win rate so far) and
-`latest.npz`. `--export` copies the final weights to
-`clude_agents/weights/plum.npz`, which the goldens pin: re-capture
-them on purpose afterwards (`clude_agents/weights/README.md`).
-
-Determinism: the rollouts are per seed (the game seeds are
-``--seed * 10**7`` onward), torch is seeded, and the pool returns
-episodes in task order; CPU training of the same command reproduces
-the same curve on the same machine and library versions.
+--help owns complete flags. Evaluations write config/curve/checkpoints,
+best.npz and latest.npz under ignored data/plum-training. --export copies
+final weights, not the best checkpoint, to committed plum.npz; validate and
+update goldens deliberately. Determinism is bounded to fixed seeds, machine
+and library versions. See docs/deepnash-plan.md for smoke failures, policy
+limitations and outstanding acceptance, plus weights/README.md for export.
 """
 from __future__ import annotations
 

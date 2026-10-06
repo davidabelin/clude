@@ -1,11 +1,8 @@
-"""Six strategy agents, one per suspect, plus the shared protocol, the
-registry, and the Phase 5 personality layer (`Profile`, `Character`).
-See docs/architecture.md for the method-to-suspect mapping and
-docs/strategy-glossary.md for per-method write-ups.
+"""Suspect-keyed agent registry and playable Character factories.
 
-Plum has been `deep_nash.DeepNashAgent` since Phase 12 (2026-10-05);
-the enumeration agent he was, `exact_enum.ExactEnumAgent`, is PlumOG:
-archived, importable, in no registry (`docs/deepnash-plan.md` 3.4).
+Specs bind method factories, preset Profiles and accusation confidence.
+Current Plum is DeepNashAgent; archived ExactEnumAgent is not registered.
+Use build_agent for belief or build_character for engine decisions.
 """
 from __future__ import annotations
 

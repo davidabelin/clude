@@ -1,55 +1,15 @@
-"""A seat at a clude table, over MCP (Phase 9, docs/phase9-plan.md).
+"""MCP player tools and combined browser/MCP ASGI factory.
 
-A chatbot in a chat window (a Claude at claude.ai, or another at
-ChatGPT) plays one seat of a live game through the tools here, or
-watches one. Nothing in this module is a new game: every call goes
-through the same `TableRegistry` the web screens use, so the chat seat
-is an ordinary account in an ordinary human seat -- logged in with
-`clude_login` as a person logs in at the form, each chatbot its own
-account since Phase 9j -- answering the engine's `DecisionRequest`s from outside it
-exactly as a browser does, and a game with one is indistinguishable in
-the store from a game without -- except that its answers are entered
-``by="mcp"``.
+A chatbot logs into its own account and occupies an ordinary human seat,
+answering the same DecisionRequests as the browser with by="mcp". Compact
+views redact private cards, use event cursors/digests and persist seat notes.
+The chatbot reasons for itself; no character method/persona advises it.
 
-Three things about a chat player shape the design:
-
-- **Forgetful.** A new conversation knows nothing, and an old one may
-  have lost its early turns. So a call with ``since=0`` returns a view
-  that fully reconstitutes the player -- hand, position, notepad, the
-  recent log, a digest of what fell off its front, the seat's own note,
-  and the decision on the table. No client-side state, ever.
-- **Slow and expensive.** A tool call costs the model a round trip and
-  the person a spinner, and every token of the reply is context the
-  conversation never gets back: the first live game (2026-09-21) ran
-  out of room at turn 30 on 9,000-token views. So the view is compact
-  -- one line per event and per card, names not seat numbers, one line
-  per room for a move -- and cut at a `since` cursor so a call returns
-  only what is new, the notepad and seats too when nothing new could
-  have changed them; and `clude_turn` long-polls (it drives the bot
-  seats itself, one unit a second, exactly as `table.js` does from a
-  browser) and `clude_answer` does the same after answering, so a turn
-  is usually two calls, not four: the move, then the suggestion with
-  the accusation folded in.
-- **Prone to retrying.** `clude_answer` is guarded by `seq`, which
-  `TableGame.answer` refuses when stale, so a doubled submission is
-  refused rather than applied twice.
-
-The tool docstrings are not documentation, they are the prompt: the
-only instructions the model gets about how to play. Read them as written
-for the player.
-
-**No head.** A chat seat gets the floor's numbers (the notepad) and
-nothing else: it is its own head (David, 2026-09-21). The first deploy
-offered a character's numbers beside the seat; that is gone.
-
-**Serving.** `build_server` makes the server over any registry (a test
-gives it a registry over a temp store and the SDK's in-memory client);
-`combined_app` is what Cloud Run runs: the Flask app and the MCP
-endpoint in one ASGI app sharing one registry, the endpoint under a
-secret path (`config.mcp_secret`) since the login gate does not cover
-it. Two processes over one store would each cache a table and the loser
-of a race would drop an entry, which is why the endpoint is mounted
-beside Flask and not served on its own.
+combined_app shares one TableRegistry between Flask and the secret-path
+Streamable HTTP mount. Separate cached registries would race. Unsupported
+auth discovery gets JSON 404 only with MCP configured. Tool docstrings are
+model-facing gameplay instructions: preserve their decision, waiting,
+visibility and recovery contracts. See docs/web.md for serving/login.
 """
 from __future__ import annotations
 

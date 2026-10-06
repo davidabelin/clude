@@ -1,12 +1,8 @@
-"""Prompt text for one decision (Phase 6b).
+"""Render cached system blocks and per-seat model requests.
 
-`system_prompt` is the stable prefix (persona + standing rules), meant
-to be cached by the API; `user_prompt` is the per-turn part. The user
-prompt is a function of the seat's `ClueObservation`, its `ClueBelief`,
-its `Character` (profile and confidence), the `Menu`, and the table talk
-it has heard -- never of `GameState` -- so nothing a seat cannot know can
-reach the model. The text pieces come from `clude_agents.explain`, the
-same lines the maintainer CLI prints.
+Live prompts consume redacted observations, method scores and legal menus;
+private state must never enter them. Debrief face-up data is separate.
+Exact text affects replay keys. See docs/llm-wrapper.md.
 """
 from __future__ import annotations
 
@@ -202,7 +198,7 @@ def remark_prompt(
     names: Optional[Sequence[str]] = None,
     recent_remarks: int = 8,
 ) -> str:
-    """The prompt for one off-turn line (Phase 8.3b): who you are, the
+    """The prompt for one off-turn line: who you are, the
     compact state through the same formatters as `user_prompt`, the
     recent table talk, what just happened, and the instruction to say
     one short line or nothing. No decision is asked for, so nothing here

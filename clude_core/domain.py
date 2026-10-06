@@ -1,8 +1,7 @@
-"""Cards and the Suggestion/Accusation record types.
+"""Classic card names and immutable suggestion/accusation records.
 
-Card lists and names match `legacy/domain.py` (see CLAUDE.md: clude copies
-the Classic game's real names). Unlike the legacy version, `Suggestion`
-carries `card_shown`, closing the gap noted in `legacy/README.md`.
+Suggestion includes the shown card; ClueObservation controls which seats
+may see it. Card names/order are shared by engine, agents and codecs.
 """
 from __future__ import annotations
 

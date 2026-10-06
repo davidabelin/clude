@@ -1,27 +1,9 @@
-"""The Classic board drawn as SVG, straight from `clude_core.board`.
+"""Generate board SVG from the engine's map and token positions.
 
-Nothing here hard-codes the board. The rooms, the corridor, the cellar,
-the doors and the start squares all come from `BOARD_MAP` and `DOORS`, so
-the drawing cannot drift from the board the engine actually plays -- the
-mistake worth designing out, since a replay showing a token somewhere the
-rules would not allow is worse than no picture at all.
-
-No colour is set here either: every shape carries a class and
-`static/style.css` colours it, which is what lets Phase 10 restyle the
-board without touching this module (`docs/phase8.1-plan.md` 1).
-
-Dressed (Phase 10f, plan section 8), the board gains shapes and still
-no paint: a floor pattern per room in a `<defs>` whose children carry
-classes (the stylesheet fills each room with its own and colours it;
-nine since 2026-10-01, four before), a brass hairline inside every
-wall, every door a closed leaf across its doorway, hinged at one jamb
-so a page can swing it open as a token goes in (2026-10-01; a brass bar
-with a rivet at each end before, which read as more wall), a marker in
-the corner of each room a secret passage leaves from, an initial on
-every token, and the logo in the cellar where the wordmark was. An Engraved look asks for it; Legacy's sheet has no rules for any
-of it, so Legacy gets the board it was frozen with.
-
-Imports no Flask, so it can be tested and rendered on its own.
+Shapes carry CSS classes rather than colors; the page's look paints them.
+Dressed output adds ornament without changing geometry. Shared-room tokens
+fan out, and grid coordinates remain owned by clude_core.board.
+Use a real browser to inspect the styled result. See docs/board.md.
 """
 from __future__ import annotations
 

@@ -1,14 +1,13 @@
 # Phase 12, a new Plum: PlumOG mothballed, Plum rebuilt on a DeepNash variant
 
-Status: **proposed 2026-10-05; N2 and N3 built the same day** (section
-10), on David's word "Call it Phase 12, go ahead with N2 and N3"; **N4
-built 2026-10-06** (section 11), on his word "Go ahead with N4:
-rollout.py first then the training script", torch a default
-requirement. His four answers of 2026-10-05 are in section 7. N1's
-logbook commands and N5-N7 are not started; the committed weights are
-still the random draw, since the smoke runs trained the belief head
-but not yet the policy. (Phase 11 is the release, and this work is
-meant to land before it closes.)
+Proposed 2026-10-05; N2/N3 built the same day and N4 on 2026-10-06.
+David's decisions are in section 7, scoring/agent implementation in
+section 10, and training/smoke-run evidence in section 11. PyTorch is
+a default developer dependency. Release readiness remains separate.
+
+## Current state (2026-10-06)
+
+N2-N4 are built; committed weights remain seeded initial weights, not the smoke-run checkpoints. N1's logbook operations and N5-N7 acceptance/rollout remain open. Phase 11 updated Plum's method prompt and shared rules, completing the wording portion of N6; both recorded LLM fixtures now await separately approved refresh. No paid ladder or trained-weight export was part of Phase 11. The detailed designs below are proposals unless the implementation records confirm them.
 
 ## 1. Context
 
@@ -132,7 +131,7 @@ meaningful, and `secrecy` keeps its decision. Both could become heads in
 a later version.
 
 **Forward pass** in numpy. The weights are one JSON file,
-`clude_agents/weights/plum.json` (a few hundred KB), loaded once at
+`clude_agents/weights/plum.npz` (a few hundred KB), loaded once at
 module level as Mustard's tree is cached. Every score is rounded to
 1e-9 before a softmax or an argmax so BLAS rounding between Windows and
 Linux cannot flip a pick; goldens are captured on Orbit.
@@ -210,8 +209,8 @@ the cost, so the worker count matters more than the card.
 |---|---|---|
 | N1 | Mothball PlumOG (3.4). Lands with N3, since the registry needs a Plum at all times | `clude_agents/exact_enum.py`, `__init__.py`, `personality.py`, `bandit.py`; `clude_storage/logbooks.py` (`copy`, `reset_arm`); `scripts/clude_cli.py` (`logbook copy`, `logbook reset-arm`); `clude_web/users.py`; tests for both commands |
 | N2 | The seams (3.3), headless first | `clude_agents/base.py`, `character.py`, `explain.py`; tests in `tests/test_character.py` and `tests/test_llm.py` that a hooked agent's menu top equals its headless pick |
-| N3 | The agent on random weights, so the suite is green before any training | `clude_agents/deep_nash.py`, `clude_agents/weights/plum.json`; numpy in `requirements.txt` and `requirements-web.txt`; `tests/test_agents.py` (contract, determinism, the hooks) |
-| N4 | Training | `scripts/train_plum.py` (`--games`, `--workers`, `--seed`, `--eta`, `--refresh`, `--lambda-belief`, `--eval-every`, `--out`, `--export`); `clude_training/rollout.py` (the engine driven with recording seats and the population draw, stdlib only); `tests/test_training.py` (a few hundred games on a tiny net: the curve file and the export's shape) |
+| N3 | The agent on random weights, so the suite is green before any training | `clude_agents/deep_nash.py`, `clude_agents/weights/plum.npz`; numpy in `requirements.txt` and `requirements-web.txt`; `tests/test_agents.py` (contract, determinism, the hooks) |
+| N4 | Training | `scripts/train_plum.py` (`--games`, `--workers`, `--seed`, `--eta`, `--refresh`, `--lambda-belief`, `--eval-every`, `--out`, `--export`); `clude_training/rollout.py` (the engine driven with recording seats and the population draw, NumPy inference without torch); `tests/test_training.py` (a few hundred games on a tiny net: the curve file and the export's shape) |
 | N5 | Headless evaluation and the dials (5, 6) | `benchmark` grows a calibration table; `arena`'s `deviation_rate` divides by decisions; goldens re-captured on purpose; glossary section "The new Plum" |
 | N6 | The LLM head | `clude_llm/personas/Plum.md` ("How you think" rewritten, the voice kept); the leash ladder (paid, quoted, a yes first); `llm_seed2` re-recorded (~$0.26); `docs/llm-wrapper.md` |
 | N7 | Web, wiki, deploy | `clude_web/replay_data.py` (`METHOD_SHORT`, the description), `lobby.html` and `watch.html` (Plum no longer slow or dear), a *Regularised Nash dynamics* article on Plum's pattern with a figure from `build_wiki_figures.py`, *DeepNash* and *Professor Plum* updated, `docs/strategy-glossary.md`, `docs/architecture.md`, `CLAUDE.md`, this doc's "as implemented"; deploy, then the three `logbook` commands on the bucket |
@@ -264,7 +263,7 @@ PlumOG's preset: `accuse_threshold` 0.9, `bluff_rate` 0.05, `curiosity`
 
 ## 8. Open questions
 
-- The phase's number and where it sits against Phase 11.
+- Resolved: this is Phase 12 (David, 2026-10-05), interleaved with Phase 11 documentation work.
 - Whether the show decision and the accusation should become heads in a
   later version (left with the Character here, so the dials keep their
   meaning).

@@ -1,18 +1,7 @@
-"""The logo, candidate E (D5, David's pick on 2026-09-29): a cartouche
-wordmark under an escutcheon plate whose keyway is a question mark.
+"""Generate the cartouche/keyhole-question logo as uncolored SVG.
 
-Drawn as SVG and, like the board, uncoloured: every shape carries a
-``logo-*`` class and the look's stylesheet paints it, so the mark takes
-the theme like everything else (docs/phase10-plan.md 9). Ported from
-the artboards' drawing code (`docs/ux/sketch_parts.py`, `keyhole_q`
-and `logo_group("E")`), which stays as the record of the candidates.
-
-Three uses: the cellar in the middle of the board (`cellar`, placed by
-`board_svg`), the header bar's mark (`mark_svg`), and the favicon
-(`favicon_svg`), which is the one drawing with colours of its own, since
-a browser tab has no stylesheet.
-
-Imports nothing from Flask.
+The board cellar, header and favicon share this geometry; stylesheets own
+color. Candidate E was selected in Phase 10. See docs/phase10-plan.md.
 """
 from __future__ import annotations
 

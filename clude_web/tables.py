@@ -1,78 +1,24 @@
-"""Tables with people, LLM characters, silent headless characters and
-floorbots in any mix of seats (Phase 8.2, docs/phase8-plan.md 3.2).
+"""Request-driven table registry, persistence and per-viewer payloads.
 
-New tables remember by default. The registry loads and updates method
-memory for Mustard, White and Green in either character mode, and
-attaches LLM narrative logbooks at each seat's saved memory depth.
+TableGame is the Flask-free driver. The store holds setups, entries,
+memory snapshots and lifecycle; live games are caches rebuilt single-flight.
+Work takes a nonblocking game lock; polls read published snapshots. No game
+advances between requests. Human/model answers are validated before sending
+into the generator; model audits/remarks are saved so rebuild never calls it.
 
-`clude_training.table.TableGame` is the driver; this module is what the
-web app puts around it. A `TableRegistry` keeps the live games in memory
-as a cache and the truth in the store, one document per table under
-``tables/``: the setup, the ordered entry log, the turn count, the
-status (``open`` while seats wait for people, ``playing``, ``finished``)
-and who sits where. A game missing from memory -- a restarted process, a
-fresh Cloud Run instance -- is rebuilt from its document by replaying
-its entries, single-flight, so two polls arriving together do not both
-replay it (`docs/architecture.md`, "Resumable").
+Seated viewers get own hand/floor and private reveals only when involved;
+spectators get compact readings without named hands/cards. A seated payload
+omits readings entirely. Public certainty/method/hand-size labels remain.
 
-**Who drives the game.** Nothing here runs between requests: the
-service is billed per request and has CPU only while one is in flight,
-so bot turns happen inside `work`, which any client calls when its poll
-says work is due. The game lock is taken without blocking there, so the
-first caller is the worker and the rest come straight back; `poll` never
-takes the lock at all, reading the driver's published snapshot, so six
-browsers polling never queue behind a slow turn.
+New tables remember. Mustard/White/Green use method memory; LLM seats also
+attach narrative memory and debrief one seat per work request. Metered calls
+include reactions/debriefs; final record/summary/table cost settles after
+wrap-up and displays only through Developer policy, never to characters.
 
-**What each viewer sees.** `view_payload` describes the game from one
-seat: the card shown at a refutation is named only to the two seats
-involved (`ClueObservation.for_player`'s rule) and never to a spectator;
-a seated person also gets their hand, the deduction floor's notepad from
-their own view and, when the game is stopped on them, the decision as
-data in the shape `decode_answer` takes back. Watch's compact readings
-of every seat are shown to everyone (David, 2026-09-18).
-
-**The model at the table (Phase 8.3a).** An ``llm`` seat is the token's
-own character piloted by the model from outside the engine: `work`
-answers its pending decision through `TableGame.llm_answer`, one call
-per request so the screen reads "Plum is thinking" rather than freezing,
-and the answer is stored with its audit and the lines it said, so a
-rebuild never asks the model again. Every backend is a `MeteredBackend`
-over the table's budget and the service's daily cap (`LLMConfig`), and
-past either the wrapper's fallback plays the headless character. Without
-a key (`LLMConfig` None) the lobby disables LLM seats and nothing
-here can spend.
-
-**What a game cost (Phase 9g).** Each model seat's backend is metered
-to its seat as well as its table (`Ledger.add`), so the screen shows the
-table's spend and each seat's share of it as they accrue, and a person
-at the table or an MCP player sees who is spending. The characters are
-never told. The cost is recorded once the game is over *and* its logbook
-entries are written -- those calls are part of what it cost -- by
-`TableRegistry._settle_cost`, the last thing written for a game: on the
-table document, on the record and each model seat of it, and on the web
-run's line for the game, which is where the lobby's list of games reads
-it.
-
-**A chat seat (Phase 9).** `clude_web.mcp` seats a Claude in a chat
-window through this same registry: an ordinary account in an ordinary
-human seat, answering with ``by="mcp"``. What it adds here is small: a
-free-text note per seat on the document, never an entry, so a rebuild
-does not see it. It gets the floor's numbers (the notepad) and nothing
-more: a chat player is its own head (David, 2026-09-21; the "head" of
-the first deploy, a character's numbers beside the seat, is gone).
-
-**A table nobody is playing.** A human seat that keeps the table
-waiting `TURN_TIMEOUT` seconds (`SPEED_TIMEOUT` at a speed table) has
-that turn played by the stand-in, by the next unit of `work`, whoever
-drives it; the seat stays the person's, and only `STRIKES` such turns
-in a row hand it over for good (Phase 9h; until then a stall of three
-minutes handed it over at once). A seat put out by a wrong accusation
-is answered by the stand-in from then on (it only shows cards), so a
-person who left never stalls a table for good. A table
-that should not go on at all is `abandon`ed: by anyone seated, by
-whoever started it, or from the CLI (`tables abandon`); it leaves the
-lobby and is never recorded. And a table is not dealt while an open
-seat waits for its person.
+Open seats must fill before deal. Timed-out decisions use FloorBot for the
+turn, with permanent autopilot after consecutive strikes; card shows have
+a shorter maximum. Owner autopilot can be reclaimed; abandonment ends an
+unfinished game without recording it. See docs/web.md for exact lifecycle.
 """
 from __future__ import annotations
 
@@ -155,7 +101,7 @@ def anthropic_backend(model: str, key: str):
 
 @dataclass(frozen=True)
 class LLMConfig:
-    """How the service reaches the model (Phase 8.3a).
+    """How the service reaches the model.
 
     Parameters
     ----------
@@ -434,10 +380,11 @@ class WebGame(TableGame):
         return replay_data.suggestion_line(log[-1], self.suspects, reveal=False)
 
     def beliefs(self) -> dict:
-        """Seat -> what a fresh agent of its label believes now, or None
-        for a seat with no method; cached per event-log length, since a
-        fresh Plum reading is most of a second and both the readings and
-        the certainties (Phase 9h) are made from it."""
+        """Return fresh-agent beliefs cached by event-log length.
+
+        This is reconstructed analysis, without the live method-memory state.
+        Seats without a method have None.
+        """
         n_events = len(self.events)
         if n_events != self._beliefs_at:
             self._beliefs = {
@@ -461,7 +408,7 @@ class WebGame(TableGame):
     def readings(self) -> list:
         """Each seat's compact bar: cards placed, and per category how
         many are placed, whether the answer is proven, and how sure the
-        seat's own method is; and its certainty (Phase 9h). Names no card.
+        seat's own method is; and its certainty. Names no card.
 
         Beliefs come from a fresh agent per reading, reset with the game
         seed -- never from the agent actually playing, whose RNG a
@@ -631,24 +578,12 @@ def view_payload(
     spend: Optional[dict] = None,
     typing: Optional[list] = None,
 ) -> dict:
-    """Everything the table screen needs, from `viewer`'s seat, as one
-    JSON-ready object: the seats, the tokens' points on the board, the
-    event lines since `since`, the decision if it is the viewer's,
-    what the game is waiting on otherwise, the viewer's hand and
-    notepad, every seat's compact reading, and the ending.
+    """Return JSON-ready board/roster/history and the viewer's permitted fields.
 
-    `typing` is `TableRegistry.typing`: the seats with a line on the
-    way, given to everyone as ``typing``, the names of every seat but
-    the viewer's own (Phase 9h).
-
-    `spend` is `TableRegistry.spend`: what the table's model seats have
-    spent in all and each seat's share, which ``llm`` carries as
-    ``spent`` and ``seats``; without it the figures stored on the
-    document are shown.
-
-    Reads the driver's snapshot and never its lock, so a poll comes back
-    while a turn is being played; the lines are cut at the snapshot's
-    event count so a half-appended turn is never described.
+    viewer=None is a spectator with compact readings but no hand/notes/answer
+    controls. A seated viewer gets their own hand/floor/pending decision and
+    never a readings key. Private shown cards are named only to participants.
+    since is the event cursor; pending seq counts answers, not events.
     """
     snap = game.snapshot
     names = seat_names(game)
@@ -892,7 +827,7 @@ def _node_of(data):
 
 def _distance_line(node) -> str:
     """Every room and how many steps away it is from `node`, nearest
-    first: "Billiard 1, Library 3, ..." (Phase 9d).
+    first: "Billiard 1, Library 3, ...".
 
     `board.room_distances` is a cached breadth-first search over
     corridors, rooms and secret passages -- a proximity measure, not a
@@ -940,7 +875,7 @@ class TableRegistry:
 
     def seen_watching(self, table_id: str, account: str) -> None:
         """Note that `account` is watching this table, having just asked
-        it for a view while holding no seat (Phase 9e).
+        it for a view while holding no seat.
 
         Presence is kept in memory rather than on the document: a poll
         arrives every few seconds from every open page, and writing the
@@ -967,7 +902,7 @@ class TableRegistry:
     # -- who is typing --------------------------------------------------
 
     def seen_typing(self, table_id: str, seat: int, on: bool = True) -> None:
-        """Note that `seat`'s person has text in the chat box (Phase 9h),
+        """Note that `seat`'s person has text in the chat box,
         or with `on` False that they emptied it. In memory like the
         gallery, and for the same reason: it is true for seconds."""
         marks = self._typing.setdefault(table_id, {})
@@ -1027,7 +962,7 @@ class TableRegistry:
     def spend(self, table_id: str, document: Optional[dict] = None) -> Optional[dict]:
         """What the table's model seats have spent, as ``{"total",
         "seats": {"<seat>": dollars}}``, or None for a table with no model
-        seat (Phase 9g). Read from the ledger's memory while the game can
+        seat. Read from the ledger's memory while the game can
         still spend, so a poll never reads the store for it; from the
         document once the cost is settled."""
         if document is None:
@@ -1047,7 +982,7 @@ class TableRegistry:
         `setup` may be a Watch setup (anything with `to_table_setup`).
         `budget` is the table's model spend in dollars, for a table with
         ``llm`` seats. `speed` makes it a speed table: `SPEED_TIMEOUT`
-        rather than `TURN_TIMEOUT` a decision (Phase 9h).
+        rather than `TURN_TIMEOUT` a decision.
 
         Raises
         ------
@@ -1115,7 +1050,7 @@ class TableRegistry:
     def _prepare(self, setup: TableSetup, snapshot: Optional[dict]):
         """What runs after the players are built and before the deal, with
         "characters remember" on: each character's method memory from the
-        snapshot, and for a model seat (Phase 8.3c) its logbook attached,
+        snapshot, and for a model seat its logbook attached,
         so it reads its notes back at the `memory` dial's depth and can
         write an entry at the end."""
         if not setup.remember:
@@ -1243,28 +1178,17 @@ class TableRegistry:
     # -- driving -------------------------------------------------------
 
     def work(self, table_id: str, game: WebGame) -> str:
-        """One unit of bot work, if any is due: a bot turn no sooner than
-        `WORK_INTERVAL` after the last, or the stand-in's answers for a
-        seat on autopilot -- and, after a turn that stops on such a seat,
-        those answers too, so a seat handed to the stand-in never shows
-        the person a decision. A human seat that is out (a wrong
-        accusation) is the stand-in's too, since all it can do is show
-        cards; and a human seat that has kept the table waiting
-        the table's time-out on one decision has the rest of that turn
-        played by the stand-in here (Phase 9h; the seat stays the
-        person's), and `STRIKES` such turns in a row hand the seat over,
-        its flag set as if its owner had pressed the button, so a person
-        who left never stalls a table for good (David, 2026-09-21 and
-        2026-09-26). Never waits for the lock. Returns what
-        happened: ``"busy"``, ``"waiting"``, ``"turn"``, ``"autopilot"``,
-        ``"timeout"`` (a turn the stand-in played on the clock),
-        ``"model"`` (one decision by a model seat, Phase 8.3a),
-        ``"reaction"`` (one off-turn line, 8.3b), ``"debrief"`` (one
-        logbook entry after the game, 8.3c), ``"finished"`` or
-        ``"nothing"``. A queued reaction is served before anything else,
-        and while one waits to be due no bot or model plays, so the
-        chatter lands before the next move; a person's own answer is
-        never held."""
+        """Perform one due unit under a nonblocking game lock.
+
+        Advance a paced bot turn, external model decision, reaction, timeout/
+        autopilot answer or finished-game debrief. Other callers return without
+        waiting. Calls can spend API budget; no work occurs between requests.
+        Queued reactions take priority over bot/model play, including while
+        waiting to be due; human answers are never held for chatter.
+
+        Returns a status: busy, waiting, turn, autopilot, timeout, model,
+        reaction, debrief, finished or nothing.
+        """
         if not game.lock.acquire(blocking=False):
             return "busy"
         try:
@@ -1358,7 +1282,7 @@ class TableRegistry:
             game.lock.release()
 
     def say(self, table_id: str, game: WebGame, seat: int, text) -> str:
-        """A seated person's line (Phase 8.3b): cleaned, said at the table
+        """A seated person's line: cleaned, said at the table
         as a ``chat`` remark every speaker hears, stored as an entry, and
         an opportunity for the model seats to answer. Never read by the
         engine: the formal refutation stays checked against the hands.
@@ -1392,7 +1316,7 @@ class TableRegistry:
 
     def _unstrike(self, table_id: str, seat: int) -> None:
         """A seat that answered for itself has no timed-out turns in a
-        row any more (Phase 9h)."""
+        row any more."""
         document = self.document(table_id)
         if document and int((document.get("strikes") or {}).get(str(seat), 0)):
             document["strikes"][str(seat)] = 0
@@ -1542,7 +1466,7 @@ class TableRegistry:
         return text
 
     def set_notepad_level(self, table_id: str, seat: int, level: str) -> dict:
-        """Set how much of the floor a chat seat is shown (Phase 9i):
+        """Set how much of the floor a chat seat is shown:
         one of `NOTEPAD_LEVELS`. Only before the deal, so the level a
         game was played at is the level it was played at throughout.
 
@@ -1724,7 +1648,7 @@ class TableRegistry:
 
     def _settle_cost(self, table_id: str) -> Optional[float]:
         """Record what a finished game cost, once, as the last thing
-        written for it (Phase 9g): the table's total and each model
+        written for it: the table's total and each model
         seat's share, read fresh from the ledger, on the table document
         (``llm.spent``, ``llm.seats``, ``llm.final``), on the record and
         its model seats, and on the web run's line for the game. Called
