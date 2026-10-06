@@ -1,10 +1,14 @@
 # Phase 12, a new Plum: PlumOG mothballed, Plum rebuilt on a DeepNash variant
 
 Status: **proposed 2026-10-05; N2 and N3 built the same day** (section
-10), on David's word "Call it Phase 12, go ahead with N2 and N3". His
-four answers of that day are in section 7. N1's logbook commands, N4
-training and N5-N7 are not started. (Phase 11 is the release, and this
-work is meant to land before it closes.)
+10), on David's word "Call it Phase 12, go ahead with N2 and N3"; **N4
+built 2026-10-06** (section 11), on his word "Go ahead with N4:
+rollout.py first then the training script", torch a default
+requirement. His four answers of 2026-10-05 are in section 7. N1's
+logbook commands and N5-N7 are not started; the committed weights are
+still the random draw, since the smoke runs trained the belief head
+but not yet the policy. (Phase 11 is the release, and this work is
+meant to land before it closes.)
 
 ## 1. Context
 
@@ -367,9 +371,152 @@ skipped, below; the browser tests not run in this workspace).
 
 - N1's storage half: `logbook copy Plum PlumOG` and `logbook reset-arm
   Green Plum`, and the pass over `data/llm` and the bucket.
-- N4: `scripts/train_plum.py` and `clude_training/rollout.py`.
+- N4: `scripts/train_plum.py` and `clude_training/rollout.py` (built
+  2026-10-06, section 11).
 - The wiki still describes Plum as the enumerator, the lobby still
   prices him at $0.25 and Watch still calls him slow: N7.
 - The goldens were captured on Linux; the plan says Orbit. The
   nine-place rounding is meant to make that moot, and N4's first
   export re-captures them on Orbit anyway.
+
+## 11. As implemented: N4 (2026-10-06)
+
+David's word: "Go ahead with N4: rollout.py first then the training
+script. Yes, use torch and update requirements.txt to load by default."
+Built on Orbit, where the venv had neither numpy nor torch until this
+day (N3 was built in the cloud workspace); `pip install numpy torch`
+gave numpy 2.5.3 and torch 2.14.1, the CPU wheel, which is all the
+training needs.
+
+### The rollout, `clude_training/rollout.py`
+
+- `RecordingPlum` is Plum's `Character` over a `DeepNashAgent` with the
+  weights being trained. It plays the accusation and the card to show
+  exactly as the deployed Plum does and flips the bluff coin first as
+  he does, so the only difference from the table's Plum is the sampler:
+  the move and the suggestion cards are drawn from the network's own
+  softmax (`policy_temperature` 1) rather than the `Character`'s
+  sharpening sampler over it, so that the policy gradient is on-policy
+  and the exploration is the policy's own. What is learned is the
+  distribution; what is played is its peak.
+- `draw_lineup` is the population of David's third answer: all network
+  seats with probability `self_play` (one half), otherwise a draw per
+  seat from the network, the five characters and the floor bot, each
+  character once and at its own token through `arena.seat_lineup`, with
+  at least one network seat. Table sizes cycle 3 to 6. Characters are
+  built and reset as the arena builds them; network and floor seats get
+  private RNGs from `fill_seed`.
+- `play_game` returns an `Episode` per network seat: the encoded state
+  at every decision (float32), the kind of step (move, suspect, weapon,
+  or the accusation observation as a belief-only step), the options
+  (the legal moves' feature rows, or the honest candidates' indices),
+  the option taken, the envelope, the outcome reward (+1 won, -1 put
+  out, 0 otherwise, 0 for everyone when the cap is hit) and `gains`,
+  the floor's bits gained since the seat's previous turn on the
+  certainty tag's scale. `play_games` is the process pool's task;
+  `RolloutStats` summarises a batch.
+- `deep_nash.DeepNashAgent._heads` became the public `heads`, which
+  also keeps the encoded state, and `deep_nash.playing_with(weights)`
+  installs a checkpoint as the registry's Plum (and Green's arm) for
+  the length of a block, so a checkpoint is evaluated through the
+  ordinary arena and benchmark.
+
+### The script, `scripts/train_plum.py`
+
+`PlumNet` holds one torch parameter per entry of `WEIGHT_SHAPES`, same
+names and orientations, and agrees with the numpy forward pass to
+float32 rounding (a test pins it). Each iteration: `--games` games
+through a spawn pool of `--workers`; the NeuRD policy gradient on the
+regularised return (the reward less `--eta` times ``log(pi / pi_ref)``
+over the seat's own steps, `pi_ref` refreshed every `--refresh`
+iterations; the sampled estimator with its ``1 / pi(a)`` weight capped
+at 10 and DeepNash's logit threshold of 2; `--policy-grad softmax` for
+the plain score-function gradient), the value head by regression, the
+belief head by masked cross-entropy, an entropy bonus. Every
+`--eval-every` iterations the free ladder of section 6 runs on the
+current weights (the benchmark's log-loss on 20 floor-bot games, the
+Plum table and the six-character table at seed 7007) and a checkpoint
+is written; `best.npz` tracks the Plum-table win rate, `latest.npz`
+the end, `--export` copies the end to `clude_agents/weights/plum.npz`.
+`docs/cli.md` has the usage.
+
+### What the smoke runs taught
+
+Four runs of 256 games an iteration, six workers each, two at a time,
+all seed 2026 (`data/plum-training/smoke-*` and `smoke2-*`, gitignored;
+the curves are the record). About 17 s an iteration with two runs
+sharing the laptop, 10,240 games in a quarter of an hour.
+
+1. **The belief head memorises a batch.** The first pair (40
+   iterations, 2 epochs at lr 1e-3, the belief loss on the iteration's
+   own steps) scored *worse* than the floor's uniform on the benchmark
+   at every evaluation (1.44 to 1.63 against 1.35 at the 50%
+   checkpoint). Every step of a game shares one envelope, so the
+   effective sample count is the games, not the steps, and a 76k-
+   parameter net fits a few hundred games' envelopes in a handful of
+   updates: on one 96-game batch, no learning rate from 1e-4 to 1e-3
+   beat uniform at any step count, it only got worse, and 200 steps at
+   1e-3 took the midpoint log-loss to 3.6. The fix is a replay buffer:
+   the belief head trains on a quarter of each of the last ten
+   iterations' steps (`--replay`, `--replay-fraction`), one pass an
+   iteration at lr 3e-4.
+2. **The policy gradient had nothing to push with.** Raw advantages on
+   a return that is 0 almost everywhere, under a gradient clip of 1
+   shared with a belief gradient of about 2, left the policy loss
+   within 0.01 of zero and the entropy at the uniform 2.0 for all 40
+   iterations. Advantages are now standardised over the iteration
+   (`--no-adv-norm` to leave them raw) and the clip is 5.
+3. With both changes (the second pair, 24 iterations, 6,144 games),
+   the belief head is the best method on record from the midpoint on:
+
+   | Belief log-loss | 25% | 50% | 75% | 100% |
+   |---|---|---|---|---|
+   | uniform (20 games, seed 4004) | 1.54 | 1.31 | 0.87 | 0.23 |
+   | iteration 8 (2,048 games) | 1.65 | 1.34 | 0.94 | 0.24 |
+   | iteration 16 (4,096 games) | 1.56 | 1.21 | 0.83 | 0.21 |
+   | iteration 24 (6,144 games) | 1.52 | 1.17 | 0.82 | 0.20 |
+   | PlumOG (60 games; glossary) | 1.52 | 1.44 | 1.00 | 0.22 |
+   | White, the best before (60 games) | 1.54 | 1.28 | 0.91 | 0.23 |
+
+   (The 20-game benchmark's uniform differs from the 60-game one's, so
+   compare each row with its own uniform.) Both runs of the pair give
+   the same belief curve to two places, as they should: same seed,
+   same replay.
+4. **The policy has barely begun.** Entropy fell from 2.00 to 1.98 on
+   the outcome reward alone and to 1.91 with the shaped reward
+   (`--shaping 1.0`, the floor's bits gained each turn added to the
+   outcome); self-play games still run to about 100 turns, and the
+   network's seats win 2% of self-play games on the outcome reward and
+   6% with shaping, against the 0% of random weights. On the
+   evaluation tables Plum accuses in one game in 24 at best and wins
+   it, and never accuses wrongly. The plan's second milestone (PlumOG's
+   31% at the six-character table, 62.5% at his own) is a long run
+   away, and the first thing to try if it stalls is still the shaped
+   reward, which is now a flag.
+
+Departures from the plan: no "tiny net" for the test, since the layout
+is pinned by `WEIGHT_SHAPES` (the test runs the real net on six games
+and two iterations instead); the belief head trains from a replay
+buffer rather than the iteration's own steps; advantages are
+standardised; `--shaping` exists. Nothing exported: the committed
+`plum.npz` is still the random draw, so no golden moved.
+
+### Tests and the suite
+
+`tests/test_train_plum.py` (not `test_training.py`, which holds the
+Phase 4 snapshot and benchmark tests): the rollout's record of every
+decision, determinism per seed and characters at their own tokens, the
+population draw, `playing_with`, the torch network against the numpy
+forward pass, and the loop on six games writing the curve, the
+checkpoints and a loadable export. Under pytest on Windows, torch's
+first call prints "Windows fatal exception: access violation" and then
+passes: pytest's faulthandler reporting a first-chance exception that
+torch's MKL handles itself. The torch fixture disables faulthandler
+while it is in use.
+
+Noted, not touched: `clude_llm/personas/rules.md` was edited by hand
+during this day's session (table talk about politics and the weather;
+a dangling "The "), so `test_recorded_llm_games_replay_offline[llm_seed1]`
+fails, since the fixture is keyed on the exact prompt. N6 re-records
+`llm_seed2`; `llm_seed1` wants the same once the edit is finished.
+

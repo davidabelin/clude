@@ -23,7 +23,7 @@ clude/
     character.py       # Character(agent, profile): the four engine decisions
     explain.py         # plain-text views of a seat's knowledge: CLI, LLM prompt, later UI
   clude_llm/           # Phase 6: menus, personas, LLM backends, LLMCharacter; Phase 7: the debrief (logbook.py)
-  clude_training/      # self-play snapshots, belief benchmark, trace, arena, sweeps; Phase 7: replay.py, memory.py; Phase 8.2: table.py
+  clude_training/      # self-play snapshots, belief benchmark, trace, arena, sweeps; Phase 7: replay.py, memory.py; Phase 8.2: table.py; Phase 12: rollout.py (the recorded games Plum trains on)
   clude_storage/       # game records and logbooks; local and Cloud Storage stores
   clude_web/           # Flask app: login, lobby, replay, Watch, tables people play at (8.1-8.2; docs/web.md); mcp.py, a seat over MCP beside it (Phase 9)
   scripts/             # clude_cli.py
@@ -648,6 +648,18 @@ starts every unresolved card at the floor's prior (an unnamed card is
 unsuspicious, not impossible), and Green's arm reward is a rank on each
 snapshot rather than an absolute score the floor dominated. Each is an
 absence-of-evidence fix, not a change to the method.
+
+Plum trains on whole games rather than snapshots (Phase 12, N4):
+`clude_training.rollout.play_games` seats the network being trained
+(`RecordingPlum`, Plum's `Character` sampling from the network's own
+distribution) at tables drawn from a population of itself, the other
+five characters and the floor bot, plays them through the engine, and
+returns one `Episode` per network seat: the encoded state, the options
+and the option taken at every decision, the outcome reward, the
+envelope and the floor's bits gained per turn. `scripts/train_plum.py`
+(torch, a developer's dependency) runs those rollouts in a process
+pool, fits the network's heads and exports the weights file the numpy
+agent plays with (`docs/deepnash-plan.md` 3.2 and 10).
 
 ## Arena, sweeps and game records (Phase 5d)
 

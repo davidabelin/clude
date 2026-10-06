@@ -4,10 +4,15 @@ pytest>=8.0
 pytest-xdist>=3.8
 # Plum's forward pass (clude_agents.deep_nash, Phase 12; David's call of
 # 2026-10-05 that numpy may enter the agents package). Everything else in
-# the engine and the agents is the standard library. Training him
-# (scripts/train_plum.py, N4) wants torch, optional like Playwright below:
-#     pip install torch
+# the engine and the agents is the standard library.
 numpy>=2.0
+# Training Plum (scripts/train_plum.py, Phase 12 N4): a developer's
+# dependency, installed here by default (David, 2026-10-06) and never in
+# the Cloud Run image (requirements-web.txt). The PyPI wheel on Windows
+# is CPU-only, which is all the training needs: the engine, not the
+# network, is the cost. For CUDA on Orbit's RTX 3080 instead:
+#     pip install torch --index-url https://download.pytorch.org/whl/cu128
+torch>=2.9
 # Only needed for gs:// record stores (clude_storage.GcsStore); everything
 # else is the standard library, and the package is imported lazily.
 google-cloud-storage>=3.0

@@ -7,8 +7,10 @@ the seed and on this file, as Mustard's depends on the seed and his
 logbook state, so it is committed and only ever replaced on purpose,
 with the goldens re-captured (`tests/test_character.py`).
 
-Until `scripts/train_plum.py` (Phase 12, N4) has run, the file is
-`init_weights(INIT_SEED)`'s seeded random draw: a Plum who knows
-nothing and plays close to uniformly. A training run exports its chosen
-checkpoint here; `docs/deepnash-plan.md`'s "as implemented" section
-records which run and which checkpoint.
+Until a run of `scripts/train_plum.py` (Phase 12, N4) is exported, the
+file is `init_weights(INIT_SEED)`'s seeded random draw: a Plum who
+knows nothing and plays close to uniformly. A training run writes its
+checkpoints under `data/plum-training/<run>/` (gitignored) and
+`--export` copies the final weights here; `docs/deepnash-plan.md`'s
+"as implemented" section records which run and which checkpoint, and
+the goldens are re-captured with every replacement.

@@ -54,8 +54,9 @@ tuples.
 """
 from __future__ import annotations
 
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Iterator, Optional
 
 import numpy as np
 
@@ -83,6 +84,7 @@ __all__ = [
     "init_weights",
     "load_weights",
     "move_scores",
+    "playing_with",
     "save_weights",
 ]
 
@@ -324,11 +326,29 @@ _DEFAULT: Optional[dict] = None
 
 
 def default_weights() -> dict:
-    """The committed weights, read once per process."""
+    """The committed weights, read once per process (or the weights
+    `playing_with` has installed for the duration of its block)."""
     global _DEFAULT
     if _DEFAULT is None:
         _DEFAULT = load_weights()
     return _DEFAULT
+
+
+@contextmanager
+def playing_with(weights: dict) -> Iterator[None]:
+    """Make `weights` what every `DeepNashAgent` built without explicit
+    weights plays with, for the duration of the block: the registry's
+    Plum, and Green's Plum arm. The training script evaluates a
+    checkpoint through the ordinary arena and benchmark this way. The
+    previous weights (or the not-yet-loaded file) are restored on exit."""
+    global _DEFAULT
+    _check(weights)
+    previous = _DEFAULT
+    _DEFAULT = weights
+    try:
+        yield
+    finally:
+        _DEFAULT = previous
 
 
 # -- the agent ----------------------------------------------------------------
@@ -365,16 +385,21 @@ class DeepNashAgent(SeededAgentMixin):
         self._cached_obs = None
         self._cached = None
 
-    def _heads(self, obs: ClueObservation) -> dict:
+    def heads(self, obs: ClueObservation) -> dict:
+        """`forward` for `obs`, computed once per observation object and
+        kept for the hooks; the dict also carries ``state``, the encoded
+        input, which the training rollout records."""
         if obs is not self._cached_obs:
-            self._cached = forward(self.weights, encode_state(obs))
+            x = encode_state(obs)
+            self._cached = forward(self.weights, x)
+            self._cached["state"] = x
             self._cached_obs = obs
         return self._cached
 
     def select_action(self, obs: ClueObservation) -> ClueBelief:
         """The belief head, masked and renormalised; `extra` carries
         ``method: "policy"`` and the value head."""
-        heads = self._heads(obs)
+        heads = self.heads(obs)
         logits = heads["belief"]
         raw = {}
         for category in CATEGORIES:
@@ -391,7 +416,7 @@ class DeepNashAgent(SeededAgentMixin):
         (the `AgentProtocol` hook; `profile` is unused, since the
         network learned its own curiosity)."""
         del choices, profile
-        logits = move_scores(self.weights, self._heads(obs)["hidden"], encode_choices(features))
+        logits = move_scores(self.weights, self.heads(obs)["hidden"], encode_choices(features))
         return _rounded(_softmax(logits))
 
     def choose_destination(
@@ -406,7 +431,7 @@ class DeepNashAgent(SeededAgentMixin):
         """The suspect or weapon head as a distribution over the honest
         `candidates`, in order (the `AgentProtocol` hook)."""
         head = "suspect" if category is SUSPECTS or list(category) == SUSPECTS else "weapon"
-        logits = self._heads(obs)[head]
+        logits = self.heads(obs)[head]
         idx = [list(category).index(c) for c in candidates]
         return _rounded(_softmax(logits[idx]))
 

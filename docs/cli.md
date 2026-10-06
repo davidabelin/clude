@@ -400,6 +400,30 @@ stored game), and the training-set line says how many memory rows from
 how many games joined the base. Run it with and without the flag to
 see what memory changes.
 
+
+## Training Plum (`scripts/train_plum.py`, not a subcommand)
+
+```
+python scripts/train_plum.py --iterations 20 --games 256 --workers 8
+python scripts/train_plum.py --iterations 200 --games 512 --out data/plum-training/long --export
+python scripts/train_plum.py --help
+```
+
+Plum's network (`clude_agents.deep_nash`, Phase 12) is trained by its
+own script rather than a `clude_cli.py` subcommand, because it needs
+torch, a developer's dependency that the Cloud Run image never
+installs. Each iteration plays `--games` games through the engine in a
+process pool (`clude_training.rollout`), updates the network, and
+every `--eval-every` iterations runs the free evaluation ladder of
+`docs/deepnash-plan.md` 6 on the current weights: the belief log-loss
+on the benchmark's snapshots, and Plum's win and wrong-accusation
+rates at the Plum table and the six-character table. A run writes
+`curve.jsonl`, checkpoints, `best.npz` and `latest.npz` under
+`data/plum-training/<run>/` (gitignored); `--export` copies the final
+weights to `clude_agents/weights/plum.npz`, after which the goldens
+in `tests/test_character.py` are re-captured on purpose. The script's
+docstring lists every flag and `docs/deepnash-plan.md` 10 records the
+runs.
 ## `snapshots`
 
 ```

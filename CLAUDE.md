@@ -36,9 +36,16 @@ re-measured. **N2 and N3 built 2026-10-05** (David: "Call it Phase
 12, go ahead with N2 and N3"): the two scoring hooks on
 `AgentProtocol`, `clude_agents/deep_nash.py` with random weights in the
 registry as Plum and as Green's arm, `ExactEnumAgent` named PlumOG and
-out of the registry, numpy a dependency. N1's logbook commands, N4
-training and the rest are not started. A Plum table runs 0.3 s a game
-against 7.5 s with PlumOG.
+out of the registry, numpy a dependency. **N4 built 2026-10-06**:
+`clude_training/rollout.py` (the recorded games) and
+`scripts/train_plum.py` (torch, now a default requirement; CPU wheel);
+four smoke runs of about 10,000 games each found the belief head
+memorising a batch (fixed with a replay buffer) and the policy gradient
+starved (advantages standardised); the belief head is now the best
+method on record from the 50% checkpoint on after 6,000 games, the
+policy barely moved, nothing exported yet. N1's logbook commands and
+N5-N7 are not started. A Plum table runs 0.3 s a game against 7.5 s
+with PlumOG.
 
 Each phase's record is the "as implemented" section of its plan doc
 (`docs/phase5-plan.md` to `docs/phase9-plan.md`; Phases 1-4 in
@@ -270,7 +277,7 @@ immediate there.)
 | 9 | A seat over MCP: a Claude in a chat window (claude.ai) plays one seat of a live table through an MCP server mounted beside the Flask app, on the same `TableRegistry` | built. 9a the plan and the renumbering (2026-09-20); 9b the server and the combined ASGI app, 9c deployed with the secret and the `claude` account, both 2026-09-21, and the first live game from the chat that evening; 9d the eight fixes after the second live game and 9e David's follow-ups, both 2026-09-22 and deployed that evening; 9f the chat seat's report after the third live game and 9g what a game cost (both 2026-09-25, deployed that day), 9h five tweaks in one sweep (2026-09-26 and deployed that evening; typing, the turn time-out and speed mode, the certainty tag, the animated replay, the Legacy style); 9i the chat seat's five requests after table `5019abeb0a` (2026-09-26; waiting for the deal, the held-back pass, hand sizes and disproof order, hard mode, a whole replay URL; deployed that evening) and 9j every chatbot its own login, watching over MCP, and names capitalised (2026-09-27, deployed that day as `clude-00014-sqn`) -- `docs/phase9-plan.md` 8, `docs/phase9h-plan.md` |
 | 10 | In-depth UX: the shippable look, "engraved, not brass-plated" | in progress. `docs/phase10-plan.md` proposed 2026-09-20, David's answers recorded 2026-09-21 (D1-D4, D6); 10a the artboards drawn 2026-09-27 (`docs/ux/table/`, `docs/ux/logo/`) and revised 2026-09-28 after his review (D7-D14); 10b the token layer and 10c play-is-blind built 2026-09-28 (Engraved as an opt-in beta beside Legacy, the faces self-hosted, the motion switch; `readings` absent for a seated player, methods and hand sizes on the rail, shown cards ticked), deployed together that day as `clude-00016-65z`; 10d-10g built 2026-09-29 with the third round (D5 = E, D15-D16): Record and Talk, the focus ladder and the phone's tabs, the dressed board and logo, sound; Engraved the default; and the fourth round the same day (D17-D20): three looks (Case-file light the default, Gaslight dark, Developer), Stored games as practice and development with wall time, the footer and the wooden question mark; both live as `clude-00019-9x5` that evening; the fifth round (D21-D28) built 2026-10-01, live as `clude-00020-2tf`: Pass up top, one narration line with the dice, costs in Developer only, `clude_logout`, swing doors and nine floors, 30 s to show a card, the board's size on a phone; Wikiclude (D20, replacing 10i's two explainers) begun: W1 the engine and three exemplars, live as `clude-00021-fmb` (2026-10-02), W2 the other characters and methods, the floor and Belief, built that day and not yet deployed (`docs/wikiclude-plan.md` 9-10); 10h the help layer still to come, both before 1.0.0 (was Phase 9 until 2026-09-20) |
 | 11 | Tweak, polish, release: clean-up and close, then version 1.0.0, released to family and friends, and planning in versions, not phases | not started (was Phase 10) |
-| 12 | A new Plum: PlumOG mothballed, Plum rebuilt on a DeepNash variant with the same dials, the leash and the accuse threshold re-measured; meant to land before 11 closes | in progress: proposed 2026-10-05 and David's four answers recorded; N2 the seams and N3 the agent on random weights built the same day; N1's logbook commands, N4 training, N5-N7 to come -- `docs/deepnash-plan.md` 4 and 10 |
+| 12 | A new Plum: PlumOG mothballed, Plum rebuilt on a DeepNash variant with the same dials, the leash and the accuse threshold re-measured; meant to land before 11 closes | in progress: proposed 2026-10-05 and David's four answers recorded; N2 the seams and N3 the agent on random weights built the same day; N4 the rollout and the training script built 2026-10-06 and smoke-run; N1's logbook commands, the long training run, N5-N7 to come -- `docs/deepnash-plan.md` 4, 10 and 11 |
 
 Where things stand:
 
@@ -709,7 +716,8 @@ Built; the detail is in `docs/architecture.md`.
   `clude_training.arena.headless_table` is the table `play` seats, shared
   with Watch and pinned to the CLI by a test.
 - `scripts/clude_cli.py` -- the maintainer CLI (`play --human` seats
-  you from the terminal); `scripts/clude_shots.py` screenshots every
+  you from the terminal); `scripts/train_plum.py` trains Plum's
+  network (torch; `docs/cli.md`); `scripts/clude_shots.py` screenshots every
   screen; `scripts/make_sounds.py` and `scripts/make_wood_button.py`
   make the sound cues and the wooden question mark;
   `scripts/build_wiki_figures.py` draws Wikiclude's method diagrams;
@@ -944,7 +952,9 @@ above. Resolved 2026-10-01: the fifth round, D21-D28
   Wikiclude (D20) next.
 - `docs/deepnash-plan.md` -- Phase 12, a new Plum: why PlumOG is
   mothballed, the R-NaD variant and its training, the seams, which
-  dials change meaning and how each is re-measured, David's decisions.
+  dials change meaning and how each is re-measured, David's decisions;
+  "as implemented" for N2-N3 (section 10) and N4 with what the smoke
+  runs taught (section 11).
 - `docs/wikiclude-plan.md` -- Wikiclude (D20): David's brief, what is
   taken from Wikipedia's Manual of Style and what is left, the article
   list, sub-phases W1-W7, his decisions, and "as implemented" for W1
