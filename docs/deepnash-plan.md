@@ -7,7 +7,7 @@ a default developer dependency. Release readiness remains separate.
 
 ## Current state (2026-10-07)
 
-N2-N5 are built. **The committed weights are the second long run's checkpoint 130** (section 11), exported on the evening of 2026-10-06: 49% at his own table and 22% at the six-character table on 96 games, the best belief log-loss on record from the 50% checkpoint on, no wrong accusations. N1's logbook commands and N5's headless evaluation followed on 2026-10-07 (section 12): presets kept, leash 0.35 the equal-rope candidate. N6's paid ladder the same day kept **leash 0.35** ($8.38), both LLM fixtures were re-recorded, and N7's wiki pass rewrote Plum's pages (section 13). Left: the deploy and the three `logbook` commands on the bucket. The detailed designs below are proposals unless the implementation records confirm them.
+N2-N5 are built. **The committed weights are the second long run's checkpoint 130** (section 11), exported on the evening of 2026-10-06: 49% at his own table and 22% at the six-character table on 96 games, the best belief log-loss on record from the 50% checkpoint on, no wrong accusations. N1's logbook commands and N5's headless evaluation followed on 2026-10-07 (section 12): presets kept, leash 0.35 the equal-rope candidate. N6's paid ladder the same day kept **leash 0.35** ($8.38), both LLM fixtures were re-recorded, and N7's wiki pass rewrote Plum's pages (section 13). **Deployed 2026-10-07** (revision `clude-00026-bsp`, 21:37 UTC) with the bucket's logbooks archived and relabelled: Phase 12 is complete. The detailed designs below are proposals unless the implementation records confirm them.
 
 ## 1. Context
 
@@ -731,7 +731,7 @@ The results are in the glossary ("Plum with Claude, the network (N6)"). Both val
 
 - `clude_agents/personality.py`: Plum's preset `leash=0.35`. `PLUM_OG` had been the same object as the preset; it is now its own copy with PlumOG's 0.25, so the archive keeps his dials. Headless play ignores `leash`, so no golden moved.
 - `tests/fixtures/llm_seed1.json` ($0.11) and `llm_seed2.json` ($0.03, White wins on turn 10 as before) re-recorded into fresh files (the recorder appends) and both replay tests un-skipped; the preset test allows Plum's 0.35.
-- A gap in N1, found by David: White's chains and the other characters' dossiers are keyed by opponent label, so what they learned of "Plum" was learned of PlumOG (2761 transitions in the local store). New `Logbook.relabel_opponent` and `logbook relabel --label Plum --to PlumOG` move it to PlumOG in every logbook (entries, head dossier, White's counts; `--dry-run`), with a test that a rebuilt head agrees. Run on `data/llm`; the bucket waits for the deploy. Mustard's rows carry no opponent label and stay.
+- A gap in N1, found by David: White's chains and the other characters' dossiers are keyed by opponent label, so what they learned of "Plum" was learned of PlumOG (2761 transitions in the local store). New `Logbook.relabel_opponent` and `logbook relabel --label Plum --to PlumOG` move it to PlumOG in every logbook (entries, head dossier, White's counts; `--dry-run`), with a test that a rebuilt head agrees. Run on `data/llm` and, after the deploy, on the bucket. Mustard's rows carry no opponent label and stay.
 - `docs/llm-wrapper.md` (Plum's leash and cost), the lobby's budget note (Plum no longer priced apart), `docs/architecture.md` (the committed weights are trained, not seeded).
 
 ### N7, the wiki and the web
@@ -740,6 +740,8 @@ The results are in the glossary ("Plum with Claude, the network (N6)"). Both val
 
 The six suspects' portraits (`clude_web/wiki/portraits.py`, contact sheet `docs/ux/portraits/`), redrawn as engraved plates after David's review, replace the tokens in the character infoboxes; the tokens move into the articles' Character sections.
 
-### Left
+### The deploy (2026-10-07)
 
-- Deploy (`scripts\deploy.bat`, after checking `gcloud run revisions list`), then on `--uri gs://clude-game-data/llm`: `logbook copy --identity Plum --to PlumOG`, `logbook reset --identity Plum`, `logbook reset-arm --identity Green --arm Plum`, `logbook relabel --label Plum --to PlumOG`. Both need David's yes.
+David deployed revision `clude-00026-bsp` (21:37 UTC) with `scripts\deploy.bat`. On the bucket, `logbook copy --identity Plum --to PlumOG` refused because the archive already existed: an earlier pass had copied Plum to PlumOG (8 entries), reset Plum (no Plum logbook remains) and reset Green's Plum arm. `logbook relabel --label Plum --to PlumOG` then moved the rest: the dossier and entries naming Plum in Green (5 entries), Mustard (2), Peacock (3), Scarlett (3) and White (2), and White's 2776 transitions. A dry run afterwards finds nothing naming Plum.
+
+Nothing in Phase 12 remains open. A further training run (N4) is optional.
