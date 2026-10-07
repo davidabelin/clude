@@ -289,6 +289,7 @@
 .thumb.full .thumb-art svg.fig-drawn, .thumb.full .thumb-art svg.fig-chart { width: 100%; max-width: 40rem; }
 .thumb.full .thumb-art svg.fig-pawn { width: 9rem; }
 .thumb.full .thumb-art svg.fig-portrait { width: 16rem; }
+svg.fig-portrait { overflow: hidden; }
 
 .fig { font-family: var(--w-ui); }
 .fig .t { fill: var(--ink); font-size: 13px; }
@@ -336,44 +337,74 @@ html[data-style="gaslight"] .wiki-board-plain { display: none; }
 .fig .si-peacock { fill: var(--w-peacock-ink); }
 .fig .si-plum { fill: var(--w-plum-ink); }
 
-/* Portraits (clude_web/wiki/portraits.py): the clothes take the
-   suspect's colour above; skin, hair and props keep one palette in every
-   look, as a printed caricature would, with a dark cartoon outline. */
-.fig .pt-o { stroke: #2B2118; stroke-width: 2.2; stroke-linejoin: round; }
-.fig .pt-skin { fill: #F2C9A2; }
-.fig .pt-nose { fill: #EDB58F; }
-.fig .pt-skin-lid { fill: #E3B088; }
-.fig .pt-shade-line { fill: none; stroke: #C99470; stroke-width: 1.5; stroke-linecap: round; }
-.fig .pt-ink { fill: #2B2118; }
-.fig .pt-stroke { fill: none; stroke: #2B2118; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-.fig .pt-thin { fill: none; stroke: #2B2118; stroke-width: 1.3; stroke-linecap: round; }
-.fig .pt-cheek { fill: #E2836F; fill-opacity: 0.4; }
-.fig .pt-shine { fill: none; stroke: #FFFFFF; stroke-opacity: 0.45; stroke-width: 3; stroke-linecap: round; }
-.fig .pt-glint { fill: #FFFFFF; fill-opacity: 0.5; }
-.fig .pt-lip { fill: #B3243B; }
-.fig .pt-hair-black { fill: #2A2226; }
-.fig .pt-hair-brown { fill: #6E4526; }
-.fig .pt-hair-grey { fill: #C9C3B8; }
-.fig .pt-hair-auburn { fill: #93412A; }
-.fig .pt-hair-silver { fill: #948D83; }
-.fig .pt-hair-brown-line { fill: none; stroke: #6E4526; stroke-width: 2.6; stroke-linecap: round; }
-.fig .pt-hair-black-line { fill: none; stroke: #2A2226; stroke-width: 2.6; stroke-linecap: round; }
-.fig .pt-cloth { fill: #F7F3EA; }
-.fig .pt-dark { fill: #2F2A30; }
-.fig .pt-gold { fill: #D4A437; }
-.fig .pt-pearl { fill: #FBF7EE; }
-.fig .pt-glass { fill: #FFFFFF; fill-opacity: 0.22; }
-.fig .pt-chain { fill: none; stroke: #D4A437; stroke-width: 1.4; }
-.fig .pt-strap { fill: none; stroke: #F2F0EB; stroke-width: 5; stroke-linecap: round; }
-.fig .pt-holder { fill: none; stroke: #2F2A30; stroke-width: 4; stroke-linecap: round; }
-.fig .pt-cigarette { fill: none; stroke: #F7F3EA; stroke-width: 4; }
-.fig .pt-ember { fill: #E8622C; }
-.fig .pt-smoke { fill: none; stroke: #9A948C; stroke-width: 2; stroke-linecap: round; stroke-opacity: 0.8; }
-.fig .pt-ribbon-a { fill: #2F5AA0; }
-.fig .pt-ribbon-b { fill: #B3243B; }
-.fig .pt-quill { fill: none; stroke: #2B2118; stroke-width: 1.6; }
-.fig .pt-tassel { fill: none; stroke: #D4A437; stroke-width: 2; }
-.fig .pt-boa { stroke-width: 1.4; }
+/* Portraits (clude_web/wiki/portraits.py): engraved plates in muted
+   inks, brass and parchment, one palette in every look, as a printed
+   plate would be. Hatching and rules are thin ink lines. */
+.fig .pt-plate { fill: #E6DBC3; }
+.fig .pt-mat { fill: #E6DBC3; fill-rule: evenodd; }
+.fig .pt-rule { fill: none; stroke: #6B5D4C; stroke-width: 0.45; stroke-opacity: 0.55; }
+.fig .pt-frame { fill: none; stroke: #2B241D; stroke-width: 1.6; }
+.fig .pt-frame-thin { fill: none; stroke: #2B241D; stroke-width: 0.6; }
+.fig .pt-o { stroke: #2B241D; stroke-width: 1.05; stroke-linejoin: round; }
+.fig .pt-o-thin { stroke: #2B241D; stroke-width: 0.7; }
+.fig .pt-hatch { fill: none; stroke: #2B241D; stroke-width: 0.5; stroke-opacity: 0.8; stroke-linecap: round; }
+.fig .pt-hatch-soft { fill: none; stroke: #2B241D; stroke-width: 0.35; stroke-opacity: 0.3; stroke-linecap: round; }
+.fig .pt-hatch-light { fill: none; stroke: #E6DBC3; stroke-width: 0.5; stroke-opacity: 0.35; stroke-linecap: round; }
+.fig .pt-line { fill: none; stroke: #2B241D; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.fig .pt-line-thin { fill: none; stroke: #2B241D; stroke-width: 0.8; stroke-linecap: round; }
+.fig .pt-lid { fill: none; stroke: #2B241D; stroke-width: 2; stroke-linecap: round; }
+.fig .pt-ink { fill: #2B241D; }
+.fig .pt-skin { fill: #D5B794; }
+.fig .pt-eye { fill: #E9DEC8; }
+.fig .pt-iris { fill: #5E6B5A; }
+.fig .pt-lip { fill: #73363A; }
+.fig .pt-glint { fill: #F4EEDF; }
+.fig .pt-glint-line { fill: none; stroke: #F4EEDF; stroke-width: 1.1; stroke-opacity: 0.6; stroke-linecap: round; }
+.fig .pt-brow-black { fill: #2A2422; }
+.fig .pt-brow-silver { fill: #77716A; }
+.fig .pt-brow-grey { fill: #6E6960; }
+.fig .pt-brow-brown { fill: #4A3829; }
+.fig .pt-brow-auburn { fill: #5E3A29; }
+.fig .pt-tache { fill: none; stroke: #4A3829; stroke-width: 2.2; stroke-linecap: round; }
+.fig .pt-hair-black { fill: #2E2826; }
+.fig .pt-hair-grey { fill: #A39D90; }
+.fig .pt-hair-silver { fill: #8D877C; }
+.fig .pt-hair-brown { fill: #57412F; }
+.fig .pt-hair-auburn { fill: #74472F; }
+.fig .pt-coat-scarlett { fill: #7A3634; }
+.fig .pt-coat-mustard { fill: #9E8645; }
+.fig .pt-coat-white { fill: #D2CABA; }
+.fig .pt-coat-green { fill: #4C5F47; }
+.fig .pt-coat-peacock { fill: #3E5763; }
+.fig .pt-coat-plum { fill: #573D52; }
+.fig .pt-waistcoat { fill: #6B5A3E; }
+.fig .pt-cloth { fill: #DDD3BF; }
+.fig .pt-dark { fill: #35302E; }
+.fig .pt-leather { fill: #5A4232; }
+.fig .pt-brass { fill: #A3874C; }
+.fig .pt-brass-line { fill: none; stroke: #8C7240; stroke-width: 1.4; stroke-linecap: round; }
+.fig .pt-brass-rim { fill: none; stroke: #A3874C; stroke-width: 2.8; }
+.fig .pt-rim-edge { fill: none; stroke: #2B241D; stroke-width: 0.8; }
+.fig .pt-brass-ring { fill: none; stroke: #8C7240; stroke-width: 1.8; }
+.fig .pt-brass-band { fill: none; stroke: #A3874C; stroke-width: 4.4; }
+.fig .pt-chain { fill: none; stroke: #8C7240; stroke-width: 1.2; stroke-dasharray: 2 1; }
+.fig .pt-key { fill: none; stroke: #8C7240; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.fig .pt-strap { fill: none; stroke: #5A4232; stroke-width: 5; stroke-linecap: round; }
+.fig .pt-glass { fill: #BFC9C1; fill-opacity: 0.25; }
+.fig .pt-glass-amber { fill: #B08A4E; fill-opacity: 0.55; }
+.fig .pt-glass-green { fill: #6F8A70; fill-opacity: 0.6; }
+.fig .pt-garnet { fill: #6E2C30; }
+.fig .pt-pearl { fill: #E8E0CF; }
+.fig .pt-feather { fill: #3F625F; }
+.fig .pt-quill { fill: none; stroke: #2B241D; stroke-width: 1.2; }
+.fig .pt-tassel { fill: none; stroke: #8C7240; stroke-width: 1.8; }
+.fig .pt-ribbon-a { fill: #3F5266; }
+.fig .pt-ribbon-b { fill: #6E2C30; }
+.fig .pt-holder { fill: none; stroke: #2B241D; stroke-width: 2.6; stroke-linecap: round; }
+.fig .pt-cig-edge { fill: none; stroke: #2B241D; stroke-width: 4; }
+.fig .pt-cigarette { fill: none; stroke: #EFE7D6; stroke-width: 2.6; }
+.fig .pt-ember { fill: #A55233; }
+.fig .pt-smoke { fill: none; stroke: #7E776D; stroke-width: 1.2; stroke-linecap: round; stroke-opacity: 0.7; }
 
 /* Charts: thin marks, a recessive grid, text in ink and never in a
    series colour. A point's value is its tooltip. */

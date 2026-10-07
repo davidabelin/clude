@@ -50,13 +50,14 @@ p {{ color: #a9a090; max-width: 62em; }}
 .light {{ background: #F5F0E4; color: #22201a; {light} }}
 .dark {{ background: #1B181C; color: #EDE6D8; {dark} }}
 figure {{ margin: 0; text-align: center; }}
-svg {{ width: 100%; height: auto; }}
+svg {{ width: 100%; height: auto; overflow: hidden; }}
 figcaption {{ font-size: 13px; margin-top: 4px; }}
 {fig_rules}
 </style></head><body>
-<h1>The six, sketched</h1>
-<p>Cartoon busts for the character articles' infoboxes (Wikiclude, Phase 12 N7). Clothes take each suspect's
-colour from the look; skin, hair and props keep one palette in light and dark. Drawn by
+<h1>The six, engraved</h1>
+<p>Busts for the character articles' infoboxes (Wikiclude, Phase 12 N7), second pass: engraved plates with
+hatched shading, muted inks, brass and leather props, and suspicious looks. One palette in every look, like a
+printed plate. Drawn by
 <code>clude_web/wiki/portraits.py</code>; this page by <code>docs/ux/portraits/build_portraits.py</code>.</p>
 <h2>Case-file light</h2><div class="panel light">{row}</div>
 <h2>Gaslight dark</h2><div class="panel dark">{row}</div>

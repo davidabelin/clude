@@ -90,7 +90,7 @@ def _token(suspect: str) -> Figure:
 
 
 def _portrait(suspect: str) -> Figure:
-    """A cartoon bust (`portraits`), in the suspect's own colour."""
+    """An engraved bust (`portraits`)."""
     from . import portraits
 
     name = FULL_NAMES[suspect]
@@ -98,7 +98,7 @@ def _portrait(suspect: str) -> Figure:
         key=f"portrait-{suspect.lower()}",
         title=f"{name}, a sketch",
         caption=f"{name}, as the encyclopaedia draws {'her' if suspect in ('Scarlett', 'White', 'Peacock') else 'him'}.",
-        svg=_svg(*portraits.VIEW, portraits.body(suspect), f"A cartoon portrait of {name}", "portrait"),
+        svg=_svg(*portraits.VIEW, portraits.body(suspect), f"An engraved portrait of {name}", "portrait"),
     )
 
 
