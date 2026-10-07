@@ -9,8 +9,8 @@ dyk: ... that [[Mrs. White]] has the highest bluff-rate preset, but made far few
 {{infobox
 title: Mrs. White
 class: suspect-white
-figure: token-white
-caption: White's token, the third in the order of play
+figure: portrait-white
+caption: Mrs. White, as the encyclopaedia's engraver sees her
 Method | [[Markov chain]]
 In a phrase | Reads people rather than cards
 Module | `markov.py`
@@ -33,6 +33,8 @@ Her soft score updates use questions rather than disproofs, while the shared [[d
 White's [[accusation threshold]] is the neutral {{code:preset.White.accuse_threshold}}, and she made no wrong accusations in the recorded headless arenas. She has the highest [[bluff rate]] preset and the second-highest [[secrecy]]. Her method memory stores opponents' repetition histories across games.[^presets]
 
 ## Character
+
+{{figure:token-white|White's token, the third in the order of play.}}
 
 White's [[persona]], given to a [[w:Large language model|language model]] playing her seat, casts her as the [[w:Housekeeper (domestic worker)|housekeeper]], "dry, watchful, and unimpressed by everyone's airs, including her own". It directs attention to repeated questions and changes of interest: "You read people, not cards." Its closing observation is "Cards do not lie; people do, and people are more interesting."[^persona] These lines express her character's outlook rather than establish her method's assumptions as facts.
 

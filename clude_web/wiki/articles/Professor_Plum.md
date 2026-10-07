@@ -11,8 +11,8 @@ dyk: ... that the old Plum, now PlumOG, once spent fifty turns riding a [[secret
 {{infobox
 title: Professor Plum
 class: suspect-plum
-figure: token-plum
-caption: Plum's token, last of the six in the order of play
+figure: portrait-plum
+caption: Professor Plum, as the encyclopaedia's engraver sees him
 Method | [[Regularised Nash dynamics]], since 5 October 2026
 Before that | [[Exact posterior enumeration]], kept as PlumOG
 In a phrase | Careful, pedantic, and quick since Phase 12
@@ -36,6 +36,8 @@ Until then he played by [[exact posterior enumeration]], counting every deal con
 The change made Plum the best reader of the cards from the start of a game to the halfway mark, by the [[belief benchmark]], and a thousand times quicker. It did not make him a better player than PlumOG: he wins a little less at his own table and noticeably less among all six characters. He has made no wrong accusation in any headless arena on record, before the change or since.[^bench][^arenas]
 
 ## Character
+
+{{figure:token-plum|Plum's token, last of the six in the order of play.}}
 
 Plum is written as "an [[w:Academy|academic]], precise to the point of pedantry, and privately certain you are the cleverest person in the room".[^persona] The description is addressed to him: it is the opening of his [[persona]], the page of prose a [[w:Large language model|language model]] is given when it plays his seat. Its account of his thinking was rewritten for the network: "Your probabilities are estimates, not counts of every consistent deal", and he is told never to claim to know a probability's exact denominator, which the old persona had made his boast.[^persona]
 

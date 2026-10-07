@@ -351,7 +351,7 @@ David's brief for Phase 12's wiki work (N7), the same day: more visuals (archite
 
 - **Mermaid diagrams** (in `docs/ux/diagrams/build_diagrams.py`, drawn by `scripts/build_wiki_figures.py`): `architecture`, `decision-pathway`, `plum-training-loop`, and for the algorithm pages `gpi`, `mcts-phases`, `actor-critic` and `gan`. `floor-then-method` now names Plum's network. Mermaid's layout varies with the machine's fonts, so only the diagrams whose content changed were recommitted.
 - **Drawn figures** (`figures.py`): `plum-network` (sizes read from `deep_nash`), `plum-policy-logloss` and `plum-checkpoints` (from the fact tables).
-- **Portraits**: `clude_web/wiki/portraits.py` draws six cartoon busts as classed SVG, the clothes in each suspect's colour from the look, skin, hair and props in a fixed `pt-*` palette (`wiki.css`). Registered as `portrait-<suspect>`; the contact sheet is `docs/ux/portraits/index.html` (`build_portraits.py`). **Not yet in the infoboxes: awaiting David's review.**
+- **Portraits**: `clude_web/wiki/portraits.py` draws the six as engraved plates in classed SVG: hatching computed by `_hatch` (no patterns or ids), a muted fixed `pt-*` palette (`wiki.css`), brass-and-leather props and suspicious faces. The first pass, flat cartoon busts in the looks' suspect colours, was redrawn at David's request ("more etched, muted colors, steampunk feel; sinister, suspicious expressions"), and Plum's mortarboard dropped ("it's a party"). Registered as `portrait-<suspect>`, they are the character infoboxes' figures; each token moved to the top of its article's Character section. Contact sheet: `docs/ux/portraits/index.html` (`build_portraits.py`).
 - Screenshots of every new or rewritten page and figure in Case-file light and Gaslight dark, 1440 and 390 px; edge labels that Mermaid clipped or crossed were shortened until the diagrams read cleanly.
 
 ### 13.3 Pseudocode and the Algorithms entries
@@ -361,4 +361,4 @@ David's brief for Phase 12's wiki work (N7), the same day: more visuals (archite
 
 ### 13.4 Left
 
-The portraits' placement after review; the live Wikipedia-title check for the new `[[w:...]]` links; W7's corpus-wide pass. Nothing here is deployed.
+The live Wikipedia-title check for the new `[[w:...]]` links; W7's corpus-wide pass. Nothing here is deployed.

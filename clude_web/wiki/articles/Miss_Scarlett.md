@@ -9,8 +9,8 @@ dyk: ... that repeating the same disproof raises [[Miss Scarlett]]'s probability
 {{infobox
 title: Miss Scarlett
 class: suspect-scarlett
-figure: token-scarlett
-caption: Scarlett's token, the first in the order of play
+figure: portrait-scarlett
+caption: Miss Scarlett, as the encyclopaedia's engraver sees her
 Method | [[Naive Bayes]]
 In a phrase | Overconfident, accuses early
 Module | `naive_bayes.py`
@@ -33,6 +33,8 @@ Her [[accusation threshold]] is {{code:preset.Scarlett.accuse_threshold}}, lower
 In both recorded [[belief benchmark|benchmark]] regimes, her log-loss was slightly worse than the [[uniform baseline]] at all four checkpoints. In the Classic-board run, however, her final first-choice accuracy was slightly higher than the baseline's. A useful ranking and a reliable probability estimate are different achievements.[^grid]
 
 ## Character
+
+{{figure:token-scarlett|Scarlett's token, the first in the order of play.}}
 
 Scarlett's [[persona]], the instructions given to a [[w:Large language model|language model]] playing her seat, describes her as "quick, glamorous, and entirely sure of yourself". It connects her confidence to her method: "your certainty has a way of running ahead of the evidence without your noticing".[^persona] The persona supplies the voice; the method and threshold supply the decisions that make that voice credible.
 

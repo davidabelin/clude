@@ -16,8 +16,8 @@ The motifs, from the classic cast: Scarlett's bob, goggles, choker and
 cigarette holder; Mustard's handlebar moustache, mechanical monocle and
 cog medals; White's mob cap, apron and ring of keys; Green's top hat with
 goggles and his watch chain; Peacock's piled hair, peacock-feather
-fascinator, high collar and cameo; Plum's mortarboard, hinged spectacles
-and goatee.
+fascinator, high collar and cameo; Plum's widow's peak, brass spectacles
+with a flip-up loupe, and goatee.
 """
 from __future__ import annotations
 
@@ -508,8 +508,8 @@ def _peacock() -> str:
 
 
 def _plum() -> str:
-    board = [(100, 20), (158, 36), (100, 52), (42, 36)]
-    cap = [(66, 54), (68, 40), (132, 40), (134, 54), (100, 60)]
+    crown = [(64, 82), (61, 60), (75, 45), (100, 39), (125, 45), (139, 60), (136, 82), (127, 64), (113, 57),
+             (100, 67), (100, 67), (87, 57), (73, 64)]
     sides = [(62, 70), (59, 96), (66, 108), (67, 82), (72, 66)]
     beard = [(92, 132), (95, 140), (100, 154), (105, 140), (108, 132), (100, 136)]
     return (
@@ -538,12 +538,10 @@ def _plum() -> str:
         + _line([(127, 90), (138, 92)], "pt-brass-line", smooth=False)
         + _line([(122, 84), (127, 77)], "pt-brass-line", smooth=False)
         + _lens(130, 73, 4.5, "pt-glass-amber", rivets=6)
-        + _fill(cap, f"pt-dark {OUTLINE}")
-        + _fill(board, f"pt-dark {OUTLINE}", smooth=False)
-        + _hatch([(100, 20), (158, 36), (100, 52)], 20, 2.0, "pt-hatch-light", smooth=False)
-        + _gear(100, 36, 4, 7)
-        + _line([(100, 36), (148, 46), (150, 76)], "pt-tassel")
-        + _fill([(146, 76), (150, 92), (154, 76)], f"pt-brass {OUTLINE}", smooth=False)
+        + _fill(crown, f"pt-hair-black {OUTLINE}")
+        + _hatch(crown, 72, 1.8, "pt-hatch-light")
+        + _line([(74, 58), (88, 47), (100, 44)], "pt-glint-line")
+        + _line([(112, 46), (126, 50), (134, 60)], "pt-glint-line")
     )
 
 
@@ -566,7 +564,7 @@ CLASSES = (
     "pt-coat-scarlett", "pt-coat-mustard", "pt-coat-white", "pt-coat-green", "pt-coat-peacock", "pt-coat-plum",
     "pt-waistcoat", "pt-cloth", "pt-dark", "pt-leather", "pt-brass", "pt-brass-line", "pt-brass-ring",
     "pt-brass-band", "pt-chain", "pt-key", "pt-strap", "pt-glass", "pt-glass-amber", "pt-glass-green",
-    "pt-garnet", "pt-pearl", "pt-feather", "pt-quill", "pt-tassel", "pt-ribbon-a", "pt-ribbon-b",
+    "pt-garnet", "pt-pearl", "pt-feather", "pt-quill", "pt-ribbon-a", "pt-ribbon-b",
     "pt-holder", "pt-cigarette", "pt-ember", "pt-smoke",
 )
 """The portraits' own classes; each has a rule in wiki.css."""

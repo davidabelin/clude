@@ -7,7 +7,7 @@ a default developer dependency. Release readiness remains separate.
 
 ## Current state (2026-10-07)
 
-N2-N5 are built. **The committed weights are the second long run's checkpoint 130** (section 11), exported on the evening of 2026-10-06: 49% at his own table and 22% at the six-character table on 96 games, the best belief log-loss on record from the 50% checkpoint on, no wrong accusations. N1's logbook commands and N5's headless evaluation followed on 2026-10-07 (section 12): presets kept, leash 0.35 the equal-rope candidate. N6's paid ladder the same day kept **leash 0.35** ($8.38), both LLM fixtures were re-recorded, and N7's wiki pass rewrote Plum's pages (section 13). Left: placing the portraits after David's review, the deploy and the three `logbook` commands on the bucket. The detailed designs below are proposals unless the implementation records confirm them.
+N2-N5 are built. **The committed weights are the second long run's checkpoint 130** (section 11), exported on the evening of 2026-10-06: 49% at his own table and 22% at the six-character table on 96 games, the best belief log-loss on record from the 50% checkpoint on, no wrong accusations. N1's logbook commands and N5's headless evaluation followed on 2026-10-07 (section 12): presets kept, leash 0.35 the equal-rope candidate. N6's paid ladder the same day kept **leash 0.35** ($8.38), both LLM fixtures were re-recorded, and N7's wiki pass rewrote Plum's pages (section 13). Left: the deploy and the three `logbook` commands on the bucket. The detailed designs below are proposals unless the implementation records confirm them.
 
 ## 1. Context
 
@@ -737,9 +737,8 @@ The results are in the glossary ("Plum with Claude, the network (N6)"). Both val
 
 [Wikiclude's plan](wikiclude-plan.md), section 13, records the wiki pass: *Regularised Nash dynamics*, *Professor Plum* rewritten with a PlumOG section, *Exact posterior enumeration* as PlumOG's method, the Rope question's network answer pinned in tests, the Plum figures and seven diagrams, algorithm boxes and 21 Algorithms entries. After N6, *Professor Plum* gains "With Claude" and *Leash* a section on Plum's network, from new facts (`ladder.policy`, `policy.llm.*`); `cost.seat_game.plum` now cites $0.09. Watch no longer calls Plum slow; `replay_data.METHOD_SHORT` already read "Self-play policy".
 
-The six suspects' cartoon portraits (`clude_web/wiki/portraits.py`, contact sheet `docs/ux/portraits/`) are registered as figures and await David's review before they replace the tokens in the character infoboxes.
+The six suspects' portraits (`clude_web/wiki/portraits.py`, contact sheet `docs/ux/portraits/`), redrawn as engraved plates after David's review, replace the tokens in the character infoboxes; the tokens move into the articles' Character sections.
 
 ### Left
 
-- The portraits in the infoboxes, after review.
 - Deploy (`scripts\deploy.bat`, after checking `gcloud run revisions list`), then on `--uri gs://clude-game-data/llm`: `logbook copy --identity Plum --to PlumOG`, `logbook reset --identity Plum`, `logbook reset-arm --identity Green --arm Plum`. Both need David's yes.

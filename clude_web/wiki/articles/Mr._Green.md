@@ -9,8 +9,8 @@ dyk: ... that [[Mr. Green]] queries all five other methods before selecting one,
 {{infobox
 title: Mr. Green
 class: suspect-green
-figure: token-green
-caption: Green's token, the fourth in the order of play
+figure: portrait-green
+caption: Mr. Green, as the encyclopaedia's engraver sees him
 Method | [[Bandit ensemble]]
 In a phrase | Opportunistic; only as good as the method he is trusting
 Module | `bandit.py`
@@ -31,6 +31,8 @@ Wrong accusations | {{fact:arena.grid.Green.wrong}}%
 In the recorded [[belief benchmark|benchmarks]], his arm records favoured [[Professor Plum]] and [[Colonel Mustard]]. He had the second-lowest final log-loss on the [[Classic board]] and lower loss than the [[uniform baseline]] at all four checkpoints. His game results varied substantially between small arenas, making them a useful warning against drawing firm conclusions from one run. He has persistent method memory, which stores the arm records.[^glossary]
 
 ## Character
+
+{{figure:token-green|Green's token, the fourth in the order of play.}}
 
 Green's [[persona]], given to a [[w:Large language model|language model]] playing his seat, describes him as "affable, a little nervous, eager to be agreed with, and more calculating than you let on". It characterises his ensemble as borrowed ways of thinking: "You do not have one way of thinking; you have five". His self-image is cautious and opportunistic: he would rather be reliably second than brilliantly wrong.[^persona] The borrowed minds are algorithmic models, not access to the other seats' private cards.
 
