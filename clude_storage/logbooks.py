@@ -794,6 +794,56 @@ class Logbook:
         self.save_method(method)
         return True
 
+    def relabel_opponent(self, old: str, new: str, dry_run: bool = False) -> dict:
+        """Call opponent `old` by `new` everywhere this logbook names it:
+        the seats of every entry's table, its evaluations and dossiers,
+        the head's dossier, and White's per-opponent transition counts.
+        For when a label changes hands (Phase 12: what was learned of
+        "Plum" was learned of PlumOG). Merges into `new` if both exist.
+        Returns ``{"entries", "dossier", "transitions"}``: entries
+        rewritten, whether the head had a dossier, transitions moved.
+        `dry_run` counts without writing."""
+        changed = 0
+        for entry in self.entries():
+            data = entry.to_dict()
+            hits = 0
+            for row in data["table"]:
+                if row.get("label") == old:
+                    row["label"] = new
+                    hits += 1
+            for item in data["evaluations"] + data["dossiers"]:
+                if item.get("opponent") == old:
+                    item["opponent"] = new
+                    hits += 1
+            if hits:
+                changed += 1
+                if not dry_run:
+                    self.store.put_doc(entry_key(self.identity, entry.serial), data)
+        head = self.head()
+        dossier = head.dossiers.pop(old, None)
+        if dossier is not None and not dry_run:
+            kept = head.dossiers.get(new)
+            if kept is not None:
+                latest = max(dossier, kept, key=lambda d: d.serial)
+                dossier = Dossier(latest.read, dossier.games_together + kept.games_together,
+                                  latest.updated, latest.serial)
+            head.dossiers[new] = dossier
+            self.save_head(head)
+        moved = 0
+        method = self.method()
+        if method and method.get("kind") == "counts":
+            for counts in method.get("games", {}).values():
+                if old not in counts:
+                    continue
+                cells = counts.pop(old)
+                moved += sum(cells.values())
+                bucket = counts.setdefault(new, {key: 0 for key in cells})
+                for key, n in cells.items():
+                    bucket[key] = bucket.get(key, 0) + n
+            if moved and not dry_run:
+                self.save_method(method)
+        return {"entries": changed, "dossier": dossier is not None, "transitions": moved}
+
     def exists(self) -> bool:
         """True if any document of this logbook is stored."""
         return bool(self.serials()) or not self.head().is_empty() or self.method() is not None

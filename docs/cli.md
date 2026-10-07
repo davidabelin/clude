@@ -19,7 +19,7 @@ Examples below use `python` for readability; activate the venv or substitute its
 | `users`, `tables` | `data/llm` |
 | `play`, `arena`, `sweep` | No record store unless `--store` is passed |
 
-Use an explicit URI for account changes, reset/rebuild, abandon and copying. Read-only inspection does not imply every command is read-only: account operations, logbook reset/rebuild/copy/reset-arm, `store copy`, `tables abandon`, `tables costs --write`, recordings and training artifacts write data.
+Use an explicit URI for account changes, reset/rebuild, abandon and copying. Read-only inspection does not imply every command is read-only: account operations, logbook reset/rebuild/copy/reset-arm/relabel, `store copy`, `tables abandon`, `tables costs --write`, recordings and training artifacts write data.
 
 | Command | Purpose |
 |---|---|
@@ -184,7 +184,7 @@ python scripts/clude_cli.py logbook show --uri data/llm --identity Mustard --mem
 python scripts/clude_cli.py logbook rebuild --uri data/llm --identity Mustard
 ```
 
-`show` prints the head/index, `--entry N` one entry, `--raw` JSON, or `--memory DEPTH` the exact read-back block. `reset --identity NAME` removes head, method memory and entries; `--keep-entries` retains the archive. `rebuild` recomputes the head and Mustard/White memory from records; `--from URI` changes source, `--min-version` defaults to 3. Green's live arm feedback cannot be reconstructed. `copy --identity Plum --to PlumOG` archives a logbook under another identity (entries, head and method memory; it refuses an existing destination). `reset-arm --arm Plum` forgets one arm of Green's stored posteriors, which then loads at Beta(1, 1); `--identity` defaults to Green.
+`show` prints the head/index, `--entry N` one entry, `--raw` JSON, or `--memory DEPTH` the exact read-back block. `reset --identity NAME` removes head, method memory and entries; `--keep-entries` retains the archive. `rebuild` recomputes the head and Mustard/White memory from records; `--from URI` changes source, `--min-version` defaults to 3. Green's live arm feedback cannot be reconstructed. `copy --identity Plum --to PlumOG` archives a logbook under another identity (entries, head and method memory; it refuses an existing destination). `reset-arm --arm Plum` forgets one arm of Green's stored posteriors, which then loads at Beta(1, 1); `--identity` defaults to Green. `relabel --label Plum --to PlumOG` calls an opponent by a new label in every logbook of the store (or `--identity NAME` alone): entry tables, evaluations and dossiers, the head's dossier, and White's per-opponent transition counts; `--dry-run` reports without writing. A later White `rebuild` reads labels from the game records, where PlumOG's seats say Plum, so rerun the relabel after one.
 
 ## `tables`
 

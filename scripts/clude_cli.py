@@ -1489,6 +1489,27 @@ def cmd_logbook_reset_arm(args) -> int:
     return 0
 
 
+def cmd_logbook_relabel(args) -> int:
+    """Call an opponent by a new label in every logbook of a store (or
+    one), e.g. what was learned of Plum, as PlumOG."""
+    store = open_store(args.uri)
+    identities = [args.identity] if args.identity else list_logbooks(store)
+    verb = "would move" if args.dry_run else "moved"
+    for identity in identities:
+        if identity in (args.label, args.to):
+            continue
+        done = Logbook(store, identity).relabel_opponent(args.label, args.to, dry_run=args.dry_run)
+        if done["entries"] or done["dossier"] or done["transitions"]:
+            print(
+                f"  {identity}: {verb} {args.label} to {args.to} in {done['entries']} entries, "
+                f"{'the dossier' if done['dossier'] else 'no dossier'}, {done['transitions']} transitions"
+            )
+        else:
+            print(f"  {identity}: nothing names {args.label}")
+    print(f"store: {store.describe()}{' (dry run: nothing written)' if args.dry_run else ''}")
+    return 0
+
+
 def cmd_logbook_rebuild(args) -> int:
     """Recompute a logbook's head from its entries and its method memory
     from every game record in a store."""
@@ -1967,6 +1988,16 @@ def build_parser() -> argparse.ArgumentParser:
     lb_arm.add_argument("--identity", default="Green", help="Whose method memory.")
     lb_arm.add_argument("--arm", required=True, help="The arm to reset, e.g. Plum.")
     lb_arm.set_defaults(fn=cmd_logbook_reset_arm)
+    lb_relabel = logbook_sub.add_parser(
+        "relabel", help="Call an opponent by a new label in every logbook: entries, dossiers, White's counts.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    lb_relabel.add_argument("--uri", default=DEFAULT_STORE, help="Store location.")
+    lb_relabel.add_argument("--label", required=True, help="The opponent's old label, e.g. Plum.")
+    lb_relabel.add_argument("--to", required=True, help="The new label, e.g. PlumOG.")
+    lb_relabel.add_argument("--identity", default=None, help="Only this logbook (default: all in the store).")
+    lb_relabel.add_argument("--dry-run", action="store_true", help="Report what would move; write nothing.")
+    lb_relabel.set_defaults(fn=cmd_logbook_relabel)
     lb_rebuild = logbook_sub.add_parser(
         "rebuild", help="Recompute a logbook's head from its entries and its method memory from records.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,

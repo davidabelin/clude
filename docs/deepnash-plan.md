@@ -731,6 +731,7 @@ The results are in the glossary ("Plum with Claude, the network (N6)"). Both val
 
 - `clude_agents/personality.py`: Plum's preset `leash=0.35`. `PLUM_OG` had been the same object as the preset; it is now its own copy with PlumOG's 0.25, so the archive keeps his dials. Headless play ignores `leash`, so no golden moved.
 - `tests/fixtures/llm_seed1.json` ($0.11) and `llm_seed2.json` ($0.03, White wins on turn 10 as before) re-recorded into fresh files (the recorder appends) and both replay tests un-skipped; the preset test allows Plum's 0.35.
+- A gap in N1, found by David: White's chains and the other characters' dossiers are keyed by opponent label, so what they learned of "Plum" was learned of PlumOG (2761 transitions in the local store). New `Logbook.relabel_opponent` and `logbook relabel --label Plum --to PlumOG` move it to PlumOG in every logbook (entries, head dossier, White's counts; `--dry-run`), with a test that a rebuilt head agrees. Run on `data/llm`; the bucket waits for the deploy. Mustard's rows carry no opponent label and stay.
 - `docs/llm-wrapper.md` (Plum's leash and cost), the lobby's budget note (Plum no longer priced apart), `docs/architecture.md` (the committed weights are trained, not seeded).
 
 ### N7, the wiki and the web
@@ -741,4 +742,4 @@ The six suspects' portraits (`clude_web/wiki/portraits.py`, contact sheet `docs/
 
 ### Left
 
-- Deploy (`scripts\deploy.bat`, after checking `gcloud run revisions list`), then on `--uri gs://clude-game-data/llm`: `logbook copy --identity Plum --to PlumOG`, `logbook reset --identity Plum`, `logbook reset-arm --identity Green --arm Plum`. Both need David's yes.
+- Deploy (`scripts\deploy.bat`, after checking `gcloud run revisions list`), then on `--uri gs://clude-game-data/llm`: `logbook copy --identity Plum --to PlumOG`, `logbook reset --identity Plum`, `logbook reset-arm --identity Green --arm Plum`, `logbook relabel --label Plum --to PlumOG`. Both need David's yes.

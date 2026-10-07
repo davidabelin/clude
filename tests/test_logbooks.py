@@ -296,6 +296,30 @@ def _exercise_archive(store):
     assert green.method()["arms"] == {"White": [2.0, 3.0]} and green.method()["games"] == 3
     assert not green.reset_arm("Plum")
 
+    # `relabel_opponent`: what White learned of one label moves to another,
+    # entries, dossier and chain counts alike, and a rebuild agrees.
+    white = Logbook(store, "White")
+    for entry in _entries(2, "White"):
+        white.add_entry(entry)
+    cells = {"00": 1, "01": 2, "10": 3, "11": 4}
+    white.save_method({"kind": "counts", "games": {
+        "r/00000": {"Mustard": dict(cells), "Green": dict(cells)},
+        "r/00001": {"Mustard": dict(cells), "MustardOG": dict(cells)},
+    }})
+    read = white.head().dossiers["Mustard"]
+    expected = {"entries": 2, "dossier": True, "transitions": 20}
+    assert white.relabel_opponent("Mustard", "MustardOG", dry_run=True) == expected
+    assert "Mustard" in white.head().dossiers and "Mustard" in white.method()["games"]["r/00000"]
+    assert white.relabel_opponent("Mustard", "MustardOG") == expected
+    head = white.head()
+    assert "Mustard" not in head.dossiers and head.dossiers["MustardOG"] == read
+    assert all("Mustard" not in e.opponents() and "MustardOG" in e.opponents() for e in white.entries())
+    assert white.rebuild_head() == head
+    games = white.method()["games"]
+    assert games["r/00000"] == {"MustardOG": cells, "Green": cells}
+    assert games["r/00001"] == {"MustardOG": {key: 2 * n for key, n in cells.items()}}
+    assert white.relabel_opponent("Mustard", "MustardOG") == {"entries": 0, "dossier": False, "transitions": 0}
+
 
 def test_logbook_archive_and_arm_reset(tmp_path):
     _exercise_archive(LocalStore(tmp_path / "records"))
