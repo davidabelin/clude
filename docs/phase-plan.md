@@ -43,7 +43,7 @@ Wikiclude articles, rendering and assets are outside this pass. Existing source 
 
 ## Phase 12 scope
 
-[Phase 12](deepnash-plan.md) replaces PlumOG with a DeepNash variant over the floor. Work is interleaved with Phase 11; the trained agent is unfinished.
+[Phase 12](deepnash-plan.md) replaces PlumOG with a DeepNash variant over the floor. Work is interleaved with Phase 11; a first trained checkpoint is committed (2026-10-06), its evaluation, dials, persona and deploy (N5-N7) open.
 
 | Step | State in this checkout | Remaining work |
 |---|---|---|

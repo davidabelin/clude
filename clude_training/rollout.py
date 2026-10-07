@@ -47,6 +47,7 @@ __all__ = [
     "RecordingPlum",
     "RolloutConfig",
     "draw_lineup",
+    "main",
     "play_game",
     "play_games",
 ]
@@ -370,3 +371,41 @@ class RolloutStats:
             "mixed_win_rate": self.mixed_wins / self.mixed_episodes if self.mixed_episodes else None,
             "mixed_episodes": self.mixed_episodes,
         }
+
+
+def main(argv: Optional[list] = None) -> None:
+    """A look at the rollout: play a few games on the committed weights
+    and print what was recorded. Run from the repo root as
+    ``python -m clude_training.rollout [--games N] [--seed S]
+    [--self-play P]``; as a file (``python clude_training/rollout.py``)
+    the sibling packages are not on the path, as for any module here.
+    The training itself is `scripts/train_plum.py`."""
+    import argparse  # noqa: PLC0415 -- only the command line needs it
+    import time  # noqa: PLC0415
+
+    from clude_agents.deep_nash import default_weights  # noqa: PLC0415
+
+    parser = argparse.ArgumentParser(description="Play a few games on the committed weights and print what was recorded.")
+    parser.add_argument("--games", type=int, default=8)
+    parser.add_argument("--seed", type=int, default=2026)
+    parser.add_argument("--self-play", type=float, default=0.5, help="P(every seat is the network)")
+    parser.add_argument("--max-turns", type=int, default=DEFAULT_MAX_TURNS)
+    args = parser.parse_args(argv)
+    config = RolloutConfig(self_play=args.self_play, max_turns=args.max_turns)
+    started = time.perf_counter()
+    episodes = play_games(default_weights(), [args.seed + g for g in range(args.games)], 0, config)
+    seconds = time.perf_counter() - started
+    print(f"{args.games} games in {seconds:.1f}s ({seconds / args.games:.3f}s a game), seeds {args.seed}..{args.seed + args.games - 1}")
+    for key, value in RolloutStats.of(episodes).to_dict().items():
+        print(f"  {key}: {value if not isinstance(value, float) else round(value, 3)}")
+    for ep in episodes[:3]:
+        counts = {KINDS[k]: int((ep.kinds == k).sum()) for k in range(len(KINDS))}
+        print(
+            f"  seed {ep.seed} seat {ep.seat} of {ep.n_players} {ep.lineup}: {len(ep)} steps {counts}, "
+            f"reward {ep.reward:+.0f}, gains {ep.gains.sum():.2f}, {ep.turns} turns"
+        )
+
+
+if __name__ == "__main__":
+    main()
+

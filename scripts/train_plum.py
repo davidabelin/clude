@@ -219,21 +219,23 @@ def assemble(episodes: list, device: torch.device) -> Batch:
 # -- the losses ---------------------------------------------------------------
 
 
-def policy_logits(net: PlumNet, batch: Batch, idx: torch.Tensor, h: torch.Tensor) -> tuple:
+def policy_logits(net: PlumNet, batch: Batch, idx: torch.Tensor, h: torch.Tensor, temperature: float = 1.0) -> tuple:
     """For the steps `idx` (with trunk output `h`): the move steps'
     masked logits and taken actions, and the suggestion steps' masked
     logits and taken category indices, each with the positions within
-    `idx` they belong to."""
+    `idx` they belong to. The logits are divided by `temperature`, the
+    rollout seats' sampler, so the learner's policy is the one that
+    played (`RolloutConfig.policy_temperature`)."""
     kinds = batch.kinds[idx]
     is_move = kinds == R.KIND_MOVE
     is_sugg = (kinds == R.KIND_SUSPECT) | (kinds == R.KIND_WEAPON)
     rows = batch.move_row[idx[is_move]]
-    move = net.move_logits(h[is_move], batch.choices[rows], batch.choice_mask[rows])
+    move = net.move_logits(h[is_move], batch.choices[rows], batch.choice_mask[rows]) / temperature
     heads = net.heads(h[is_sugg])
     srows = batch.sugg_row[idx[is_sugg]]
     sugg = torch.where(
         (kinds[is_sugg] == R.KIND_SUSPECT)[:, None], heads["suspect"], heads["weapon"]
-    ).masked_fill(~batch.cand_mask[srows], float("-inf"))
+    ).masked_fill(~batch.cand_mask[srows], float("-inf")) / temperature
     return (move, batch.actions[idx[is_move]], is_move), (sugg, batch.cand_target[srows], is_sugg)
 
 
@@ -242,14 +244,14 @@ def log_prob_taken(logits: torch.Tensor, taken: torch.Tensor) -> torch.Tensor:
 
 
 @torch.no_grad()
-def step_log_probs(net: PlumNet, batch: Batch, chunk: int = 4096) -> torch.Tensor:
+def step_log_probs(net: PlumNet, batch: Batch, temperature: float = 1.0, chunk: int = 4096) -> torch.Tensor:
     """``log pi(a_t | s_t)`` under `net` for every step, 0 at belief
     steps."""
     out = torch.zeros(len(batch), device=batch.states.device)
     for start in range(0, len(batch), chunk):
         idx = torch.arange(start, min(start + chunk, len(batch)), device=out.device)
         h = net.trunk(batch.states[idx])
-        (move, taken_m, is_move), (sugg, taken_s, is_sugg) = policy_logits(net, batch, idx, h)
+        (move, taken_m, is_move), (sugg, taken_s, is_sugg) = policy_logits(net, batch, idx, h, temperature)
         out[idx[is_move]] = log_prob_taken(move, taken_m)
         out[idx[is_sugg]] = log_prob_taken(sugg, taken_s)
     return out
@@ -266,16 +268,20 @@ def returns(batch: Batch, step_rewards: torch.Tensor, gamma: float) -> torch.Ten
     return out
 
 
-def neurd_term(logits: torch.Tensor, taken: torch.Tensor, advantage: torch.Tensor) -> torch.Tensor:
+def neurd_term(
+    logits: torch.Tensor, taken: torch.Tensor, advantage: torch.Tensor, threshold: float = NEURD_THRESHOLD
+) -> torch.Tensor:
     """The sampled NeuRD loss: minus the advantage, weighted by the
     capped ``1 / pi(a)``, times the taken action's centred logit, with
-    DeepNash's threshold on the logit (`NEURD_THRESHOLD`)."""
+    DeepNash's threshold on the logit (`--neurd-threshold`): a centred
+    logit past it is not pushed further out, which also caps how peaked
+    the learned distribution can get."""
     legal = torch.isfinite(logits)
     centred = logits - (logits.masked_fill(~legal, 0.0).sum(1) / legal.sum(1))[:, None]
     y = centred.gather(1, taken[:, None])[:, 0]
     pi = F.softmax(logits, dim=-1).gather(1, taken[:, None])[:, 0].detach()
     weight = (advantage * torch.clamp(1.0 / pi, max=NEURD_RHO_MAX)).detach()
-    blocked = ((weight > 0) & (y.detach() > NEURD_THRESHOLD)) | ((weight < 0) & (y.detach() < -NEURD_THRESHOLD))
+    blocked = ((weight > 0) & (y.detach() > threshold)) | ((weight < 0) & (y.detach() < -threshold))
     return -(weight * y).masked_fill(blocked, 0.0)
 
 
@@ -310,7 +316,7 @@ def minibatch_loss(
     v_loss = 0.5 * ((value - G[idx]) ** 2).mean()
     b_states, b_possible, b_targets = belief_batch
     b_loss = belief_loss(net.heads(net.trunk(b_states))["belief"], b_possible, b_targets)
-    (move, taken_m, is_move), (sugg, taken_s, is_sugg) = policy_logits(net, batch, idx, h)
+    (move, taken_m, is_move), (sugg, taken_s, is_sugg) = policy_logits(net, batch, idx, h, args.policy_temperature)
     adv = adv_all[idx]
     terms = []
     ents = []
@@ -318,7 +324,7 @@ def minibatch_loss(
         if len(taken) == 0:
             continue
         if args.policy_grad == "neurd":
-            terms.append(neurd_term(logits, taken, adv[sel]))
+            terms.append(neurd_term(logits, taken, adv[sel], args.neurd_threshold))
         else:
             terms.append(-(adv[sel].detach() * log_prob_taken(logits, taken)))
         ents.append(entropy(logits))
@@ -379,6 +385,7 @@ def parse_args(argv: Optional[list] = None) -> argparse.Namespace:
     p.add_argument("--value-weight", type=float, default=0.5)
     p.add_argument("--entropy", type=float, default=0.01)
     p.add_argument("--policy-grad", choices=("neurd", "softmax"), default="neurd")
+    p.add_argument("--neurd-threshold", type=float, default=NEURD_THRESHOLD, help="the centred-logit cap of the NeuRD update")
     p.add_argument("--no-adv-norm", dest="adv_norm", action="store_false", help="raw advantages, not standardised")
     p.add_argument("--lr", type=float, default=3e-4)
     p.add_argument("--epochs", type=int, default=1, help="passes over an iteration's steps")
@@ -439,8 +446,8 @@ def train(args: argparse.Namespace) -> dict:
             rolled = time.perf_counter()
             stats = R.RolloutStats.of(episodes).to_dict()
             batch = assemble(episodes, device)
-            logp = step_log_probs(net, batch)
-            logp_ref = step_log_probs(ref, batch)
+            logp = step_log_probs(net, batch, args.policy_temperature)
+            logp_ref = step_log_probs(ref, batch, args.policy_temperature)
             step_rewards = batch.terminal + args.shaping * batch.gains + args.eta * (logp_ref - logp)
             G = returns(batch, step_rewards, args.gamma)
             with torch.no_grad():

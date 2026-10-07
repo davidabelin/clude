@@ -276,10 +276,13 @@ GOLDEN_CHARACTER_GAMES = {
     ),
 }
 # Re-captured on 2026-10-05 (Phase 12, N3): Plum became the policy agent
-# on `weights/plum.npz`, which this digest therefore also pins (the
-# training script's export replaces the file and this line together).
+# on `weights/plum.npz`, which this digest therefore also pins (an
+# export replaces the file and this line together). Re-captured again
+# on 2026-10-06 with the first trained weights (run 2, checkpoint 130;
+# docs/deepnash-plan.md 11): 45 events where the random Plum's game
+# wandered to 100.
 GOLDEN_FOUR_CHARACTER_GAME = (
-    "65798e479bcd87318555451fb6f48cd61da0814464071cd1811412835b694ad8", 100,
+    "a74003409aba9f1962d5e93343da191ce0d4a4bf8d1dc577de75127c6c056032", 45,
 )
 
 

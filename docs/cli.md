@@ -120,9 +120,12 @@ Trains an inspection tree with explicit self-play/hyperparameters and optionally
 ## Training Plum (`scripts/train_plum.py`, not a subcommand)
 
 ```text
+python -m clude_training.rollout --games 8
 python scripts/train_plum.py --help
 python scripts/train_plum.py --iterations 20 --games 256 --workers 8
 ```
+
+`python -m clude_training.rollout` (from the repo root; run as a file, like any module here, it cannot find its sibling packages) plays a few games on the committed weights and prints what the rollout records, for a look at the data before a run.
 
 The separate PyTorch script gathers engine rollouts, fits policy/value/belief heads and evaluates the NumPy agent. It writes configuration, curve, checkpoints, `best.npz` and `latest.npz` under ignored `data/plum-training/<run>/`. `--export` additionally replaces committed `clude_agents/weights/plum.npz` with the **final** weights; it does not select the best checkpoint automatically. Export is a deliberate validated change requiring golden updates. See [weights](../clude_agents/weights/README.md) and [Phase 12](deepnash-plan.md), especially N4's smoke record and unfinished evaluation gates.
 

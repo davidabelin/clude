@@ -7,7 +7,7 @@ a default developer dependency. Release readiness remains separate.
 
 ## Current state (2026-10-06)
 
-N2-N4 are built; committed weights remain seeded initial weights, not the smoke-run checkpoints. N1's logbook operations and N5-N7 acceptance/rollout remain open. Phase 11 updated Plum's method prompt and shared rules, completing the wording portion of N6; both recorded LLM fixtures now await separately approved refresh. No paid ladder or trained-weight export was part of Phase 11. The detailed designs below are proposals unless the implementation records confirm them.
+N2-N4 are built. **The committed weights are the second long run's checkpoint 130** (section 11), exported on the evening of 2026-10-06: 49% at his own table and 22% at the six-character table on 96 games, the best belief log-loss on record from the 50% checkpoint on, no wrong accusations. N1's logbook operations and N5-N7 acceptance/rollout remain open. Phase 11 updated Plum's method prompt and shared rules, completing the wording portion of N6; both recorded LLM fixtures now await separately approved refresh. No paid ladder or trained-weight export was part of Phase 11. The detailed designs below are proposals unless the implementation records confirm them.
 
 ## 1. Context
 
@@ -499,6 +499,117 @@ and two iterations instead); the belief head trains from a replay
 buffer rather than the iteration's own steps; advantages are
 standardised; `--shaping` exists. Nothing exported: the committed
 `plum.npz` is still the random draw, so no golden moved.
+
+### The first long run, `run150a` (2026-10-06)
+
+David's run, on Orbit with the laptop to itself:
+
+```
+python scripts\train_plum.py --iterations 150 --games 512 --workers 12 --shaping 1.0 --eval-every 10 --out data\plum-training\run150a
+```
+
+76,800 games, about 15 s an iteration (10 s of games, 5 s of
+updates), under 40 minutes. What the curve shows:
+
+- **The policy learned, then stalled.** Entropy fell from 2.00 to 1.65
+  by iteration 70 and stayed there; self-play games shortened from
+  105 turns to about 75; the network's seats went from winning 4% of
+  self-play games to 15-17%, and 7-12% of the mixed games, from
+  iteration 60 on. The regularised-reward term, the entropy bonus and
+  the NeuRD logit threshold of 2 (which caps how peaked a head can
+  get) are the suspects for the plateau; none was varied.
+- **The belief head peaked early and drifted.** Best at iterations
+  20-50 (1.12-1.13 at the 50% checkpoint on the 20-game benchmark),
+  1.21 by 150: the policy gradient through the shared trunk, most
+  likely, since the replay buffer did not change.
+- **The late checkpoints, re-measured on 96 games a table** (the
+  curve's 24-game evaluations have a ten-point standard deviation) and
+  the full 60-game benchmark:
+
+  | checkpoint | log-loss 25/50/75/100% | Plum table win | wrong | six-character win |
+  |---|---|---|---|---|
+  | 100 | 1.49 / 1.23 / 0.87 / 0.22 | 24.0 | 1.0 | 15.6 |
+  | **110** | **1.47 / 1.22 / 0.86 / 0.21** | **32.3** | **0.0** | **12.5** |
+  | 120 | 1.48 / 1.23 / 0.87 / 0.22 | 28.1 | 0.0 | 15.6 |
+  | 130 | 1.50 / 1.26 / 0.90 / 0.23 | 20.8 | 1.0 | 10.9 |
+  | 140 | 1.50 / 1.27 / 0.90 / 0.25 | 18.8 | 1.0 | 12.5 |
+  | 150 | 1.51 / 1.27 / 0.91 / 0.24 | 12.5 | 1.0 | 4.7 |
+  | uniform | 1.57 / 1.35 / 1.01 / 0.29 | | | |
+  | PlumOG (glossary) | 1.52 / 1.44 / 1.00 / 0.22 | 62.5 | 0.0 | 31 |
+
+  The six-character table is 64 games with Plum seated (he sits out
+  the three- and four-seat games of the cycle). The run got worse
+  after 120 on every measure, so the end of a run is not the weights
+  to take; `best.npz` (chosen on the 24-game evaluation) was
+  checkpoint 110, which the 96-game re-measurement confirms.
+- **Checkpoint 110 against PlumOG:** better belief at every checkpoint
+  but the start (1.22 against 1.44 mid-game, where PlumOG was worse
+  than ignorance), the best mid- and late-game log-loss of any method
+  on record (White's 1.28 and 0.91 were the marks), no wrong
+  accusations in 96 games, and 0.3 ms a call against 669; but half
+  PlumOG's win rate at his own table and two fifths of it at the
+  six-character table. Mustard and Green at his table win 37.5% and
+  28.1% against him, where PlumOG held them to 25.0% and 12.5%.
+
+Two script changes from reading this run: `--neurd-threshold` (was the
+constant 2), and the rollout seats' `--policy-temperature` is now
+applied to the learner's logits too, so a value other than 1 keeps the
+gradient on-policy (it had been a silent mismatch, unused so far).
+
+### The second run, `run2`, and the export (2026-10-06)
+
+Resumed from `run150a`'s checkpoint 110 with the plateau's suspects
+loosened:
+
+```
+python scripts\\train_plum.py --resume data\\plum-training\\run150a\\checkpoint-000110.npz --iterations 150 --games 512 --workers 12 --shaping 1.0 --eval-every 10 --lr 0.0001 --entropy 0.003 --neurd-threshold 4 --eta 0.05 --out data\\plum-training\\run2
+```
+
+Another 76,800 games, about 9 s an iteration now that games are
+shorter. Entropy went on down from 1.65 to 1.35, self-play games from
+75 turns to 50, the network's self-play wins from 16% to 20% and its
+mixed-game wins from 8% to 12%; nothing degraded late, which the lower
+learning rate was for. The belief head stayed where it was (1.20-1.22
+at the 50% checkpoint on the 60-game benchmark at every checkpoint):
+the policy's gain did not cost it, and nothing improved it either.
+
+The checkpoints from 60 on, re-measured on 96 games a table and the
+60-game benchmark:
+
+| checkpoint | log-loss 25/50/75/100% | Plum table win | wrong | six-character win |
+|---|---|---|---|---|
+| 60 | 1.48 / 1.21 / 0.85 / 0.22 | 25.0 | 2.1 | 9.4 |
+| 80 | 1.49 / 1.22 / 0.87 / 0.21 | 36.5 | 1.0 | 21.9 |
+| 100 | 1.48 / 1.20 / 0.84 / 0.21 | 35.4 | 1.0 | 12.5 |
+| 120 | 1.47 / 1.20 / 0.85 / 0.21 | 44.8 | 0.0 | 15.6 |
+| **130** | **1.48 / 1.21 / 0.86 / 0.21** | **49.0** | **0.0** | **21.9** |
+| 140 | 1.48 / 1.20 / 0.86 / 0.21 | 38.5 | 0.0 | 20.3 |
+| 150 | 1.48 / 1.21 / 0.87 / 0.21 | 37.5 | 1.0 | 21.9 |
+| run 1's 110, the first export | 1.47 / 1.22 / 0.86 / 0.21 | 32.3 | 0.0 | 12.5 |
+| PlumOG (24 games; glossary) | 1.52 / 1.44 / 1.00 / 0.22 | 62.5 | 0.0 | 31 |
+
+(The six-character table is 64 games with Plum seated. The 96-game
+win rates carry a standard deviation of about five points, PlumOG's
+24-game ones about ten.) Checkpoints 120 to 150 sit between 38 and
+49 at the Plum table, a plateau with noise on it rather than a trend;
+130 is the top of it on both tables with no wrong accusation in 160
+games, and was exported as **`clude_agents/weights/plum.npz`** the
+same evening, replacing run 1's 110 exported earlier that day. At his
+own table Mustard and Green now take 25% and 26% against him, where
+against PlumOG they took 25% and 12.5%.
+
+**Where that leaves Plum against PlumOG**: better belief from the 50%
+checkpoint on (1.21 against 1.44, and the best mid- and late-game
+log-loss of any method), no wrong accusations, three orders of
+magnitude faster; about four fifths of PlumOG's win rate at his own
+table (49 against 62.5, the latter on 24 games) and seven tenths of
+it at the six-character table (22 against 31). A third run from
+checkpoint 130 may add a little; the evidence of run 2 is that the
+policy's ceiling under this recipe is near, and the belief head's
+plateau at 1.20 is the more interesting limit, since what it reads
+beyond the floor is Mustard's naming features and nothing about *who*
+named what. Both are for after N5-N7, when a trained Plum is at the
+tables and in the wiki.
 
 ### Tests and the suite
 
