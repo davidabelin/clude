@@ -99,7 +99,7 @@ Like every character she can also keep a narrative [[logbook]], written by a mod
 - [[Markov chain]], her method in full, with the worked example and the mathematics
 - [[Colonel Mustard]] and [[Mr. Green]], the other two characters whose methods remember
 - [[Bluffing]] and [[Bluff rate]]
-- [[Professor Plum]] and [[Exact posterior enumeration]], which read the answer where she reads the question
+- [[Exact posterior enumeration]], [[PlumOG]]'s method, which reads the answer where she reads the question, and [[Professor Plum]], whose network reads the question as she does
 - [[Belief benchmark]] and [[Arena]]
 
 ## References

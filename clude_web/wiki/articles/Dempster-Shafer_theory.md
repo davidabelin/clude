@@ -55,6 +55,19 @@ Dempster's rule combines two mass functions by multiplying pairs of weights and 
 
 Peacock's single number is the **pignistic** probability, so called from the [[w:Latin|Latin]] for a bet: each set's weight is divided equally among its members, and a card's share is the sum of what it receives. It always lies between the card's belief and its plausibility, and it is the rule the [[w:Transferable belief model|transferable belief model]] prescribes for the moment a decision has to be made.[^smets]
 
+!!! algorithm "Peacock's belief, one category at a time"
+        Input: the cards of the category the floor still allows in the envelope (Θ);
+               the floor's open facts "player h holds one of these cards"
+        m ← {Θ: 1}                                  (all mass on "one of them")
+        for each open fact naming cards F:
+            E ← F ∩ Θ;  if E is empty or E = Θ: skip it
+            s ← |E| / |F|                            (this category's share of the fact)
+            m ← Dempster-combine(m, {Θ − E: s, Θ: 1 − s})
+        for each card c:
+            belief(c) ← m({c});   plausibility(c) ← Σ of m(A) over sets A containing c
+            BetP(c) ← Σ of m(A) / |A| over sets A containing c
+        play by BetP; accuse by belief
+
 ## Formally
 
 ### The definitions

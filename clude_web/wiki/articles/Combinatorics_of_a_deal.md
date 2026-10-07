@@ -52,7 +52,7 @@ The fixture fixes Study as the room and all but four cards as placed. Mustard ha
 
 An initial count describes the search problem before evidence. It does not say how many nodes the current search will visit: propagation and ordering can prune branches before a complete deal is reached. Nodes are partial assignments, while completions are full consistent deals.
 
-Equal weighting also requires a modelling choice. Plum's completed enumeration treats deals satisfying the formal evidence equally and does not model question-selection or showing policies. Its fallback constructs random consistent deals with possible sampling bias and noise. [[Counting deals|The enumeration article]] explains these qualifications; the arithmetic here does not establish optimal play or an exact accusation product.
+Equal weighting also requires a modelling choice. [[PlumOG]]'s completed enumeration treated deals satisfying the formal evidence equally and did not model question-selection or showing policies. Its fallback constructed random consistent deals with possible sampling bias and noise. [[Counting deals|The enumeration article]] explains these qualifications; the arithmetic here does not establish optimal play or an exact accusation product.
 
 
 ## See also

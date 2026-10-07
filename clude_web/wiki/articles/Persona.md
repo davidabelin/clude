@@ -12,7 +12,7 @@ The prose can influence choices within the [[leash]], but the numerical method a
 
 Scarlett's persona describes her as 'quick, glamorous, and entirely sure of yourself'. Its speaking guidance calls for short, poised and cutting sentences. Her mathematical overconfidence remains a property of her heuristic updates and accusation setting, rather than a second command to ignore evidence.[^scarlett]
 
-Plum's persona calls him 'precise to the point of pedantry' and asks him to describe what the count permits in words rather than recite decimals. These descriptions are fictional character instructions, not technical guarantees that he always enumerates exactly. His method can fall back to sampling.[^plum]
+Plum's persona calls him 'precise to the point of pedantry' and asks him to describe what the evidence permits in words rather than recite decimals. Since Phase 12 it also tells him that his probabilities are estimates, not counts, and not to claim an exact denominator: the persona follows the method, which is now a trained network.[^plum]
 
 White's persona presents a dry, watchful housekeeper who reads people. That voice fits her behaviour-based method, but statements such as a repeated question indicating a card not held are interpretations, not rules of [[Clue]]. [[Markov chain]] explains the heuristic separately from the persona's self-image.[^white]
 

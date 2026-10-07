@@ -6,8 +6,8 @@ bluffing, accusation and card-show decisions; curiosity is inert for the
 network movement hook. Training uses a DeepNash variant described in
 docs/deepnash-plan.md, not an equilibrium guarantee for multiplayer Clue.
 
-weights/plum.npz is loaded once and still holds seeded initial weights;
-smoke checkpoints have not been exported. Determinism depends on this file,
+weights/plum.npz is loaded once and holds the trained weights (run 2's
+checkpoint 130, docs/deepnash-plan.md section 11). Determinism depends on this file,
 seed and memory. Float64 inference rounds scores to SCORE_DECIMALS before
 sampling/argmax to limit platform-dependent picks. Card/holder iteration
 uses stable order. PyTorch is needed only by the separate trainer.

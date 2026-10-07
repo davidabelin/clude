@@ -25,7 +25,7 @@ The **bandit ensemble** is [[Mr. Green]]'s method for selecting a [[belief]] fro
 
 The design draws on the [[w:Multi-armed bandit|multi-armed bandit]] problem: choosing among options with uncertain rewards, named after [[w:Slot machine|slot machines]]. Green uses [[w:Thompson sampling|Thompson sampling]], drawing a score from each arm's distribution and selecting the largest. This balances *exploitation*, using a method with a good record, against *exploration*, trying one whose value is less certain.[^sutton][^thompson] Unlike a classical bandit, Green receives feedback for all five arms when the envelope is revealed, rather than only for the selected arm.
 
-Green's current belief is exactly the selected method's output, but the computation cost is that of all five methods together. In particular, he pays for [[Professor Plum]]'s enumeration or sampling even when he selects another arm. His [[persona]] turns this dependence into the character's opportunistic voice.[^persona]
+Green's current belief is exactly the selected method's output, but the computation cost is that of all five methods together. Until Phase 12 that included [[PlumOG]]'s enumeration, the slowest call in the game; his Plum arm is now [[Professor Plum]]'s network, which answers in under a millisecond. His [[persona]] turns this dependence into the character's opportunistic voice.[^persona]
 
 ## At the table
 
@@ -34,11 +34,11 @@ Green's current belief is exactly the selected method's output, but the computat
 
     In the shared comparison position, an observer has every card placed except four: **Mrs. White**, **Mrs. Peacock**, the **Rope** and the **Wrench**. One suspect and one weapon are in the envelope; the other two are in [[Colonel Mustard]]'s hand. The Hall is known to be in [[Mr. Green]]'s hand. Green suggests *Mrs. Peacock, with the Rope, in the Hall*, and Mustard shows him a card hidden from the observer. Green's ensemble is evaluated on the observer's view, not on the suggester's private knowledge, so it receives the same evidence as the other methods.
 
-    Green asks his five arms for the probability that Mrs. White is in the envelope and gets five answers: [[Miss Scarlett]]'s tally says {{code:example.scarlett.1.White}}, [[Professor Plum]]'s count {{code:example.plum.White}}, [[Mrs. Peacock]]'s bounds {{code:example.peacock.White}}, [[Colonel Mustard]]'s tree {{code:example.mustard.White}} and [[Mrs. White]]'s chain {{code:example.white.White}}. Which one he plays depends on his record. In a first game, with every arm at Beta(1, 1), each draw is uniform on [0, 1] and each arm is equally likely to win; with the record the benchmark left him he would most likely play Mustard's or Plum's.
+    Green asks his five arms for the probability that Mrs. White is in the envelope and gets five answers: [[Miss Scarlett]]'s tally says {{code:example.scarlett.1.White}}, [[Professor Plum]]'s network {{code:example.policy.White}}, [[Mrs. Peacock]]'s bounds {{code:example.peacock.White}}, [[Colonel Mustard]]'s tree {{code:example.mustard.White}} and [[Mrs. White]]'s chain {{code:example.white.White}}. Which one he plays depends on his record. In a first game, with every arm at Beta(1, 1), each draw is uniform on [0, 1] and each arm is equally likely to win; with the record the benchmark left him he would most likely play Mustard's or Plum's.
 
     Then the game ends and the envelope is revealed: White, the Wrench, the Study. Each arm's belief is scored by [[log-loss]] on the three true cards: Peacock {{code:example.green.loss.Peacock}}, Plum {{code:example.green.loss.Plum}}, Scarlett {{code:example.green.loss.Scarlett}}, Mustard {{code:example.green.loss.Mustard}}, White {{code:example.green.loss.White}} (lower is better). The arms are ranked: the best scores a reward of 1, the worst 0, the three between at even spacing. Each arm's record is a [[w:Beta distribution|Beta distribution]] with two counts, successes and failures, both starting at 1; the reward times {{code:green.step_size}} is added to the one and its shortfall times {{code:green.step_size}} to the other. After this single lesson Peacock's arm stands at Beta({{code:example.green.alpha.Peacock}}, {{code:example.green.beta.Peacock}}) with a mean of {{code:example.green.mean.Peacock}}, Plum's at mean {{code:example.green.mean.Plum}}, Scarlett's {{code:example.green.mean.Scarlett}}, Mustard's {{code:example.green.mean.Mustard}} and White's {{code:example.green.mean.White}}.
 
-On this revealed envelope, Peacock's estimate happens to give the lowest loss, although Plum's count gives the exact probabilities under the model. A probability estimate can be correct without giving the highest probability to the outcome of one particular deal. The reward therefore reflects one realised outcome; it does not establish which method is best in expectation.
+On this revealed envelope, Peacock's estimate gives the lowest loss and Plum's network the highest: the network has read Green's naming of Peacock as evidence for her, and put Mrs. White at {{code:example.policy.White}} where counting the surviving deals gives {{code:example.plum.White}}. Even the exact count would not have won this lesson outright, since a probability estimate can be right without giving the most probability to the outcome of one particular deal. The reward reflects one realised outcome; it does not establish which method is best in expectation, and on real games the network is the arm Green comes to trust most.[^policy]
 
 ## How it works
 
@@ -55,6 +55,19 @@ Before the reward is added, each record decays a step towards the flat prior, so
 ### When the lessons come
 
 Green can update only when the envelope is known. He therefore learns once per completed [[arena]] game, or once per scored position in the [[belief benchmark]]. His record persists across games and, since Phase 7, across program runs when memory is enabled.[^arena]
+
+!!! algorithm "Green's choice, and his lesson"
+        Input: the five other methods (arms), each with a record Beta(α, β)
+        To decide:
+            ask every arm for its belief
+            for each arm: draw θ from Beta(α, β)
+            use the belief of the arm with the largest θ
+        When an envelope is revealed:
+            score every arm's last belief by log-loss on the true cards
+            rank the arms: best reward 1, worst 0, the rest evenly between
+            for each arm with reward x:
+                α ← 1 + (α − 1) / decay;   β ← 1 + (β − 1) / decay     (fade towards the prior)
+                α ← α + step × x;          β ← β + step × (1 − x)
 
 ## Formally
 
@@ -116,7 +129,7 @@ In the twin arenas, adding [[Claude]] changed Green's win rate from {{fact:twin.
 ## See also
 
 - [[Mr. Green]], the character who plays by this method
-- [[Exact posterior enumeration]], [[Decision tree]], [[Markov chain]], [[Dempster-Shafer theory]] and [[Naive Bayes]], the five arms
+- [[Regularised Nash dynamics]], [[Decision tree]], [[Markov chain]], [[Dempster-Shafer theory]] and [[Naive Bayes]], the five arms ([[exact posterior enumeration]] until Phase 12)
 - [[Belief]], where the five answers to the Rope question are set side by side
 - [[Belief benchmark]], whose lessons his record was built on
 - [[w:Multi-armed bandit|Multi-armed bandit]], [[w:Thompson sampling|Thompson sampling]] and [[w:Ensemble learning|ensemble learning]] on Wikipedia
@@ -138,5 +151,6 @@ In the twin arenas, adding [[Claude]] changed Green's win rate from {{fact:twin.
 [^ring]: {{cite:docs/strategy-glossary.md|Belief benchmark, FloorBot regime (Phase 5)}}
 [^tuned]: {{cite:docs/strategy-glossary.md|Tuned presets on the grid (Stage 1e, 2026-09-15)}}
 [^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
+[^policy]: {{cite:docs/strategy-glossary.md|Belief benchmark, the network (N5)}}
 
 {{navbox:clude}}

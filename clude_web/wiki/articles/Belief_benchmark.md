@@ -40,9 +40,9 @@ Loss and Brier score are better when lower; top-1 is better when higher. Ties in
 
 White's method had lower loss than the uniform baseline at every checkpoint in this run. Mustard's tree was close to the baseline at half-way and had the lowest recorded final-checkpoint loss. Scarlett and Peacock had higher loss than the baseline throughout.[^grid]
 
-Plum's half-way loss was {{fact:bench.grid.Plum.50}} against uniform's {{fact:bench.grid.uniform.50}}. The run reported {{fact:plum.fallback.calls}} sampled fallbacks among {{fact:bench.grid.snapshots}} calls. That is a fraction of benchmark calls, not the fraction of a typical game spent sampling. It also includes all checkpoints, not just half-way observations.
+[[PlumOG]]'s half-way loss was {{fact:bench.grid.Plum.50}} against uniform's {{fact:bench.grid.uniform.50}}. The run reported {{fact:plum.fallback.calls}} sampled fallbacks among {{fact:bench.grid.snapshots}} calls. That is a fraction of benchmark calls, not the fraction of a typical game spent sampling. It also includes all checkpoints, not just half-way observations.
 
-This table used the earlier sample budget. Subsequent budget comparisons increased the current fallback target to {{code:plum.sample_budget}} samples while retaining {{code:plum.node_budget}} search nodes. The dated table remains a record of the earlier configuration, not an automatic rerun of today's code.[^budgets]
+This table used the earlier sample budget. Subsequent budget comparisons increased PlumOG's fallback target to {{code:plum.sample_budget}} samples while retaining {{code:plum.node_budget}} search nodes. The dated table remains a record of the earlier configuration, not an automatic rerun of today's code. Since Phase 12 Plum's seat is a trained network, which scores {{fact:bench.policy.Plum.50}} at half-way on the same positions; its table is in [[regularised Nash dynamics]].[^budgets]
 
 ## Adaptation and interpretation
 

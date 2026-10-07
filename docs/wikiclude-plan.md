@@ -335,3 +335,30 @@ The shared navbox now includes game rules, other players, personality, memory, m
 - The 37 authored articles were reread for terminology, grammar, relevance, assumptions and unsupported claims. The existing measured-value checks still agree with the recorded source tables. This completes W3–W5 locally; it does not constitute deployment or a final featured-article assessment.
 
 W6 remains the app and project articles, followed by W7's corpus-wide featured-article pass. The *clude* stub is deliberately left for W6. The historical records in sections 9–11 remain unchanged.
+
+## 13. As implemented: Phase 12's pass, visuals and algorithms (2026-10-07)
+
+David's brief for Phase 12's wiki work (N7), the same day: more visuals (architecture diagrams, flowcharts of pathways, neural networks, images), starting with quick cartoon sketches of the characters; pseudocode, in the textbook's boxed style; and a short entry, with a little mathematics and pseudocode, for every heuristic and method of the classwork and of the `rps` project, used by clude or not. His answers: busts in the wiki first, reviewed on a contact sheet; a curated list of about twenty; textbook-style boxes; linking `github.com/davidabelin/rps` is fine.
+
+### 13.1 Plum
+
+- **New: *Regularised Nash dynamics***, Plum's method since 5 October: the network, what it reads and answers, the training rule (NeuRD, the regularised reward, the mixed population, the replay buffer), the three lessons of the trial runs, the measured record and its limits.
+- ***Professor Plum* rewritten** for the network; PlumOG's record (counting, the budgets, Claude in the seat, the parking, his logbook) condensed into a *PlumOG* section, so every earlier fact stays cited. *Exact posterior enumeration* is now PlumOG's archived method (and the target of the `PlumOG` redirect); *DeepNash* gains an "In clude" section.
+- **The Rope question was internally inconsistent** since N3: Green's Plum arm is the network, but *Bandit ensemble* still called it "Plum's count". `facts.rope_question()` now also runs the network (`example.policy.*`); the network gives Mrs. White 0.06 where the count gives 2/3, and the prose in *Bandit ensemble*, *Mr. Green*, *Belief*, *Markov chain* and the method articles says so. `tests/test_wiki.py` pins the best and worst arms so new weights cannot silently contradict the prose.
+- Every measured table before Phase 12 labels its Plum row `[[PlumOG]]`; new tables (`bench.policy`, `arena.policy`, `sweep.policy.accuse`, `leash.width`, `plum.run1`, `plum.run2`) quote the glossary's *The new Plum* section and `docs/deepnash-plan.md`, now a citable doc. About twenty articles had one-line tense or attribution fixes.
+
+### 13.2 Visuals
+
+- **Mermaid diagrams** (in `docs/ux/diagrams/build_diagrams.py`, drawn by `scripts/build_wiki_figures.py`): `architecture`, `decision-pathway`, `plum-training-loop`, and for the algorithm pages `gpi`, `mcts-phases`, `actor-critic` and `gan`. `floor-then-method` now names Plum's network. Mermaid's layout varies with the machine's fonts, so only the diagrams whose content changed were recommitted.
+- **Drawn figures** (`figures.py`): `plum-network` (sizes read from `deep_nash`), `plum-policy-logloss` and `plum-checkpoints` (from the fact tables).
+- **Portraits**: `clude_web/wiki/portraits.py` draws six cartoon busts as classed SVG, the clothes in each suspect's colour from the look, skin, hair and props in a fixed `pt-*` palette (`wiki.css`). Registered as `portrait-<suspect>`; the contact sheet is `docs/ux/portraits/index.html` (`build_portraits.py`). **Not yet in the infoboxes: awaiting David's review.**
+- Screenshots of every new or rewritten page and figure in Case-file light and Gaslight dark, 1440 and 390 px; edge labels that Mermaid clipped or crossed were shortened until the diagrams read cleanly.
+
+### 13.3 Pseudocode and the Algorithms entries
+
+- **Algorithm boxes**: `!!! algorithm "Title"` around an indented code block, styled in `wiki.css` (no renderer change: Python-Markdown's fenced blocks cannot nest in an admonition, indented ones can). Boxes added to the six method articles, *Regularised Nash dynamics*, *Exact posterior enumeration*, *Deduction floor*, *Q-learning* (with a new *Double Q-learning* section) and *Deep Q-network*; each paraphrases the live code or the source, never copies it.
+- **21 Algorithms entries** (`kind: stub`, category *Algorithms*, a navbox group each for the textbook line and for `rps`): *Mixed-strategy Nash equilibrium*, *Reactive strategies*, *Frequency counter*, *Pattern memory*, *Transition-matrix predictor*, *Ensemble voting*, *Multilayer perceptron*; *Bandit action selection*, *Dynamic programming*, *Monte Carlo methods*, *Temporal-difference learning*, *Sarsa*, *Dyna-Q*, *Monte Carlo tree search*, *Function approximation*, *Policy gradient*, *Actor-critic*; *Dueling network architecture*, *Prioritised experience replay*, *Generative adversarial network*, *Proximal policy optimisation*. Section numbers were checked against the archive copy of Sutton and Barto's contents; the cheatsheet's algorithms 1-15 are the dynamic-programming, Monte Carlo and TD boxes. New sources: `rps`, `schulman-2017`, `goodfellow-2014`. The stub banner now describes these entries; the W5 test allows stubs only in *Algorithms*.
+
+### 13.4 Left
+
+The portraits' placement after review; the live Wikipedia-title check for the new `[[w:...]]` links; W7's corpus-wide pass. Nothing here is deployed.

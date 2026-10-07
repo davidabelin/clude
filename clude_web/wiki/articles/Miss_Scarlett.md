@@ -101,7 +101,7 @@ Scarlett's method reads the current game's suggestion history afresh on every ca
 ## See also
 
 - [[Naive Bayes]], her method in full, with the worked example and the mathematics
-- [[Professor Plum]] and [[Exact posterior enumeration]], which get the worked example right
+- [[Exact posterior enumeration]], [[PlumOG]]'s method, which gets the worked example right, and [[Professor Plum]], whose network does not
 - [[Mrs. Peacock]], the character at the other end of the caution scale
 - [[Accusation]] and [[Accusation threshold]]
 - [[Belief benchmark]] and [[Arena]]

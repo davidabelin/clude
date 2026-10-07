@@ -1,29 +1,33 @@
 ---
 title: Exact posterior enumeration
-short: Counting consistent deals to estimate envelope probabilities
+short: Counting consistent deals to estimate envelope probabilities: PlumOG's method, archived in Phase 12
 categories: Methods
-redirects: Exact enumeration, Enumeration, Plum's method, Counting deals, Exact posterior
+redirects: PlumOG, Exact enumeration, Enumeration, Counting deals, Exact posterior
 dyk: ... that [[exact posterior enumeration]] answered the Rope question in {{code:example.plum.nodes}} steps, and that a player at a six-seat table with one card of each kind in hand initially faces {{code:deals.6}} deals?
-dyk: ... that the sample [[Professor Plum]] falls back on was raised from 2,000 to {{code:plum.sample_budget}} deals, and that in the recorded budget comparison, raising the sample budget helped more than raising the search budget?
+dyk: ... that the sample [[PlumOG]] fell back on was raised from 2,000 to {{code:plum.sample_budget}} deals, and that in the recorded budget comparison, raising the sample budget helped more than raising the search budget?
 ---
 {{infobox
 title: Exact posterior enumeration
-Played by | [[Professor Plum]]
+Played by | [[Professor Plum]] until 5 October 2026, now archived as PlumOG
 In a phrase | Exhaustive when the search finishes; sampled otherwise
 Module | `exact_enum.py`
 Evidence used | Everything the [[deduction floor]] knows, joint facts included
 Assumes | Every deal still possible is equally likely
-Cost | About {{fact:bench.grid.Plum.ms}} ms a call at the Classic-board halfway checkpoint; Green also pays this cost
+Cost | About {{fact:budget.grid.200k-10k.ms}} ms a call at the Classic-board halfway checkpoint
 = The two budgets
 Search steps | {{code:plum.node_budget}}
 Random deals, after that | {{code:plum.sample_budget}}
 }}
 
-**Exact posterior enumeration** is [[Professor Plum]]'s method of estimating which [[Clue#The cards|cards]] are in [[the envelope]]. It lists every deal consistent with the [[deduction floor]] and calculates each card's [[w:Probability|probability]] as its share of the surviving deals. When the search finishes, this gives exact card probabilities under a model that treats consistent deals as equally likely. The model uses the logical consequences of suggestions and disproofs, but does not account for opponents' preferences when choosing suggestions or cards to show.[^module]
+{{hatnote:Professor Plum has played by [[regularised Nash dynamics]] since Phase 12. This article describes the method he played by until 5 October 2026, archived with its character as PlumOG.}}
+
+**Exact posterior enumeration** was [[Professor Plum]]'s method of estimating which [[Clue#The cards|cards]] are in [[the envelope]]. It lists every deal consistent with the [[deduction floor]] and calculates each card's [[w:Probability|probability]] as its share of the surviving deals. It is kept in the code as **PlumOG**, unseated but still run by this encyclopaedia's worked examples, because it is the one method whose answer to a small position can be checked by hand. When the search finishes, this gives exact card probabilities under a model that treats consistent deals as equally likely. The model uses the logical consequences of suggestions and disproofs, but does not account for opponents' preferences when choosing suggestions or cards to show.[^module]
 
 The search can be too large to finish between turns. It stops after {{code:plum.node_budget}} steps and falls back on up to {{code:plum.sample_budget}} [[w:Monte Carlo method|random draws]]. The accepted draws estimate the same card probabilities, with sampling noise and construction bias. In the original [[Classic board]] benchmark, the fallback was used in {{fact:plum.fallback.calls}} of {{fact:bench.grid.snapshots}} calls. That is a proportion of benchmark calls, not a measure of how much of each game was spent sampling.[^grid]
 
-The counting principle is the ratio of favourable to possible cases associated with [[w:Pierre-Simon Laplace|Laplace]]. Plum implements it through [[w:Backtracking|backtracking]], a standard [[w:Artificial intelligence|artificial intelligence]] technique for searching a [[w:Constraint satisfaction problem|constraint satisfaction problem]]. The challenge is computational: even simple rules can permit a very large number of deals.[^aima]
+It was replaced because the [[Classic board]] made most mid-game positions too large to count: the network that took its place is better calibrated mid-game and a thousand times faster, but it estimates where this method counts.[^policy]
+
+The counting principle is the ratio of favourable to possible cases associated with [[w:Pierre-Simon Laplace|Laplace]]. The method implements it through [[w:Backtracking|backtracking]], a standard [[w:Artificial intelligence|artificial intelligence]] technique for searching a [[w:Constraint satisfaction problem|constraint satisfaction problem]]. The challenge is computational: even simple rules can permit a very large number of deals.[^aima]
 
 ## At the table
 
@@ -58,6 +62,27 @@ What could be true is decided by the [[deduction floor]], the logic every charac
 
 The search places the unplaced cards one at a time, trying the most constrained card first (the one with the fewest places it could be), and for each card every place it could go, in a fixed order: the seats in order, then the envelope. After each placing it checks the three rules. A hand that is now full takes nothing more; a category whose envelope card is placed takes no second; and each open fact must still be satisfiable, either already by a card placed with its holder or by some card still to be placed that could go there. If a check fails the placing is undone and the next place tried. If every card is placed, a complete deal has been found: it is counted, and for every card it puts in the envelope that card's tally goes up by one.[^module]
 
+!!! algorithm "Counting consistent deals"
+        Input: each unplaced card's possible places (seats, envelope),
+               each seat's free capacity, the open facts
+        Output: P(card in envelope) for every unplaced card
+
+        tally(c) ← 0 for every card c;  deals ← 0;  steps ← 0
+        procedure Place(cards still to place):
+            if steps = budget: give up (fall back to sampling)
+            if no cards remain:
+                deals ← deals + 1
+                for each card c placed in the envelope: tally(c) ← tally(c) + 1
+                return
+            c ← the remaining card with the fewest possible places
+            for each place h of c, seats in order, then the envelope:
+                steps ← steps + 1
+                if h is full, or h is the envelope and c's category has its card,
+                   or some open fact can no longer be satisfied: skip h
+                put c at h;  Place(the remaining cards);  take c back from h
+        Place(all unplaced cards)
+        return tally(c) / deals for every card c
+
 After a completed search, each card's probability is its envelope tally divided by the number of valid deals. The count respects every floor constraint, including joint facts: a deal that violates one is never counted.
 
 ### When the count is too long
@@ -82,21 +107,21 @@ where $d \models E$ means that deal $d$ satisfies the constraints and $\text{env
 
 Observed choices can carry evidence beyond their logical consequences. If Mustard holds both Peacock and the Rope, the probability that he shows the Rope depends on his [[suggestion#Showing a card|card-selection policy]]. If he chooses uniformly between them, seeing the Rope is half as likely as in a deal where it is his only matching card. The count treats both deals equally once the Rope is known to be in his hand. The size and direction of the resulting error depend on the policy. This resembles the [[w:Monty Hall problem|Monty Hall problem]], where the host's choice rule affects the posterior.
 
-For an unseen disproof, the count retains the logical constraint that the refuter holds at least one matching card. It does not model why the suggester chose those cards, or any information conveyed by [[table talk]]. Repeated choices are the evidence used by [[Mrs. White]]'s [[Markov chain]], rather than by Plum's model.
+For an unseen disproof, the count retains the logical constraint that the refuter holds at least one matching card. It does not model why the suggester chose those cards, or any information conveyed by [[table talk]]. Repeated choices are the evidence used by [[Mrs. White]]'s [[Markov chain]], rather than by this model.
 
 ### The accusation test
 
-A character [[accusation|accuses]] when the product of its best suspect, weapon and room probabilities reaches its [[accusation threshold]]. This assumes [[w:Independence (probability theory)|independence]] between categories, which the consistent deals need not satisfy. In the Rope question, {{code:example.plum.White}} times {{code:example.plum.Wrench}} gives about {{code:example.plum.pair}}. Only one of the three surviving deals contains White with the Wrench, however, so the exact probability of that pair is 1/3. The shared accusation test uses the product rather than a joint probability, even when Plum's individual card probabilities are exact.[^character]
+A character [[accusation|accuses]] when the product of its best suspect, weapon and room probabilities reaches its [[accusation threshold]]. This assumes [[w:Independence (probability theory)|independence]] between categories, which the consistent deals need not satisfy. In the Rope question, {{code:example.plum.White}} times {{code:example.plum.Wrench}} gives about {{code:example.plum.pair}}. Only one of the three surviving deals contains White with the Wrench, however, so the exact probability of that pair is 1/3. The shared accusation test uses the product rather than a joint probability, even when the individual card probabilities are exact.[^character]
 
 ## In clude
 
-The module is `clude_agents/exact_enum.py`. The search is a small class holding the cards still to place, each card's possible places (taken from the floor's mask and sorted into a fixed order), each seat's remaining capacity, which categories already have their envelope card, and the open facts not yet satisfied by a placed card; it places and unplaces cards along the current branch and counts completions. The sampler reuses the same class for each random draw. The agent itself is a few lines over the two: it runs the search with the step budget, and if the search did not finish it runs the sampler with the draw budget.[^module]
+The module is `clude_agents/exact_enum.py`, whose agent has been named `PlumOG` and kept out of the registry since 5 October 2026: no seat plays it, and [[Mr. Green]]'s Plum arm is the network. The search is a small class holding the cards still to place, each card's possible places (taken from the floor's mask and sorted into a fixed order), each seat's remaining capacity, which categories already have their envelope card, and the open facts not yet satisfied by a placed card; it places and unplaces cards along the current branch and counts completions. The sampler reuses the same class for each random draw. The agent itself is a few lines over the two: it runs the search with the step budget, and if the search did not finish it runs the sampler with the draw budget.[^module]
 
 An independent, slower enumerator checks the search on small positions. It lists every assignment outright and verifies that the two methods agree card by card.[^tests] Fixed holder ordering also preserves reproducibility. Possible-holder sets mix seat numbers with the word *envelope*, and [[w:Python (programming language)|Python]] set iteration can change between processes. Before the ordering was fixed, this could change a sampler's choices and make the same seeded five- or six-seat game produce different results.[^ordering]
 
-The method returns, beside its probabilities, a note of which path produced them: *resolved* (nothing left to place), *exact* (the search finished) or *sampled*, with the number of steps and of complete deals or kept draws. The [[belief benchmark]] uses the note to count how often the count fell back, and a model playing Plum's seat is shown it, which is where the persona's "faintly humiliating" sampling comes from.[^wrapper]
+The method returns, beside its probabilities, a note of which path produced them: *resolved* (nothing left to place), *exact* (the search finished) or *sampled*, with the number of steps and of complete deals or kept draws. The [[belief benchmark]] used the note to count how often the count fell back, and a model playing Plum's seat was shown it, which is where his old persona's "faintly humiliating" sampling came from.[^wrapper]
 
-[[Mr. Green]]'s [[bandit ensemble]] queries all five constituent methods before choosing one, so it incurs Plum's computation cost even when it selects another arm. This also makes games involving either character relatively expensive to run in the test suite.[^budget]
+While it was Plum's method, [[Mr. Green]]'s [[bandit ensemble]], which queries all five of the other methods before choosing one, paid its computation cost even when he selected another arm: a four-character table with both of them ran 7.5 seconds a game against 0.03 without them. That cost was one of the reasons for the change.[^policy][^budget]
 
 ## Measured
 
@@ -133,11 +158,11 @@ The principal limitations concern computation, the evidence model and the use of
 - **Opponent choices are not modelled.** The count uses logical constraints rather than behavioural evidence about which questions players ask or which cards they prefer to show.
 - **Exactness is conditional.** A completed search gives exact card probabilities under the equal-weight model. It neither corrects for card-selection policies nor supplies the joint probability used by an exact accusation test.
 
-These are documented design trade-offs. Plum provides a useful exact calculation on small positions, while large positions require an approximation and all positions remain subject to the model's assumptions.
+These are documented design trade-offs. The method provides a useful exact calculation on small positions, while large positions require an approximation and all positions remain subject to the model's assumptions. On the Classic board the approximation was most of the game, which is why [[Professor Plum]] now plays by [[regularised Nash dynamics]] and this method is kept for the record and the worked examples.
 
 ## See also
 
-- [[Professor Plum]], the character who plays by this method
+- [[Professor Plum]], the character who played by this method, and [[regularised Nash dynamics]], the method he plays by now
 - [[Naive Bayes]], which reaches a different answer from the same evidence, and [[Belief]], where all six answers are compared
 - [[Deduction floor]], which supplies the places each card could be and the open facts the count respects
 - [[Belief benchmark]] and [[Log-loss]]
@@ -157,5 +182,6 @@ These are documented design trade-offs. Plum provides a useful exact calculation
 [^budget]: {{cite:docs/strategy-glossary.md|Tuned presets on the grid (Stage 1e, 2026-09-15)}}
 [^ring]: {{cite:docs/strategy-glossary.md|Belief benchmark, FloorBot regime (Phase 5)}}
 [^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
+[^policy]: {{cite:docs/deepnash-plan.md|1. Context}}
 
 {{navbox:clude}}

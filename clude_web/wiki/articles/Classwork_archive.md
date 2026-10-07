@@ -32,6 +32,10 @@ The DQN paper, `DeepQNetworks_Nature.pdf`, describes learning action values from
 
 `osmnx.pdf` is Geoff Boeing's paper on constructing and analysing street networks from OpenStreetMap. Its graph and route concepts relate broadly to movement, but clude's [[Classic board]] is its own fixed graph and does not use OSMnx.[^osmnx]
 
+## Algorithms
+
+Every method the textbook and the papers introduce, and every heuristic of the rps project (David's earlier rock, paper, scissors players), has a short page in the **Algorithms** category with its mathematics and pseudocode, whether or not clude uses it: from [[bandit action selection]] and [[dynamic programming]] to [[policy gradient]], [[generative adversarial network|generative adversarial networks]] and [[proximal policy optimisation]], and from [[reactive strategies]] and the [[frequency counter]] to [[ensemble voting]]. The pseudocode is written for this encyclopaedia in the textbook's style, not copied from it.[^book][^sheet]
+
 ## Access and scope
 
 References link to the supplied Drive copies and public originals where available. Drive copies may require permission, and a publisher or author site may be temporarily unavailable. Wikiclude supplies its own explanations without requiring readers to open the archive first.

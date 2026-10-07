@@ -25,11 +25,36 @@ $Q$ stores the action-value estimates, $\alpha$ is the learning rate and $\gamma
 
 The notation assumes that the state representation supports the [[Markov decision process|MDP]] model. In a hidden-card game, a player's observation is not necessarily a sufficient state. An unqualified application of the formula cannot restore information discarded by a poor representation.
 
+!!! algorithm "Tabular Q-learning"
+        Parameters: step size α ∈ (0, 1];  ε > 0;  discount γ
+        Initialise Q(s, a) ← 0 for every state and action (0 for terminal states)
+        Loop for each episode:
+            S ← the first state
+            Loop until S is terminal:
+                A ← ε-greedy choice in S from Q
+                take A;  observe R and S′
+                Q(S, A) ← Q(S, A) + α [R + γ max_a Q(S′, a) − Q(S, A)]
+                S ← S′
+
 ## Behaviour and target policies
 
 A common behaviour policy is **epsilon-greedy**: usually take an action with the highest estimated value, but sometimes explore. The Q-learning target uses a maximum regardless of which next action this behaviour policy actually takes. That is why it is off-policy. Sarsa, by comparison, uses the value of the next action sampled by the behaviour policy.[^sarsa]
 
 Exploration must cover the relevant state–action pairs if a tabular learner is to discover their values. The classical convergence result also assumes a finite stationary MDP, bounded rewards and a suitable diminishing learning-rate schedule. It is not a general guarantee for a neural network, a partially observed game or continuously changing opponents.[^q]
+
+## Double Q-learning
+
+Taking the maximum of noisy estimates overestimates on average: whichever action happens to look best is usually one whose estimate is too high. *Double Q-learning* keeps two tables and lets one choose the action while the other values it, which removes that bias. [[Sarsa]] and its Expected variant are the on-policy relatives.[^double]
+
+!!! algorithm "Double Q-learning"
+        Initialise Q1(s, a) ← 0 and Q2(s, a) ← 0
+        Loop for each step:
+            A ← ε-greedy choice in S from Q1 + Q2;  take A;  observe R and S′
+            with probability 1/2:
+                Q1(S, A) ← Q1(S, A) + α [R + γ Q2(S′, argmax_a Q1(S′, a)) − Q1(S, A)]
+            else:
+                Q2(S, A) ← Q2(S, A) + α [R + γ Q1(S′, argmax_a Q2(S′, a)) − Q2(S, A)]
+            S ← S′
 
 ## From a table to a network
 
@@ -49,5 +74,6 @@ For clude, a future Q-learning experiment would need a defined state or history 
 [^q]: {{cite:sutton-barto|Section 6.5}}
 [^sarsa]: {{cite:sutton-barto|Section 6.4}}
 [^code]: {{cite:clude_agents/character.py|`score_actions`}}
+[^double]: {{cite:sutton-barto|section 6.7, "Maximization Bias and Double Learning"}}
 
 {{navbox:clude}}

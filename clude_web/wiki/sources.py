@@ -35,6 +35,7 @@ DOCS: dict = {
     "docs/phase8-plan.md": "Phase 8 to completion",
     "docs/phase10-plan.md": "Phase 10 plan",
     "docs/wikiclude-plan.md": "Wikiclude: the plan",
+    "docs/deepnash-plan.md": "Phase 12 plan: a new Plum",
     "CLAUDE.md": "clude (working notes)",
 }
 """Each citable doc and the title a citation gives it."""
@@ -146,6 +147,21 @@ SOURCES.update({
         'Radford, Alec; Metz, Luke; Chintala, Soumith (2016). '
         + _source_link('https://arxiv.org/abs/1511.06434', 'Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks')
         + '. arXiv:1511.06434, version 2.'
+    ),
+    "rps": (
+        'Abelin, David (2026). '
+        + _source_link('https://github.com/davidabelin/rps', 'rps: rock, paper, scissors against heuristic, supervised and reinforcement-learning players')
+        + '. GitHub repository; its heuristics are in <code>rps_agents/heuristic/</code>.'
+    ),
+    "schulman-2017": (
+        'Schulman, John; Wolski, Filip; Dhariwal, Prafulla; Radford, Alec; Klimov, Oleg (2017). '
+        + _source_link('https://arxiv.org/abs/1707.06347', 'Proximal Policy Optimization Algorithms')
+        + '. arXiv:1707.06347.'
+    ),
+    "goodfellow-2014": (
+        'Goodfellow, Ian; Pouget-Abadie, Jean; Mirza, Mehdi; Xu, Bing; Warde-Farley, David; Ozair, Sherjil; Courville, Aaron; Bengio, Yoshua (2014). '
+        + _source_link('https://arxiv.org/abs/1406.2661', 'Generative Adversarial Nets')
+        + '. Advances in Neural Information Processing Systems 27. arXiv:1406.2661.'
     ),
     "boeing-2017": (
         'Boeing, Geoff (2017). '

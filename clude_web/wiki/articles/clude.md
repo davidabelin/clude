@@ -12,7 +12,7 @@ It is David Abelin's project for family and friends. Its name combines Claude an
 
 [[The lobby]] sets up a game with three to six seats. A person can play any suspect, reserve seats for friends, or mix people with [[floor player|floor players]] and characters. [[The table]] supplies the legal choices, a private hand, an automatic [[detective notepad]] and [[table talk]]. [[Watch]] runs a game of headless characters; [[replay]] opens a finished game with all its cards revealed.
 
-The characters share rules and deductions but differ in their treatment of uncertainty. [[Professor Plum]] counts possible deals, [[Miss Scarlett]] adjusts card weights, [[Colonel Mustard]] uses a learned tree, [[Mrs. White]] models suggestion sequences, [[Mrs. Peacock]] separates belief from plausibility, and [[Mr. Green]] combines the other five methods. Their [[personality dials]] turn estimates into choices about movement, questions, disclosure and accusations.
+The characters share rules and deductions but differ in their treatment of uncertainty. [[Professor Plum]] plays by a network trained in self-play, [[Miss Scarlett]] adjusts card weights, [[Colonel Mustard]] uses a learned tree, [[Mrs. White]] models suggestion sequences, [[Mrs. Peacock]] separates belief from plausibility, and [[Mr. Green]] combines the other five methods. Their [[personality dials]] turn estimates into choices about movement, questions, disclosure and accusations.
 
 Remembering is enabled by default in new Play and Watch setups. [[Method memory]] carries numerical experience for supported methods; an LLM seat can also read and write a narrative [[logbook]]. These forms of learning differ, and a remembered game is not determined by its seed alone. [[Character training]] explains what currently learns and how it is evaluated.
 
@@ -23,6 +23,8 @@ Remembering is enabled by default in new Play and Watch setups. [[Method memory]
 The [[LLM wrapper]] validates a model's choice against a legal menu and falls back to numerical play after a failed call. It does not make the numerical methods exact or guarantee good tactics. [[What a game costs]] explains the calls, spending limits and debrief costs.
 
 ## Project and implementation
+
+{{figure:architecture|clude's seven packages and what crosses each seam. No package hands a seat more than that seat may see.}}
 
 The rules engine, deduction system, methods, training tools, storage and web app are separate Python packages. The browser and [[a seat over MCP|MCP chat seat]] use the same table driver. A saved [[game records|game record]] supports analysis and replay; stored answers let an unfinished table survive a restart without asking a model to repeat accepted choices.[^architecture]
 

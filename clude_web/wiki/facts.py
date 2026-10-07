@@ -61,9 +61,21 @@ class Table:
 _SUSPECT_LABELS = {
     "Scarlett": "[[Miss Scarlett|Scarlett]]", "Mustard": "[[Colonel Mustard|Mustard]]",
     "White": "[[Mrs. White|White]]", "Green": "[[Mr. Green|Green]]",
-    "Peacock": "[[Mrs. Peacock|Peacock]]", "Plum": "[[Professor Plum|Plum]]",
+    "Peacock": "[[Mrs. Peacock|Peacock]]", "Plum": "[[PlumOG]]",
     "uniform": "[[Uniform baseline|uniform (baseline)]]",
 }
+"""Row labels for the measured tables. Every table before Phase 12
+measured the enumeration agent archived as PlumOG, so his rows say so;
+the network's tables label him `_PLUM`."""
+
+_PLUM = "[[Professor Plum|Plum]]"
+DEEPNASH_PLAN = "docs/deepnash-plan.md"
+_POLICY_BENCH = "Belief benchmark, the network (N5)"
+_POLICY_ARENAS = "Arenas on the standard seeds"
+_POLICY_DIALS = "Dial checks"
+_POLICY_LEASH = "Leash width (the equal-rope match)"
+_RUN1 = "The first long run, `run150a` (2026-10-06)"
+_RUN2 = "The second run, `run2`, and the export (2026-10-06)"
 
 # The glossary headings the facts below are found under, named once.
 _BENCH_RING = "Belief benchmark, FloorBot regime (Phase 5)"
@@ -426,6 +438,81 @@ TABLES.update({
             'leash 1': ('leash 1', '| leash 1 | 58.3 | 4.2 | 37.2 | 37.5 | 1.25 | 32.8 | 817 | 81 | 8.8% |'),
         },
     ),
+    # Phase 12: the trained Plum, measured headless on 2026-10-07.
+    "bench.policy": Table(
+        GLOSSARY, _POLICY_BENCH,
+        ("Method", "25%", "50%", "75%", "100%", "Top-1 at 100%", "ms per call at 50%"),
+        ("25", "50", "75", "100", "top1", "ms"),
+        {
+            "Plum": (_PLUM + " (network)", "| Plum (network) | 1.48 | 1.21 | 0.86 | 0.21 | 0.92 | 0.7 |"),
+            "Green": ("[[Mr. Green|Green]] (Plum arm the network)", "| Green (Plum arm the network) | 1.50 | 1.21 | 0.84 | 0.19 | 0.94 | 1.6 |"),
+            "White": (_SUSPECT_LABELS["White"], "| White | 1.54 | 1.28 | 0.91 | 0.23 | 0.91 | 0.1 |"),
+            "Mustard": (_SUSPECT_LABELS["Mustard"], "| Mustard | 1.57 | 1.34 | 0.99 | 0.19 | 0.93 | 0.3 |"),
+            "uniform": (_SUSPECT_LABELS["uniform"], "| uniform (baseline) | 1.57 | 1.35 | 1.01 | 0.29 | 0.83 | - |"),
+            "PlumOG": ("[[PlumOG]], 10,000 samples", "| PlumOG, 10,000 samples (Stage 1e) | 1.52 | 1.44 | 1.00 | 0.22 | - | 669 |"),
+            "Scarlett": (_SUSPECT_LABELS["Scarlett"], "| Scarlett | 1.62 | 1.48 | 1.18 | 0.30 | 0.87 | 0.1 |"),
+            "Peacock": (_SUSPECT_LABELS["Peacock"], "| Peacock | 1.63 | 1.46 | 1.13 | 0.31 | 0.83 | 0.3 |"),
+        },
+    ),
+    "arena.policy": Table(
+        GLOSSARY, _POLICY_ARENAS,
+        ("Table, 24 games at seed 7007", "Plum won %", "+-", "Wrong %"),
+        ("win", "std", "wrong"),
+        {
+            "own": ("His own table: Plum, Mustard, Green", "| `arena --games 24 --seed 7007 --players 3 --roster Plum,Mustard,Green` | 54.2 | 10.2 | 0.0 |"),
+            "six": ("All six characters (16 games with Plum seated)", "| `arena --games 24 --seed 7007` (six characters, 16 games with Plum seated) | 12.5 | 8.3 | 0.0 |"),
+            "og.own": ("[[PlumOG]] at his own table", "| PlumOG, `grid-plum-prox2-24` (his table, landing rule kept) | 58.3 | 10.1 | 0 |"),
+            "og.six": ("[[PlumOG]] with all six", "| PlumOG, `arena-grid-prox2-24` (six characters, landing rule kept) | 37.5 | 12.1 | 0 |"),
+        },
+    ),
+    "sweep.policy.accuse": Table(
+        GLOSSARY, _POLICY_DIALS,
+        ("Accusation threshold", "Six characters: won %", "Wrong %", "His table: won %", "Wrong %"),
+        ("six", "sixwrong", "own", "ownwrong"),
+        {
+            "0.6": ("0.6", "| 0.6 | 25.0 | 3.9 | 34.4 | 8.3 |"),
+            "0.7": ("0.7", "| 0.7 | 21.1 | 0.8 | 38.5 | 6.2 |"),
+            "0.8": ("0.8", "| 0.8 | 18.8 | 1.6 | 41.7 | 3.1 |"),
+            "0.9": ("0.9 (his preset)", "| 0.9 (preset) | 18.8 | 0.8 | 37.5 | 0.0 |"),
+        },
+    ),
+    "leash.width": Table(
+        GLOSSARY, _POLICY_LEASH,
+        ("Leash", "0.10", "0.20", "0.25", "0.30", "0.35", "0.40", "0.50"),
+        ("l10", "l20", "l25", "l30", "l35", "l40", "l50"),
+        {
+            "Plum": (_PLUM + ", options allowed", "| Plum, mean options allowed (1201 menus) | 1.19 | 1.36 | 1.46 | 1.58 | 1.71 | 1.86 | 2.19 |"),
+            "PlumOG": ("[[PlumOG]], options allowed", "| PlumOG, mean options allowed (755 menus) | 1.59 | 1.69 | 1.75 | 1.79 | 1.87 | 1.97 | 2.48 |"),
+        },
+    ),
+    # The two training runs' late checkpoints, re-measured on 96 games a table.
+    "plum.run1": Table(
+        DEEPNASH_PLAN, _RUN1,
+        ("Checkpoint", "Log-loss 25/50/75/100%", "His table: won %", "Wrong %", "Six characters: won %"),
+        ("logloss", "win", "wrong", "six"),
+        {
+            "100": ("100", "| 100 | 1.49 / 1.23 / 0.87 / 0.22 | 24.0 | 1.0 | 15.6 |"),
+            "110": ("110", "| **110** | **1.47 / 1.22 / 0.86 / 0.21** | **32.3** | **0.0** | **12.5** |"),
+            "120": ("120", "| 120 | 1.48 / 1.23 / 0.87 / 0.22 | 28.1 | 0.0 | 15.6 |"),
+            "130": ("130", "| 130 | 1.50 / 1.26 / 0.90 / 0.23 | 20.8 | 1.0 | 10.9 |"),
+            "140": ("140", "| 140 | 1.50 / 1.27 / 0.90 / 0.25 | 18.8 | 1.0 | 12.5 |"),
+            "150": ("150", "| 150 | 1.51 / 1.27 / 0.91 / 0.24 | 12.5 | 1.0 | 4.7 |"),
+        },
+    ),
+    "plum.run2": Table(
+        DEEPNASH_PLAN, _RUN2,
+        ("Checkpoint", "Log-loss 25/50/75/100%", "His table: won %", "Wrong %", "Six characters: won %"),
+        ("logloss", "win", "wrong", "six"),
+        {
+            "60": ("60", "| 60 | 1.48 / 1.21 / 0.85 / 0.22 | 25.0 | 2.1 | 9.4 |"),
+            "80": ("80", "| 80 | 1.49 / 1.22 / 0.87 / 0.21 | 36.5 | 1.0 | 21.9 |"),
+            "100": ("100", "| 100 | 1.48 / 1.20 / 0.84 / 0.21 | 35.4 | 1.0 | 12.5 |"),
+            "120": ("120", "| 120 | 1.47 / 1.20 / 0.85 / 0.21 | 44.8 | 0.0 | 15.6 |"),
+            "130": ("130 (exported)", "| **130** | **1.48 / 1.21 / 0.86 / 0.21** | **49.0** | **0.0** | **21.9** |"),
+            "140": ("140", "| 140 | 1.48 / 1.20 / 0.86 / 0.21 | 38.5 | 0.0 | 20.3 |"),
+            "150": ("150", "| 150 | 1.48 / 1.21 / 0.87 / 0.21 | 37.5 | 1.0 | 21.9 |"),
+        },
+    ),
 })
 
 FACTS: dict = {
@@ -557,6 +644,21 @@ FACTS: dict = {
     "green.arms.grid.plum": Fact("0.57", GLOSSARY, _BENCH_GRID, "Plum (0.57)"),
     "green.arms.grid.peacock": Fact("0.31", GLOSSARY, _BENCH_GRID, "Peacock (0.31)"),
     "green.arms.grid.scarlett": Fact("0.37", GLOSSARY, _BENCH_GRID, "Scarlett (0.37)"),
+    # Phase 12: the trained Plum.
+    "policy.bench.snapshots": Fact("1,080", GLOSSARY, _POLICY_BENCH, "the same 1080 snapshots"),
+    "policy.green.plum": Fact("0.75", GLOSSARY, _POLICY_BENCH, "Green's arms after the run: Plum 0.75"),
+    "policy.calibration.n": Fact("132", GLOSSARY, "Calibration of the accusation test", "right in 132 of 132 snapshots"),
+    "policy.leash.match": Fact("0.35", GLOSSARY, _POLICY_LEASH, "0.35 matches PlumOG's mean width at 0.25"),
+    "policy.menus.plum": Fact("50", GLOSSARY, _POLICY_LEASH, "50 against 31"),
+    "policy.menus.og": Fact("31", GLOSSARY, _POLICY_LEASH, "50 against 31"),
+    "policy.own.96": Fact("49.0", GLOSSARY, _POLICY_ARENAS, "49.0% at his own table and 21.9% at the six-character table"),
+    "policy.six.96": Fact("21.9", GLOSSARY, _POLICY_ARENAS, "49.0% at his own table and 21.9% at the six-character table"),
+    "policy.og.ring": Fact("62.5", GLOSSARY, _POLICY_ARENAS, "The **62.5%** often quoted"),
+    "policy.run.games": Fact("76,800", DEEPNASH_PLAN, _RUN1, "76,800 games"),
+    "policy.run.minutes": Fact("40", DEEPNASH_PLAN, _RUN1, "under 40 minutes"),
+    "policy.run2.entropy.to": Fact("1.35", DEEPNASH_PLAN, _RUN2, "from 1.65 to 1.35"),
+    "policy.run2.turns.to": Fact("50", DEEPNASH_PLAN, _RUN2, "from 75 turns to 50"),
+    "policy.smoke.memorise": Fact("3.6", DEEPNASH_PLAN, "What the smoke runs taught", "midpoint log-loss to 3.6"),
 }
 
 
@@ -670,11 +772,14 @@ def rope_question() -> dict:
         opponent who has spoken; ``green_losses`` and ``green_arms``,
         every arm's log-loss against `ROPE_TRUTH` and the Beta
         posterior (alpha, beta, mean) each has after that one lesson;
+        ``policy`` and ``policy_value``: the network's answer (today's
+        Plum, the committed weights) and its value head's estimate;
         ``mask``, the floor's own view of the position.
     """
     from clude_agents.bandit import BanditAgent, RevealedOutcome, log_loss
     from clude_agents.base import mask_and_normalize
     from clude_agents.decision_tree import FEATURE_NAMES, DecisionTreeAgent, _features
+    from clude_agents.deep_nash import DeepNashAgent
     from clude_agents.dempster_shafer import DempsterShaferAgent
     from clude_agents.exact_enum import ExactEnumAgent
     from clude_agents.markov import MarkovAgent
@@ -696,6 +801,9 @@ def rope_question() -> dict:
     white = MarkovAgent()
     white.reset(0)
     chain = white.select_action(obs)
+    policy = DeepNashAgent()
+    policy.reset(0)
+    network = policy.select_action(obs)
 
     # The questions Mustard's tree asks about the card the suggestion named.
     features = _features(obs, obs.mask, "Peacock", list(SUSPECTS))
@@ -728,6 +836,8 @@ def rope_question() -> dict:
         "mustard_leaf": (node.prediction, node.n_samples),
         "white": {c: chain.probabilities[c] for c in ROPE_CARDS},
         "white_repeat": chain.extra["repeat_probability"][ROPE_SEATS["third"]],
+        "policy": {c: network.probabilities[c] for c in ROPE_CARDS},
+        "policy_value": network.extra["value"],
         "green_losses": losses,
         "green_arms": {name: (c.alpha, c.beta, c.mean) for name, c in green.candidates.items()},
         "mask": obs.mask,
@@ -871,7 +981,9 @@ def _fraction(value: float, places: int = 100) -> str:
 def _code() -> dict:
     from math import sqrt
 
-    from clude_agents import bandit, decision_tree, exact_enum, markov, naive_bayes
+    from math import prod
+
+    from clude_agents import bandit, decision_tree, deep_nash, exact_enum, markov, naive_bayes
     from clude_agents.character import N_TRIPLES
     from clude_agents.personality import PRESETS
     from clude_core.domain import ALL_CARDS, ROOMS, SUSPECTS, WEAPONS
@@ -890,6 +1002,13 @@ def _code() -> dict:
         "scarlett.decay.twice": lambda: _trim(naive_bayes.REFUTED_UNKNOWN_DECAY ** 2),
         "scarlett.decay.thrice": lambda: _trim(naive_bayes.REFUTED_UNKNOWN_DECAY ** 3),
         "plum.node_budget": lambda: f"{exact_enum.DEFAULT_NODE_BUDGET:,}",
+        "net.state": lambda: str(deep_nash.STATE_SIZE),
+        "net.card_features": lambda: str(deep_nash.CARD_FEATURES),
+        "net.hidden": lambda: str(deep_nash.HIDDEN),
+        "net.choice": lambda: str(deep_nash.CHOICE_SIZE),
+        "net.move_hidden": lambda: str(deep_nash.MOVE_HIDDEN),
+        "net.move_in": lambda: str(deep_nash.HIDDEN + deep_nash.CHOICE_SIZE),
+        "net.params": lambda: f"{sum(prod(shape) for shape in deep_nash.WEIGHT_SHAPES.values()):,}",
         "plum.sample_budget": lambda: f"{exact_enum.DEFAULT_SAMPLE_BUDGET:,}",
         "cards.total": lambda: str(len(ALL_CARDS)),
         "cards.suspects": lambda: str(len(SUSPECTS)),
@@ -925,6 +1044,7 @@ def _code() -> dict:
         table[f"example.peacock.{card}.pl"] = lambda c=card: _trim(rope_question()["peacock_plausibility"][c], 2)
         table[f"example.mustard.{card}"] = lambda c=card: _trim(rope_question()["mustard"][c], 2)
         table[f"example.white.{card}"] = lambda c=card: _trim(rope_question()["white"][c], 2)
+        table[f"example.policy.{card}"] = lambda c=card: _trim(rope_question()["policy"][c], 2)
     table["example.peacock.pair"] = lambda: _trim(rope_question()["peacock_belief"]["White"] * rope_question()["peacock_belief"]["Wrench"], 2)
     table["example.peacock.betp.pair"] = lambda: _trim(rope_question()["peacock"]["White"] * rope_question()["peacock"]["Wrench"], 2)
     table["example.ds.share"] = lambda: _fraction(1 / len(("Peacock", "Rope")))

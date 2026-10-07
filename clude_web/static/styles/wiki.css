@@ -243,6 +243,7 @@
 .infobox .infobox-art { border-top: 0; text-align: center; background: var(--panel); padding: 0.6rem; }
 .infobox .infobox-art svg { display: block; width: 100%; height: auto; margin: 0 auto; }
 .infobox .infobox-art svg.fig-pawn { width: 6.5rem; }
+.infobox .infobox-art svg.fig-portrait { width: 11rem; }
 .infobox-caption { margin-top: 0.25rem; font-size: 0.8rem; color: var(--ink-soft); }
 .infobox.suspect-scarlett caption { background: var(--suspect-scarlett); color: var(--w-scarlett-ink); }
 .infobox.suspect-mustard caption { background: var(--suspect-mustard); color: var(--w-mustard-ink); }
@@ -287,6 +288,7 @@
 .thumb-open { white-space: nowrap; font-size: 0.78rem; color: var(--ink-soft); }
 .thumb.full .thumb-art svg.fig-drawn, .thumb.full .thumb-art svg.fig-chart { width: 100%; max-width: 40rem; }
 .thumb.full .thumb-art svg.fig-pawn { width: 9rem; }
+.thumb.full .thumb-art svg.fig-portrait { width: 16rem; }
 
 .fig { font-family: var(--w-ui); }
 .fig .t { fill: var(--ink); font-size: 13px; }
@@ -333,6 +335,45 @@ html[data-style="gaslight"] .wiki-board-plain { display: none; }
 .fig .si-green { fill: var(--w-green-ink); }
 .fig .si-peacock { fill: var(--w-peacock-ink); }
 .fig .si-plum { fill: var(--w-plum-ink); }
+
+/* Portraits (clude_web/wiki/portraits.py): the clothes take the
+   suspect's colour above; skin, hair and props keep one palette in every
+   look, as a printed caricature would, with a dark cartoon outline. */
+.fig .pt-o { stroke: #2B2118; stroke-width: 2.2; stroke-linejoin: round; }
+.fig .pt-skin { fill: #F2C9A2; }
+.fig .pt-nose { fill: #EDB58F; }
+.fig .pt-skin-lid { fill: #E3B088; }
+.fig .pt-shade-line { fill: none; stroke: #C99470; stroke-width: 1.5; stroke-linecap: round; }
+.fig .pt-ink { fill: #2B2118; }
+.fig .pt-stroke { fill: none; stroke: #2B2118; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.fig .pt-thin { fill: none; stroke: #2B2118; stroke-width: 1.3; stroke-linecap: round; }
+.fig .pt-cheek { fill: #E2836F; fill-opacity: 0.4; }
+.fig .pt-shine { fill: none; stroke: #FFFFFF; stroke-opacity: 0.45; stroke-width: 3; stroke-linecap: round; }
+.fig .pt-glint { fill: #FFFFFF; fill-opacity: 0.5; }
+.fig .pt-lip { fill: #B3243B; }
+.fig .pt-hair-black { fill: #2A2226; }
+.fig .pt-hair-brown { fill: #6E4526; }
+.fig .pt-hair-grey { fill: #C9C3B8; }
+.fig .pt-hair-auburn { fill: #93412A; }
+.fig .pt-hair-silver { fill: #948D83; }
+.fig .pt-hair-brown-line { fill: none; stroke: #6E4526; stroke-width: 2.6; stroke-linecap: round; }
+.fig .pt-hair-black-line { fill: none; stroke: #2A2226; stroke-width: 2.6; stroke-linecap: round; }
+.fig .pt-cloth { fill: #F7F3EA; }
+.fig .pt-dark { fill: #2F2A30; }
+.fig .pt-gold { fill: #D4A437; }
+.fig .pt-pearl { fill: #FBF7EE; }
+.fig .pt-glass { fill: #FFFFFF; fill-opacity: 0.22; }
+.fig .pt-chain { fill: none; stroke: #D4A437; stroke-width: 1.4; }
+.fig .pt-strap { fill: none; stroke: #F2F0EB; stroke-width: 5; stroke-linecap: round; }
+.fig .pt-holder { fill: none; stroke: #2F2A30; stroke-width: 4; stroke-linecap: round; }
+.fig .pt-cigarette { fill: none; stroke: #F7F3EA; stroke-width: 4; }
+.fig .pt-ember { fill: #E8622C; }
+.fig .pt-smoke { fill: none; stroke: #9A948C; stroke-width: 2; stroke-linecap: round; stroke-opacity: 0.8; }
+.fig .pt-ribbon-a { fill: #2F5AA0; }
+.fig .pt-ribbon-b { fill: #B3243B; }
+.fig .pt-quill { fill: none; stroke: #2B2118; stroke-width: 1.6; }
+.fig .pt-tassel { fill: none; stroke: #D4A437; stroke-width: 2; }
+.fig .pt-boa { stroke-width: 1.4; }
 
 /* Charts: thin marks, a recessive grid, text in ink and never in a
    series colour. A point's value is its tooltip. */
@@ -455,6 +496,23 @@ html[data-style="gaslight"] .wiki-board-plain { display: none; }
 }
 .admonition-title { margin: 0 0 0.4rem; font: 600 0.8rem / 1.3 var(--w-ui); letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-soft); }
 .admonition.note { border-left-color: var(--wiki-out); }
+
+/* An algorithm box: textbook-style pseudocode, an indented code block
+ * inside `!!! algorithm "Title"`. The steps keep their indentation and
+ * scroll sideways inside the box on a phone rather than wrap. */
+.admonition.algorithm { border-left-color: var(--w-strong); background: var(--panel, var(--page)); }
+.admonition.algorithm pre {
+  margin: 0 0 0.75rem;
+  padding: 0.55rem 0.7rem;
+  overflow-x: auto;
+  background: var(--w-sunk);
+  border: 1px solid var(--edge);
+  border-radius: var(--w-radius);
+  font: 0.84rem / 1.5 var(--w-mono);
+  tab-size: 2;
+}
+.admonition.algorithm pre code { padding: 0; background: none; border: 0; font: inherit; overflow-wrap: normal; white-space: pre; }
+.admonition.algorithm p { font-size: 0.92rem; }
 
 /* --- references ---------------------------------------------------------- */
 

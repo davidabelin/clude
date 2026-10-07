@@ -36,7 +36,7 @@ The following example shows how repeated evidence affects the scores.
 
     [[Mr. Green]] suggests *Mrs. Peacock, with the Rope, in the Hall*. The Hall is known to be in Green's hand. Scarlett cannot disprove the suggestion; Mustard can, and shows Green a card she does not see. Mustard must therefore hold Peacock or the Rope. Scarlett multiplies both cards' scores by {{code:scarlett.decay}} and normalises the scores within each category. Mrs. White's probability rises from 0.5 to **{{code:example.scarlett.1.White}}**.
 
-    Green later repeats the same suggestion from the Hall, and Mustard disproves it again. This adds no constraint to the position: Mustard was already known to hold Peacock or the Rope. [[Professor Plum]]'s [[exact posterior enumeration|count]] therefore leaves Mrs. White at {{code:example.plum.White}}. Scarlett applies another adjustment, raising her to **{{code:example.scarlett.2.White}}**. The calculation holds the rest of the position fixed to isolate repetition.
+    Green later repeats the same suggestion from the Hall, and Mustard disproves it again. This adds no constraint to the position: Mustard was already known to hold Peacock or the Rope. An [[exact posterior enumeration|exact count]] of the deals therefore leaves Mrs. White at {{code:example.plum.White}}. Scarlett applies another adjustment, raising her to **{{code:example.scarlett.2.White}}**. The calculation holds the rest of the position fixed to isolate repetition.
 
     After a third such disproof, Scarlett assigns Mrs. White **{{code:example.scarlett.3.White}}**. Her accusation estimate for White with the Wrench is {{code:example.scarlett.3.pair}}, above her [[accusation threshold]] of {{code:preset.Scarlett.accuse_threshold}}. This estimate multiplies two card probabilities; it is not the exact probability of that pair. One card in Mustard's hand could explain all three disproofs.
 
@@ -60,6 +60,17 @@ Scarlett starts every card at a score of 1 and reads through the whole history o
 When the reading is done, the scores are turned into [[w:Probability|probabilities]] one category at a time. Any card the deduction floor has ruled out of the envelope is set to zero, whatever its score; a card the floor has proved to be in the envelope is set to 1; and the scores of the cards still in question are [[w:Normalizing constant|divided by their total]], so that the suspects sum to 1, the weapons sum to 1 and the rooms sum to 1.[^base] This last step is shared by all six methods. It ensures that Scarlett never assigns envelope probability to a card she is holding.
 
 The scores are recomputed from the suggestion history on every call. There is no incremental state, cross-game method memory or training stage.
+
+!!! algorithm "Scarlett's belief"
+        Input: the suggestions so far; the deduction floor's mask
+        score(c) ← 1 for every card c
+        for each suggestion, naming three cards:
+            if nobody could disprove it:  score(c) ← score(c) × boost   for each named c
+            else if the card shown was not seen:  score(c) ← score(c) × decay   for each named c
+            (a card shown to her is a fact; the mask settles it)
+        within each category: zero the cards the floor rules out, fix the proven one,
+            and divide the rest by their total
+        return the scores as probabilities
 
 ## Formally
 
@@ -95,7 +106,7 @@ Scarlett's heuristic differs from a textbook naive Bayes [[w:Statistical classif
 
 The textbook product requires [[w:Conditional independence|conditional independence]] and valid likelihood ratios. At a card table, repeated [[suggestion|suggestions]] can share a cause: the same card in the refuter's hand. Treating that [[w:Confounding|common cause]] as fresh evidence can push a score too far towards 0 or 1. Dependence does not always produce overconfidence, but this example shows how double-counting can do so.
 
-Scarlett also discards information in an unseen disproof. She discounts the three named cards equally, although the evidence concerns them jointly: "at least one is in that hand". [[Professor Plum]]'s [[exact posterior enumeration]] retains that joint constraint. She does not use the identity or hand size of the disprover; [[Mrs. Peacock]]'s [[Dempster-Shafer theory|method]] uses both when weighting an open fact.
+Scarlett also discards information in an unseen disproof. She discounts the three named cards equally, although the evidence concerns them jointly: "at least one is in that hand". An [[exact posterior enumeration]], [[PlumOG]]'s method, retains that joint constraint. She does not use the identity or hand size of the disprover; [[Mrs. Peacock]]'s [[Dempster-Shafer theory|method]] uses both when weighting an open fact.
 
 ## In clude
 

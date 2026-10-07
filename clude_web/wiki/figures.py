@@ -89,6 +89,19 @@ def _token(suspect: str) -> Figure:
     )
 
 
+def _portrait(suspect: str) -> Figure:
+    """A cartoon bust (`portraits`), in the suspect's own colour."""
+    from . import portraits
+
+    name = FULL_NAMES[suspect]
+    return Figure(
+        key=f"portrait-{suspect.lower()}",
+        title=f"{name}, a sketch",
+        caption=f"{name}, as the encyclopaedia draws {'her' if suspect in ('Scarlett', 'White', 'Peacock') else 'him'}.",
+        svg=_svg(*portraits.VIEW, portraits.body(suspect), f"A cartoon portrait of {name}", "portrait"),
+    )
+
+
 def _disc(suspect: str, cx: float, cy: float, r: float = 13) -> str:
     key = suspect.lower()
     return (
@@ -845,6 +858,132 @@ def _learning_loop() -> Figure:
     return Figure("learning-loop", "The learning interaction", label, _svg(360, 290, "".join(body), label))
 
 
+# --- Plum's network (Phase 12) ----------------------------------------------
+
+
+def _plum_network() -> Figure:
+    """The layout `deep_nash.WEIGHT_SHAPES` states: the floor as numbers,
+    a two-layer trunk, four heads on it, and the move scorer that reads
+    the trunk beside each legal move. Sizes come from the live module."""
+    from math import prod
+
+    from clude_agents import deep_nash as dn
+
+    n_in, hidden, choice, move_hidden = dn.STATE_SIZE, dn.HIDDEN, dn.CHOICE_SIZE, dn.MOVE_HIDDEN
+    ys = [58 + 18 * i for i in range(8)]
+    x1, x2 = 140, 188
+    heads = (("belief", "21: P(in the envelope)"), ("suspect", "6: whom to name"),
+             ("weapon", "6: what to name"), ("value", "1: how it is going"))
+    head_y = [46 + 36 * i for i in range(4)]
+    body = [
+        '<rect x="4" y="52" width="104" height="130" rx="2" class="plate"/>',
+        _text(56, 72, "the floor", "t-sm t-b", "middle"),
+        _text(56, 88, f"as {n_in} numbers", "t-xs t-b", "middle"),
+        _text(56, 110, "per card: where", "t-xs t-soft", "middle"),
+        _text(56, 123, "it can be, who", "t-xs t-soft", "middle"),
+        _text(56, 136, "named it", "t-xs t-soft", "middle"),
+        _text(56, 156, "per seat; turn;", "t-xs t-soft", "middle"),
+        _text(56, 169, "table size", "t-xs t-soft", "middle"),
+        _text(x1, 38, str(hidden), "t-xs t-b t-num", "middle"),
+        _text(x2, 38, str(hidden), "t-xs t-b t-num", "middle"),
+        _text((x1 + x2) / 2, 24, "the trunk", "t-xs t-soft", "middle"),
+    ]
+    for y in ys:
+        body.append(f'<path d="M108 {117 + (y - 121) * 0.5:.1f} L{x1 - 5} {y}" class="ln-soft"/>')
+        for y2 in ys:
+            if abs(y2 - y) <= 36:  # a sample of the connections: every unit feeds every next one
+                body.append(f'<path d="M{x1 + 5} {y} L{x2 - 5} {y2}" class="ln-soft"/>')
+        for hy in head_y:
+            body.append(f'<path d="M{x2 + 5} {y} L222 {hy + 13}" class="ln-soft"/>')
+    for x in (x1, x2):
+        for y in ys:
+            body.append(f'<circle cx="{x}" cy="{y}" r="5" class="node"/>')
+    for (name, what), hy in zip(heads, head_y):
+        body.append(f'<rect x="222" y="{hy}" width="132" height="26" rx="2" class="plate"/>')
+        body.append(_text(230, hy + 17, name, "t-sm t-b"))
+        body.append(_text(348, hy + 17, what.split(":")[0], "t-xs t-num", "end"))
+    body.append(_text(288, 200, "each head a softmax over its", "t-xs t-soft", "middle"))
+    body.append(_text(288, 212, "options; the value a number", "t-xs t-soft", "middle"))
+    # the move scorer, under the trunk
+    body.append(f'<path d="M{x2} {ys[-1] + 6} V232" class="arc"/>')
+    body.append(_arrow(x2, 240, 0, 1))
+    body.append('<rect x="76" y="240" width="278" height="44" rx="2" class="plate"/>')
+    body.append(_text(84, 258, "the move scorer, once per legal move:", "t-sm t-b"))
+    body.append(_text(84, 276, f"trunk ({hidden}) + the move ({choice}) → {move_hidden} → 1 score", "t-xs t-num"))
+    params = sum(prod(shape) for shape in dn.WEIGHT_SHAPES.values())
+    label = (
+        f"Plum's network. The deduction floor's state as {n_in} numbers enters a trunk of two layers of "
+        f"{hidden} units. Four heads read the trunk: belief (21 cards), suspect (6), weapon (6) and value (1). "
+        f"A move scorer reads the trunk beside each legal move's {choice} features, through {move_hidden} units "
+        f"to one score. {params:,} weights in all."
+    )
+    return Figure(
+        key="plum-network", title="Plum's network",
+        caption=f"Plum's network: one trunk read by four heads and a move scorer, {params:,} weights in all. Every circle stands for sixteen units.",
+        svg=_svg(360, 296, "".join(body), label),
+    )
+
+
+def _plum_policy_logloss() -> Figure:
+    plum, og, uniform = _row("bench.policy", "Plum"), _row("bench.policy", "PlumOG"), _row("bench.policy", "uniform")
+    series = [
+        ("PlumOG, counting", og, "sl-plum dashed", -9),
+        ("uniform baseline", uniform, "sl-neutral", 0),
+        ("Plum, the network", plum, "sl-plum", 15),
+    ]
+    label = f"Log-loss at four checkpoints. Plum's network: {plum}. PlumOG: {og}. The uniform baseline: {uniform}."
+    return _logloss(
+        "plum-policy-logloss", "The network against the count",
+        "Plum's network against PlumOG's count and the uniform baseline on the same 1,080 positions. Lower is better.",
+        series, label,
+    )
+
+
+def _plum_checkpoints() -> Figure:
+    """Win rate at his own table at each re-measured checkpoint of the
+    two runs; the second resumed from the first's checkpoint 110."""
+    run1 = [(int(k), float(facts.TABLES["plum.run1"].cells(k)[1])) for k in facts.TABLES["plum.run1"].rows]
+    run2 = [(110 + int(k), float(facts.TABLES["plum.run2"].cells(k)[1])) for k in facts.TABLES["plum.run2"].rows]
+    og = float(facts.fact("arena.policy.og.own.win"))
+    left, right, top, bottom, lo, hi, top_value = 40, 346, 30, 206, 90, 270, 70.0
+
+    def x_of(it):
+        return left + (it - lo) / (hi - lo) * (right - left)
+
+    def y_of(v):
+        return bottom - v / top_value * (bottom - top)
+
+    body = [_text(left - 34, 20, "won at his own table, %", "t-xs t-soft")]
+    for tick in (0, 20, 40, 60):
+        body.append(f'<path d="M{left} {y_of(tick):.1f} H{right}" class="grid"/>')
+        body.append(_text(left - 6, y_of(tick) + 4, str(tick), "t-xs t-soft t-num", "end"))
+    for it in (100, 150, 200, 250):
+        body.append(_text(x_of(it), bottom + 16, str(it), "t-xs t-soft t-num", "middle"))
+    body.append(_text((left + right) / 2, bottom + 32, "training iteration (512 games each)", "t-xs t-soft", "middle"))
+    body.append(f'<path d="M{left} {bottom} H{right}" class="axis"/>')
+    body.append(f'<path d="M{left} {y_of(og):.1f} H{right}" class="ref"/>')
+    body.append(_text(left + 4, y_of(og) - 5, f"PlumOG {og:g}% (24 games)", "t-xs t-b t-halo"))
+    for points, cls, name in ((run1, "sl-plum dashed", "first run"), (run2, "sl-plum", "second run")):
+        path = " ".join(f"{'M' if i == 0 else 'L'}{x_of(x):.1f} {y_of(v):.1f}" for i, (x, v) in enumerate(points))
+        body.append(f'<path d="{path}" class="line {cls}"/>')
+        for x, v in points:
+            body.append(f'<circle cx="{x_of(x):.1f}" cy="{y_of(v):.1f}" r="4" class="dot {cls.split()[0]}"><title>{name}, iteration {x}: {v:g}%</title></circle>')
+    best = max(run2, key=lambda p: p[1])
+    body.append(_text(x_of(best[0]), y_of(best[1]) - 10, f"exported: {best[1]:g}%", "t-xs t-b t-halo", "middle"))
+    body.append(_text(x_of(125), y_of(6), "first run", "t-xs t-soft", "middle"))
+    body.append(_text(x_of(232), y_of(6), "second run", "t-xs t-soft", "middle"))
+    label = (
+        "Plum's win rate at his own table at each re-measured checkpoint, 96 games each. First run: "
+        + ", ".join(f"iteration {x} {v:g}%" for x, v in run1) + ". Second run, resumed from iteration 110: "
+        + ", ".join(f"iteration {x} {v:g}%" for x, v in run2) + f". PlumOG won {og:g}% on 24 games."
+    )
+    return Figure(
+        key="plum-checkpoints", title="Plum's checkpoints",
+        caption="The late checkpoints of both training runs at his own table, 96 games each; the second run resumed from the first's iteration 110 with gentler settings, and its best was exported.",
+        svg=_svg(360, 248, "".join(body), label, "chart"),
+    )
+
+
 # --- the method diagrams, from files ----------------------------------------
 
 
@@ -869,6 +1008,22 @@ DIAGRAM_TEXT: dict = {
         "Mustard's trained tree",
         "The decision tree Mustard actually plays with, grown from the live model.",
     ),
+    "architecture": (
+        "clude's packages",
+        "The seven packages and what crosses each seam. No package hands a seat more than that seat may see.",
+    ),
+    "decision-pathway": (
+        "One decision, end to end",
+        "One of a character's decisions, from the engine's question to its answer, headless or with a model in the seat.",
+    ),
+    "plum-training-loop": (
+        "Plum's training loop",
+        "One iteration of regularised Nash dynamics as Plum is trained, and the checkpoints around it.",
+    ),
+    "gpi": ("Generalised policy iteration", "Evaluation and improvement, each making the other out of date, until both settle."),
+    "mcts-phases": ("Monte Carlo tree search", "The four phases of one simulation in Monte Carlo tree search."),
+    "actor-critic": ("Actor-critic", "The actor acts; the critic turns each step's outcome into a TD error that trains them both."),
+    "gan": ("A generative adversarial network", "The generator forges, the discriminator judges, and each learns from the judgement."),
 }
 """Title and default caption for each committed diagram, by its key in
 ``docs/ux/diagrams/build_diagrams.py``'s `DIAGRAMS`."""
@@ -898,7 +1053,11 @@ _DRAWN: dict = {
     "green-arms": _green_arms,
     "green-trust": _green_trust,
     "floor-notepad": _floor_notepad,
+    "plum-network": _plum_network,
+    "plum-policy-logloss": _plum_policy_logloss,
+    "plum-checkpoints": _plum_checkpoints,
     **{f"token-{s.lower()}": (lambda s=s: _token(s)) for s in SUSPECTS},
+    **{f"portrait-{s.lower()}": (lambda s=s: _portrait(s)) for s in SUSPECTS},
 }
 
 

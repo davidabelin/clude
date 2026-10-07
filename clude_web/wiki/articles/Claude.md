@@ -12,7 +12,7 @@ Those roles have different reasoning inputs. A wrapped character receives its me
 
 In a seat labelled X (LLM), the X character supplies a [[belief]], [[personality dials]] and a [[persona]]. The wrapper asks the model to choose allowed options and optionally provide [[table talk]]. A valid model choice can change the action within the leash; a failure invokes the underlying headless choice.[^wrapper]
 
-For example, Plum's enumeration can rate two destinations closely enough that both are allowed. Claude may select one in Plum's voice. This does not mean Claude ran the enumeration or replaced Plum's card probabilities. It chose using the estimates and contextual information the wrapper supplied.
+For example, Plum's network can rate two destinations closely enough that both are allowed. Claude may select one in Plum's voice. This does not mean Claude ran the network or replaced Plum's card probabilities. It chose using the estimates and contextual information the wrapper supplied.
 
 The application's backend configuration identifies the actual model used. Recorded runs preserve their model and call settings; 'with Claude' is a role description, not evidence that every historical run used an identical provider configuration.
 

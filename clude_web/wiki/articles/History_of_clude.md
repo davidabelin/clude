@@ -29,6 +29,8 @@ Phase 9 added [[a seat over MCP]], letting a chat agent occupy a human seat thro
 
 Phase 10 developed the table's stage and rail, the board's visual treatment, sound effects and named [[looks]]. Case-file light became the default, beside Gaslight dark and Developer. Stored games were grouped into practice and development, and the footer added the [[AIX Laboratories]] attribution.
 
+Phase 12 rebuilt [[Professor Plum]]. His exact enumeration, the slowest and least accurate mid-game method on the Classic board, was archived with its character as [[PlumOG]] on 5 October 2026, and a network trained by [[regularised Nash dynamics]] took his seat; the first trained weights were committed on 6 October and measured the next day.[^phase12]
+
 Wikiclude began as Phase 10's explainer work. Its first articles introduced the characters and their methods, followed by rules, mathematics, personality, memory and evaluation. App and project articles and the classwork archive completed the initial collection. A final review checked prose, examples, navigation and presentation across the full collection. These are local development milestones, distinct from deployment.[^wiki]
 
 
@@ -44,5 +46,6 @@ Wikiclude began as Phase 10's explainer work. Its first articles introduced the 
 [^measurements]: {{cite:docs/strategy-glossary.md|Re-measurement on the Classic board (2026-09-15)}}
 [^mcp]: {{cite:docs/web.md|A seat over MCP (Phase 9)}}
 [^wiki]: {{cite:docs/wikiclude-plan.md}}
+[^phase12]: {{cite:docs/deepnash-plan.md|12. As implemented: N1's storage half and N5 (2026-10-07)}}
 
 {{navbox:clude}}

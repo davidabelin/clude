@@ -148,7 +148,7 @@ def floor_then_method() -> str:
     O(["ClueObservation"]) --> F["deduction floor<br/>propagate()"]
     F --> MASK["what is still possible"]
     MASK --> S["Scarlett<br/>naive Bayes"]
-    MASK --> P["Plum<br/>exact enumeration"]
+    MASK --> P["Plum<br/>trained network"]
     MASK --> K["Peacock<br/>Dempster-Shafer"]
     MASK --> U["Mustard<br/>decision tree"]
     MASK --> W["White<br/>Markov"]
@@ -174,6 +174,142 @@ def floor_then_method() -> str:
 def mustard_tree() -> str:
     """The real trained tree, from the live model."""
     return mermaid_tree(DecisionTreeAgent().tree)
+
+
+def architecture() -> str:
+    """The packages, and what crosses each seam (CLAUDE.md's
+    architecture in brief)."""
+    return """flowchart TD
+    WEB["clude_web<br/>tables, lobby, Watch, wiki;<br/>browser and MCP seats"]
+    CORE["clude_core<br/>rules and engine"]
+    FLOOR["clude_constraints<br/>the deduction floor"]
+    AG["clude_agents<br/>six methods, Character, dials"]
+    LLM["clude_llm<br/>menus, leash, personas"]
+    TR["clude_training<br/>benchmark, arena, rollout"]
+    ST["clude_storage<br/>records and logbooks"]
+    WEB -- "seats and moves" --> CORE
+    TR -- "self-play, arenas" --> CORE
+    CORE -- "one seat's redacted view" --> FLOOR
+    FLOOR -- "what is certain" --> AG
+    AG -- "belief and scores" --> LLM
+    LLM -. "the action, back to the engine" .-> CORE
+    CORE -- "the event log" --> ST
+    ST -. "logbooks, read back" .-> AG
+    classDef floorc fill:#2f4f6b,stroke:#16283a,color:#eaf0f6
+    classDef method fill:#efe7d5,stroke:#8d8878,color:#22201a
+    classDef gate fill:#c88a2c,stroke:#6b4610,color:#1a1208
+    class CORE,FLOOR floorc
+    class AG,LLM,TR method
+    class WEB,ST gate"""
+
+
+def decision_pathway() -> str:
+    """One decision of a character's seat, from the engine's question
+    to its answer, with and without a model in the seat."""
+    return """flowchart TD
+    E(["the engine asks a seat:<br/>move, suggest, accuse or show"]) --> OBS["that seat's view:<br/>own hand, the public log"]
+    OBS --> F["deduction floor:<br/>what is certain"]
+    F --> M["the character's method:<br/>belief, and its own scores"]
+    M --> C["Character: the dials<br/>threshold, bluff, secrecy"]
+    C --> Q{"a model<br/>in the seat?"}
+    Q -- no --> H["headless: sample<br/>at the temperature"]
+    Q -- yes --> MENU["menu: the options<br/>within the leash"]
+    MENU --> ONE{"only one<br/>allowed?"}
+    ONE -- yes --> AUTO["played without asking"]
+    ONE -- no --> ASK["the model chooses,<br/>in the persona's voice"]
+    ASK -. "no valid answer" .-> H
+    H --> A(["the action, back to the engine"])
+    AUTO --> A
+    ASK --> A
+    classDef floorc fill:#2f4f6b,stroke:#16283a,color:#eaf0f6
+    classDef method fill:#efe7d5,stroke:#8d8878,color:#22201a
+    classDef gate fill:#c88a2c,stroke:#6b4610,color:#1a1208
+    class F floorc
+    class M,C,H,AUTO method
+    class MENU,ASK gate"""
+
+
+def plum_training_loop() -> str:
+    """Plum's training (scripts/train_plum.py): one iteration of
+    regularised Nash dynamics, and the checkpoints around it."""
+    return """flowchart TD
+    W(["the network's weights"]) --> R["play 512 games: half against itself,<br/>half among the other characters"]
+    R --> EP["each network seat's record:<br/>states, choices, outcome, true envelope"]
+    EP --> RR["regularise the reward:<br/>r − η log π/πref"]
+    RR --> L["one loss: NeuRD policy, value,<br/>belief from a replay buffer, entropy"]
+    L --> U["one gradient step"]
+    U --> W
+    U -. "every few iterations" .-> REF["πref ← a copy of π"]
+    REF -.-> RR
+    U -. "every ten iterations" .-> EV["measure: benchmark,<br/>his table, six characters"]
+    EV --> CK["checkpoint"]
+    CK --> SEL{"the run's best,<br/>on 96 games?"}
+    SEL -- yes --> EX(["export: plum.npz"])
+    classDef floorc fill:#2f4f6b,stroke:#16283a,color:#eaf0f6
+    classDef method fill:#efe7d5,stroke:#8d8878,color:#22201a
+    classDef gate fill:#c88a2c,stroke:#6b4610,color:#1a1208
+    class R,EP method
+    class RR,L,U floorc
+    class EV,CK,EX gate"""
+
+
+def gpi() -> str:
+    """Generalised policy iteration (Sutton and Barto, 4.6)."""
+    return """flowchart TD
+    P(["policy π"]) -- "evaluate" --> V(["value V"])
+    V -- "improve: greedy in V" --> P
+    P -.-> OPT(["both settle: π* and v*"])
+    V -.-> OPT
+    classDef floorc fill:#2f4f6b,stroke:#16283a,color:#eaf0f6
+    classDef method fill:#efe7d5,stroke:#8d8878,color:#22201a
+    classDef gate fill:#c88a2c,stroke:#6b4610,color:#1a1208
+    class P,V method
+    class OPT gate"""
+
+
+def mcts_phases() -> str:
+    """The four phases of one Monte Carlo tree search simulation."""
+    return """flowchart TD
+    S["1. selection<br/>walk down by the UCB rule"] --> E["2. expansion<br/>add one untried move"]
+    E --> R["3. simulation<br/>play to the end, fast and random"]
+    R --> B["4. backup<br/>add the result along the path"]
+    B -- "next simulation" --> S
+    B -. "budget spent" .-> M(["play the most-visited move"])
+    classDef floorc fill:#2f4f6b,stroke:#16283a,color:#eaf0f6
+    classDef method fill:#efe7d5,stroke:#8d8878,color:#22201a
+    classDef gate fill:#c88a2c,stroke:#6b4610,color:#1a1208
+    class S,E,R,B method
+    class M gate"""
+
+
+def actor_critic() -> str:
+    """One-step actor-critic (Sutton and Barto, 13.5)."""
+    return """flowchart TD
+    ENV(["environment"]) -- "S" --> A["actor<br/>policy π(a | s)"]
+    A -- "A" --> ENV
+    ENV -- "R, S′" --> C["critic<br/>value v(s)"]
+    C -- "TD error δ" --> A
+    classDef floorc fill:#2f4f6b,stroke:#16283a,color:#eaf0f6
+    classDef method fill:#efe7d5,stroke:#8d8878,color:#22201a
+    classDef gate fill:#c88a2c,stroke:#6b4610,color:#1a1208
+    class A gate
+    class C floorc
+    class ENV method"""
+
+
+def gan() -> str:
+    """A generative adversarial network's two players."""
+    return """flowchart TD
+    Z(["random noise z"]) --> G["generator<br/>forges an example"]
+    X(["real examples"]) --> D["discriminator<br/>real or forged?"]
+    G --> D
+    D -. "judgement" .-> G
+    classDef floorc fill:#2f4f6b,stroke:#16283a,color:#eaf0f6
+    classDef method fill:#efe7d5,stroke:#8d8878,color:#22201a
+    classDef gate fill:#c88a2c,stroke:#6b4610,color:#1a1208
+    class G gate
+    class D floorc
+    class Z,X method"""
 
 
 DIAGRAMS: dict = {
@@ -215,6 +351,29 @@ DIAGRAMS: dict = {
         "cold under 0.10, cool to 0.35, warm to 0.65, hot above.",
         mustard_tree,
     ),
+    "architecture": (
+        "clude's packages",
+        "The seven packages and what crosses each seam: the engine hands a seat its redacted "
+        "view, the floor settles what is certain, a method and its character turn that into "
+        "an action, and the store keeps what happened.",
+        architecture,
+    ),
+    "decision-pathway": (
+        "One decision, end to end",
+        "The path of one of a character's decisions, from the engine's question to its answer, "
+        "headless or with a model in the seat.",
+        decision_pathway,
+    ),
+    "plum-training-loop": (
+        "Plum's training loop",
+        "One iteration of regularised Nash dynamics as <code>scripts/train_plum.py</code> runs it, "
+        "and the checkpoints around it.",
+        plum_training_loop,
+    ),
+    "gpi": ("Generalised policy iteration", "Evaluation and improvement, each making the other out of date, until both settle.", gpi),
+    "mcts-phases": ("Monte Carlo tree search", "The four phases of one simulation.", mcts_phases),
+    "actor-critic": ("Actor-critic", "The actor acts; the critic's TD error trains them both.", actor_critic),
+    "gan": ("A generative adversarial network", "The generator forges, the discriminator judges, and each learns from the judgement.", gan),
 }
 
 

@@ -68,6 +68,21 @@ The rules interact. Resolving an open fact can fill a hand; excluding other card
 
 The floor raises an error if its constraints contradict one another: a card has no possible holder, an open fact has no possible member, or a hand contains more placed cards than its capacity. Valid game observations should not produce these contradictions; the project treats one as a bug in the construction or processing of the observation.[^module]
 
+!!! algorithm "The deduction floor"
+        Input: one seat's view: own hand, every suggestion and its answers, hand sizes
+        for every card: holders(c) ← every seat, and the envelope
+        own hand:                      holders(c) ← {me}
+        a player passed over:          remove that player from the three named cards
+        a card shown to me:            holders(c) ← {the player who showed it}
+        a card shown, unseen by me:    record "that player holds one of the three"
+        repeat until a pass changes nothing:
+            for each open fact: drop the cards its player can no longer hold;
+                if one card remains, it is that player's;  if none, contradiction
+            in each category: once one card is the envelope's, no other can be;
+                if only one card can be the envelope's, it is
+            for each player: once their hand is full, nothing else is theirs
+        return holders, the open facts still unresolved, and the hand sizes
+
 ## Formally
 
 What the floor does is [[w:Constraint satisfaction problem|constraint propagation]]. Each card is a variable whose domain is the set of holders it could still have; each fact is a constraint; and the three rules are propagators that shrink domains until no rule can shrink one further. The result is a fixed point of the rules, reached in finitely many steps because every step removes something and nothing is ever put back.[^aima]

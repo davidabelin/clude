@@ -69,6 +69,17 @@ Growing is [[w:Recursion|recursive]]. At the root the program tries every measur
 
 To form a belief the method computes the eight measurements for every unplaced card, follows each down the tree to a leaf, takes the leaf's value as the card's raw score, and hands the scores to the step every method ends with: the floor sets to zero any card it has ruled out and to 1 any it has proved, and what remains is scaled to sum to 1 within each category.[^base] The tree is grown once, the first time anyone asks, and kept for the life of the program; consulting it is a handful of comparisons, which is why Mustard answers in a fraction of a millisecond.
 
+!!! algorithm "Mustard's belief"
+        Input: the trained regression tree; the floor's mask
+        for each card c the floor has not placed:
+            x ← c's eight measurements (how often named, how often unrefuted,
+                by how many players, where it could still be, how far the game has run, …)
+            node ← the root
+            while node is not a leaf:
+                node ← its left child if x[feature] ≤ threshold, else its right child
+            score(c) ← the leaf's value (its training cards' smoothed share in the envelope)
+        mask and normalise within each category
+
 ## Formally
 
 ### The split criterion

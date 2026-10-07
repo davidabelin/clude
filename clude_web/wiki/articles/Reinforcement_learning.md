@@ -6,7 +6,7 @@ redirects: RL
 ---
 **Reinforcement learning** is learning how to act from interaction with an environment. An agent chooses actions, receives rewards and observations, and seeks a policy that produces a high expected return over time. It differs from being given the correct action for each training example: actions can change what the agent will encounter, and a useful action may pay off much later.[^intro]
 
-The [[classwork archive]] includes the standard textbook and several reinforcement-learning papers. In [[clude]], [[Mr. Green|Green's bandit]] provides a limited reward-based choice among estimators, while [[Colonel Mustard|Mustard's tree]] is supervised learning. Current characters do not learn a complete Clue policy through Q-learning or deep reinforcement learning.[^implementation]
+The [[classwork archive]] includes the standard textbook and several reinforcement-learning papers. In [[clude]], [[Mr. Green|Green's bandit]] provides a limited reward-based choice among estimators, while [[Colonel Mustard|Mustard's tree]] is supervised learning. Since Phase 12 one character does: [[Professor Plum]] plays by a network trained by [[regularised Nash dynamics]], a deep reinforcement-learning method adapted from [[DeepNash]], over tens of thousands of self-play games. The other five do not learn a policy.[^implementation]
 
 ## A delayed result
 
@@ -43,9 +43,13 @@ The ordinary [[Markov decision process]] formulation assumes a sufficient state 
 Other players also choose actions. Training against fixed opponents and training against opponents who are learning describe different environments. A policy that wins against one roster may fail against another. These issues make [[self-play]] and evaluation conditions part of the learning problem, rather than incidental setup details.
 
 
+## The methods, one page each
+
+Each family of methods has a short page of its own, with its mathematics and its algorithm written out: [[bandit action selection]], [[dynamic programming]], [[Monte Carlo methods]], [[temporal-difference learning]] with [[Sarsa]] and [[Q-learning]], planning with [[Dyna-Q]] and [[Monte Carlo tree search]], [[function approximation]] and the [[multilayer perceptron]], and the policy methods: [[policy gradient]], [[actor-critic]] and [[proximal policy optimisation]]. The deep variants of the classwork papers are [[deep Q-network|deep Q-networks]], the [[dueling network architecture]] and [[prioritised experience replay]]; clude's own is [[regularised Nash dynamics]].
+
 ## See also
 
-[[Markov decision process]] · [[Q-learning]] · [[Character training]] · [[Self-play]]
+[[Markov decision process]] · [[Q-learning]] · [[Policy gradient]] · [[Character training]] · [[Self-play]]
 
 ## References
 

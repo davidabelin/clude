@@ -10,7 +10,9 @@ Failures return to the underlying headless character. The wrapper therefore perm
 
 ## One decision
 
-Suppose the engine asks Plum where to move. His enumeration supplies room probabilities, and the decision layer combines them with proximity. The wrapper ranks the legal destinations, applies the leash and labels the allowed options. If two remain, the model receives their descriptions and scores, together with Plum's own view of the game.
+{{figure:decision-pathway|One of a character's decisions, end to end. With a model in the seat the menu is built from the character's own scores, and a failed call falls back to the headless pick.}}
+
+Suppose the engine asks Plum where to move. His network scores every legal destination itself (for the other characters, the decision layer combines room probabilities with proximity). The wrapper ranks the legal destinations by those same scores, applies the leash and labels the allowed options. If two remain, the model receives their descriptions and scores, together with Plum's own view of the game.
 
 A valid reply selects a letter and may supply a short line of [[table talk]]. The wrapper plays the corresponding action. If the letter is outside the menu, it instead calls Plum's headless movement decision. The model does not send a new route for the engine to improvise.
 

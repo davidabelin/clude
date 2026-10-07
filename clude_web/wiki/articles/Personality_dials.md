@@ -17,6 +17,8 @@ The controls act at different stages. [[Curiosity]] changes movement scores, [[t
 
 ## The five decision dials
 
+{{figure:decision-pathway|Where the dials act: between the method's belief and the action, for every decision a character makes.}}
+
 | Dial | Decision | Main effect |
 |---|---|---|
 | Accusation threshold | Accuse | Minimum confidence score for a headless accusation |

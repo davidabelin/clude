@@ -6,7 +6,7 @@ redirects: Self play, Training games
 ---
 **Self-play** in [[clude]] generates completed games between automated players, then extracts private observations for training and evaluation. The default regime uses [[floor player|floor players]]; the historical regime uses [[random bot|random bots]]. Both provide card evidence without requiring paid model calls.[^self]
 
-The term here does not mean that all six characters train by playing themselves or continually improve through reinforcement learning. Fixed bot policies generate the histories. Mustard uses labelled features from those histories, while the [[belief benchmark]] evaluates predictions on their observations.
+For five of the six characters the term does not mean that they train by playing themselves; fixed bot policies generate the histories. [[Professor Plum]] is the exception since Phase 12: his network was trained by [[regularised Nash dynamics]] in games against copies of itself and against the other characters. Mustard uses labelled features from those histories, while the [[belief benchmark]] evaluates predictions on their observations.
 
 ## One generated game
 

@@ -50,7 +50,7 @@ In [[Clue]], a single hidden card can explain several answers. Conditioning only
 
 ## Decisions and limits
 
-`best_triple` chooses the largest confidence in each category and multiplies the three. This shared approximation is used even when Plum's enumeration completed exactly. It also need not identify the most probable complete triple under a dependent joint distribution.[^character]
+`best_triple` chooses the largest confidence in each category and multiplies the three. This shared approximation was used even when [[PlumOG]]'s enumeration completed exactly, and is used for the current Plum's network. It also need not identify the most probable complete triple under a dependent joint distribution.[^character]
 
 Peacock substitutes evidence-based belief bounds, but multiplying them is not generally a guaranteed joint lower bound either. The numerical interface supplies per-card values and the decision layer uses a common rule; [[belief benchmark|benchmark]] scores of card estimates and [[arena]] outcomes should be read with that distinction intact.
 

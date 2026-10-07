@@ -15,7 +15,7 @@ Used by | The [[personality dials]], the [[accusation]] test, the certainty tag
 Scored by | [[Log-loss]], in the [[belief benchmark]]
 = In the code
 Type | `ClueBelief`, in `base.py`
-Extras | A method's own notes beside the numbers: Plum's exact or sampled, Peacock's bounds, Green's arm
+Extras | A method's own notes beside the numbers: Plum's value estimate, Peacock's bounds, Green's arm
 }}
 
 A **belief** in [[clude]] is a player's set of estimated [[w:Probability|probabilities]] for the cards in [[the envelope]]. It contains one number for each of the {{code:cards.total}} [[Clue#The cards|cards]]. The numbers sum to 1 separately across the {{code:cards.suspects}} suspects, the {{code:cards.weapons}} weapons and the {{code:cards.rooms}} rooms: exactly one card of each kind is in the envelope. Each of the six [[Category:Characters|characters]] uses a different [[Category:Methods|method]] to produce these numbers. Shared [[personality dials]] then govern how the character uses them to move, [[suggestion|suggest]] and [[accusation|accuse]].[^base][^character]
@@ -37,10 +37,11 @@ In this constructed example, every method evaluates the same observer's view. It
     |---|---|---|
     | The floor alone ([[uniform baseline]]) | {{code:example.uniform.White.dec}} | Two suspects still possible, an even share each |
     | [[Naive Bayes]] ([[Miss Scarlett]]) | {{code:example.scarlett.1.White}} | Marked Peacock and the Rope down by {{code:scarlett.decay}} and rescaled |
-    | [[Exact posterior enumeration]] ([[Professor Plum]]) | {{code:example.plum.White.dec}} (exactly {{code:example.plum.White}}) | Counted the deals: {{code:example.deals}} survive, White in the envelope in two |
+    | [[Exact posterior enumeration]] ([[PlumOG]]) | {{code:example.plum.White.dec}} (exactly {{code:example.plum.White}}) | Counted the deals: {{code:example.deals}} survive, White in the envelope in two |
     | [[Dempster-Shafer theory]] ([[Mrs. Peacock]]) | {{code:example.peacock.White}} | Belief {{code:example.peacock.White.bel}}, plausibility {{code:example.peacock.White.pl}}, split down the middle |
     | [[Decision tree]] ([[Colonel Mustard]]) | {{code:example.mustard.White}} | All four open cards reached the same leaf |
     | [[Markov chain]] ([[Mrs. White]]) | {{code:example.white.White}} | Green named Peacock and the Rope, so their scores rise |
+    | [[Regularised Nash dynamics]] ([[Professor Plum]]) | {{code:example.policy.White}} | A trained network; it reads Green's naming of Peacock as evidence for her |
     | [[Bandit ensemble]] ([[Mr. Green]]) | one of the above | Whichever arm his record favours |
 
     The estimates differ because the methods use the evidence differently. The equal-weight count gives {{code:example.plum.White}}. Scarlett starts below it and exceeds it after repeated disproofs. Peacock assigns a higher decision probability but uses a lower evidential bound when accusing. Mustard's tree sends the unresolved cards to the same leaf. White raises the scores of cards Green has named, even though the disproof favours the alternatives. Green selects one of these methods, so his answer depends on the arm selected; there are not necessarily six distinct numbers.
@@ -101,7 +102,7 @@ The benchmark uses [[log-loss]]: for each category, $-\ln P(\text{true card})$. 
 
 ## In clude
 
-The type is `ClueBelief` in `clude_agents/base.py`: the probabilities, and an `extra` dictionary for whatever a method wants to say beside them. [[Professor Plum]] records whether his answer was exact or sampled and how many deals or draws it rests on; [[Mrs. Peacock]] her belief and plausibility bounds; [[Mr. Green]] which arm he played; [[Mrs. White]] each opponent's repeat probability and closeness. The agent contract, shared with David's other projects, asks a method for a belief and nothing else: `select_action` returns probabilities, never a move, and the character turns them into play.[^base][^protocol]
+The type is `ClueBelief` in `clude_agents/base.py`: the probabilities, and an `extra` dictionary for whatever a method wants to say beside them. [[Professor Plum]] records his network's estimate of how the game is going (PlumOG recorded whether his answer was exact or sampled); [[Mrs. Peacock]] her belief and plausibility bounds; [[Mr. Green]] which arm he played; [[Mrs. White]] each opponent's repeat probability and closeness. The agent contract, shared with David's other projects, asks a method for a belief and nothing else: `select_action` returns probabilities, never a move, and the character turns them into play.[^base][^protocol]
 
 A stored game's event record allows any seat's view to be rebuilt at any recorded point. A method can then recompute its belief from that view. The `trace` tool prints these estimates turn by turn, and the replay screen draws them as a belief trace.[^invariant]
 
@@ -111,7 +112,7 @@ The web interface follows the project's "play-is-blind" rule. Spectators and Wat
 
 {{table:bench.grid|The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games and {{fact:bench.grid.snapshots}} positions, 15 September 2026. Plum's row is at the old sample of 2,000.}}
 
-At the halfway checkpoint in this run, [[Mrs. White]] had the lowest log-loss, {{fact:bench.grid.White.50}}. [[Colonel Mustard]] scored {{fact:bench.grid.Mustard.50}}, compared with the baseline's {{fact:bench.grid.uniform.50}}. [[Professor Plum]]'s row used the smaller sampling budget that was later increased. [[Miss Scarlett]] and [[Mrs. Peacock]] scored slightly worse than the baseline at all four checkpoints. At the end, Mustard was lowest at {{fact:bench.grid.Mustard.100}}; Green, Plum and White followed within a few hundredths, ahead of the baseline at {{fact:bench.grid.uniform.100}}. Four methods took a fraction of a millisecond per call; Plum and Green took about half a second.[^grid]
+At the halfway checkpoint in this run, [[Mrs. White]] had the lowest log-loss, {{fact:bench.grid.White.50}}. [[Colonel Mustard]] scored {{fact:bench.grid.Mustard.50}}, compared with the baseline's {{fact:bench.grid.uniform.50}}. The Plum of that row is [[PlumOG]], at the smaller sampling budget that was later increased; the network that replaced him scores {{fact:bench.policy.Plum.50}} at halfway on the same positions, the best of any method.[^policy] [[Miss Scarlett]] and [[Mrs. Peacock]] scored slightly worse than the baseline at all four checkpoints. At the end, Mustard was lowest at {{fact:bench.grid.Mustard.100}}; Green, Plum and White followed within a few hundredths, ahead of the baseline at {{fact:bench.grid.uniform.100}}. Four methods took a fraction of a millisecond per call; PlumOG and Green, who consulted him, took about half a second.[^grid]
 
 {{table:bench.ring|The same benchmark on the ring board, the first the game was played on, Phase 5.}}
 
@@ -122,14 +123,14 @@ The ring-board run produced a different ranking. These results describe the reco
 - **The probability interface describes the envelope.** It contains no probability distribution over other players' hands. The floor supplies possible holders and joint constraints, and some methods reason over them internally.
 - **Joint probabilities are absent.** Separate card probabilities cannot express how likely a particular suspect–weapon–room combination is, which limits the accusation test.
 - **Masking does not guarantee calibration.** Scores can respect all floor deductions while remaining inaccurate. Scarlett and Peacock had higher log-loss than the floor-only baseline in both recorded benchmark regimes.
-- **One number per card hides a lot.** Peacock's two bounds and Plum's exact-or-sampled note are carried in the extras because the probabilities alone cannot say how much of a belief is evidence.
+- **One number per card hides a lot.** Peacock's two bounds and Plum's value estimate are carried in the extras because the probabilities alone cannot say how much of a belief is evidence.
 
 ## See also
 
 [[The certainty tag]] · [[Replay]]
 
 - [[Deduction floor]], what every belief is masked by
-- [[Naive Bayes]], [[Exact posterior enumeration]], [[Dempster-Shafer theory]], [[Decision tree]], [[Bandit ensemble]] and [[Markov chain]], the six ways of forming one
+- [[Naive Bayes]], [[Regularised Nash dynamics]], [[Dempster-Shafer theory]], [[Decision tree]], [[Bandit ensemble]] and [[Markov chain]], the six ways of forming one, and [[exact posterior enumeration]], PlumOG's archived seventh
 - [[Personality dials]] and [[Accusation threshold]], what is done with one
 - [[Belief benchmark]], [[Log-loss]] and [[Uniform baseline]], how one is scored
 - [[w:Probability distribution|Probability distribution]], [[w:Calibration (statistics)|calibration]] and [[w:Bayesian probability|Bayesian probability]] on Wikipedia
@@ -148,5 +149,6 @@ The ring-board run produced a different ranking. These results describe the reco
 [^web]: {{cite:CLAUDE.md|Settled decisions (David's)}} "Spectators, and what the seat bars give away", 2026-09-22, and "No persona advises a chat seat", 2026-09-21.
 [^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
 [^ring]: {{cite:docs/strategy-glossary.md|Belief benchmark, FloorBot regime (Phase 5)}}
+[^policy]: {{cite:docs/strategy-glossary.md|Belief benchmark, the network (N5)}}
 
 {{navbox:clude}}

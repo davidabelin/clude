@@ -2,7 +2,7 @@
 title: Deep Q-network
 short: Neural approximation of action values with replay and a target network
 categories: Classwork
-redirects: DQN, Deep Q-networks, Dueling DQN, Prioritised experience replay, Prioritized experience replay
+redirects: DQN, Deep Q-networks
 dyk: ... that learning from stored transitions in a [[deep Q-network]] is different from watching a finished game's [[replay]]?
 ---
 A **deep Q-network** (DQN) uses a neural network to estimate the expected return of actions. The influential 2015 DQN system combined Q-learning-style targets with stored experience and a separate target network, and evaluated the method on Atari games. The [[classwork archive]] holds that paper and two extensions, dueling networks and prioritised experience replay. Clude's current characters do not implement DQN.[^dqn][^clude]
@@ -23,7 +23,20 @@ $$ y=r+\gamma\max_{a'}Q(s',a';\theta^-). $$
 
 Here $r$ is the reward, $s'$ the next state, $a'$ a legal next action and $\gamma$ the discount factor. At termination $y=r$. The online network trains towards this target, and the target parameters are periodically refreshed. Replay and the delayed target stabilise parts of training; they do not guarantee convergence for every problem.[^dqn]
 
+!!! algorithm "A deep Q-network, as the 2015 paper trains it"
+        Initialise the network Q(s, a; θ) at random;  target network θ⁻ ← θ;  empty replay memory
+        Loop for each step:
+            A ← ε-greedy choice in S from Q(S, ·; θ);  take A;  observe R and S′
+            store (S, A, R, S′) in the replay memory
+            draw a random minibatch of stored transitions (s, a, r, s′)
+            y ← r  if s′ is terminal,  else r + γ max_a′ Q(s′, a′; θ⁻)
+            take a gradient step on (y − Q(s, a; θ))² with respect to θ
+            every C steps: θ⁻ ← θ
+            S ← S′
+
 ## Dueling architecture
+
+{{main:Dueling network architecture}}
 
 The dueling-network paper separates a state-value stream, $V(s)$, from an action-advantage stream, $A(s,a)$. Value estimates how favourable the state is; advantage describes the relative benefit of an action. One aggregation is
 
@@ -32,6 +45,8 @@ $$ Q(s,a)=V(s)+A(s,a)-\frac{1}{|\mathcal A|}\sum_{b\in\mathcal A}A(s,b). $$
 $\mathcal A$ is the action set, and $b$ indexes its actions. Subtracting mean advantage fixes the ambiguity in splitting one Q-value into value and advantage. This architecture can share learning about a state's value when many actions have similar effects. It changes the network representation and can be combined with an existing learning algorithm.[^duel]
 
 ## Prioritised experience replay
+
+{{main:Prioritised experience replay}}
 
 Uniform replay samples transitions equally. Prioritised replay instead samples more often from transitions assigned high priority, commonly from the magnitude of their temporal-difference error. With priority $p_i>0$ for stored transition $i$, one form is
 

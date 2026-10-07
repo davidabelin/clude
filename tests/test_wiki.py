@@ -212,7 +212,7 @@ def test_every_character_and_method_has_its_article(wiki):
     for title in (
         "Miss Scarlett", "Colonel Mustard", "Mrs. White", "Mr. Green", "Mrs. Peacock", "Professor Plum",
         "Naive Bayes", "Decision tree", "Markov chain", "Bandit ensemble", "Dempster-Shafer theory",
-        "Exact posterior enumeration", "Deduction floor", "Belief",
+        "Exact posterior enumeration", "Regularised Nash dynamics", "Deduction floor", "Belief",
     ):
         article, _ = wiki.get(title)
         assert article is not None and not article.is_stub, title
@@ -233,6 +233,12 @@ def test_every_character_and_method_has_its_article(wiki):
     assert example["white"]["White"] == pytest.approx(0.4) and example["white"]["Peacock"] == pytest.approx(0.6)
     assert set(example["green_arms"]) == {"Scarlett", "Plum", "Peacock", "Mustard", "White"}
     assert sorted(example["green_arms"], key=lambda a: -example["green_arms"][a][2])[0] == facts.code("example.green.best")
+    # Phase 12: the network reads the Rope question backwards, and the
+    # prose (Bandit ensemble, Regularised Nash dynamics, Professor Plum)
+    # says so; new weights that change this must change the prose too.
+    assert example["policy"]["White"] < example["uniform"]["White"] < example["plum"]["White"]
+    assert facts.code("example.green.best") == "Peacock" and facts.code("example.green.worst") == "Plum"
+    assert wiki.get("PlumOG")[0].title == "Exact posterior enumeration"
     assert str(facts.chain_example()["stationary"]) == "9/14"
     assert facts.code("example.ds.two.conflict") == "1/4" and facts.code("example.ds.two.white") == "1/3"
     assert facts.code("certainty.triples") == "324" and facts.code("certainty.half.one_in") == "18"
@@ -256,7 +262,11 @@ def test_w3_w5_topics_are_articles_and_all_public_pages_load(wiki, app):
     for title in titles:
         article, _ = wiki.get(title)
         assert article is not None and not article.is_stub, title
-    assert not [a.title for a in wiki.pages() if a.is_stub]
+    # Stubs are allowed only as the Algorithms entries (David, 2026-10-07):
+    # short pages with mathematics and pseudocode for methods clude may
+    # never use; everything else is a full article.
+    assert not [a.title for a in wiki.pages() if a.is_stub and a.categories != ["Algorithms"]]
+    assert len([a for a in wiki.pages() if a.is_stub]) >= 20
     client = app.test_client()
     for article in wiki.pages():
         response = client.get(f"/wiki/{article.slug}")
@@ -455,6 +465,28 @@ def test_facts_mathematics_and_a_literal_dollar():
     assert out.ctx.facts == {"bench.grid.Plum.50"} and out.ctx.codes == {"preset.Plum.accuse_threshold"}
     block = _render("Before.\n\n$$ \\frac{a}{b} $$\n\nAfter.")
     assert '<div class="math-block"><math' in block.html and 'display="block"' in block.html
+
+
+def test_an_algorithm_box_keeps_its_steps_as_written():
+    """Pseudocode is an indented code block inside ``!!! algorithm``: a
+    titled box whose steps keep their indentation, symbols and all, and
+    are not read as links, facts or mathematics."""
+    out = _render(
+        '!!! algorithm "Q-learning"\n'
+        "        Initialise Q(s, a) for every s, a\n"
+        "        Loop for each episode:\n"
+        "            Q(S, A) ← Q(S, A) + α[R + γ max_a Q(S', a) − Q(S, A)]\n"
+        "            cost in $ and [[not a link]]\n"
+        "\n"
+        "    One line of prose under the box.\n"
+    )
+    html = out.html
+    assert '<div class="admonition algorithm">' in html
+    assert '<p class="admonition-title">Q-learning</p>' in html
+    assert "<pre><code>Initialise Q(s, a)" in html
+    assert "\n    Q(S, A) ← Q(S, A) + α[R" in html  # the loop body keeps its indent
+    assert "[[not a link]]" in html and "<math" not in html and not out.ctx.wanted
+    assert "<p>One line of prose under the box.</p>" in html
 
 
 @pytest.mark.parametrize("delimiter", ("$", "$$"))

@@ -4,7 +4,7 @@ short: What clude learns, what is tuned and how changes are evaluated
 categories: The app
 redirects: Training
 ---
-**Character training** in [[clude]] includes several distinct processes: supervised fitting of Mustard's tree, accumulated numerical [[method memory]], narrative [[logbook|logbooks]] and selection of [[personality dials|dial presets]]. These processes use different evidence and improve different parts of a player. The current six methods do not train a [[deep Q-network]] or a general reinforcement-learning policy.[^methods][^memory]
+**Character training** in [[clude]] includes several distinct processes: supervised fitting of Mustard's tree, accumulated numerical [[method memory]], narrative [[logbook|logbooks]] and selection of [[personality dials|dial presets]]. These processes use different evidence and improve different parts of a player. Since Phase 12 one of them is a trained policy: [[Professor Plum]]'s network, trained by [[regularised Nash dynamics]] in self-play; the other five do not train a [[deep Q-network]] or any reinforcement-learning policy.[^methods][^memory]
 
 ## Numerical learning
 
@@ -30,7 +30,7 @@ A fair comparison records the starting memory, board, roster, seed schedule and 
 
 The [[measurement record]] indexes ring-board and Classic-board experiments, including numerical training, leash ladders and Plum's logbook comparison. Many key preset measurements predate the current landing rule. They are starting evidence for the next phase, not fresh acceptance tests of today's players.
 
-The next character-training phase is planned after Wikiclude is complete and reviewed, with both model-piloted and headless play. Its protocols and new results remain to be recorded. The [[classwork archive]] supplies wider learning concepts for that work without implying that its algorithms have already been implemented.[^wiki]
+Phase 12 trained Plum's network: two runs of {{fact:policy.run.games}} games each, measured on the same belief benchmark and arenas as the other characters. Its protocol and results are in [[regularised Nash dynamics]]. The [[classwork archive]] supplies wider learning concepts for that work without implying that its algorithms have already been implemented.[^wiki]
 
 
 ## See also

@@ -41,7 +41,7 @@ NAVBOXES: dict = {
         "clude",
         [
             ("The characters", ["Miss Scarlett", "Colonel Mustard", "Mrs. White", "Mr. Green", "Mrs. Peacock", "Professor Plum"]),
-            ("Their methods", ["Naive Bayes", "Decision tree", "Markov chain", "Bandit ensemble", "Dempster-Shafer theory", "Exact posterior enumeration"]),
+            ("Their methods", ["Naive Bayes", "Decision tree", "Markov chain", "Bandit ensemble", "Dempster-Shafer theory", "Regularised Nash dynamics", "Exact posterior enumeration"]),
             ("What they share", ["Deduction floor", "Belief", "Uniform baseline", "Personality dials", "Logbook"]),
             ("The game", ["Clue", "Rules of play", "Classic board", "Rooms", "The deal", "Suggestion", "Accusation", "The envelope", "Detective notepad", "Bluffing"]),
             ("Other players", ["Floor player", "Random bot", "Claude"]),
@@ -51,6 +51,8 @@ NAVBOXES: dict = {
             ("Measurement", ["Measurement record", "Belief benchmark", "Arena", "Dial sweeps", "Twin comparison", "Landing rule", "Self-play", "Determinism and seeds", "Character training"]),
             ("The app", ["clude", "The lobby", "The table", "Watch", "Replay", "Looks", "The certainty tag", "A seat over MCP", "What a game costs", "Game records", "Maintainer CLI", "History of clude", "AIX Laboratories"]),
             ("Classwork", ["Classwork archive", "Reinforcement learning", "Markov decision process", "Q-learning", "Deep Q-network", "DeepNash"]),
+            ("Algorithms", ["Bandit action selection", "Dynamic programming", "Monte Carlo methods", "Temporal-difference learning", "Sarsa", "Q-learning", "Dyna-Q", "Monte Carlo tree search", "Function approximation", "Multilayer perceptron", "Policy gradient", "Actor-critic", "Deep Q-network", "Dueling network architecture", "Prioritised experience replay", "Proximal policy optimisation", "Generative adversarial network", "Regularised Nash dynamics"]),
+            ("From the rps project", ["Mixed-strategy Nash equilibrium", "Reactive strategies", "Frequency counter", "Pattern memory", "Transition-matrix predictor", "Ensemble voting"]),
         ],
     ),
 }
@@ -59,6 +61,7 @@ a title and groups of article titles, in the order shown."""
 
 CATEGORY_ORDER = (
     "The game", "Characters", "Methods", "Mathematics", "Personality", "Memory", "Measurement", "The app", "Classwork",
+    "Algorithms",
 )
 """The order the Main Page lists categories in; any other follows."""
 
@@ -72,6 +75,7 @@ CATEGORY_BLURBS: dict = {
     "Measurement": "How the methods and the characters were tested, and what was found.",
     "The app": "The table, the replay, and the project itself.",
     "Classwork": "Learning concepts and the reference papers kept with the project.",
+    "Algorithms": "Short entries, each with its mathematics and pseudocode, for the methods of the classwork and of the rps project, whether or not clude uses them yet.",
 }
 
 

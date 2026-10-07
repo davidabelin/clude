@@ -33,7 +33,7 @@ The mathematical model takes its name from [[w:Andrey Markov|Andrey Markov]].[^n
 
     Every other method reads the showing. White reads the asking. Green has named Peacock and the Rope: they are cards he is still asking about, so cards he is less likely to hold, so cards a little more likely to be the envelope's. This is Green's first suggestion in her record, so his chain has nothing to go on and sits at its prior, a repeat probability of {{code:example.white.repeat}}. Each open card starts at a score of {{code:white.base_score}}; Peacock and the Rope gain one naming times {{code:example.white.repeat}}. Within the suspects that leaves Mrs. Peacock at **{{code:example.white.Peacock}}** and Mrs. White at **{{code:example.white.White}}**; within the weapons, the Rope at {{code:example.white.Rope}} and the Wrench at {{code:example.white.Wrench}}.
 
-    The chain favours the named cards, whereas [[Professor Plum]]'s count favours the alternatives and gives Mrs. White {{code:example.plum.White}}. The tree and uniform baseline remain at 0.5; they do not move either way. White's soft update ignores the open fact "Mustard holds Peacock or the Rope". The floor keeps that fact, but in this position it eliminates no additional card. The naming heuristic therefore points against the implication of the disproof.
+    The chain favours the named cards, whereas counting the surviving deals ([[exact posterior enumeration]], [[PlumOG]]'s method) favours the alternatives and gives Mrs. White {{code:example.plum.White}}. [[Professor Plum]]'s network sides with the chain, giving her {{code:example.policy.White}}. The tree and uniform baseline remain at 0.5; they do not move either way. White's soft update ignores the open fact "Mustard holds Peacock or the Rope". The floor keeps that fact, but in this position it eliminates no additional card. The naming heuristic therefore points against the implication of the disproof.
 
     Repeated questions can still be useful behavioural evidence over longer games. The benchmark results below measure that usefulness under particular opponents; they do not show that the heuristic always agrees with the count.
 
@@ -56,6 +56,19 @@ A two-state chain is four numbers, the counts of each kind of step, and fitting 
 ### The belief
 
 Every card the [[deduction floor]] has not placed starts at a score of {{code:white.base_score}}, the floor's own flat prior. For each opponent, each card they have named gains their naming count times their stationary repeat probability. The scores then go through the step every method ends with: the floor sets to 0 any card it has ruled out and to 1 any it has proved, and what remains is scaled to sum to 1 within each category.[^base] A card nobody has named stays at its starting score and comes out merely unsuspicious. Before Phase 5 it came out at 0, impossible, and those zeros were {{fact:white.phase4.zeros}} per cent of White's error on the first benchmark.[^phase5]
+
+!!! algorithm "White's belief"
+        Input: the suggestions so far; the deduction floor's mask
+        score(c) ← 1 for every card the floor has not placed
+        for each opponent p:
+            symbols ← for each of p's suggestions: repeat (1) if it names a card
+                      p named before, else new (0)
+            count the four transitions new→new, new→repeat, repeat→new, repeat→repeat
+                (each count starting from a small prior)
+            p01 ← P(new → repeat);  p10 ← P(repeat → new)
+            r ← p01 / (p01 + p10)          (p's long-run chance of repeating)
+            for each card c that p has named n times:  score(c) ← score(c) + n × r
+        mask and normalise within each category, as every method does
 
 ## Formally
 

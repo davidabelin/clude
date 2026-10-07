@@ -701,8 +701,7 @@ RECORDED_GAMES = [
     pytest.param(
         "llm_seed1.json", "1", "3", "Scarlett,Peacock",
         "Mustard/Rope/Ballroom", "P1 Mustard (floor)",
-        "Turns played: 41; suggestions: 17; accusations: 1",
-        marks=pytest.mark.skip(reason="Phase 11 changed shared rules; paid fixture refresh awaits approval"),
+        "Turns played: 35; suggestions: 16; accusations: 1",
     ),
     pytest.param(
         "llm_seed2.json", "2", "4", "Plum,Mustard,Green,White",

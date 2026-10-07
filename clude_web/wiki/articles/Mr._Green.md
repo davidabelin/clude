@@ -46,7 +46,7 @@ Headless, by his numbers alone, he is silent, and every measurement below was ma
 
 Each constituent method is an *arm* with two parameters defining a [[w:Beta distribution|Beta distribution]]. Green draws one score per arm and adopts the belief of the largest draw. On a revealed envelope, he ranks all five predictions by [[log-loss]] and updates their records with fractional rewards; old evidence gradually decays. Stronger records tend to produce higher draws. The records are heuristic measures of recent rank performance, rather than calibrated probabilities that a method is best.[^module]
 
-In the [[Bandit ensemble#At the table|shared observer example]], the five arms give probabilities for Mrs. White ranging from {{code:example.white.White}} to {{code:example.peacock.White}}, including Plum's equal-weight count of {{code:example.plum.White}}. With five identical initial records, each arm is equally likely to be selected. The method article then reveals the envelope and shows how one outcome updates all five records.[^bandit]
+In the [[Bandit ensemble#At the table|shared observer example]], the five arms give probabilities for Mrs. White ranging from {{code:example.white.White}} to {{code:example.peacock.White}}, with Plum's network, his Plum arm since Phase 12, the lowest at {{code:example.policy.White}}, where an equal-weight count of the deals gives {{code:example.plum.White}}. With five identical initial records, each arm is equally likely to be selected. The method article then reveals the envelope and shows how one outcome updates all five records.[^bandit]
 
 ## How he plays
 
