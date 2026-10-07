@@ -217,11 +217,14 @@ def test_benchmark_subset_json_export_and_bot_switch(cli, capsys, tmp_path):
     out = _run(
         cli, capsys, "benchmark", "--games", "2", "--seed", "5", "--checkpoints", "1.0",
         "--agents", "Scarlett,Plum", "--players", "3", "--json", str(path), "--bot", "random",
+        "--calibration",
     )
     assert "Scarlett" in out and "uniform" in out
     assert "random-bot games" in out
-    assert "Plum fell back to sampling" in out
+    assert "fell back to sampling" not in out  # the policy Plum never samples
+    assert "how often that triple was the envelope" in out
     data = json.loads(path.read_text(encoding="utf-8"))
+    assert set(data["calibration"]) == {"Scarlett", "Plum", "uniform"}
     assert data["n_games"] == 2
     assert data["bot"] == "random"
     assert set(data["per_agent"]) == {"Scarlett", "Plum", "uniform"}

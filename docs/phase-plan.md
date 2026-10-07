@@ -1,6 +1,6 @@
 # Phase Plan
 
-Current roadmap as of 2026-10-06. This describes the checkout, not a live production audit. Completed plans are historical decision records; the maintainer guides describe current behavior. The strategy glossary keeps dated measurements, including superseded ring-board and PlumOG results.
+Current roadmap as of 2026-10-07. This describes the checkout, not a live production audit. Completed plans are historical decision records; the maintainer guides describe current behavior. The strategy glossary keeps dated measurements, including superseded ring-board and PlumOG results.
 
 ## Completed phases
 
@@ -43,19 +43,19 @@ Wikiclude articles, rendering and assets are outside this pass. Existing source 
 
 ## Phase 12 scope
 
-[Phase 12](deepnash-plan.md) replaces PlumOG with a DeepNash variant over the floor. Work is interleaved with Phase 11; a first trained checkpoint is committed (2026-10-06), its evaluation, dials, persona and deploy (N5-N7) open.
+[Phase 12](deepnash-plan.md) replaces PlumOG with a DeepNash variant over the floor. Work is interleaved with Phase 11; a trained checkpoint is committed (2026-10-06) and evaluated headless (N5, 2026-10-07); the paid persona/leash check and deploy (N6-N7) are open.
 
 | Step | State in this checkout | Remaining work |
 |---|---|---|
-| N1 | Enumeration agent archived and removed from seating/Green's arms | Logbook copy/reset-arm commands and archival operations |
+| N1 | Enumeration agent archived and removed from seating/Green's arms; `logbook copy` and `logbook reset-arm` built, local pass done | The bucket pass at deploy |
 | N2 | Pure movement/suggestion scoring hooks built | Keep headless and LLM menus consistent |
-| N3 | NumPy agent and committed seeded initial weights built | Replace weights only after validation |
-| N4 | Recorded rollouts, PyTorch trainer and smoke runs built | Substantial training and checkpoint selection |
-| N5 | Open | Calibration, arenas, dial checks and deliberate golden updates |
+| N3 | NumPy agent built; weights are run 2's checkpoint 130 | Replace weights only after validation |
+| N4 | Rollouts, PyTorch trainer, two long runs and the export | A further run is optional, after N7 |
+| N5 | Calibration table, arenas, dial sweeps and leash-width match measured; presets kept | None |
 | N6 | Persona wording updated in Phase 11 | Paid leash validation and fixture refresh after approval |
 | N7 | Open | Remaining UI/wiki work, production rollout and cloud logbook operations |
 
-Smoke runs improved the belief head after adding a replay buffer, while the policy barely moved; no trained weights have been exported. Keep the training record and evaluation gates detailed until complete. Curiosity is inert for Plum's policy hook; accusation calibration and leash width need new measurements.
+The trained Plum has the best mid-game belief of any method, no wrong accusations and sub-millisecond calls; he wins a little less than PlumOG at his own table and less at six. Curiosity is inert for his policy hook; `accuse_threshold` and `temperature` were re-measured and kept; leash 0.35 matches PlumOG's menu width and awaits the paid ladder. See [Phase 12](deepnash-plan.md) sections 11-12.
 
 ## Legacy code disposition
 

@@ -268,6 +268,40 @@ def _exercise_logbook(store):
     assert logbook.reset() == 0
 
 
+def _exercise_archive(store):
+    """`copy_to` archives a logbook under another identity; `reset_arm`
+    forgets one bandit arm (Phase 12's PlumOG archive and Green's reset)."""
+    plum = Logbook(store, "Plum")
+    with pytest.raises(ValueError):
+        plum.copy_to("PlumOG")  # nothing to copy
+    for entry in _entries(2):
+        plum.add_entry(entry)
+    plum.save_method({"kind": "rows", "games": {"r/00000": [[0.5, 1]]}})
+
+    archive = plum.copy_to("PlumOG")
+    assert archive.serials() == [1, 2]
+    assert all(e.identity == "PlumOG" and e.token == p.token for e, p in zip(archive.entries(), plum.entries()))
+    assert archive.head().identity == "PlumOG"
+    assert archive.head().tally == plum.head().tally
+    assert archive.method() == plum.method()
+    assert archive.rebuild_head() == archive.head()
+    with pytest.raises(ValueError):
+        plum.copy_to("PlumOG")  # never overwrite an archive
+    assert plum.reset() == 4 and archive.exists()
+
+    green = Logbook(store, "Green")
+    assert not green.reset_arm("Plum")
+    green.save_method({"kind": "state", "games": 3, "arms": {"Plum": [4.0, 2.0], "White": [2.0, 3.0]}})
+    assert green.reset_arm("Plum")
+    assert green.method()["arms"] == {"White": [2.0, 3.0]} and green.method()["games"] == 3
+    assert not green.reset_arm("Plum")
+
+
+def test_logbook_archive_and_arm_reset(tmp_path):
+    _exercise_archive(LocalStore(tmp_path / "records"))
+    _exercise_archive(GcsStore("clude-game-data", "arena", client=_FakeClient()))
+
+
 def test_logbook_over_a_local_store(tmp_path):
     _exercise_logbook(LocalStore(tmp_path / "records"))
     assert Logbook(LocalStore(tmp_path), "Plum").head().is_empty()

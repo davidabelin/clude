@@ -19,7 +19,7 @@ Examples below use `python` for readability; activate the venv or substitute its
 | `users`, `tables` | `data/llm` |
 | `play`, `arena`, `sweep` | No record store unless `--store` is passed |
 
-Use an explicit URI for account changes, reset/rebuild, abandon and copying. Read-only inspection does not imply every command is read-only: account operations, logbook reset/rebuild, `store copy`, `tables abandon`, `tables costs --write`, recordings and training artifacts write data.
+Use an explicit URI for account changes, reset/rebuild, abandon and copying. Read-only inspection does not imply every command is read-only: account operations, logbook reset/rebuild/copy/reset-arm, `store copy`, `tables abandon`, `tables costs --write`, recordings and training artifacts write data.
 
 | Command | Purpose |
 |---|---|
@@ -104,9 +104,9 @@ Scores beliefs on the same self-play snapshots. Default games: 60, seed: 4004, b
 | Log-loss | Mean negative log probability of the true card per category; lower is better |
 | Top-1 | Fraction of categories whose highest-probability card is correct |
 | ms/call | Measured wall time, not a deterministic metric |
-| fallback | Sampling fallback diagnostics when a method supplies them |
+| fallback | Sampling fallback diagnostics, printed only when a method fell back (PlumOG) |
 
-Uniform over the floor's allowed cards is the control. Belief quality is distinct from win rate. Agent instances persist across benchmark games, and Green receives revealed-envelope feedback after each snapshot. `--show-green` prints his final arm posteriors. Historical enumeration fallback numbers apply to PlumOG, not current Plum.
+Uniform over the floor's allowed cards is the control. Belief quality is distinct from win rate. Agent instances persist across benchmark games, and Green receives revealed-envelope feedback after each snapshot. `--show-green` prints his final arm posteriors. `--calibration` prints each agent's accusation-test P, binned, against how often that triple was the envelope, and the accuracy at or above 0.8, 0.9 and 0.95 (also in the JSON); it is the evidence for an `accuse_threshold`. Historical enumeration fallback numbers apply to PlumOG, not current Plum.
 
 ## `train-mustard`
 
@@ -127,7 +127,9 @@ python scripts/train_plum.py --iterations 20 --games 256 --workers 8
 
 `python -m clude_training.rollout` (from the repo root; run as a file, like any module here, it cannot find its sibling packages) plays a few games on the committed weights and prints what the rollout records, for a look at the data before a run.
 
-The separate PyTorch script gathers engine rollouts, fits policy/value/belief heads and evaluates the NumPy agent. It writes configuration, curve, checkpoints, `best.npz` and `latest.npz` under ignored `data/plum-training/<run>/`. `--export` additionally replaces committed `clude_agents/weights/plum.npz` with the **final** weights; it does not select the best checkpoint automatically. Export is a deliberate validated change requiring golden updates. See [weights](../clude_agents/weights/README.md) and [Phase 12](deepnash-plan.md), especially N4's smoke record and unfinished evaluation gates.
+The separate PyTorch script gathers engine rollouts, fits policy/value/belief heads and evaluates the NumPy agent. It writes configuration, curve, checkpoints, `best.npz` and `latest.npz` under ignored `data/plum-training/<run>/`. `--export` additionally replaces committed `clude_agents/weights/plum.npz` with the **final** weights; it does not select the best checkpoint automatically. Export is a deliberate validated change requiring golden updates. See [weights](../clude_agents/weights/README.md) and [Phase 12](deepnash-plan.md), sections 11-12.
+
+`scripts/leash_width.py --games 24 --seed 7007` plays Plum's table headless and counts, at each of Plum's multi-option move and suggestion menus, how many options each leash from 0.1 to 0.5 would allow, for the network and for PlumOG with his old dials (`--methods`). It is how a new method's leash is matched to an old one's menu width; PlumOG takes a couple of minutes.
 
 ## `snapshots`
 
@@ -182,7 +184,7 @@ python scripts/clude_cli.py logbook show --uri data/llm --identity Mustard --mem
 python scripts/clude_cli.py logbook rebuild --uri data/llm --identity Mustard
 ```
 
-`show` prints the head/index, `--entry N` one entry, `--raw` JSON, or `--memory DEPTH` the exact read-back block. `reset --identity NAME` removes head, method memory and entries; `--keep-entries` retains the archive. `rebuild` recomputes the head and Mustard/White memory from records; `--from URI` changes source, `--min-version` defaults to 3. Green's live arm feedback cannot be reconstructed. Phase 12's planned `copy` and `reset-arm` commands are not implemented.
+`show` prints the head/index, `--entry N` one entry, `--raw` JSON, or `--memory DEPTH` the exact read-back block. `reset --identity NAME` removes head, method memory and entries; `--keep-entries` retains the archive. `rebuild` recomputes the head and Mustard/White memory from records; `--from URI` changes source, `--min-version` defaults to 3. Green's live arm feedback cannot be reconstructed. `copy --identity Plum --to PlumOG` archives a logbook under another identity (entries, head and method memory; it refuses an existing destination). `reset-arm --arm Plum` forgets one arm of Green's stored posteriors, which then loads at Beta(1, 1); `--identity` defaults to Green.
 
 ## `tables`
 

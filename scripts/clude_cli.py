@@ -952,11 +952,14 @@ def cmd_benchmark(args) -> int:
         f"\n{args.games} {args.bot}-bot games, seed {args.seed}, table sizes {list(player_counts)}, "
         f"{result.n_snapshots} snapshots, {elapsed:.1f}s"
     )
-    if "Plum" in result.per_agent:
-        cells = result.per_agent["Plum"].values()
-        sampled = sum(c.sampled_calls for c in cells)
-        calls = sum(c.n_calls for c in cells)
-        print(f"Plum fell back to sampling in {sampled}/{calls} calls")
+    for name, cells in result.per_agent.items():
+        sampled = sum(c.sampled_calls for c in cells.values())
+        if sampled:  # only an enumerating agent (PlumOG) reports a fallback
+            calls = sum(c.n_calls for c in cells.values())
+            print(f"{name} fell back to sampling in {sampled}/{calls} calls")
+    if args.calibration:
+        print("\nThe accusation test's P against how often that triple was the envelope:")
+        print(result.calibration_table())
     if args.show_green and "Green" in result.agents:
         green = result.agents["Green"]
         print("\nGreen's Beta posteriors after the run:")
@@ -1461,6 +1464,31 @@ def cmd_logbook_reset(args) -> int:
     return 0
 
 
+def cmd_logbook_copy(args) -> int:
+    """Copy a logbook to another identity as an archive."""
+    store = open_store(args.uri)
+    try:
+        dest = Logbook(store, args.identity).copy_to(args.to)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    print(
+        f"copied {args.identity} to {dest.identity} in {store.describe()}: "
+        f"{len(dest.serials())} entries; {_tally_line(dest.head())}; "
+        f"{method_memory.describe_memory(dest.method())}"
+    )
+    return 0
+
+
+def cmd_logbook_reset_arm(args) -> int:
+    """Forget one arm of Green's stored posteriors."""
+    store = open_store(args.uri)
+    if Logbook(store, args.identity).reset_arm(args.arm):
+        print(f"reset {args.identity}'s {args.arm} arm in {store.describe()}: it loads at Beta(1, 1)")
+    else:
+        print(f"{args.identity} has no stored {args.arm} arm in {store.describe()}; nothing to reset")
+    return 0
+
+
 def cmd_logbook_rebuild(args) -> int:
     """Recompute a logbook's head from its entries and its method memory
     from every game record in a store."""
@@ -1772,6 +1800,10 @@ def build_parser() -> argparse.ArgumentParser:
     bench_p.add_argument(
         "--show-green", action="store_true", help="Print Green's per-arm Beta posteriors after the run.",
     )
+    bench_p.add_argument(
+        "--calibration", action="store_true",
+        help="Print each agent's calibration table: the accusation test's P, binned, against accuracy.",
+    )
     bench_p.add_argument("--json", default="", help="Also write the full result to this JSON path.")
     bench_p.set_defaults(fn=cmd_benchmark)
 
@@ -1919,6 +1951,22 @@ def build_parser() -> argparse.ArgumentParser:
         help="Remove only the head and method memory; keep the entries as an archive.",
     )
     lb_reset.set_defaults(fn=cmd_logbook_reset)
+    lb_copy = logbook_sub.add_parser(
+        "copy", help="Copy a logbook to another identity as an archive (refuses an existing one).",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    lb_copy.add_argument("--uri", default=DEFAULT_STORE, help="Store location.")
+    lb_copy.add_argument("--identity", required=True, help="Whose logbook to copy.")
+    lb_copy.add_argument("--to", required=True, help="The archive's identity, e.g. PlumOG.")
+    lb_copy.set_defaults(fn=cmd_logbook_copy)
+    lb_arm = logbook_sub.add_parser(
+        "reset-arm", help="Forget one arm of Green's stored posteriors; the others are kept.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    lb_arm.add_argument("--uri", default=DEFAULT_STORE, help="Store location.")
+    lb_arm.add_argument("--identity", default="Green", help="Whose method memory.")
+    lb_arm.add_argument("--arm", required=True, help="The arm to reset, e.g. Plum.")
+    lb_arm.set_defaults(fn=cmd_logbook_reset_arm)
     lb_rebuild = logbook_sub.add_parser(
         "rebuild", help="Recompute a logbook's head from its entries and its method memory from records.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,

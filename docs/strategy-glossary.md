@@ -2,13 +2,13 @@
 
 This guide explains methods and preserves dated measurement evidence. Beliefs cover 21 cards and normalize separately within suspect/weapon/room categories; hard deductions always override method estimates. [Architecture](architecture.md) owns API/data-flow details.
 
-**Reading historical results:** measurements before 2026-09-15 used the ring board; earlier Phase 5/6 seating also rotated characters through tokens. Classic-grid sections supersede those baselines. All measured Plum results below describe the enumeration agent now called **PlumOG**, and Green then included that arm. The current network's smoke runs have not established a trained replacement or revalidated presets. Tables, commands, dates, sample counts and limitations remain as evidence, not recommendations to spend.
+**Reading historical results:** measurements before 2026-09-15 used the ring board; earlier Phase 5/6 seating also rotated characters through tokens. Classic-grid sections supersede those baselines. Plum results before Phase 12 describe the enumeration agent now called **PlumOG**, and Green then included that arm. The trained network's own measurements are under [The new Plum](#the-new-plum-phase-12-2026-10-07). Tables, commands, dates, sample counts and limitations remain as evidence, not recommendations to spend.
 
 ## Current Plum -- policy and belief network
 
 Module: `clude_agents/deep_nash.py`. NumPy inference supplies masked envelope beliefs, movement/honest suggestion scores and value. The trainer uses a regularised Nash-dynamics variant over mixed self-play; this is not a proved equilibrium solver for multiplayer Clue. Character retains accusation, bluffing and show logic; curiosity is inert for Plum's movement hook.
 
-Committed `weights/plum.npz` still contains seeded initial weights. N4 smoke runs improved belief after adding a replay buffer, while policy improvement remained weak; nothing was exported. [Phase 12](deepnash-plan.md) retains the run record, calibration/dial requirements and acceptance ladder. Do not apply PlumOG's timing, menu-width, parking or win-rate claims to this agent.
+Committed `weights/plum.npz` is run 2's checkpoint 130 (exported 2026-10-06; [Phase 12](deepnash-plan.md) section 11 has both training runs). Its headless evaluation, calibration and dial checks are under [The new Plum](#the-new-plum-phase-12-2026-10-07). Do not apply PlumOG's timing, menu-width, parking or win-rate claims to this agent.
 
 ## Scarlett -- Naive Bayes
 
@@ -1387,3 +1387,83 @@ both LLM fixtures re-recorded ($0.22 actual against $0.26 quoted); the open ques
 closes as answered. Not run: 2c and 2d, the paid ladders, which measure
 the model where the mechanism was the leash. The first form's runs stay
 in the store as the record of the overshoot.
+
+## The new Plum (Phase 12, 2026-10-07)
+
+Plum's method since Phase 12 (`docs/deepnash-plan.md`): a policy and belief network trained by regularised Nash dynamics over the floor, weights `clude_agents/weights/plum.npz` (run 2's checkpoint 130). Everything here is headless, on those weights, with the presets as they stand; the results are in `data/plum-eval/` (gitignored). PlumOG's numbers are quoted from the sections above, not re-run.
+
+### Belief benchmark, the network (N5)
+
+`benchmark --games 60 --seed 4004 --show-green --calibration`: the same 1080 snapshots as the grid benchmark above. Log-loss per category:
+
+| Agent | 25% | 50% | 75% | 100% | top-1 at 100% | ms/call at 50% |
+|---|---|---|---|---|---|---|
+| Plum (network) | 1.48 | 1.21 | 0.86 | 0.21 | 0.92 | 0.7 |
+| Green (Plum arm the network) | 1.50 | 1.21 | 0.84 | 0.19 | 0.94 | 1.6 |
+| White | 1.54 | 1.28 | 0.91 | 0.23 | 0.91 | 0.1 |
+| Mustard | 1.57 | 1.34 | 0.99 | 0.19 | 0.93 | 0.3 |
+| uniform (baseline) | 1.57 | 1.35 | 1.01 | 0.29 | 0.83 | - |
+| PlumOG, 10,000 samples (Stage 1e) | 1.52 | 1.44 | 1.00 | 0.22 | - | 669 |
+| Scarlett | 1.62 | 1.48 | 1.18 | 0.30 | 0.87 | 0.1 |
+| Peacock | 1.63 | 1.46 | 1.13 | 0.31 | 0.83 | 0.3 |
+
+- **The network is below the baseline at every checkpoint** and has the lowest log-loss of any method from the start to the halfway mark (1.21 against White's 1.28 and PlumOG's 1.44 at 50%). Green, who now carries the network as his Plum arm, ties him at 50% and edges him late.
+- **A call costs under a millisecond**, a thousand times less than PlumOG's 669 ms; Green's call falls from 524 ms to 1.6 ms with it.
+- Green's arms after the run: Plum 0.75, Mustard 0.67, White 0.49, Scarlett 0.33, Peacock 0.26.
+
+### Calibration of the accusation test
+
+The same run's `--calibration` table: the P that `best_triple` compares with `accuse_threshold`, binned, against how often that triple was the envelope (all four checkpoints pooled, 1080 snapshots per agent):
+
+| Plum's P | snapshots | mean P | triple correct |
+|---|---|---|---|
+| 0.50-0.70 | 54 | 0.585 | 0.611 |
+| 0.70-0.80 | 8 | 0.743 | 0.875 |
+| 0.80-0.90 | 11 | 0.85 | 0.91 |
+| 0.90-0.95 | 3 | 0.940 | 1.000 |
+| 0.95-1.00 | 129 | 0.996 | 1.000 |
+
+At or above 0.9 Plum's triple was right in 132 of 132 snapshots, at or above 0.8 in 142 of 143. Where the bins have numbers in them the network is, if anything, underconfident; the bins around 0.9 are thin because the benchmark samples four points a game, which is why the sweeps below decide.
+
+### Arenas on the standard seeds
+
+| Table | Plum win% | +- | wrong% | Mustard / Green win% at his table | mean turns |
+|---|---|---|---|---|---|
+| `arena --games 24 --seed 7007 --players 3 --roster Plum,Mustard,Green` | 54.2 | 10.2 | 0.0 | 20.8 / 25.0 | 49.5 |
+| `arena --games 24 --seed 7007` (six characters, 16 games with Plum seated) | 12.5 | 8.3 | 0.0 | 18.8 / 18.8 | 41.5 |
+| PlumOG, `grid-plum-prox2-24` (his table, landing rule kept) | 58.3 | 10.1 | 0 | | |
+| PlumOG, `arena-grid-prox2-24` (six characters, landing rule kept) | 37.5 | 12.1 | 0 | | |
+
+PlumOG's rows are the landing rule's kept runs, the same 24 deals under today's rules, counted from their records in `data/llm`; the counts reproduce the glossary's pre-rule 37.5% (`grid-plum-base-24`) and 31.2% (`arena-grid-tuned-24`). Paired on those deals, Plum is a game behind PlumOG at his own table (13 wins against 14) and four behind at the six-character table (2 of 16 against 6 of 16, about 1.8 sigma). The **62.5%** often quoted for PlumOG at his own table is the *ring* ladder's headless leg (Per-character leash ladders, Plum), not a grid result. The 96-game re-measurements of section 11 of the plan put the exported weights at 49.0% at his own table and 21.9% at the six-character table. The six-character arena ran in 1.8 s for 24 games; PlumOG's table with Green had cost 7.5 s a game.
+
+### Dial checks
+
+`sweep --characters Plum --seed 7100`, the other characters at their presets; win% and wrong% over the games Plum played:
+
+| accuse_threshold | six characters (128 games) win% | wrong% | his table (96 games) win% | wrong% |
+|---|---|---|---|---|
+| 0.6 | 25.0 | 3.9 | 34.4 | 8.3 |
+| 0.7 | 21.1 | 0.8 | 38.5 | 6.2 |
+| 0.8 | 18.8 | 1.6 | 41.7 | 3.1 |
+| 0.9 (preset) | 18.8 | 0.8 | 37.5 | 0.0 |
+
+| temperature | six characters win% | his table win% |
+|---|---|---|
+| 0 | 18.8 | 29.2 |
+| 0.05 (preset) | 18.8 | 37.5 |
+| 0.2 | 13.3 | 32.3 |
+
+**Both presets kept.** Lowering the threshold buys at most six points at the big table (about 1.2 sigma) and costs wrong accusations on both tables, where 0.9 has none at his own; the calibration supports 0.9 as it stands. 0.05 is the best or joint-best temperature on both tables. Win rates at his own table differ by seed (37.5% at 7100, 54.2% and 49.0% at 7007), five to ten points of noise per run.
+
+### Leash width (the equal-rope match)
+
+`scripts/leash_width.py --games 24 --seed 7007` on his table: at each of Plum's move and suggestion decisions with more than one honest option, the number of options `within_leash` would allow at each leash; PlumOG with his own dials on the same seeds.
+
+| leash | 0.10 | 0.20 | 0.25 | 0.30 | 0.35 | 0.40 | 0.50 |
+|---|---|---|---|---|---|---|---|
+| Plum, mean options allowed (1201 menus) | 1.19 | 1.36 | 1.46 | 1.58 | 1.71 | 1.86 | 2.19 |
+| PlumOG, mean options allowed (755 menus) | 1.59 | 1.69 | 1.75 | 1.79 | 1.87 | 1.97 | 2.48 |
+| Plum, share of menus with 2+ allowed | 0.16 | 0.26 | 0.31 | 0.37 | 0.42 | 0.46 | 0.54 |
+| PlumOG, share of menus with 2+ allowed | 0.30 | 0.33 | 0.36 | 0.37 | 0.39 | 0.41 | 0.55 |
+
+The network's scores are spread wider, so 0.25 gives him less rope than it gave PlumOG: **0.35 matches PlumOG's mean width at 0.25** (1.71 against 1.75), 0.30 his share of open menus. He also faces more menus a game (50 against 31: he suggests more), so at the matched leash the model is asked about twice as often per game. The paid ladder at 0.35 and 0.25 decides (plan, N6).

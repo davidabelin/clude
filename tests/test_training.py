@@ -221,6 +221,28 @@ def test_benchmark_accepts_an_agent_subset_and_records_call_cost():
     assert data["player_counts"] == [3]
 
 
+def test_benchmark_calibration_bins_every_snapshot_and_trusts_certainty():
+    """Phase 12 N5: the accusation test's P, binned, against accuracy.
+    Every snapshot lands in one bin per agent; a game-end P of 1 is the
+    floor's certainty, which is always right; the table and the JSON say
+    so."""
+    result = run_benchmark(
+        n_games=4, seed=11, checkpoints=(0.5, 1.0), agents=_scarlett(), player_counts=(3,)
+    )
+    for name in ("Scarlett", "uniform"):
+        cal = result.calibration[name]
+        assert sum(cal.counts) == result.n_snapshots
+        assert all(0 <= c <= n for c, n in zip(cal.correct, cal.counts))
+    top = result.calibration["uniform"]
+    if top.counts[-1]:
+        assert top.correct[-1] == top.counts[-1] and top.p_sums[-1] / top.counts[-1] > 0.95
+    n, acc = top.at_or_above(0.0)
+    assert n == result.n_snapshots and 0.0 <= acc <= 1.0
+    assert "Scarlett" in result.calibration_table()
+    data = json.loads(json.dumps(result.to_dict()))
+    assert sum(b["n"] for b in data["calibration"]["Scarlett"]["bins"]) == result.n_snapshots
+
+
 def test_benchmark_counts_plums_sampling_fallbacks():
     from clude_agents.exact_enum import ExactEnumAgent
 

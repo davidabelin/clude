@@ -5,9 +5,9 @@ David's decisions are in section 7, scoring/agent implementation in
 section 10, and training/smoke-run evidence in section 11. PyTorch is
 a default developer dependency. Release readiness remains separate.
 
-## Current state (2026-10-06)
+## Current state (2026-10-07)
 
-N2-N4 are built. **The committed weights are the second long run's checkpoint 130** (section 11), exported on the evening of 2026-10-06: 49% at his own table and 22% at the six-character table on 96 games, the best belief log-loss on record from the 50% checkpoint on, no wrong accusations. N1's logbook operations and N5-N7 acceptance/rollout remain open. Phase 11 updated Plum's method prompt and shared rules, completing the wording portion of N6; both recorded LLM fixtures now await separately approved refresh. No paid ladder or trained-weight export was part of Phase 11. The detailed designs below are proposals unless the implementation records confirm them.
+N2-N5 are built. **The committed weights are the second long run's checkpoint 130** (section 11), exported on the evening of 2026-10-06: 49% at his own table and 22% at the six-character table on 96 games, the best belief log-loss on record from the 50% checkpoint on, no wrong accusations. N1's logbook commands and N5's headless evaluation followed on 2026-10-07 (section 12): presets kept, leash 0.35 the equal-rope candidate. The paid N6 ladder and N7's rollout remain open. Phase 11 updated Plum's method prompt and shared rules, completing the wording portion of N6; both recorded LLM fixtures now await separately approved refresh. No paid ladder or trained-weight export was part of Phase 11. The detailed designs below are proposals unless the implementation records confirm them.
 
 ## 1. Context
 
@@ -242,8 +242,10 @@ PlumOG's preset: `accuse_threshold` 0.9, `bluff_rate` 0.05, `curiosity`
    log-loss below uniform (1.35) at every checkpoint, PlumOG's 1.44 the
    number to beat; ms a call (about 5 against 669).
 2. Paired arenas on the standard seeds: `arena --games 24 --seed 7007`
-   (the tuned table; PlumOG 37.5% on the grid twin) and the Plum table
-   `--players 3 --roster Plum,Mustard,Green` (PlumOG 62.5% headless).
+   (the tuned table; PlumOG 37.5% under the landing rule) and the Plum
+   table `--players 3 --roster Plum,Mustard,Green` (PlumOG 58.3% under
+   the landing rule; the 62.5% first quoted here was the ring ladder's,
+   corrected 2026-10-07).
    Win rate, wrong-accusation rate, first-accusation turn, exact repeats
    (`loop_report.py` on Orbit), games with five or more parked moves.
 3. Green with the new arm on the same arenas: his game time and his
@@ -489,7 +491,8 @@ sharing the laptop, 10,240 games in a quarter of an hour.
    6% with shaping, against the 0% of random weights. On the
    evaluation tables Plum accuses in one game in 24 at best and wins
    it, and never accuses wrongly. The plan's second milestone (PlumOG's
-   31% at the six-character table, 62.5% at his own) is a long run
+   37.5% at the six-character table, 58.3% at his own, on today's
+   rules; first quoted as 31% and the ring-era 62.5%) is a long run
    away, and the first thing to try if it stalls is still the shaped
    reward, which is now a flag.
 
@@ -535,7 +538,7 @@ updates), under 40 minutes. What the curve shows:
   | 140 | 1.50 / 1.27 / 0.90 / 0.25 | 18.8 | 1.0 | 12.5 |
   | 150 | 1.51 / 1.27 / 0.91 / 0.24 | 12.5 | 1.0 | 4.7 |
   | uniform | 1.57 / 1.35 / 1.01 / 0.29 | | | |
-  | PlumOG (glossary) | 1.52 / 1.44 / 1.00 / 0.22 | 62.5 | 0.0 | 31 |
+  | PlumOG (glossary; 24 games, landing rule) | 1.52 / 1.44 / 1.00 / 0.22 | 58.3 | 0.0 | 37.5 |
 
   The six-character table is 64 games with Plum seated (he sits out
   the three- and four-seat games of the cycle). The run got worse
@@ -546,10 +549,12 @@ updates), under 40 minutes. What the curve shows:
   but the start (1.22 against 1.44 mid-game, where PlumOG was worse
   than ignorance), the best mid- and late-game log-loss of any method
   on record (White's 1.28 and 0.91 were the marks), no wrong
-  accusations in 96 games, and 0.3 ms a call against 669; but half
-  PlumOG's win rate at his own table and two fifths of it at the
+  accusations in 96 games, and 0.3 ms a call against 669; but about
+  half PlumOG's win rate at his own table and a third of it at the
   six-character table. Mustard and Green at his table win 37.5% and
-  28.1% against him, where PlumOG held them to 25.0% and 12.5%.
+  28.1% against him, where PlumOG held them to 20.8% each (on the
+  grid; first written as the ring ladder's 25.0% and 12.5%, corrected
+  2026-10-07).
 
 Two script changes from reading this run: `--neurd-threshold` (was the
 constant 2), and the rollout seats' `--policy-temperature` is now
@@ -586,7 +591,7 @@ The checkpoints from 60 on, re-measured on 96 games a table and the
 | 140 | 1.48 / 1.20 / 0.86 / 0.21 | 38.5 | 0.0 | 20.3 |
 | 150 | 1.48 / 1.21 / 0.87 / 0.21 | 37.5 | 1.0 | 21.9 |
 | run 1's 110, the first export | 1.47 / 1.22 / 0.86 / 0.21 | 32.3 | 0.0 | 12.5 |
-| PlumOG (24 games; glossary) | 1.52 / 1.44 / 1.00 / 0.22 | 62.5 | 0.0 | 31 |
+| PlumOG (24 games, landing rule; glossary) | 1.52 / 1.44 / 1.00 / 0.22 | 58.3 | 0.0 | 37.5 |
 
 (The six-character table is 64 games with Plum seated. The 96-game
 win rates carry a standard deviation of about five points, PlumOG's
@@ -596,14 +601,16 @@ win rates carry a standard deviation of about five points, PlumOG's
 games, and was exported as **`clude_agents/weights/plum.npz`** the
 same evening, replacing run 1's 110 exported earlier that day. At his
 own table Mustard and Green now take 25% and 26% against him, where
-against PlumOG they took 25% and 12.5%.
+against PlumOG on the grid they took 20.8% each.
 
 **Where that leaves Plum against PlumOG**: better belief from the 50%
 checkpoint on (1.21 against 1.44, and the best mid- and late-game
 log-loss of any method), no wrong accusations, three orders of
-magnitude faster; about four fifths of PlumOG's win rate at his own
-table (49 against 62.5, the latter on 24 games) and seven tenths of
-it at the six-character table (22 against 31). A third run from
+magnitude faster; about five sixths of PlumOG's win rate at his own
+table (49 against 58.3, the latter on 24 games) and three fifths of
+it at the six-character table (22 against 37.5). (Corrected
+2026-10-07: this paragraph first compared with the ring ladder's
+62.5% and the pre-landing-rule 31%; see section 12.) A third run from
 checkpoint 130 may add a little; the evidence of run 2 is that the
 policy's ceiling under this recipe is near, and the belief head's
 plateau at 1.20 is the more interesting limit, since what it reads
@@ -630,3 +637,86 @@ a dangling "The "), so `test_recorded_llm_games_replay_offline[llm_seed1]`
 fails, since the fixture is keyed on the exact prompt. N6 re-records
 `llm_seed2`; `llm_seed1` wants the same once the edit is finished.
 
+
+## 12. As implemented: N1's storage half and N5 (2026-10-07)
+
+David's word: "Let's get complete with Phase 12 today", and the plan
+for the day approved: N1 storage, N5 measurements, then the paid N6
+gate and N7.
+
+### N1, the logbook commands
+
+- `Logbook.copy_to(identity)` (`clude_storage/logbooks.py`) copies a
+  logbook to another identity in the same store, as an archive: every
+  entry with its `identity` rewritten and `token` kept, the head under
+  the new name, the method memory as is. It refuses a destination that
+  already has a logbook, and a source that has none.
+- `Logbook.reset_arm(arm)` drops one arm from a stored bandit
+  posterior, so `BanditAgent.load_state` gives it its prior; the other
+  arms and the game count are untouched.
+- `logbook copy --identity Plum --to PlumOG` and `logbook reset-arm
+  --arm Plum` (`--identity` defaults to Green) in `scripts/clude_cli.py`;
+  `tests/test_logbooks.py` runs both over the local store and the GCS
+  double.
+- Run on `data/llm`: Plum has no logbook there (no LLM Plum game was
+  stored with logbooks), so there was nothing to archive; Green's Plum
+  arm (0.75 after one game) was reset. The bucket pass waits for the
+  deploy (N7).
+
+### N5, the headless evaluation
+
+All on the committed weights (run 2's checkpoint 130), results in
+`data/plum-eval/` (gitignored) and the glossary's new section *The new
+Plum (Phase 12, 2026-10-07)*, which holds the tables.
+
+- **`benchmark` grows `--calibration`** (`clude_training/benchmark.py`):
+  per agent, the P `best_triple` compares with `accuse_threshold`
+  (through the spec's confidence function, so Peacock's lower bound),
+  binned, against how often that triple was the envelope, and the
+  accuracy at or above 0.8, 0.9 and 0.95; in the JSON as `calibration`.
+  The "fell back to sampling" line now prints only for an agent that
+  did, since the registry's Plum never samples.
+- **Belief**, `benchmark --games 60 --seed 4004`: 1.48 / 1.21 / 0.86 /
+  0.21, below uniform (1.57 / 1.35 / 1.01 / 0.29) everywhere, the best
+  of any method to the halfway mark; 0.7 ms a call. Green, with the
+  network as his Plum arm, ties him at 50% and edges him late, and his
+  call falls from 524 ms to 1.6 ms.
+- **Calibration**: at or above 0.9 Plum's triple was right in 132 of
+  132 snapshots; below it, where there are numbers, he is
+  underconfident. `accuse_threshold` 0.9 stands by the section 5 rule.
+- **Arenas**, seed 7007, 24 games: 54.2% at his own table (Mustard
+  20.8%, Green 25.0%), 12.5% of 16 at the six-character table, no
+  wrong accusation.
+- **A correction.** The PlumOG figures this plan compared with since
+  section 6, 62.5% at his own table and 31% at the six-character one,
+  were the ring ladder's headless leg and the six-character arena
+  *before* the landing rule. On today's rules and the same deals
+  (`grid-plum-prox2-24`, `arena-grid-prox2-24`, counted from their
+  records) PlumOG won **58.3%** and **37.5%**, and Mustard and Green
+  20.8% each at his table. Sections 6 and 11 are corrected in place.
+  Paired with those runs, Plum is a game behind at his own table and
+  four behind (2 of 16 against 6 of 16) at the six-character one.
+- **Dials** (`sweep --seed 7100`, 192 games at six characters and 96
+  at his table): lowering `accuse_threshold` to 0.6-0.8 buys at most
+  six points at the big table, about a sigma, and costs 3-8% wrong
+  accusations at his own, where 0.9 has none; `temperature` 0.05 is
+  best or joint best on both tables. **Both presets kept**; no golden
+  moved.
+- **Leash width**, `scripts/leash_width.py` (new): at each of Plum's
+  multi-option move and suggestion menus on his table, the options
+  each leash would allow, for Plum and for PlumOG with his own dials
+  on the same seeds. PlumOG at 0.25 allowed 1.75 a menu; Plum allows
+  1.46 at 0.25 and **1.71 at 0.35**, the equal-rope match (0.30
+  matches PlumOG's share of open menus instead). Plum faces 50 such
+  menus a game against PlumOG's 31, since he suggests more, so at
+  0.35 the model is asked about twice as often per game.
+- `arena.deviation_rate` already divided by the model's played
+  decisions; nothing to change.
+
+### What N6 now costs
+
+PlumOG's ring ladder spent about $6 a 24-game value for 380 model
+calls. At 0.35 Plum should make about 500-600 calls a value and at
+0.25 about 400, so the ladder `--roster Plum,Mustard,Green --seed 7007
+--games 24` at 0.35 and 0.25 is quoted at **$15-22**, above the $8-16
+of section 5, plus about $0.5 to re-record `llm_seed1` and `llm_seed2`.

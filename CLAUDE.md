@@ -6,11 +6,11 @@ Private Clue game for family and friends, with human, numerical and LLM players.
 
 Start with `git log --oneline -5` and `git status`, then [the roadmap](docs/phase-plan.md) and the active phase's plan. Current guides describe the code; completed plans explain historical decisions. Where an older proposal and its implementation record disagree, trust the implementation record, then verify against code before changing it.
 
-## Status (2026-10-06)
+## Status (2026-10-07)
 
 Phases 1-9 are implemented. Phase 10's main UX/sound work is built; 10h help remains open. Wikiclude has its own [plan](docs/wikiclude-plan.md) and is outside Phase 11.
 
-Phase 11 condenses maintainer docs and docstrings. Phase 12 is in progress: N2-N4 (scoring hooks, NumPy Plum, rollout/trainer) are built, and the committed weights are a trained checkpoint (the second long run's 130, exported 2026-10-06: 49% at his own table, 22% at the six-character table, the best mid-game belief on record). N1 logbook operations and N5-N7 evaluation/rollout remain open. PlumOG is archived, not seatable. [Phase 12](docs/deepnash-plan.md) contains evidence and acceptance steps; [the roadmap](docs/phase-plan.md) owns status. Checkout state does not confirm live deployment.
+Phase 11 condenses maintainer docs and docstrings. Phase 12 is in progress: N2-N4 (scoring hooks, NumPy Plum, rollout/trainer) are built, and the committed weights are a trained checkpoint (the second long run's 130, exported 2026-10-06: 49% at his own table, 22% at the six-character table, the best mid-game belief on record). N1's logbook commands and N5's headless evaluation are done (presets kept; leash 0.35 the candidate); N6's paid ladder and N7's rollout remain open. PlumOG is archived, not seatable. [Phase 12](docs/deepnash-plan.md) contains evidence and acceptance steps; [the roadmap](docs/phase-plan.md) owns status. Checkout state does not confirm live deployment.
 
 ## Settled decisions (David's)
 

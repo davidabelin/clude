@@ -755,6 +755,45 @@ class Logbook:
                 removed += int(self.store.delete_doc(entry_key(self.identity, serial)))
         return removed
 
+    def copy_to(self, identity: str) -> "Logbook":
+        """Copy this logbook to `identity` in the same store, as an
+        archive: every entry with its `identity` rewritten (`token` kept),
+        the head under the new name, the method memory as is. Returns the
+        new logbook.
+
+        Raises
+        ------
+        ValueError
+            If `identity` already has a logbook, or this one has none.
+        """
+        dest = Logbook(self.store, identity)
+        if dest.exists():
+            raise ValueError(f"{dest.identity} already has a logbook in {self.store.describe()}")
+        if not self.exists():
+            raise ValueError(f"no logbook for {self.identity} in {self.store.describe()}")
+        for entry in self.entries():
+            data = entry.to_dict()
+            data["identity"] = dest.identity
+            self.store.put_doc(entry_key(dest.identity, entry.serial), data)
+        head = self.head()
+        head.identity = dest.identity
+        dest.save_head(head)
+        method = self.method()
+        if method is not None:
+            dest.save_method(method)
+        return dest
+
+    def reset_arm(self, arm: str) -> bool:
+        """Forget one arm of a stored bandit posterior (Green's), so it
+        loads at its prior; the other arms are untouched. Returns whether
+        the arm was stored."""
+        method = self.method()
+        if not method or arm not in method.get("arms", {}):
+            return False
+        del method["arms"][arm]
+        self.save_method(method)
+        return True
+
     def exists(self) -> bool:
         """True if any document of this logbook is stored."""
         return bool(self.serials()) or not self.head().is_empty() or self.method() is not None

@@ -2,8 +2,9 @@
 
 FloorBot is the default regime; RandomBot is a historical baseline. Report
 Brier error over 21 cards, per-category log-loss/top-1, call time and optional
-method diagnostics at fractions of suggestions. Uniform over the floor's
-allowed candidates is the control.
+method diagnostics at fractions of suggestions, and a calibration table of
+the accusation test's P against how often that triple was the envelope.
+Uniform over the floor's allowed candidates is the control.
 
 Agent instances persist across games; Green learns from RevealedOutcome
 at every snapshot, unlike the arena's once-per-game feedback. Timings do
@@ -16,9 +17,10 @@ import time
 from dataclasses import dataclass, field
 from typing import Optional
 
-from clude_agents import list_agent_specs
+from clude_agents import AGENT_SPECS, list_agent_specs
 from clude_agents.bandit import RevealedOutcome
 from clude_agents.base import mask_and_normalize
+from clude_agents.character import best_triple, probabilities_confidence
 from clude_core.domain import ROOMS, SUSPECTS, WEAPONS
 from clude_training.self_play import (
     DEFAULT_BOT,
@@ -103,6 +105,52 @@ class _Accumulator:
         }
 
 
+CALIBRATION_EDGES = (0.0, 0.1, 0.3, 0.5, 0.7, 0.8, 0.85, 0.9, 0.95, 1.0)
+"""Bin edges for the accusation test's P; the top bins are narrow because
+the thresholds that matter (0.8-0.95) live there."""
+
+
+@dataclass
+class _Calibration:
+    """How often the triple a character would accuse is the envelope,
+    binned by the P its accusation test compares with `accuse_threshold`
+    (`best_triple` over the spec's confidence), all checkpoints pooled.
+    Bin i holds ``edges[i] < P <= edges[i + 1]``, the first from 0."""
+
+    edges: tuple = CALIBRATION_EDGES
+    counts: list = field(default_factory=lambda: [0] * (len(CALIBRATION_EDGES) - 1))
+    p_sums: list = field(default_factory=lambda: [0.0] * (len(CALIBRATION_EDGES) - 1))
+    correct: list = field(default_factory=lambda: [0] * (len(CALIBRATION_EDGES) - 1))
+
+    def update(self, confidence: dict, envelope: tuple) -> None:
+        triple, p = best_triple(confidence)
+        i = next((i for i, hi in enumerate(self.edges[1:]) if p <= hi + EPS), len(self.counts) - 1)
+        self.counts[i] += 1
+        self.p_sums[i] += p
+        self.correct[i] += int(tuple(triple) == tuple(envelope))
+
+    def at_or_above(self, threshold: float) -> tuple:
+        """(snapshots, accuracy) over every P >= `threshold`: how often an
+        accusation at that threshold would have been right."""
+        lows = [i for i, lo in enumerate(self.edges[:-1]) if lo >= threshold - EPS]
+        n = sum(self.counts[i] for i in lows)
+        hits = sum(self.correct[i] for i in lows)
+        return n, (hits / n if n else float("nan"))
+
+    def to_dict(self) -> dict:
+        return {
+            "edges": list(self.edges),
+            "bins": [
+                {
+                    "n": n,
+                    "mean_p": s / n if n else None,
+                    "accuracy": c / n if n else None,
+                }
+                for n, s, c in zip(self.counts, self.p_sums, self.correct)
+            ],
+        }
+
+
 @dataclass
 class BenchmarkResult:
     """Per-agent, per-checkpoint accumulators from one `run_benchmark`
@@ -123,6 +171,28 @@ class BenchmarkResult:
     n_snapshots: int = 0
     per_agent: dict = field(default_factory=dict)  # name -> {checkpoint: _Accumulator}
     agents: dict = field(default_factory=dict)  # name -> agent instance
+    calibration: dict = field(default_factory=dict)  # name -> _Calibration
+
+    def calibration_table(self) -> str:
+        """Per agent, each P bin's count, mean P and share of triples
+        correct, then the accuracy at or above 0.8, 0.9 and 0.95."""
+        header = f"{'agent':<12}{'P bin':>13}{'n':>6}{'mean P':>9}{'correct':>9}"
+        lines = [header, "-" * len(header)]
+        for name in sorted(self.calibration):
+            cal = self.calibration[name]
+            for i, n in enumerate(cal.counts):
+                if not n:
+                    continue
+                span = f"{cal.edges[i]:.2f}-{cal.edges[i + 1]:.2f}"
+                lines.append(
+                    f"{name:<12}{span:>13}{n:>6}{cal.p_sums[i] / n:>9.3f}{cal.correct[i] / n:>9.3f}"
+                )
+            above = []
+            for t in (0.8, 0.9, 0.95):
+                n, acc = cal.at_or_above(t)
+                above.append(f">={t:.2f}: {acc:.3f} of {n}" if n else f">={t:.2f}: -")
+            lines.append(f"{name:<12}  " + "; ".join(above))
+        return "\n".join(lines)
 
     def summary_table(self) -> str:
         """One row per (agent, checkpoint), agents in name order. The
@@ -158,6 +228,7 @@ class BenchmarkResult:
                 name: {str(cp): acc.to_dict() for cp, acc in cells.items()}
                 for name, cells in self.per_agent.items()
             },
+            "calibration": {name: cal.to_dict() for name, cal in self.calibration.items()},
         }
 
 
@@ -217,6 +288,7 @@ def run_benchmark(
         bot=bot,
         per_agent={name: {cp: _Accumulator() for cp in checkpoints} for name in names},
         agents=agents,
+        calibration={name: _Calibration() for name in names},
     )
 
     for snap in generate_snapshots(
@@ -224,15 +296,18 @@ def run_benchmark(
         player_counts=player_counts, bot=bot,
     ):
         result.n_snapshots += 1
-        result.per_agent[UNIFORM][snap.checkpoint].update(
-            _uniform_probabilities(snap.obs), snap.envelope
-        )
+        uniform = _uniform_probabilities(snap.obs)
+        result.per_agent[UNIFORM][snap.checkpoint].update(uniform, snap.envelope)
+        result.calibration[UNIFORM].update(uniform, snap.envelope)
         for name, agent in agents.items():
             cell = result.per_agent[name][snap.checkpoint]
             started = time.perf_counter()
             belief = agent.select_action(snap.obs)
             cell.record_call(time.perf_counter() - started, belief.extra)
             cell.update(belief.probabilities, snap.envelope)
+            spec = AGENT_SPECS.get(name)
+            confidence = spec.confidence_fn if spec is not None else probabilities_confidence
+            result.calibration[name].update(confidence(belief), snap.envelope)
             agent.observe(RevealedOutcome(envelope=snap.envelope))
 
     return result

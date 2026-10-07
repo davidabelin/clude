@@ -72,7 +72,7 @@ python scripts/clude_cli.py logbook rebuild --uri data/llm --identity Mustard
 
 `--logbook [URI]` on play/arena reads then updates; omitted URI uses `--store`. `--logbook-readonly` reads without writes, and sweeps always use read-only memory. `--logbook-characters` restricts attachment.
 
-`logbook reset --identity NAME` removes head/method/entries; `--keep-entries` retains the archive. `rebuild` reconstructs the head and supported method memory, using `--from URI` if given. `--min-version` defaults to 3, excluding ring-era records; 1 includes every era. Green cannot be reconstructed. Phase 12's proposed copy/reset-arm commands and PlumOG logbook migration remain unimplemented; do not assume the old Plum logbook has been archived/reset just because its agent was removed.
+`logbook reset --identity NAME` removes head/method/entries; `--keep-entries` retains the archive. `rebuild` reconstructs the head and supported method memory, using `--from URI` if given. `--min-version` defaults to 3, excluding ring-era records; 1 includes every era. Green cannot be reconstructed. `copy --identity NAME --to ARCHIVE` archives a logbook under another identity, refusing an existing one; `reset-arm --arm NAME` forgets one arm of Green's posteriors. Phase 12's PlumOG archive is `copy --identity Plum --to PlumOG`, then `reset --identity Plum` and `reset-arm --arm Plum`: done on `data/llm` 2026-10-07, not yet on the bucket, so do not assume the live Plum logbook has been archived.
 
 ## Cost
 
