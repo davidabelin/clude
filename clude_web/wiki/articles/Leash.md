@@ -7,7 +7,7 @@ dyk: ...that a zero [[leash]] can still leave a tied choice for the model?
 ---
 The **leash** limits the choices available to a model-piloted character. Ordinary scored options remain available when their score is at least $(1-l)$ times the best score, where $l$ is the leash setting. At 0 only top-scoring options remain, including ties; at 1 all options in that scored menu pass the cutoff. Bluffing and accusation have additional rules.[^menu]
 
-The preset is {{code:neutral.leash}}. The model can choose within the resulting menu and speak in its [[persona|voice]], but cannot widen the menu through conversation or [[logbook|memory]]. A malformed or disallowed reply falls back to the numerical character's own decision.
+The preset is {{code:neutral.leash}}, except for [[Professor Plum]], whose network spreads its scores wider than a count does, so the same setting would give him narrower menus; his is {{code:preset.Plum.leash}}.[^plum] The model can choose within the resulting menu and speak in its [[persona|voice]], but cannot widen the menu through conversation or [[logbook|memory]]. A malformed or disallowed reply falls back to the numerical character's own decision.
 
 ## A scored menu
 
@@ -41,7 +41,7 @@ $$ p\geq(1-l)t. $$
 
 Waiting is available whenever $p<t$ **or any positive leash remains**. The implementation therefore has an early-accusation boundary but no upper confidence boundary that forces accusation at positive leash. The model can keep waiting above its headless threshold, including at a score of 1.[^menu]
 
-For Plum's threshold {{code:preset.Plum.accuse_threshold}} and leash 0.25, accusation opens at $0.75\times0.9=0.675$. At confidence 0.70 both accusation and waiting are available; at 0.95 they are also both available. At zero leash, 0.70 forces waiting and 0.95 forces accusation. The confidence itself remains the character's product approximation, not an independently verified chance of success.
+For Plum's threshold {{code:preset.Plum.accuse_threshold}} and leash {{code:preset.Plum.leash}}, accusation opens at $0.65\times0.9=0.585$. At confidence 0.70 both accusation and waiting are available; at 0.95 they are also both available. At zero leash, 0.70 forces waiting and 0.95 forces accusation. The confidence itself remains the character's product approximation, not an independently verified chance of success.
 
 ## Accepted choices and fallback
 
@@ -66,6 +66,10 @@ Mustard's observed win rates did not establish a clear preference among the posi
 
 These historical runs informed keeping the preset. They predate the Classic board and landing rule, so they do not settle the best leash for the present implementation. A later comparison needs the board, opponents, model and starting memory recorded afresh.
 
+## Plum's network
+
+When the network replaced [[PlumOG]] in October 2026, his leash was measured again. At 0.25 the network's menus were narrower than PlumOG's had been, about {{fact:leash.width.Plum.l25}} options against {{fact:leash.width.PlumOG.l25}}; {{fact:policy.leash.match}} restored the width. A paid ladder on the Classic board, 24 three-seat games at each of 0.25 and 0.35, found the same win rate at both and as headless, one wrong accusation at 0.25 and none at 0.35, so 0.35 became his preset.[^plum]
+
 ## See also
 
 [[LLM wrapper]] · [[Personality dials]] · [[Twin comparison]] · [[Landing rule]]
@@ -77,5 +81,6 @@ These historical runs informed keeping the preset. They predate the Classic boar
 [^menu]: {{cite:clude_llm/menu.py|`within_leash`, `suggestion_menu`, `accusation_menu` and `_build`}}
 [^wrapper]: {{cite:clude_llm/player.py|decision validation and fallback}}
 [^ladders]: {{cite:docs/strategy-glossary.md|Per-character leash ladders (2026-09-13)}}
+[^plum]: {{cite:docs/strategy-glossary.md|Plum with Claude, the network (N6)}}
 
 {{navbox:clude}}

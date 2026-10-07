@@ -124,7 +124,9 @@ def test_the_two_phase_6_dials_exist_and_old_profiles_still_load():
     assert "leash" in DIALS and "chattiness" in DIALS
     assert (Profile().leash, Profile().chattiness) == (0.25, 0.5)
     for name, preset in PRESETS.items():
-        assert (preset.leash, preset.chattiness) == (0.25, 0.5), name
+        # Plum's policy spreads its scores wider than a count (Phase 12 N6).
+        leash = 0.35 if name == "Plum" else 0.25
+        assert (preset.leash, preset.chattiness) == (leash, 0.5), name
     five = {dial: 0.3 for dial in DIALS if dial not in ("leash", "chattiness")}
     assert Profile.from_dict(five).leash == 0.25
     assert Profile(leash=0.0).with_dials(chattiness=1.0).chattiness == 1.0
@@ -692,11 +694,10 @@ FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures"
 # Re-recorded again on 2026-09-18 for Phase 8.0.4's landing rule
 # (`features._landing_proximity`): every movement menu's scores moved,
 # so every key did ($0.22).
-# Both recordings are historical after Phase 11's shared-rules edit
-# (2026-10-06). Seed 2 also predates Phase 12's network menus and the
-# revised Plum persona. Keep exact old recordings; paid refresh is pending
-# separate approval, preferably after validated weights so it is done once.
-# Commands and scope are recorded in docs/phase11-plan.md.
+# Phase 11's shared-rules edit (2026-10-06) left both historical; they were
+# re-recorded on 2026-10-07 (Phase 12 N6), after the trained weights and
+# Plum's leash of 0.35 were settled, so seed 2's Plum is the network
+# ($0.11 and $0.03).
 RECORDED_GAMES = [
     pytest.param(
         "llm_seed1.json", "1", "3", "Scarlett,Peacock",
@@ -707,7 +708,6 @@ RECORDED_GAMES = [
         "llm_seed2.json", "2", "4", "Plum,Mustard,Green,White",
         "Scarlett/Candlestick/Ballroom", "P1 White",
         "Turns played: 10; suggestions: 2; accusations: 1",
-        marks=pytest.mark.skip(reason="Phase 11 prompts and Phase 12 Plum menus changed; paid refresh awaits approval"),
     ),
 ]
 

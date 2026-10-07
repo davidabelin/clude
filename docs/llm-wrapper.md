@@ -24,11 +24,11 @@ Use `clude_cli.py prompt` to inspect the actual prompt without spending. Persona
 
 `personas/<Suspect>.md` describes identity, method and voice; `rules.md` supplies shared behavior. These are executable prompts. Keep numerical flaws in agents/dials, rather than ordering the persona to make deliberately wrong decisions. Scarlett's current preset threshold is 0.3; Plum's method is the policy/belief network, not PlumOG's enumeration.
 
-Phase 11 updated Plum's method description and condensed shared rules. Exact system text participates in LLMRequest replay keys, so both historical fixtures are stale. Keep them as historical recordings; do not rewrite keys to pretend they are fresh. Paid re-recording and outcome/tally updates require separate approval. Phase 12's trained-weight validation can change menus again.
+Exact system text participates in LLMRequest replay keys, so any persona, rules or menu change leaves the recorded fixtures stale; never rewrite keys to pretend they are fresh. Phase 11's prompt edits did so; both fixtures were re-recorded on 2026-10-07 (Phase 12 N6), with the trained network and Plum's leash of 0.35. A further re-recording, with its outcome/tally updates, needs separate approval.
 
 ## The two Phase 6 dials
 
-`leash` governs allowable choices; `chattiness` gates proposed talk. Both are Profile dials, ignored by numerical Character. Current defaults are 0.25/0.5. A policy agent can have different score spread from enumeration, so the same leash value does not imply the same menu width. Phase 12 must re-measure Plum's leash.
+`leash` governs allowable choices; `chattiness` gates proposed talk. Both are Profile dials, ignored by numerical Character. Current defaults are 0.25/0.5, except Plum's leash of 0.35: his policy spreads its scores wider than PlumOG's enumeration did, so the same leash value gave him narrower menus. 0.35 matches PlumOG's menu width and was kept by the paid ladder of 2026-10-07 ([glossary](strategy-glossary.md), "Plum with Claude, the network (N6)").
 
 ## Memory (Phase 7)
 
@@ -67,8 +67,11 @@ Measured on Opus 5 (2026-09-13), at list prices:
 | seed 2, 4 players, 4 LLM seats | 4 | 39 | $0.43 | 46% |
 
 That is roughly **$0.07-0.11 per LLM seat-game**, which is the number to
-budget an arena with: a 24-game, 4-seat run is order $10. Plum's games
-run long and ask the model often, so his seat-game is about $0.25. A
+budget an arena with: a 24-game, 4-seat run is order $10. The network
+Plum's seat-game has a median of $0.09 and a mean of $0.11, at leash
+0.35 on his three-seat table (2026-10-07); one game in 24 ran 172 turns
+and reached the 500K-token cap at $2.78. PlumOG's games ran long and
+asked the model often, about $0.20-0.25 a seat-game. A
 logbook (Phase 7) adds a debrief per seat-game, measured on six Plum
 games (2026-09-14) at $0.06-0.11, mean $0.09: 2.5-7K fresh input
 tokens, 2K cached, 1.8-3.1K output including thinking, 33-48 s at

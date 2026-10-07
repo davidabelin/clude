@@ -43,7 +43,7 @@ Wikiclude articles, rendering and assets are outside this pass. Existing source 
 
 ## Phase 12 scope
 
-[Phase 12](deepnash-plan.md) replaces PlumOG with a DeepNash variant over the floor. Work is interleaved with Phase 11; a trained checkpoint is committed (2026-10-06) and evaluated headless (N5, 2026-10-07); the paid persona/leash check and deploy (N6-N7) are open.
+[Phase 12](deepnash-plan.md) replaces PlumOG with a DeepNash variant over the floor. Work is interleaved with Phase 11; a trained checkpoint is committed (2026-10-06) and evaluated headless (N5, 2026-10-07); the paid leash ladder, the fixture refresh and the wiki pass (N6-N7) followed the same day. The portraits' placement and the deploy are open.
 
 | Step | State in this checkout | Remaining work |
 |---|---|---|
@@ -52,10 +52,10 @@ Wikiclude articles, rendering and assets are outside this pass. Existing source 
 | N3 | NumPy agent built; weights are run 2's checkpoint 130 | Replace weights only after validation |
 | N4 | Rollouts, PyTorch trainer, two long runs and the export | A further run is optional, after N7 |
 | N5 | Calibration table, arenas, dial sweeps and leash-width match measured; presets kept | None |
-| N6 | Persona wording updated in Phase 11 | Paid leash validation and fixture refresh after approval |
-| N7 | Open | Remaining UI/wiki work, production rollout and cloud logbook operations |
+| N6 | Persona wording updated in Phase 11; paid ladder kept leash 0.35 ($8.38); both LLM fixtures re-recorded and replaying | None |
+| N7 | Wiki rewritten for the network, with figures, diagrams, algorithm boxes and 21 Algorithms entries; lobby and Watch copy updated; portraits drawn | Portraits in the infoboxes after review; deploy and the bucket's logbook commands |
 
-The trained Plum has the best mid-game belief of any method, no wrong accusations and sub-millisecond calls; he wins a little less than PlumOG at his own table and less at six. Curiosity is inert for his policy hook; `accuse_threshold` and `temperature` were re-measured and kept; leash 0.35 matches PlumOG's menu width and awaits the paid ladder. See [Phase 12](deepnash-plan.md) sections 11-12.
+The trained Plum has the best mid-game belief of any method, no wrong accusations and sub-millisecond calls; he wins a little less than PlumOG at his own table and less at six. Curiosity is inert for his policy hook; `accuse_threshold` and `temperature` were re-measured and kept; leash 0.35 matches PlumOG's menu width and the paid ladder kept it. With Claude he wins as often as headless, and a typical seat-game costs about $0.09. See [Phase 12](deepnash-plan.md) sections 11-13.
 
 ## Legacy code disposition
 

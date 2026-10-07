@@ -71,7 +71,7 @@ Two dials were measured again for the network. The threshold was kept because hi
 
 {{table:sweep.policy.accuse|Plum's accusation threshold moved with every other dial and character at its preset, seed 7100: 128 games with Plum seated among six characters, 96 at his own table.}}
 
-The temperature was kept for the same reason: 0.05 was the best or equal best at both tables. The [[leash]], which sets how far a model playing him may stray from his top option, had to change, because the network's scores are spread differently from the count's: at the old setting of 0.25 it would give the model less choice than PlumOG had. A leash of {{fact:policy.leash.match}} gives the same width of choice.[^leash]
+The temperature was kept for the same reason: 0.05 was the best or equal best at both tables. The [[leash]], which sets how far a model playing him may stray from his top option, had to change, because the network's scores are spread differently from the count's: at the old setting of 0.25 it would give the model less choice than PlumOG had. A leash of {{fact:policy.leash.match}} gives the same width of choice,[^leash] and a paid ladder with Claude kept it: at 0.25 the model made one wrong accusation in 24 games, at {{code:preset.Plum.leash}} none, with the same wins.[^n6]
 
 ## Record
 
@@ -88,6 +88,12 @@ The [[belief benchmark]] scores each method's probabilities against the truth at
 At his own table, against [[Colonel Mustard]] and [[Mr. Green]], he wins about half his games, a game fewer than PlumOG on the same deals. Among all six he wins less often: two of sixteen here, and {{fact:policy.six.96}}% over 96 games, against PlumOG's {{fact:arena.policy.og.six.win}}%. The estimated [[w:Standard error|standard error]] of a 24-game percentage is about ten points, so the gap at his own table is noise; the gap among six probably is not.[^arenas]
 
 {{figure:plum-checkpoints|His win rate at his own table through the late stages of both training runs.}}
+
+### With Claude
+
+When [[Claude]] plays his seat at his own table, choosing within a leash of {{code:preset.Plum.leash}}, he wins as often as the network does alone, {{fact:ladder.policy.l35.win}}% of 24 games against the headless {{fact:ladder.policy.headless.win}}%. Paired game by game, the model lost {{fact:policy.llm.lost}} of the network's wins and won {{fact:policy.llm.lost}} others. It departs from the network's top option in {{fact:ladder.policy.l35.deviate}}% of the decisions it is asked to make, four to five times as often as it departed from PlumOG's, and talks about as much as PlumOG did, a median of six remarks a game. With PlumOG the model was worth seventeen points at this table, {{fact:plum.claude.base.win}}% to {{fact:plum.claude.llm.win}}%; the network already plays at that level.[^n6]
+
+A typical game with Claude in his seat costs about \${{fact:cost.seat_game.plum}} at list prices. A long game costs more, because every call carries the game so far: one of the 24 ran {{fact:policy.llm.long.turns}} turns and stopped calling the model at the per-game cap, having spent \${{fact:policy.llm.long.cost}}.[^n6]
 
 ## PlumOG
 
@@ -147,6 +153,7 @@ Plum's network does not change between games: what it learnt, it learnt in train
 [^presets]: {{cite:clude_agents/personality.py|`PRESETS` and `PLUM_OG`}}
 [^dials]: {{cite:docs/strategy-glossary.md|Dial checks}}
 [^leash]: {{cite:docs/strategy-glossary.md|Leash width (the equal-rope match)}}
+[^n6]: {{cite:docs/strategy-glossary.md|Plum with Claude, the network (N6)}}
 [^bench]: {{cite:docs/strategy-glossary.md|Belief benchmark, the network (N5)}}
 [^arenas]: {{cite:docs/strategy-glossary.md|Arenas on the standard seeds}}
 [^og]: {{cite:clude_agents/exact_enum.py|the search, the sampler and the two budgets}}

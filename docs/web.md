@@ -169,7 +169,7 @@ change the glossary, and the suite fails until `facts.py` follows.
 not read.) A constant is `{{code:...}}`, read from the module when the
 wiki is built, and the worked example the method articles share, the
 Rope question, is run through every method's real agent
-(`facts.rope_question`; `plum_search` traces Plum's search for its
+(`facts.rope_question`; `plum_search` traces PlumOG's search for its
 figure, `chain_example` fits White's chain, `mustard_tree` reads the
 trained tree). The questions Colonel Mustard's tree asks on it reach the
 text as `{{code:example.mustard.step.N.threshold}}` and the like,

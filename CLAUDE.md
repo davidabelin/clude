@@ -10,7 +10,7 @@ Start with `git log --oneline -5` and `git status`, then [the roadmap](docs/phas
 
 Phases 1-9 are implemented. Phase 10's main UX/sound work is built; 10h help remains open. Wikiclude has its own [plan](docs/wikiclude-plan.md) and is outside Phase 11.
 
-Phase 11 condenses maintainer docs and docstrings. Phase 12 is in progress: N2-N4 (scoring hooks, NumPy Plum, rollout/trainer) are built, and the committed weights are a trained checkpoint (the second long run's 130, exported 2026-10-06: 49% at his own table, 22% at the six-character table, the best mid-game belief on record). N1's logbook commands and N5's headless evaluation are done (presets kept; leash 0.35 the candidate); N6's paid ladder and N7's rollout remain open. PlumOG is archived, not seatable. [Phase 12](docs/deepnash-plan.md) contains evidence and acceptance steps; [the roadmap](docs/phase-plan.md) owns status. Checkout state does not confirm live deployment.
+Phase 11 condenses maintainer docs and docstrings. Phase 12 is in progress: N2-N4 (scoring hooks, NumPy Plum, rollout/trainer) are built, and the committed weights are a trained checkpoint (the second long run's 130, exported 2026-10-06: 49% at his own table, 22% at the six-character table, the best mid-game belief on record). N1's logbook commands, N5's headless evaluation (presets kept), N6's paid ladder (leash 0.35 kept, $0.09 a typical seat-game; both LLM fixtures re-recorded) and N7's wiki pass are done; the portraits await review, and the deploy with the bucket's logbook commands remains. PlumOG is archived, not seatable. [Phase 12](docs/deepnash-plan.md) contains evidence and acceptance steps; [the roadmap](docs/phase-plan.md) owns status. Checkout state does not confirm live deployment.
 
 ## Settled decisions (David's)
 

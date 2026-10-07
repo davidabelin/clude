@@ -7,7 +7,7 @@ a default developer dependency. Release readiness remains separate.
 
 ## Current state (2026-10-07)
 
-N2-N5 are built. **The committed weights are the second long run's checkpoint 130** (section 11), exported on the evening of 2026-10-06: 49% at his own table and 22% at the six-character table on 96 games, the best belief log-loss on record from the 50% checkpoint on, no wrong accusations. N1's logbook commands and N5's headless evaluation followed on 2026-10-07 (section 12): presets kept, leash 0.35 the equal-rope candidate. The paid N6 ladder and N7's rollout remain open. Phase 11 updated Plum's method prompt and shared rules, completing the wording portion of N6; both recorded LLM fixtures now await separately approved refresh. No paid ladder or trained-weight export was part of Phase 11. The detailed designs below are proposals unless the implementation records confirm them.
+N2-N5 are built. **The committed weights are the second long run's checkpoint 130** (section 11), exported on the evening of 2026-10-06: 49% at his own table and 22% at the six-character table on 96 games, the best belief log-loss on record from the 50% checkpoint on, no wrong accusations. N1's logbook commands and N5's headless evaluation followed on 2026-10-07 (section 12): presets kept, leash 0.35 the equal-rope candidate. N6's paid ladder the same day kept **leash 0.35** ($8.38), both LLM fixtures were re-recorded, and N7's wiki pass rewrote Plum's pages (section 13). Left: placing the portraits after David's review, the deploy and the three `logbook` commands on the bucket. The detailed designs below are proposals unless the implementation records confirm them.
 
 ## 1. Context
 
@@ -720,3 +720,26 @@ calls. At 0.35 Plum should make about 500-600 calls a value and at
 0.25 about 400, so the ladder `--roster Plum,Mustard,Green --seed 7007
 --games 24` at 0.35 and 0.25 is quoted at **$15-22**, above the $8-16
 of section 5, plus about $0.5 to re-record `llm_seed1` and `llm_seed2`.
+
+## 13. As implemented: N6 and N7 (2026-10-07)
+
+### N6, the leash ladder and the fixtures
+
+The ladder ran as quoted (`sweep --dial leash --values 0.25 0.35 --characters Plum --roster Plum,Mustard,Green --players 3 --games 24 --seed 7007 --llm --llm-characters Plum --store data/llm --run-id plum-policy-ladder --json data/llm/ladder_plum_policy.json`), 50 minutes, **$8.38** against the $15-22 quote. The model calls were close to the estimate (354 at 0.25, 464 at 0.35, against about 400 and 500-600); each cost less than PlumOG's ring calls had, $0.008-0.012 against $0.016. A first launch without `ANTHROPIC_API_KEY` in the environment fell back on every call and spent nothing; its records were deleted before the real run. The CLI does not read `.env`; the key has to be set in the same shell call.
+
+The results are in the glossary ("Plum with Claude, the network (N6)"). Both values win 54.2%, as the network does headless on the same seeds; 0.35 has no wrong accusation where 0.25 has one; the model departs from the top option a little more often at 0.35 (14.9% of asked decisions against 12.7%); both talk a median of six remarks a game, against PlumOG's 5.4. By the rule set before the run (keep 0.35 unless departures, wins or remarks argue for 0.25), **0.35 stays**. One 172-turn game at 0.35 reached the wrapper's 500K-token cap, cost $2.78 and caused all nine fallbacks; the median seat-game is $0.09 at both values.
+
+- `clude_agents/personality.py`: Plum's preset `leash=0.35`. `PLUM_OG` had been the same object as the preset; it is now its own copy with PlumOG's 0.25, so the archive keeps his dials. Headless play ignores `leash`, so no golden moved.
+- `tests/fixtures/llm_seed1.json` ($0.11) and `llm_seed2.json` ($0.03, White wins on turn 10 as before) re-recorded into fresh files (the recorder appends) and both replay tests un-skipped; the preset test allows Plum's 0.35.
+- `docs/llm-wrapper.md` (Plum's leash and cost), the lobby's budget note (Plum no longer priced apart), `docs/architecture.md` (the committed weights are trained, not seeded).
+
+### N7, the wiki and the web
+
+[Wikiclude's plan](wikiclude-plan.md), section 13, records the wiki pass: *Regularised Nash dynamics*, *Professor Plum* rewritten with a PlumOG section, *Exact posterior enumeration* as PlumOG's method, the Rope question's network answer pinned in tests, the Plum figures and seven diagrams, algorithm boxes and 21 Algorithms entries. After N6, *Professor Plum* gains "With Claude" and *Leash* a section on Plum's network, from new facts (`ladder.policy`, `policy.llm.*`); `cost.seat_game.plum` now cites $0.09. Watch no longer calls Plum slow; `replay_data.METHOD_SHORT` already read "Self-play policy".
+
+The six suspects' cartoon portraits (`clude_web/wiki/portraits.py`, contact sheet `docs/ux/portraits/`) are registered as figures and await David's review before they replace the tokens in the character infoboxes.
+
+### Left
+
+- The portraits in the infoboxes, after review.
+- Deploy (`scripts\deploy.bat`, after checking `gcloud run revisions list`), then on `--uri gs://clude-game-data/llm`: `logbook copy --identity Plum --to PlumOG`, `logbook reset --identity Plum`, `logbook reset-arm --identity Green --arm Plum`. Both need David's yes.

@@ -1466,4 +1466,26 @@ PlumOG's rows are the landing rule's kept runs, the same 24 deals under today's 
 | Plum, share of menus with 2+ allowed | 0.16 | 0.26 | 0.31 | 0.37 | 0.42 | 0.46 | 0.54 |
 | PlumOG, share of menus with 2+ allowed | 0.30 | 0.33 | 0.36 | 0.37 | 0.39 | 0.41 | 0.55 |
 
-The network's scores are spread wider, so 0.25 gives him less rope than it gave PlumOG: **0.35 matches PlumOG's mean width at 0.25** (1.71 against 1.75), 0.30 his share of open menus. He also faces more menus a game (50 against 31: he suggests more), so at the matched leash the model is asked about twice as often per game. The paid ladder at 0.35 and 0.25 decides (plan, N6).
+The network's scores are spread wider, so 0.25 gives him less rope than it gave PlumOG: **0.35 matches PlumOG's mean width at 0.25** (1.71 against 1.75), 0.30 his share of open menus. He also faces more menus a game (50 against 31: he suggests more), so at the matched leash the model is asked about twice as often per game. The paid ladder at 0.35 and 0.25 decided for 0.35 (next section).
+
+### Plum with Claude, the network (N6)
+
+```
+sweep --dial leash --values 0.25 0.35 --characters Plum --roster Plum,Mustard,Green --players 3 --games 24 --seed 7007 --llm --llm-characters Plum --store data/llm --run-id plum-policy-ladder --json data/llm/ladder_plum_policy.json
+```
+
+2026-10-07, Opus 5, memory 0, 2985 s, **$8.38** at list prices (quoted $15-22): $3.00 at 0.25, $5.38 at 0.35. The headless row is the same sweep without `--llm`.
+
+| leash | win% | +- | wrong% | 1st accusation | never% | mean turns | asked | fallbacks | deviate% | remarks a game, median (mean) | cost a game, median (mean) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0.25 | 54.2 | 10.2 | 4.2 | 35.9 | 41.7 | 38.8 | 354 | 0 | 12.7 | 6 (7.2) | $0.089 ($0.125) |
+| 0.35 | 54.2 | 10.2 | 0.0 | 46.2 | 45.8 | 39.4 | 464 | 9 | 14.9 | 6 (9.5) | $0.088 ($0.224) |
+| headless | 54.2 | 10.2 | 0.0 | 44.2 | 45.8 | 49.5 | - | - | - | - | - |
+
+**0.35 kept.** Claude neither costs nor gains him games: paired with the headless games, Plum lost 5 and gained 5 at 0.25, lost 6 and gained 6 at 0.35. 0.35 had no wrong accusation where 0.25 had one, departed from the network's top option a little more often (14.9% of the asked decisions against 12.7%), and talked as much (a median of 6 remarks a game at both, against PlumOG's 5.4).
+
+One game skews the means at 0.35. Game 7 ran 172 turns (68 headless, 20 at 0.25), and because the prompt grows with the game, its 137 calls used 707K tokens and $2.78. It reached the wrapper's 500K-token cap per game, so it accounts for all 9 fallbacks (budget, from turn 164); Plum still won it. Without it, 0.35 cost $0.113 a game and talked 7.0 times.
+
+Against PlumOG on the same seeds (`grid-plum-llm-24`, above): PlumOG went from 37.5% headless to 54.2% with Claude, at about $0.20 a seat-game and 2.8% deviations. The network already wins 54.2% headless, and Claude departs from its top option four to five times as often as it departed from PlumOG's, without changing the result. A typical (median) seat-game costs about **$0.09** and the mean without game 7 is $0.11, against PlumOG's mean of $0.20; a long game still costs more.
+
+The fixtures were re-recorded the same day with the leash at 0.35: `llm_seed1` ($0.11; the floor seat, Mustard, wins after 35 turns) and `llm_seed2` ($0.03; White wins on turn 10, as in the old recording). Both replay offline.

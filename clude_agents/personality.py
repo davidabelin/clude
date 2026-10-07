@@ -103,10 +103,14 @@ PRESETS: dict = {
     # turn without a suggestion, so 0.5 (2026-09-15) won more than 0.8
     # or 0.3 did with only his dial moved. For the new Plum curiosity is
     # inert: his move head owns the destination (`deep_nash`), and the
-    # dial stays here for the record. `accuse_threshold` and `leash`
-    # are to be re-measured for him (`docs/deepnash-plan.md` 5).
+    # dial stays here for the record. N5's headless sweeps kept
+    # `accuse_threshold` 0.9 and `temperature` 0.05; his policy spreads
+    # its scores wider than PlumOG's count, so `leash` 0.35 gives him
+    # about PlumOG's menu width, and N6's paid ladder (2026-10-07) kept
+    # it over 0.25 (`docs/deepnash-plan.md` 13).
     "Plum": Profile(
-        accuse_threshold=0.9, bluff_rate=0.05, curiosity=0.5, secrecy=0.7, temperature=0.05
+        accuse_threshold=0.9, bluff_rate=0.05, curiosity=0.5, secrecy=0.7, temperature=0.05,
+        leash=0.35,
     ),
     # Cautious: her threshold applies to the Dempster-Shafer *belief*
     # (a lower bound), not the pignistic probability -- see
@@ -134,9 +138,9 @@ PRESETS: dict = {
 }
 
 
-PLUM_OG: Profile = PRESETS["Plum"]
-"""The dials PlumOG played with, archived 2026-10-05 (Phase 12): the
-same `Profile` the new Plum starts from. Not a preset: PlumOG is in no
+PLUM_OG: Profile = replace(PRESETS["Plum"], leash=0.25)
+"""The dials PlumOG played with, archived 2026-10-05 (Phase 12): the new
+Plum's, except the leash he kept at 0.25. Not a preset: PlumOG is in no
 registry."""
 
 

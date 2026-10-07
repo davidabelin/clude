@@ -67,7 +67,7 @@ Optional pure hooks `movement_scores(obs, choices, features, profile)` and `sugg
 
 [README](../README.md#the-six-methods) lists live methods. `ExactEnumAgent` is now **PlumOG**, absent from the registry and Green's arms; it remains for historical analysis and tests.
 
-Plum uses `deep_nash.py` and committed `weights/plum.npz`, still seeded initial weights. Smoke checkpoints under ignored `data/plum-training/` are not the active agent. [Phase 12](deepnash-plan.md) owns training, limitations and acceptance steps.
+Plum uses `deep_nash.py` and committed `weights/plum.npz`, the second long run's checkpoint 130 (exported 2026-10-06). Other checkpoints under ignored `data/plum-training/` are not the active agent. [Phase 12](deepnash-plan.md) owns training, limitations and acceptance steps.
 
 ## Per-turn data flow
 
@@ -118,7 +118,7 @@ FloorBot is the default snapshot/training opponent: it names unlocated cards, se
 
 Historical Phase 5 measurements: FloorBot games end in about 12-23 suggestions with a third of viewers holding a proven envelope at the end; the old regime ran 80-180 suggestions with a floor that plateaued early. These are ring-era results, not estimates for the current board/network.
 
-Plum trains from whole-game Episode rollouts, not benchmark snapshots. `RecordingPlum` samples policies at a mixed population of tables; `scripts/train_plum.py` fits policy/value/belief heads. [Phase 12](deepnash-plan.md) records smoke-run limitations.
+Plum trains from whole-game Episode rollouts, not benchmark snapshots. `RecordingPlum` samples policies at a mixed population of tables; `scripts/train_plum.py` fits policy/value/belief heads. [Phase 12](deepnash-plan.md) records the smoke runs, both long runs and the export.
 
 ## Arena, sweeps and game records (Phase 5d)
 

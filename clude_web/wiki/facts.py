@@ -74,6 +74,7 @@ _POLICY_BENCH = "Belief benchmark, the network (N5)"
 _POLICY_ARENAS = "Arenas on the standard seeds"
 _POLICY_DIALS = "Dial checks"
 _POLICY_LEASH = "Leash width (the equal-rope match)"
+_POLICY_LLM = "Plum with Claude, the network (N6)"
 _RUN1 = "The first long run, `run150a` (2026-10-06)"
 _RUN2 = "The second run, `run2`, and the export (2026-10-06)"
 
@@ -485,6 +486,18 @@ TABLES.update({
             "PlumOG": ("[[PlumOG]], options allowed", "| PlumOG, mean options allowed (755 menus) | 1.59 | 1.69 | 1.75 | 1.79 | 1.87 | 1.97 | 2.48 |"),
         },
     ),
+    # N6's paid leash ladder, with the headless sweep on the same seeds.
+    "ladder.policy": Table(
+        GLOSSARY, _POLICY_LLM,
+        ("Leash", "Won %", "±", "Wrong %", "First accusation, turn", "Never accused %", "Turns",
+         "Asked", "Fell back", "Departed %", "Remarks a game, median (mean)", "Cost a game, median (mean)"),
+        ("win", "sd", "wrong", "first", "never", "turns", "asked", "fallbacks", "deviate", "remarks", "cost"),
+        {
+            "l25": ("0.25", "| 0.25 | 54.2 | 10.2 | 4.2 | 35.9 | 41.7 | 38.8 | 354 | 0 | 12.7 | 6 (7.2) | $0.089 ($0.125) |"),
+            "l35": ("0.35 (his preset)", "| 0.35 | 54.2 | 10.2 | 0.0 | 46.2 | 45.8 | 39.4 | 464 | 9 | 14.9 | 6 (9.5) | $0.088 ($0.224) |"),
+            "headless": ("headless", "| headless | 54.2 | 10.2 | 0.0 | 44.2 | 45.8 | 49.5 | - | - | - | - | - |"),
+        },
+    ),
     # The two training runs' late checkpoints, re-measured on 96 games a table.
     "plum.run1": Table(
         DEEPNASH_PLAN, _RUN1,
@@ -558,7 +571,7 @@ FACTS: dict = {
     "arena.grid.games": Fact("24", GLOSSARY, "Arena on the grid, tuned presets (Stage 1f, re-run)", "arena --games 24 --seed 7007"),
     "arena.noise": Fact("8-12", GLOSSARY, "Tuned presets on the grid (Stage 1e, 2026-09-15)", "the binomial std on a win% is 8-12 points"),
     "scarlett.ring.threshold": Fact("0.15", GLOSSARY, "Tuned presets on the grid (Stage 1e, 2026-09-15)", "**1. Scarlett's threshold: 0.15 to 0.3.**"),
-    "cost.seat_game.plum": Fact("0.25", "docs/llm-wrapper.md", "Cost", "his seat-game is about $0.25"),
+    "cost.seat_game.plum": Fact("0.09", "docs/llm-wrapper.md", "Cost", "a median of $0.09"),
     "cost.seat_game.others": Fact("0.07-0.11", "docs/llm-wrapper.md", "Cost", "$0.07-0.11 per LLM seat-game"),
     # The benchmarks' sizes, and the historical one.
     "bench.ring.snapshots": Fact("1,080", GLOSSARY, _BENCH_RING, "1080 snapshots"),
@@ -649,6 +662,10 @@ FACTS: dict = {
     "policy.green.plum": Fact("0.75", GLOSSARY, _POLICY_BENCH, "Green's arms after the run: Plum 0.75"),
     "policy.calibration.n": Fact("132", GLOSSARY, "Calibration of the accusation test", "right in 132 of 132 snapshots"),
     "policy.leash.match": Fact("0.35", GLOSSARY, _POLICY_LEASH, "0.35 matches PlumOG's mean width at 0.25"),
+    "policy.llm.cost": Fact("8.38", GLOSSARY, _POLICY_LLM, "**$8.38** at list prices"),
+    "policy.llm.lost": Fact("6", GLOSSARY, _POLICY_LLM, "lost 6 and gained 6 at 0.35"),
+    "policy.llm.long.turns": Fact("172", GLOSSARY, _POLICY_LLM, "Game 7 ran 172 turns"),
+    "policy.llm.long.cost": Fact("2.78", GLOSSARY, _POLICY_LLM, "707K tokens and $2.78"),
     "policy.menus.plum": Fact("50", GLOSSARY, _POLICY_LEASH, "50 against 31"),
     "policy.menus.og": Fact("31", GLOSSARY, _POLICY_LEASH, "50 against 31"),
     "policy.own.96": Fact("49.0", GLOSSARY, _POLICY_ARENAS, "49.0% at his own table and 21.9% at the six-character table"),
@@ -1033,7 +1050,7 @@ def _code() -> dict:
     table["example.plum.pair"] = lambda: _trim(rope_question()["plum"]["White"] * rope_question()["plum"]["Wrench"], 2)
     table["example.scarlett.3.pair"] = lambda: _trim(rope_question()["scarlett"][3]["White"] * rope_question()["scarlett"][3]["Wrench"], 2)
     for name in ("Scarlett", "Mustard", "White", "Green", "Peacock", "Plum"):
-        for dial in ("accuse_threshold", "bluff_rate", "curiosity", "secrecy", "temperature"):
+        for dial in ("accuse_threshold", "bluff_rate", "curiosity", "secrecy", "temperature", "leash", "chattiness"):
             table[f"preset.{name}.{dial}"] = lambda n=name, d=dial: _preset(n, d)
 
     # The other four methods on the same question (W2).

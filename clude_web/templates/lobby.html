@@ -55,7 +55,7 @@
           <span class="note">(30 s a decision before the floor bot plays the turn for you, instead of 90; showing a card has 30 s either way)</span>
         </label>
         {% if llm %}
-        <label for="table-budget">LLM budget, $ <span class="note">(an LLM seat costs about $0.10 a game, Plum $0.25, plus a logbook entry; the day's cap is ${{ '%.2f'|format(llm.daily_cap) }})</span></label>
+        <label for="table-budget">LLM budget, $ <span class="note">(an LLM seat costs about $0.10 a game, more in a long one, plus a logbook entry; the day's cap is ${{ '%.2f'|format(llm.daily_cap) }})</span></label>
         <input id="table-budget" name="budget" inputmode="decimal" value="{{ budget or ('%.2f'|format(llm.budget)) }}" autocomplete="off">
         {% endif %}
       </div>
