@@ -591,14 +591,26 @@ def test_the_lobby_leads_to_a_stored_replay(app, store, client):
     sign_in(client)
 
     lobby = client.get("/").get_data(as_text=True)
-    development = client.get("/development").get_data(as_text=True)
+    development = client.get("/development/1").get_data(as_text=True)
     run_page = client.get("/runs/web-test").get_data(as_text=True)
 
-    # Two folders (2026-09-29): every run but practice is under development.
-    assert "/practice" in lobby and "/development" in lobby and "/runs/web-test" not in lobby
+    # Practice in two sets, development in two phases (2026-10-07):
+    # every run but practice is under development, by its phase.
+    for href, name in (("/runs/web", "practice set one"), ("/runs/web-2", "practice set two"),
+                       ("/development/1", "development phase one"), ("/development/2", "development phase two")):
+        assert f'href="{href}">{name}</a>' in lobby
+    assert "/runs/web-test" not in lobby
     assert "/runs/web-test" in development
+    assert "/runs/web-test" not in client.get("/development/2").get_data(as_text=True)
+    assert client.get("/development").headers["Location"].endswith("/development/1")
+    assert client.get("/development/3").status_code == 404
     assert "/replay/web-test/0" in run_page
-    assert 'href="/development">development</a>' in run_page
+    assert 'href="/development/1">development phase one</a>' in run_page
+
+    summary["phase"] = 2
+    store.put_run("web-test", summary)
+    assert "/runs/web-test" in client.get("/development/2").get_data(as_text=True)
+    assert 'href="/development/2">development phase two</a>' in client.get("/runs/web-test").get_data(as_text=True)
 
 
 def test_the_games_table_has_wall_time_and_shows_cost_to_the_developer_only(app, store, client):
@@ -644,7 +656,7 @@ def test_the_footer_links_privacy_contact_and_wikiclude_on_every_page(app, clien
     login = anonymous.get("/login").get_data(as_text=True)
     foot = login.split('<footer class="foot">')[1].split("</footer>")[0]
     assert 'href="/privacy"' in foot and 'href="/wiki"' in foot
-    assert "github.com/davidabelin/clude/issues" in foot and "2026 AIX Laboratories" in foot
+    assert "github.com/davidabelin/clude/issues" in foot and "2026 AIX Protodyne" in foot
     privacy = anonymous.get("/privacy")
     assert privacy.status_code == 200 and "Anthropic" in privacy.get_data(as_text=True)
     assert anonymous.get("/wiki").status_code == 200

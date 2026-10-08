@@ -93,12 +93,21 @@ def test_without_a_key_the_lobby_disables_llm_seats_and_the_form_refuses_one(tmp
 
 
 def test_with_a_key_the_lobby_offers_it_and_the_form_takes_a_budget(tmp_path, store):
+    """The budget field is the Developer look's alone; without it a
+    table gets the configured budget."""
     app = make_app(tmp_path, store)
     ann = login(app, ANN)
     page = ann.get("/").get_data(as_text=True)
-    assert "Plum (LLM)" in page and 'name="budget"' in page
-    fields = [("csrf", csrf(ann)), ("seed", str(SEED)), ("budget", "0.75")]
-    fields += [(f"seat-{t}", v) for t, v in SEATS.items()]
+    assert "Plum (LLM)" in page and 'name="budget"' not in page
+    seats = [(f"seat-{t}", v) for t, v in SEATS.items()]
+    response = ann.post("/tables", data=MultiDict([("csrf", csrf(ann)), ("seed", str(SEED))] + seats))
+    assert response.status_code == 302
+    table_id = response.headers["Location"].rstrip("/").split("/")[-1]
+    assert app.extensions["tables"].document(table_id)["llm"]["budget"] == 2.0
+    ann.post(f"/tables/{table_id}/abandon", data={"csrf": csrf(ann)})
+    ann.post("/style", data={"csrf": csrf(ann), "style": "developer", "next": "/"})
+    assert 'name="budget"' in ann.get("/").get_data(as_text=True)
+    fields = [("csrf", csrf(ann)), ("seed", str(SEED)), ("budget", "0.75")] + seats
     response = ann.post("/tables", data=MultiDict(fields))
     assert response.status_code == 302
     table_id = response.headers["Location"].rstrip("/").split("/")[-1]

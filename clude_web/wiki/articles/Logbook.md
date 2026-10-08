@@ -35,7 +35,7 @@ A logbook belongs to the roster identity rather than the coloured token. A chara
 
 ## Reading and writing
 
-New web tables remember by default, with a separate opt-out. Existing tables keep their saved setting. New LLM seats on the lobby form start at full memory depth; the profile and bare driver default to condensed depth. Remembering off disables cross-game reading and updating rather than setting the depth to zero.[^tiers]
+New web tables always remember; only the Developer look offers an opt-out. Existing tables keep their saved setting. New LLM seats on the lobby form start at full memory depth; the profile and bare driver default to condensed depth. Remembering off disables cross-game reading and updating rather than setting the depth to zero.[^tiers]
 
 The CLI opts in with `--logbook`. A read-only logbook supplies a fixed memory state for comparison without allowing the run to change it. Normal remembered play updates after each game, so an arena can become a learning sequence rather than a collection of independent seat-games.
 

@@ -266,11 +266,11 @@ async def test_a_whole_game_plays_through_the_tools(server, registry, store):
     assert not any("audit" in e for e in mine)
 
     # Recorded like any other web game, the chat seat a person under its account key.
-    assert store.list_games("web") == [0]
-    record = GameRecord.from_dict(store.get_game("web", 0))
+    assert store.list_games("web-2") == [0]
+    record = GameRecord.from_dict(store.get_game("web-2", 0))
     seat = next(s for s in record.seats if s.seat == 0)
     assert (seat.label, seat.kind) == (CLAUDE, "human")
-    assert final["over"]["replay"] == "/replay/web/0"
+    assert final["over"]["replay"] == "/replay/web-2/0"
 
 
 async def test_the_digest_folds_the_lines_that_fell_off_the_front(server, registry, monkeypatch):
@@ -1167,7 +1167,7 @@ async def test_the_replay_is_a_whole_url_when_the_service_knows_its_address(serv
         unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
         registry.deal(table_id)
         final = await play_out(client, table_id)
-    assert final["over"]["replay"] == "https://clude.example/replay/web/0"
+    assert final["over"]["replay"] == "https://clude.example/replay/web-2/0"
     assert "sign-in" in final["over"]["replay_note"]
     assert final["over"]["notepad"] == "full"
 
@@ -1316,18 +1316,18 @@ async def test_finished_games_list_and_replay_page_by_page(server, registry, mon
         await play_out(client, table_id)
 
         listed = unwrap(await client.call_tool("clude_games", {}))
-        assert listed["run_id"] == "web" and listed["n_games"] == 1 and "web" in listed["runs"]
+        assert listed["run_id"] == "web-2" and listed["n_games"] == 1 and "web-2" in listed["runs"]
         assert listed["games"][0].startswith("0: Claude, Mustard, White; ")
 
-        first = unwrap(await client.call_tool("clude_replay", {"run_id": "web", "index": 0}))
+        first = unwrap(await client.call_tool("clude_replay", {"run_id": "web-2", "index": 0}))
         game = registry.game(table_id)
         assert first["envelope"] == list(game.state.envelope)
         assert first["seats"][0].startswith("Scarlett (Claude): a person, holding ")
-        assert first["replay"] == "/replay/web/0"
+        assert first["replay"] == "/replay/web-2/0"
         lines = list(first["events"])
         cursor = first["next"]
         while cursor is not None:
-            page = unwrap(await client.call_tool("clude_replay", {"run_id": "web", "index": 0, "since": cursor}))
+            page = unwrap(await client.call_tool("clude_replay", {"run_id": "web-2", "index": 0, "since": cursor}))
             assert "envelope" not in page
             lines += page["events"]
             cursor = page["next"]
@@ -1335,7 +1335,7 @@ async def test_finished_games_list_and_replay_page_by_page(server, registry, mon
         assert lines[0].startswith("0 (turn 1) Scarlett (Claude) moves")
         assert any(" showed " in line for line in lines), "a replay names the cards shown"
 
-        missing = await client.call_tool("clude_replay", {"run_id": "web", "index": 9})
+        missing = await client.call_tool("clude_replay", {"run_id": "web-2", "index": 9})
         assert "clude_games" in error_text(missing)
         missing = await client.call_tool("clude_games", {"run_id": "nope"})
         assert "Runs: web" in error_text(missing)

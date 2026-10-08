@@ -25,7 +25,7 @@ from clude_core.events import AccusationEvent, GameOverEvent
 from clude_llm import LLMCharacter, LLMSettings
 from clude_llm.anthropic_backend import estimate_cost
 from clude_storage.logbooks import Logbook
-from clude_storage.records import GameRecord, SeatRecord
+from clude_storage.records import DEVELOPMENT_PHASE, GameRecord, SeatRecord
 from clude_training import memory as method_memory
 from clude_training.self_play import DEFAULT_PLAYER_COUNTS
 
@@ -845,5 +845,5 @@ def run_arena(
     }
     result.seconds = time.perf_counter() - started
     if store is not None:
-        store.put_run(run_id, result.to_dict())
+        store.put_run(run_id, {**result.to_dict(), "phase": DEVELOPMENT_PHASE})
     return result

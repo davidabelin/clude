@@ -392,6 +392,15 @@ D3 and D6 are **reversed** by D8 and D10 below; D5 is narrowed by D11.
 - **D28. The board's size on a phone** fixed where it drew small inside its pane.
 - To discuss, not decided: narrating the floor's reasoning behind changes to Your notes.
 
+### Sixth round (2026-10-07), cosmetic
+
+- **D29. The lobby's chairs start empty.** The table form no longer seats the starter as Scarlett against three characters; every seat defaults to empty.
+- **D30. Talk stays in its panel.** The last two balloons no longer lie over a dimmed board for 6 s after a line (rank 6, `talk`, of 3.1, goes); the Talk tab's count still says what arrived.
+- **D31. Remembering and the LLM budget are Developer-only controls.** The characters always remember, so the Play and Watch checkboxes appear in the Developer look alone, as does the LLM budget field; elsewhere a table gets the configured budget ($2).
+- **D32. The footer reads "2026 AIX Protodyne"**, and the wiki article follows it (AIX Laboratories redirects).
+- **D33. Practice in sets.** The `web` run becomes **practice set one**, closed; every game from here on goes to **practice set two** (`web-2`).
+- **D34. Development in phases.** **Development phase one** is what was live (38 runs, uploaded 2026-09-18); **development phase two** holds runs since the new Plum, beginning with the N6 leash ladder's two runs (uploaded 2026-10-07). Older local-only runs stay local.
+
 ## 14\. Sub-phases
 
 Each leaves the suite green and is a working system on its own, per `CLAUDE.md`.
@@ -471,6 +480,12 @@ D18 split display listings into practice (`web`) and development (other runs), w
 Pass/No suggestion appear above the board. A single narration line replaced the beat caption; LiveGame.rolls supplies dice narration beside the event log without changing records. Costs became Developer-only across table, stored games and MCP. `clude_logout` invalidates account MCP tokens through an epoch.
 
 Rooms gained distinct tints; doors animate/sound on entry, passages have their own cue/marker. Showing a card allows at most 30 s; optional suggestion remains legal. Phone board sizing was corrected around the suggestion form. Narrating changes to the floor's notes remains a discussion item, not implemented reasoning copy.
+
+### Sixth round (2026-10-07)
+
+`DEFAULT_SEATS` in `views.py` maps every suspect to empty (D29). The client-side `talk` focus rank, its `#talk-over` overlay and the Esc that dismissed it are removed, and `FOCUS_RANKS` drops `talk` (D30); the stage's overlay now carries only the end plate. `lobby.html` renders the remember checkboxes (with their hidden `remember=0`) and the budget field only when the look is Developer; the server already reads a missing `remember` as on and a missing budget as the configured default, and `lobby.js` treats a missing checkbox as remembering (D31).
+
+The footer and the wiki article are AIX Protodyne (D32). `tables.WEB_RUN` is now `web-2`; `views.PRACTICE` maps `web` and `web-2` to their set names, the lobby lists both, and `/practice` opens set two (D33). A run summary's `phase` files it: `clude_storage.DEVELOPMENT_PHASE` (2) is stamped by the arena and the CLI's `play`, a summary without one is phase one, and `/development/<phase>` lists each (`/development` redirects to phase one). The two `plum-policy-ladder-leash-*` summaries were stamped and copied with their 48 records to the live bucket by exact path, since `store copy` would also take local-only runs and the local `web` run (D34). The live folders need a deploy.
 
 ### Remaining work
 

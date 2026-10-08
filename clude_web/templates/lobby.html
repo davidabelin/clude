@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 {% block title %}clude{% endblock %}
 {% block content %}
+{# The remember checkboxes and the LLM budget are Developer-only
+   (2026-10-07): elsewhere the characters always remember and a table
+   gets the configured budget, both the server's defaults when the
+   fields are absent. #}
+{% set developer = current_style().key == 'developer' %}
 <div class="lobby">
 
   <section class="panel new-game">
@@ -43,23 +48,25 @@
       <div class="knobs">
         <label for="table-seed">Seed <span class="note">(blank for a random one)</span></label>
         <input id="table-seed" name="seed" inputmode="numeric" value="{{ table_seed }}" autocomplete="off">
+        {% if developer %}
         <label class="check" for="remember">
           <input type="checkbox" id="remember" name="remember" value="1" {% if remember %}checked{% endif %}>
           the characters remember
           <span class="note">(LLM logbooks and supported method memory; Mustard may take about half a minute to prepare)</span>
         </label>
         <input type="hidden" name="remember" value="0">
+        {% endif %}
         <label class="check" for="speed">
           <input type="checkbox" id="speed" name="speed" value="1" {% if speed %}checked{% endif %}>
           speed mode
           <span class="note">(30 s a decision before the floor bot plays the turn for you, instead of 90; showing a card has 30 s either way)</span>
         </label>
-        {% if llm %}
+        {% if llm and developer %}
         <label for="table-budget">LLM budget, $ <span class="note">(an LLM seat costs about $0.10 a game, more in a long one, plus a logbook entry; the day's cap is ${{ '%.2f'|format(llm.daily_cap) }})</span></label>
         <input id="table-budget" name="budget" inputmode="decimal" value="{{ budget or ('%.2f'|format(llm.budget)) }}" autocomplete="off">
         {% endif %}
       </div>
-      <p class="note" id="memory-help">Remembering starts on. LLM characters read and write their logbooks; Mustard, White and Green also retain method memory in either mode. LLM memory depth starts at 1, the whole logbook: 0 keeps standing instructions and opponent notes, 0.5 adds summaries, and 1 includes every entry in full.</p>
+      <p class="note" id="memory-help">{% if developer %}Remembering starts on.{% else %}The characters always remember.{% endif %} LLM characters read and write their logbooks; Mustard, White and Green also retain method memory in either mode. LLM memory depth starts at 1, the whole logbook: 0 keeps standing instructions and opponent notes, 0.5 adds summaries, and 1 includes every entry in full.</p>
       <button type="submit">Deal</button>
     </form>
   </section>
@@ -124,12 +131,14 @@
         </select>
         <label for="seed">Seed <span class="note">(blank for a random one)</span></label>
         <input id="seed" name="seed" inputmode="numeric" value="{{ seed }}" autocomplete="off">
+        {% if developer %}
         <label class="check" for="watch-remember">
           <input type="checkbox" id="watch-remember" name="remember" value="1" {% if watch_remember %}checked{% endif %}>
           the characters remember
           <span class="note">(method memory for Mustard, White and Green)</span>
         </label>
         <input type="hidden" name="remember" value="0">
+        {% endif %}
       </div>
       <button type="submit" class="quiet">Deal and watch</button>
     </form>
@@ -138,20 +147,24 @@
   <section class="panel">
     <h2>Stored games</h2>
     <p class="note">Reading <code>{{ store }}</code>. Open a folder, then any game as a replay.</p>
-    {% set practice = folders['practice'] %}
-    {% set development = folders['development'] %}
+    {# Practice in two sets and development in two phases (2026-10-07):
+       new games go to set two, new runs to phase two. #}
     <ul class="listing folders">
+      {% for p in folders['practice'] %}
       <li>
-        <a class="run-id" href="{{ url_for('main.practice') }}">practice</a>
+        <a class="run-id" href="{{ url_for('main.run', run_id=p.run_id) }}">{{ p.name }}</a>
         <span class="note">
-          {% if practice.n_games %}{{ practice.n_games }} game{{ '' if practice.n_games == 1 else 's' }} played here{% else %}no games played here yet{% endif %}
-          {% if current_style().costs and practice.cost is not none %}&middot; ${{ '%.2f'|format(practice.cost) }} with Claude{% endif %}
+          {% if p.n_games %}{{ p.n_games }} game{{ '' if p.n_games == 1 else 's' }} played here{% else %}no games played here yet{% endif %}
+          {% if current_style().costs and p.cost is not none %}&middot; ${{ '%.2f'|format(p.cost) }} with Claude{% endif %}
         </span>
       </li>
+      {% endfor %}
+      {% for d in folders['development'] %}
       <li>
-        <a class="run-id" href="{{ url_for('main.development') }}">development</a>
-        <span class="note">{{ development.n_runs }} run{{ '' if development.n_runs == 1 else 's' }}: the arenas, sweeps and ladders</span>
+        <a class="run-id" href="{{ url_for('main.development_phase', phase=d.phase) }}">{{ d.name }}</a>
+        <span class="note">the arenas, sweeps and ladders{% if d.phase == 1 %} before the new Plum{% else %} since the new Plum{% endif %}</span>
       </li>
+      {% endfor %}
     </ul>
   </section>
 

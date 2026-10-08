@@ -261,3 +261,4 @@ def test_records_from_a_character_game_keep_every_seat(tmp_path):
     summary = store.get_run("smoke")
     assert summary["n_games"] == 2
     assert set(summary["per_player"]) == {"Scarlett", "floor"}
+    assert summary["phase"] == 2, "a run stored since the new Plum is development phase two"

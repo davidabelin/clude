@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 from concurrent.futures import ThreadPoolExecutor
+from typing import Optional
 
 from flask import (
     Blueprint,
@@ -36,12 +37,9 @@ bp = Blueprint("main", __name__)
 DEFAULT_TABLE = 4
 """The Watch form's starting table size: the arena's usual table."""
 
-DEFAULT_SEATS: dict = {
-    "Scarlett": "me", "Mustard": "character", "White": "character", "Green": "character",
-    "Peacock": "empty", "Plum": "empty",
-}
-"""The table form's starting occupants: you as Scarlett against three
-characters, a four-seat game."""
+DEFAULT_SEATS: dict = {token: "empty" for token in SUSPECTS}
+"""The table form's starting occupants: every chair empty, for the
+starter to fill."""
 
 CONTACT_URL = "https://github.com/davidabelin/clude/issues"
 """Where the footer's Contact goes: the repo's GitHub issues (D12)."""
@@ -85,40 +83,52 @@ def _me() -> str:
     return users.normalise(current_user())
 
 
-PRACTICE = "practice"
-"""The Stored games folder of games played at clude's tables: the
-store's ``web`` run (`tables.WEB_RUN`) under the name David gave it
-(2026-09-29). The store's key is unchanged."""
+PRACTICE: dict = {"web": "practice set one", tables.WEB_RUN: "practice set two"}
+"""The Stored games folders of games played at clude's tables, by run:
+set one is the store's ``web`` run, closed on 2026-10-07; set two,
+`tables.WEB_RUN`, takes every game since (David). Each is one run, so
+its folder is its games table."""
 
-DEVELOPMENT = "development"
-"""The Stored games folder holding every other run: the arenas, the
-sweeps, the ladders, the fixtures (David, 2026-09-29)."""
+DEVELOPMENT: dict = {1: "development phase one", 2: "development phase two"}
+"""The Stored games folders holding every other run, the arenas, sweeps,
+ladders and fixtures, by the summary's ``phase`` (`DEVELOPMENT_PHASE`):
+phase one before the new Plum, phase two since (David, 2026-10-07). A
+summary without one is phase one."""
 
 
-def folder_of(run_id: str) -> str:
+def phase_of(summary: dict) -> int:
+    """The development phase a run summary belongs to."""
+    phase = summary.get("phase", 1)
+    return phase if phase in DEVELOPMENT else 1
+
+
+def folder_of(run_id: str, summary: Optional[dict] = None) -> str:
     """The Stored games folder a run is shown under."""
-    return PRACTICE if run_id == tables.WEB_RUN else DEVELOPMENT
+    if run_id in PRACTICE:
+        return PRACTICE[run_id]
+    return DEVELOPMENT[phase_of(summary or {})]
 
 
 def run_title(run_id: str) -> str:
-    """A run's name as shown: the practice run by its folder's name."""
-    return PRACTICE if run_id == tables.WEB_RUN else run_id
+    """A run's name as shown: a practice run by its folder's name."""
+    return PRACTICE.get(run_id, run_id)
 
 
 def folders(store) -> dict:
-    """The lobby's two folders: how many games practice holds and what
-    they spent with Claude, and how many runs are under development.
-    Reads one summary, the practice run's; the development runs are
-    only counted, and read when their folder is opened."""
-    try:
-        practice = store.get_run(tables.WEB_RUN)
-    except KeyError:
-        practice = {}
-    games = practice.get("games", [])
-    return {
-        PRACTICE: {"n_games": practice.get("n_games", len(games)), "cost": run_cost(games)},
-        DEVELOPMENT: {"n_runs": sum(1 for run_id in store.list_runs() if run_id != tables.WEB_RUN)},
-    }
+    """The lobby's folders: for each practice set, its run, how many
+    games it holds and what they spent with Claude; for development,
+    the phases. Reads the practice summaries only; development runs are
+    read when their folder is opened."""
+    practice = []
+    for run_id, name in PRACTICE.items():
+        try:
+            summary = store.get_run(run_id)
+        except KeyError:
+            summary = {}
+        games = summary.get("games", [])
+        practice.append({"run_id": run_id, "name": name,
+                         "n_games": summary.get("n_games", len(games)), "cost": run_cost(games)})
+    return {"practice": practice, "development": [{"phase": p, "name": n} for p, n in DEVELOPMENT.items()]}
 
 
 def wall_time(seconds) -> str:
@@ -163,9 +173,11 @@ def run_listing(store) -> list:
                 "roster": summary.get("roster", []),
                 "player_counts": summary.get("player_counts", []),
                 "cost": run_cost(summary.get("games", [])),
+                "phase": phase_of(summary),
             }
         )
-    runs.sort(key=lambda r: (r["run_id"] != tables.WEB_RUN, r["run_id"]))
+    order = list(PRACTICE)
+    runs.sort(key=lambda r: (order.index(r["run_id"]) if r["run_id"] in PRACTICE else len(order), r["run_id"]))
     return runs
 
 
@@ -363,15 +375,25 @@ def _wiki_missing(title: str):
 
 @bp.get("/practice")
 def practice():
-    """The practice folder: every game played at clude's tables."""
+    """The practice set games now go to: set two (2026-10-07)."""
     return run(tables.WEB_RUN)
 
 
 @bp.get("/development")
 def development():
-    """The development folder: every other run, each a table of games."""
-    runs = [r for r in run_listing(_store()) if r["run_id"] != tables.WEB_RUN]
-    return render_template("development.html", runs=runs, store=_store().describe())
+    """The old single development folder's address: phase one."""
+    return redirect(url_for("main.development_phase", phase=1))
+
+
+@bp.get("/development/<int:phase>")
+def development_phase(phase):
+    """A development folder: that phase's runs, each a table of games."""
+    if phase not in DEVELOPMENT:
+        abort(404)
+    runs = [r for r in run_listing(_store()) if r["run_id"] not in PRACTICE and r["phase"] == phase]
+    return render_template(
+        "development.html", runs=runs, phase=phase, title=DEVELOPMENT[phase], store=_store().describe()
+    )
 
 
 @bp.get("/runs/<run_id>")
@@ -386,7 +408,8 @@ def run(run_id):
         "run.html",
         run_id=run_id,
         title=run_title(run_id),
-        folder=folder_of(run_id),
+        phase=None if run_id in PRACTICE else phase_of(summary),
+        folder=folder_of(run_id, summary),
         summary=summary,
         games=games,
         cost=run_cost(games),

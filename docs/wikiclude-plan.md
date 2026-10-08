@@ -120,7 +120,7 @@ About seventy, in eight categories. Titles are provisional; redirects make the s
 | **Personality** | Personality dials; Accusation threshold; Bluff rate; Curiosity; Secrecy; Presets; Persona; The leash; Chattiness |
 | **Memory** | Logbook; Method memory; The debrief; The memory dial |
 | **Measurement** | Belief benchmark; Arena; Dial sweeps; Twin comparison; The landing rule (Plum's parking); Self-play; Determinism and seeds; The ring board (history) |
-| **The app and the project** | clude; History of clude; The table; The lobby; Watch; Replay; Looks; The certainty tag; A seat over MCP; What a game costs; AIX Laboratories; and, later, the classwork archive (reinforcement learning, Markov decision processes, Q-learning, DQN) |
+| **The app and the project** | clude; History of clude; The table; The lobby; Watch; Replay; Looks; The certainty tag; A seat over MCP; What a game costs; AIX Protodyne (was AIX Laboratories); and, later, the classwork archive (reinforcement learning, Markov decision processes, Q-learning, DQN) |
 
 ## 5. Sub-phases
 

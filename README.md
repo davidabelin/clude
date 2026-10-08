@@ -45,7 +45,7 @@ Phase 12 is replacing Plum's enumeration method with a DeepNash variant. The reg
 
 Every belief respects the observing seat's deduction floor. Character agents are locked to their own suspect tokens. Human and MCP identities follow their accounts across tokens.
 
-New Play and Watch tables remember by default, with an opt-out. The lobby choices are **empty**, **open**, **floorbot**, **me**, **X (LLM)** and **X (headless)**. LLM seats add persona, leashed choices and narrative memory; Mustard, White and Green also have numerical method memory in either mode. CLI memory is opt-in with `--logbook`.
+New Play and Watch tables remember; only the Developer look offers an opt-out. The lobby choices are **empty**, **open**, **floorbot**, **me**, **X (LLM)** and **X (headless)**. LLM seats add persona, leashed choices and narrative memory; Mustard, White and Green also have numerical method memory in either mode. CLI memory is opt-in with `--logbook`.
 
 ## Maintainer reading map
 

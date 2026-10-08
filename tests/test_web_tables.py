@@ -169,6 +169,10 @@ def play_out(app, table_id, clients: dict, max_steps=4000, on_payload=None):
 
 def test_remembering_defaults_on_and_an_unchecked_form_stays_off(ann, app):
     page = ann.get("/").get_data(as_text=True)
+    assert 'id="remember"' not in page and 'id="watch-remember"' not in page, "Developer only"
+    assert 'id="table-budget"' not in page, "Developer only"
+    ann.post("/style", data={"csrf": csrf(ann), "style": "developer", "next": "/"})
+    page = ann.get("/").get_data(as_text=True)
     assert 'value="1" checked' in page.split('id="remember"')[1].split(">", 1)[0]
     seats = {"Scarlett": "me", "White": "character", "Plum": "open"}
     table_id = new_table(ann, seats, remember=None)
@@ -407,7 +411,7 @@ def test_two_people_play_a_table_to_the_end(app, store, ann, bob, cat):
 
     final = play_out(app, table_id, {ANN: ann, BOB: bob}, on_payload=watch_lines)
     assert final["finished"] and final["over"] is not None
-    assert final["over"]["replay"].endswith("/replay/web/0")
+    assert final["over"]["replay"].endswith("/replay/web-2/0")
     watch_lines(final)
 
     shows = [
@@ -426,14 +430,14 @@ def test_two_people_play_a_table_to_the_end(app, store, ann, bob, cat):
             else:
                 assert line not in text and "disproved it" in text, f"{key} was not involved and saw {text}"
 
-    record = GameRecord.from_dict(store.get_game("web", 0))
+    record = GameRecord.from_dict(store.get_game("web-2", 0))
     assert isinstance(record.events[-1], GameOverEvent)
     assert [(s.kind, s.label) for s in sorted(record.seats, key=lambda s: s.seat)] == [
         ("human", ANN), ("character", "Mustard"), ("character", "White"), ("human", BOB),
     ]
     assert record.seats[0].profile is None
-    assert ann.get("/replay/web/0").status_code == 200
-    assert store.get_run("web")["roster"] == sorted([BOB, "Mustard", "White", ANN])
+    assert ann.get("/replay/web-2/0").status_code == 200
+    assert store.get_run("web-2")["roster"] == sorted([BOB, "Mustard", "White", ANN])
     assert ann.get(f"/tables/{table_id}").status_code == 302, "a finished table opens as its replay"
 
 
@@ -505,7 +509,7 @@ def test_autopilot_plays_the_seat_and_can_be_taken_back(app, store, ann):
     assert payload["finished"]
     game = app.extensions["tables"].game(table_id)
     assert game.entries and all(e["by"] == "autopilot" for e in game.entries)
-    assert store.list_games("web") == [0]
+    assert store.list_games("web-2") == [0]
 
 
 def test_a_stranger_cannot_hand_a_seat_to_the_stand_in(app, ann, bob):
@@ -561,7 +565,7 @@ def test_a_table_can_be_ended_by_a_player_or_its_starter_and_leaves_the_lobby(ap
     assert registry.in_progress() == []
     assert f"/tables/{table_id}" not in ann.get("/").get_data(as_text=True)
     assert ann.get(f"/tables/{table_id}").status_code == 404
-    assert store.list_games("web") == []
+    assert store.list_games("web-2") == []
     # The starter can end a Watch table too, and an open one; a second end is harmless.
     open_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "open"})
     assert ann.post(f"/tables/{open_id}/abandon", data={"csrf": csrf(ann)}).status_code == 302
@@ -859,8 +863,8 @@ def test_default_memory_writes_whites_counts_under_the_human_label(store):
     # snapshot rather than a document that moved on since.
     second = registry.create(setup, ANN)
     snapshot = registry.document(second)["memory"]
-    assert snapshot["White"] == {"kind": "counts", "games": ["web/00000"]}
-    assert snapshot["Mustard"]["kind"] == "rows" and snapshot["Mustard"]["games"] == ["web/00000"]
+    assert snapshot["White"] == {"kind": "counts", "games": ["web-2/00000"]}
+    assert snapshot["Mustard"]["kind"] == "rows" and snapshot["Mustard"]["games"] == ["web-2/00000"]
     live = registry.game(second)
     live.run(6)
     registry.save(second, live)
@@ -926,9 +930,9 @@ def test_talk_and_the_record_hold_disjoint_events_and_a_hostile_line_runs_nothin
 def test_the_focus_ladder_ranks_what_the_server_can_see():
     """Phase 10e (plan 3.1): a card to show outranks the end, which
     outranks the viewer's move and then their other decisions; with none
-    of those the board holds the stage (and the page may lay talk over
-    it; the beat went on 2026-10-01)."""
-    assert tables.FOCUS_RANKS == ("show", "end", "move", "decide", "talk", "board")
+    of those the board holds the stage (the beat went on 2026-10-01, the
+    talk overlay on 2026-10-07)."""
+    assert tables.FOCUS_RANKS == ("show", "end", "move", "decide", "board")
     assert tables.focus_for({"kind": "card_to_show"}, finished=False) == "show"
     assert tables.focus_for({"kind": "card_to_show"}, finished=True) == "show"
     assert tables.focus_for(None, finished=True) == "end"

@@ -44,7 +44,7 @@ The landing-rule record of 18 September compared repeated suggestions before and
 
 ## Opening the underlying games
 
-Signed-in readers can use [[the lobby]]'s development folder to browse saved arenas, sweeps, ladders and fixtures, then open their [[replay|replays]]. Practice contains games completed through the app, including Watch. The folders list runs present in the selected store, which need not include every historical source run.
+Signed-in readers can use [[the lobby]]'s development folders (phase one, and phase two since the new Plum) to browse saved arenas, sweeps, ladders and fixtures, then open their [[replay|replays]]. The practice sets contain games completed through the app, including Watch. The folders list runs present in the selected store, which need not include every historical source run.
 
 The strategy glossary retains run identifiers and commands for the experiments above. [[Maintainer CLI]] can inspect stores and exported results. A recorded event log remains evidence of that game even if a new version would play it differently; rerunning a historical command is a new experiment whose version and date should be recorded.
 

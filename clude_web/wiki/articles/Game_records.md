@@ -17,7 +17,7 @@ An LLM seat's audit can record the menu, reply, accepted choice, fallback, usage
 
 ## Runs and summaries
 
-Practice contains the `web` run; development lists the other run identifiers. An arena or sweep can retain games under its own identifiers, while a fixture can provide a known record for tests. Run summaries list seats, winners, turn and suggestion counts without opening every full record.[^folders]
+Practice set one contains the `web` run, closed on 2026-10-07, and practice set two the `web-2` run that has taken every game since; development phase one and phase two list the other run identifiers, before and since the new Plum. An arena or sweep can retain games under its own identifiers, while a fixture can provide a known record for tests. Run summaries list seats, winners, turn and suggestion counts without opening every full record.[^folders]
 
 Newer web summaries can include elapsed wall time from deal to finish. Older records and arena records can leave it blank. Recorded model costs are shown only in Developer. A summary is an index into the evidence, not the full evidence itself; the replay exposes the events behind a row.
 

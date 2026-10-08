@@ -56,7 +56,6 @@
   var screen = document.getElementById("screen");
   var stage = document.getElementById("stage");
   var over = document.getElementById("over");
-  var talkOver = document.getElementById("talk-over");
   var endPlate = document.getElementById("end-plate");
   var tabStrip = document.getElementById("tabs");
 
@@ -1158,31 +1157,16 @@
 
   /* --- the stage and the focus ladder (plan 3.1, 10e) ------------------ */
 
-  /* The server sends the ranks it can see (`focus`: show, end, move,
-     decide, board). This lays the one it cannot over `board`: talk, the
-     last two balloons for 6 s after a line. A decision of the viewer's
-     locks it out, so the stage never changes under their hand. Esc ends
-     it early. The narration caption that used to sit over the board for
-     2.2 s after a suggestion or an accusation (the beat) is gone
-     (David, 2026-10-01): the narration line above the board says it. */
-  var TALK_MS = 6000;
-  var talkUntil = 0;
-  var focusTimer = null;
-
-  function focusFor(payload, now) {
-    var f = payload.focus || "board";
-    if (f !== "board") return f;
-    if (talkUntil > now) return "talk";
-    return "board";
-  }
-
+  /* The server sends the rank that holds the stage (`focus`: show, end,
+     move, decide, board). Nothing else is laid over the board: the
+     narration caption (the beat) went on 2026-10-01 for the narration
+     line above it, and the talk balloons on 2026-10-07 -- talk stays in
+     its panel (David). */
   function fillStage(focus, payload) {
     if (!over) return;
-    var dim = focus === "end" || focus === "talk";
+    var dim = focus === "end";
     stage.classList.toggle("dimmed", dim);
     over.hidden = !dim;
-    over.className = "over" + (focus === "talk" ? " bottom" : "");
-    if (talkOver) talkOver.hidden = focus !== "talk";
     if (endPlate) endPlate.hidden = focus !== "end";
     if (focus === "end" && endPlate && payload.over) {
       var e = payload.over.envelope;
@@ -1196,10 +1180,6 @@
       document.getElementById("winner").textContent = payload.over.winner
         ? payload.over.winner + " wins on turn " + payload.turns + "."
         : "Nobody wins: every accusation was wrong.";
-    } else if (focus === "talk" && talkOver && talk) {
-      while (talkOver.firstChild) talkOver.removeChild(talkOver.firstChild);
-      var said = talk.querySelectorAll("li.balloon");
-      for (var i = Math.max(0, said.length - 2); i < said.length; i += 1) talkOver.appendChild(said[i].cloneNode(true));
     }
   }
 
@@ -1214,9 +1194,7 @@
 
   function applyFocus() {
     if (!screen) return;
-    if (focusTimer) { window.clearTimeout(focusTimer); focusTimer = null; }
-    var now = Date.now();
-    var focus = focusFor(current, now);
+    var focus = current.focus || "board";
     var was = screen.getAttribute("data-focus");
     if (was !== focus) {
       screen.setAttribute("data-focus", focus);
@@ -1227,7 +1205,6 @@
     if (current.pending) screen.setAttribute("data-pending", current.pending.kind);
     else screen.removeAttribute("data-pending");
     fillStage(focus, current);
-    if (talkUntil > now) focusTimer = window.setTimeout(applyFocus, talkUntil - now + 20);
   }
 
   /* The one impact frame (plan 4, 11): an accusation lands and the
@@ -1243,16 +1220,7 @@
     if (!screen || firstRender) return;
     var accused = fresh.played.some(function (event) { return event.kind === "accusation"; });
     if (accused) impact();
-    if (fresh.said.length) talkUntil = Date.now() + TALK_MS;
   }
-
-  document.addEventListener("keydown", function (event) {
-    if (event.key !== "Escape" || !screen) return;
-    if (talkUntil > Date.now()) {
-      talkUntil = 0;
-      applyFocus();
-    }
-  });
 
   /* --- the narration line (David, 2026-10-01) ---------------------------- */
 

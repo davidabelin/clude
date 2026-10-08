@@ -128,9 +128,10 @@ class LLMConfig:
 TABLES_PREFIX = "tables"
 """Store folder holding one document per table."""
 
-WEB_RUN = "web"
+WEB_RUN = "web-2"
 """The run every game played through the web app is saved under, so it
-shows in the lobby beside the arena's runs and opens as a replay."""
+shows in the lobby as practice set two and opens as a replay. Until
+2026-10-07 it was ``web``, now practice set one and closed."""
 
 DOCUMENT_VERSION = 2
 """1 was Watch's ``watch/<id>`` document (setup and a turn count); 2 is
@@ -521,13 +522,12 @@ def notepad(game, viewer: int) -> list:
     return rows
 
 
-FOCUS_RANKS = ("show", "end", "move", "decide", "talk", "board")
+FOCUS_RANKS = ("show", "end", "move", "decide", "board")
 """The focus ladder of plan 3.1, highest first: what holds the stage.
-`focus_for` decides the ranks the server can see (`show`, `end`,
-`move`, `decide`, `board`); the page lays `talk` over `board` for 6 s
-after a line arrives, since only it knows when that was. The `beat`, a
-narration caption laid over the board, was dropped on 2026-10-01 for
-the narration line above it."""
+The `beat`, a narration caption laid over the board, was dropped on
+2026-10-01 for the narration line above it; `talk`, the last balloons
+laid over the board for 6 s after a line, on 2026-10-07: talk stays in
+its panel."""
 
 
 def focus_for(pending: Optional[dict], finished: bool) -> str:
@@ -535,10 +535,10 @@ def focus_for(pending: Optional[dict], finished: bool) -> str:
 
     `pending` is the viewer's own decision, or None. A card to show
     outranks the end, which outranks the viewer's move and then their
-    other decisions; with none of those the board holds the stage and
-    the page may lay talk over it. The stage never changes
-    under the viewer's hand: with a decision of theirs pending the page
-    lays nothing over it but the accusation's impact frame.
+    other decisions; with none of those the board holds the stage. The
+    stage never changes under the viewer's hand: with a decision of
+    theirs pending the page lays nothing over it but the accusation's
+    impact frame.
     """
     if pending is not None and pending.get("kind") == "card_to_show":
         return "show"

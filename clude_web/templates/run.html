@@ -5,7 +5,7 @@
 <div class="panel wide">
   <p class="crumbs">
     <a href="{{ url_for('main.index') }}">Lobby</a>
-    {% if folder == 'development' %}&rsaquo; <a href="{{ url_for('main.development') }}">development</a>{% endif %}
+    {% if phase %}&rsaquo; <a href="{{ url_for('main.development_phase', phase=phase) }}">{{ folder }}</a>{% endif %}
     &rsaquo; {{ title }}
   </p>
   <h1>{{ title }}</h1>

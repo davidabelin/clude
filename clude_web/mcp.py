@@ -1172,8 +1172,9 @@ def build_server(registry: tables.TableRegistry, secret_key, limiter=None) -> MC
     def clude_games(login: str, run_id: str = tables.WEB_RUN, limit: int = 20) -> dict:
         """List finished games you can replay with clude_replay.
 
-        By default the games played at clude's tables (`run_id` "web"),
-        newest first: who played, who won and in how many turns. `runs`
+        By default the games played at clude's tables since 2026-10-07
+        (`run_id` "web-2"; the earlier ones are "web"), newest first:
+        who played, who won and in how many turns. `runs`
         names the other collections of stored games (arena runs among
         the characters), any of which can be listed by passing its id.
         """

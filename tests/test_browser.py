@@ -286,7 +286,7 @@ def test_a_watched_game_deals_steps_and_ends_in_a_replay(page):
 
     page.click("#play-to-end")
     page.wait_for_selector("#scrub")
-    assert "/replay/web/" in page.url
+    assert "/replay/web-2/" in page.url
     data = payload(page)
     assert data["frames"][-1]["kind"] == "over"
 
@@ -316,8 +316,21 @@ def test_the_board_is_actually_painted(page):
 
 
 def test_lobby_seat_modes_and_memory_dial(page):
-    """Seat choices are explicit; opting out hides the LLM memory dial."""
+    """Seat choices are explicit; the dial shows for an LLM seat, which
+    always remembers outside Developer, where opting out hides it."""
     page.goto(f"{page.base}/")
+    assert page.locator("#remember, #watch-remember, #table-budget").count() == 0
+    page.select_option("#seat-Plum", "llm")
+    assert page.locator("#memory-Plum").is_visible()
+    page.select_option("#seat-Plum", "empty")
+    _pick_look(page, "developer", ready="#table-form")
+    try:
+        _lobby_in_developer(page)
+    finally:
+        _pick_look(page, "casefile", ready="#table-form")
+
+
+def _lobby_in_developer(page):
     assert page.locator("#remember").is_checked()
     assert page.locator("#watch-remember").is_checked()
     assert not page.locator('.seat-pick:has(#seat-Scarlett) .method').is_visible()
@@ -655,12 +668,12 @@ def test_play_steps_the_replay_and_pause_holds_it(page):
     assert page.inner_text("#play") == "Play", "a key on the scrubber pauses"
 
 
-def _pick_look(page, key):
+def _pick_look(page, key, ready=".board-token"):
     url = page.url
     page.select_option("#style", key)
     page.click(".look button[type=submit]")
     page.wait_for_url(url)
-    page.wait_for_selector(".board-token")
+    page.wait_for_selector(ready)
 
 
 def _page_colour(page):
@@ -704,7 +717,7 @@ def test_the_look_picker_applies_and_keeps_the_page(page):
 
 # --- Phase 10d-10g ------------------------------------------------------
 
-FOCI = ("show", "end", "move", "decide", "talk", "board")
+FOCI = ("show", "end", "move", "decide", "board")
 
 WATCH_FOCUS = """() => {
     window.__foci = [document.getElementById('screen').getAttribute('data-focus')];
@@ -774,9 +787,9 @@ def test_on_a_phone_the_rail_is_tabs_and_talk_is_balloons(page):
 def test_the_stage_never_changes_under_the_player_s_hand(page):
     """Phase 10e (plan 3.1). With the viewer's move pending the stage
     holds the board with its destinations lit, and a line of talk does
-    not take it away; once the move is made, talk may hold the stage,
-    and Esc hands it back. Nothing narrates over the board (2026-10-01):
-    the narration line above it says the roll."""
+    not take it away. Nothing narrates over the board (2026-10-01): the
+    narration line above it says the roll; and talk never lies over it
+    (2026-10-07), before the move or after."""
     _deal_table(page, {"Scarlett": "me", "Mustard": "character", "White": "character",
                        "Green": "empty", "Peacock": "empty", "Plum": "empty"})
     page.wait_for_selector(".board-target", timeout=20000)
@@ -793,18 +806,21 @@ def test_the_stage_never_changes_under_the_player_s_hand(page):
 
     page.locator(".board-target").first.click()
     page.wait_for_function("() => document.getElementById('screen').dataset.focus !== 'move'", timeout=20000)
-    if page.get_attribute("#screen", "data-focus") == "talk":
-        assert page.locator("#over").is_visible()
-        page.keyboard.press("Escape")
-        assert page.get_attribute("#screen", "data-focus") in ("board", "move", "decide", "show", "end")
+    page.fill("#say-text", "Carry on.")
+    page.click("#say-form button[type=submit]")
+    page.wait_for_function("() => document.querySelectorAll('#talk li.balloon').length >= 2", timeout=20000)
+    assert page.get_attribute("#screen", "data-focus") != "talk"
+    assert page.locator("#talk-over").count() == 0
+    if page.get_attribute("#screen", "data-focus") != "end":
+        assert page.locator("#over").is_hidden(), "something lay over the board after a line"
 
 
-def test_a_game_walks_the_stage_through_all_six_focus_states(page):
+def test_a_game_walks_the_stage_through_all_five_focus_states(page):
     """Phase 10e's check (plan 14): play a table and watch `data-focus`
     take every rank of the ladder -- the viewer's move and decisions, a
-    card to show, a line of talk, the board while the others play, and
-    the end with its plate. (Seven until 2026-10-01: the beat, a caption
-    over the board after a suggestion, went for the narration line.)"""
+    card to show, the board while the others play, and the end with its
+    plate. (Seven until 2026-10-01, when the beat went for the narration
+    line; six until 2026-10-07, when talk left the board for its panel.)"""
     from clude_web import tables
 
     saved = tables.WORK_INTERVAL
@@ -826,7 +842,7 @@ def test_a_game_walks_the_stage_through_all_six_focus_states(page):
                 page.fill("#say-text", "Somebody here is very fond of the Conservatory.")
                 page.click("#say-form button[type=submit]")
                 said = True
-            elif {"talk", "show"} <= foci and page.inner_text("#autopilot") == "Let the floorbot play for me":
+            elif said and "show" in foci and page.inner_text("#autopilot") == "Let the floorbot play for me":
                 page.click("#autopilot")
             page.wait_for_timeout(250)
         page.wait_for_function("() => document.getElementById('screen').dataset.focus === 'end'", timeout=60000)
