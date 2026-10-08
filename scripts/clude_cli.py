@@ -70,8 +70,16 @@ from clude_llm import (
     user_prompt,
 )
 from clude_llm.anthropic_backend import estimate_cost
-from clude_storage import GameRecord, Logbook, SeatRecord, list_logbooks, open_store, render_digest, render_entry
-from clude_storage.records import GRID_RECORD_VERSION
+from clude_storage import (
+    GameRecord,
+    Logbook,
+    SeatRecord,
+    list_logbooks,
+    open_store,
+    render_digest,
+    render_entry,
+)
+from clude_storage.records import DEVELOPMENT_PHASE, GRID_RECORD_VERSION
 from clude_storage.mirror import LOGBOOK_PREFIX, TRACE_PREFIX, copy_docs, plan_mirror
 from clude_training import memory as method_memory
 from clude_training.table import TableError, TableGame, TableSetup, describe_request
@@ -400,7 +408,7 @@ def _play_record(args, state, events, labels: list, players: dict, llm_seats: di
         "profiles": {s.label: s.profile for s in seats if s.profile is not None},
         "llm": llm, "per_player": {}, "games": [summary.to_dict()],
         "mean_turns": float(state.turn), "decided_rate": 0.0 if record.winner is None else 1.0,
-        "seconds": 0.0,
+        "seconds": 0.0, "phase": DEVELOPMENT_PHASE,
     })
     print(f"\nrecord: run {run_id} game 0 in {store.describe()}")
     return record

@@ -28,6 +28,11 @@ RECORD_VERSION = 3
 #: The first version written on the Classic grid; older records are ring-era.
 GRID_RECORD_VERSION = 3
 
+DEVELOPMENT_PHASE = 2
+"""The ``phase`` a development run summary is stamped with when stored:
+2 since the new Plum (Phase 12, 2026-10-07). A summary without one is
+phase 1; the lobby files runs by it."""
+
 
 def node_to_json(node):
     """A room name as-is; a `Square` as ``{row, col}``; a legacy

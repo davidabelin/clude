@@ -21,7 +21,7 @@ The Play form has one row per suspect, with choices in this order:
 
 Here X is the character's name. Three to six seats must be occupied or reserved. The model choices remain visible but are disabled when the service has no model key. A person playing Plum does not thereby use Plum's numerical method: the method belongs to the character seat, not the token.
 
-An optional [[determinism and seeds|seed]] fixes the engine's deal and dice. Remembering is checked by default, with an explicit opt-out. An LLM seat has a [[memory dial|memory-depth control]] when remembering is enabled; a headless seat can use supported numerical [[method memory]] but has no model-written voice or narrative read-back.
+An optional [[determinism and seeds|seed]] fixes the engine's deal and dice. The characters always remember; only the [[Looks|Developer look]] shows a checkbox to opt out, and the table's model budget (by default $2). An LLM seat has a [[memory dial|memory-depth control]] while remembering is on; a headless seat can use supported numerical [[method memory]] but has no model-written voice or narrative read-back.
 
 ## Dealing and joining
 
@@ -31,9 +31,9 @@ The Tables list contains unfinished games and waiting setups. Closing a tab leav
 
 ## Watching and finding games
 
-Watch starts numerical characters and cannot call a language model. It has its own remembering checkbox, enabled by default, and controls for advancing the game.
+Watch starts numerical characters and cannot call a language model. Its characters remember too (the Developer look has its own checkbox), and it has controls for advancing the game.
 
-Stored games has two folders. **Practice** contains the store's `web` run, including completed games from tables and Watch. **Development** contains other runs: arenas, sweeps, leash ladders and fixtures. A run lists seats, winner, turns and suggestions, with links to [[replay]]. Wall time is present when it was recorded; [[what a game costs|cost]] appears in the Developer look. A missing value is not a zero.[^records]
+Stored games has four folders. **Practice set one** and **practice set two** contain completed games from tables and Watch: set one the store's `web` run, closed on 2026-10-07, and set two every game since. **Development phase one** and **phase two** contain other runs, arenas, sweeps, leash ladders and fixtures, before and since the [[Professor Plum|new Plum]]. A run lists seats, winner, turns and suggestions, with links to [[replay]]. Wall time is present when it was recorded; [[what a game costs|cost]] appears in the Developer look. A missing value is not a zero.[^records]
 
 
 ## See also
@@ -45,6 +45,6 @@ Stored games has two folders. **Practice** contains the store's `web` run, inclu
 {{references}}
 
 [^lobby]: {{cite:docs/web.md|The lobby}}
-[^records]: {{cite:clude_web/views.py|`practice`, `development` and `run_page`}}
+[^records]: {{cite:clude_web/views.py|`PRACTICE`, `DEVELOPMENT` and `run_page`}}
 
 {{navbox:clude}}

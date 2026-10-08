@@ -22,7 +22,7 @@ From the repository root, the virtual-environment Python can run the script with
 | `logbook` | Inspect narrative and numerical memory |
 | `tables`, `users` | Administer live tables and app accounts |
 
-For example, `python scripts/clude_cli.py arena --help` describes evaluation controls without launching games. [[Replay]] and the development folder offer a browser route into already stored games.
+For example, `python scripts/clude_cli.py arena --help` describes evaluation controls without launching games. [[Replay]] and the development folders offer a browser route into already stored games.
 
 ## Experimental state
 

@@ -19,6 +19,7 @@ from .logbooks import (
     render_memory,
 )
 from .records import (
+    DEVELOPMENT_PHASE,
     GameRecord,
     SeatRecord,
     event_from_json,
@@ -40,6 +41,7 @@ from .stores import (
 
 __all__ = [
     "DEFAULT_CREDENTIALS_FILE",
+    "DEVELOPMENT_PHASE",
     "Dossier",
     "GameRecord",
     "GcsStore",

@@ -20,7 +20,7 @@ Open <http://127.0.0.1:5000/>. Flask alone serves browser pages; use the combine
 | `CLUDE_WEB_HTTPS` | Off locally; enable for HTTPS cookies/proxy handling | No |
 | `ANTHROPIC_API_KEY` | Optional key enabling LLM seats | Yes |
 | `CLUDE_LLM_MODEL` | `claude-opus-5`, configured model ID | No |
-| `CLUDE_WEB_LLM_BUDGET` | $2 per table, adjustable at creation | No |
+| `CLUDE_WEB_LLM_BUDGET` | $2 per table, adjustable at creation in the Developer look | No |
 | `CLUDE_WEB_LLM_DAILY_CAP` | $10 per UTC day for the service | No |
 | `CLUDE_MCP_SECRET` | Optional URL-safe secret path segment, 16-128 characters | Yes |
 | `CLUDE_PUBLIC_URL` | Optional base URL for absolute replay links | Yes |
@@ -69,9 +69,9 @@ Form POSTs require the session CSRF token, regenerated at login. Rate limits cou
 - **Play:** six token rows, choices **empty**, **open**, **floorbot**, **me**, **X (LLM)**, **X (headless)**. Three to six occupied/reserved seats; empty omits a token, open reserves it. Named characters stay on their own tokens. LLM seats are disabled/refused without a key.
 - **Tables:** unfinished games and games wrapping up, with occupants/status. Open seats must all fill before someone seated deals. A starter or seated player can end the table.
 - **Watch:** an all-bot game, stepped from buttons; no model calls.
-- **Stored games:** practice (`web`, `/practice`) and development (other runs, `/development`). Run summaries supply listings; records load when opened. Columns include seats, winner, turns, suggestions and wall time; Cost appears only in Developer. Older records/arena games may lack wall time.
+- **Stored games:** practice set one (`web`, closed 2026-10-07) and practice set two (`web-2`, `tables.WEB_RUN`, where new games go; `/practice`), and development phase one and two (other runs by their summary's `phase`, `/development/1` and `/2`; a summary without one is phase one, and the arena and CLI stamp `DEVELOPMENT_PHASE`, now 2). Run summaries supply listings; records load when opened. Columns include seats, winner, turns, suggestions and wall time; Cost appears only in Developer. Older records/arena games may lack wall time.
 
-New Play/Watch forms remember by default. Unchecking submits `remember=0`; missing form fields mean on. Saved setups keep their setting, and old documents missing `remember` load as false. Narrative depth is separate: a new lobby LLM seat starts at 1, while SeatSpec/CLI defaults remain 0.
+New Play/Watch forms remember. Only the Developer look shows the checkbox (and the LLM budget field); unchecking submits `remember=0`, and a missing field means on. Saved setups keep their setting, and old documents missing `remember` load as false. Narrative depth is separate: a new lobby LLM seat starts at 1, while SeatSpec/CLI defaults remain 0.
 
 ## A table
 

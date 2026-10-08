@@ -70,8 +70,8 @@
      column the four rail panels, which a phone shows one at a time
      under the tab strip. The narration line above the stage tells the
      turn in play (its roll, its suggestion; 2026-10-01); the stage's
-     overlay carries the last balloons and the end plate, filled by
-     table.js. #}
+     overlay carries the end plate, filled by table.js. Talk stays in
+     its panel (2026-10-07). #}
   <div class="screen" id="screen" data-focus="{{ payload.focus }}" data-tab="record">
     <div class="col col-main">
       <p class="status" id="status" aria-live="polite"></p>
@@ -79,7 +79,6 @@
       <section class="stage" id="stage">
         {{ board|safe }}
         <div class="over" id="over" hidden>
-          <ol class="talk talk-over" id="talk-over" aria-hidden="true" hidden></ol>
           <div class="plate hero" id="end-plate" hidden>
             <span class="rivet tl"></span><span class="rivet tr"></span><span class="rivet bl"></span><span class="rivet br"></span>
             <p class="kicker">The envelope</p>

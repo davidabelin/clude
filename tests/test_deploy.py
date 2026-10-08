@@ -205,14 +205,16 @@ def test_the_lobby_reads_summaries_in_parallel_and_keeps_its_order():
         """A bucket whose listing names a run that has since vanished."""
 
         def list_runs(self):
-            return ["b-run", "web", "a-run", "gone"]
+            return ["b-run", "web-2", "web", "a-run", "gone"]
 
         def get_run(self, run_id):
             if run_id == "gone":
                 raise KeyError(run_id)
-            return {"n_games": 2, "roster": ["Plum"], "player_counts": [3]}
+            return {"n_games": 2, "roster": ["Plum"], "player_counts": [3], **({"phase": 2} if run_id == "b-run" else {})}
 
     listing = run_listing(Store())
-    assert [r["run_id"] for r in listing] == ["web", "a-run", "b-run"]
-    # No game line carries a cost, so the run has no total (Phase 9g).
-    assert listing[0] == {"run_id": "web", "n_games": 2, "roster": ["Plum"], "player_counts": [3], "cost": None}
+    assert [r["run_id"] for r in listing] == ["web", "web-2", "a-run", "b-run"]
+    # No game line carries a cost, so the run has no total (Phase 9g);
+    # a summary without a phase is development phase one (2026-10-07).
+    assert listing[0] == {"run_id": "web", "n_games": 2, "roster": ["Plum"], "player_counts": [3], "cost": None, "phase": 1}
+    assert [r["phase"] for r in listing[2:]] == [1, 2]

@@ -1424,8 +1424,6 @@ details.panel:not([open]) > summary { margin: 0; }
   padding: var(--space-4);
   overflow: hidden;
 }
-.stage .over.bottom { justify-content: flex-end; }
-.stage .over .talk { max-height: none; overflow: visible; padding: 0; }
 
 /* A panel cut, not a fade (plan 11): the stage clips in from the right. */
 .stage.cut { animation: panel-cut var(--dur-cut) var(--ease-panel) 1; }
@@ -1627,8 +1625,7 @@ body[data-motion="off"] .stage.impact { animation: impact-plain var(--dur-flash)
   .screen[data-focus="decide"][data-pending="suggestion"] .stage { align-self: center; max-width: 100%; }
   .screen[data-focus="decide"][data-pending="suggestion"] .stage .board { width: auto; height: 26vh; max-width: 100%; margin: 0 auto; }
 }
-.screen[data-focus="board"] .decision-panel,
-.screen[data-focus="talk"] .decision-panel { display: none; }
+.screen[data-focus="board"] .decision-panel { display: none; }
 
 /* Tablet: two columns, 5:4, the stage sticky on the left, every rail
    panel open on the right. */

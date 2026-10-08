@@ -31,7 +31,7 @@ These deadlines are advanced by app activity, rather than an independent timer t
 
 The registry stores the setup, accepted decisions, chat and model audits. A rebuild deals the same setup and replays saved answers; accepted model answers do not incur a second call. Remembered games also preserve their starting numerical memory snapshot.
 
-A completed game is saved in practice and can be opened in [[replay]]. Remembering model seats may still be writing their [[debrief|debriefs]], which the open table drives as further work. Their cost belongs to the finished game's bill. Ending an unfinished table removes it without creating a completed game record.[^finish]
+A completed game is saved in practice set two and can be opened in [[replay]]. Remembering model seats may still be writing their [[debrief|debriefs]], which the open table drives as further work. Their cost belongs to the finished game's bill. Ending an unfinished table removes it without creating a completed game record.[^finish]
 
 
 ## See also

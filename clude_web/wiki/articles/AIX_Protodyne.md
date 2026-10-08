@@ -1,10 +1,10 @@
 ---
-title: AIX Laboratories
+title: AIX Protodyne
 short: The project attribution used in the clude footer
 categories: The app
-redirects: AIX
+redirects: AIX, AIX Laboratories
 ---
-**AIX Laboratories** is the name used in [[clude]]'s footer attribution. The footer displays a copyleft symbol and the year 2026 alongside it. The project documentation identifies David Abelin as clude's owner and describes clude as a project for family and friends.[^footer][^project]
+**AIX Protodyne** is the name used in [[clude]]'s footer attribution. The footer displays a copyleft symbol and the year 2026 alongside it; until 2026-10-07 it read AIX Laboratories. The project documentation identifies David Abelin as clude's owner and describes clude as a project for family and friends.[^footer][^project]
 
 ## In clude
 

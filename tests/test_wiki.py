@@ -290,7 +290,7 @@ def test_w6_app_archive_and_measurement_coverage(wiki):
     """
     for title in (
         "clude", "History of clude", "The lobby", "The table", "Watch", "Replay",
-        "Looks", "The certainty tag", "A seat over MCP", "What a game costs", "AIX Laboratories",
+        "Looks", "The certainty tag", "A seat over MCP", "What a game costs", "AIX Protodyne",
         "Game records", "Maintainer CLI", "Character training", "Measurement record",
         "Classwork archive", "Reinforcement learning", "Markov decision process", "Q-learning",
         "Deep Q-network", "DeepNash",

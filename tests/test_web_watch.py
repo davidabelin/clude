@@ -251,6 +251,7 @@ def test_watch_remembers_by_default_and_preserves_an_opt_out(client, app):
         table_id = response.headers["Location"].rstrip("/").split("/")[-1]
         assert app.extensions["tables"].document(table_id)["setup"]["remember"] == (value is None)
     form["seed"] = "bad"
+    client.post("/style", data={"csrf": csrf(client), "style": "developer", "next": "/"})
     response = client.post("/watch", data=form)
     assert response.status_code == 400
     checkbox = response.get_data(as_text=True).split('id="watch-remember"')[1].split(">", 1)[0]
@@ -319,11 +320,11 @@ def test_playing_to_the_end_opens_the_replay(client, store):
     response = client.post(f"/watch/{watch_id}/end", data={"csrf": csrf(client)})
 
     assert response.status_code == 302
-    assert response.headers["Location"].endswith("/replay/web/0")
-    record = GameRecord.from_dict(store.get_game("web", 0))
+    assert response.headers["Location"].endswith("/replay/web-2/0")
+    record = GameRecord.from_dict(store.get_game("web-2", 0))
     assert isinstance(record.events[-1], GameOverEvent)
     assert [s.label for s in record.seats][:1]  # seats recorded
-    assert client.get("/replay/web/0").status_code == 200
+    assert client.get("/replay/web-2/0").status_code == 200
 
 
 def test_a_finished_game_is_saved_once(client, store):
@@ -333,8 +334,8 @@ def test_a_finished_game_is_saved_once(client, store):
     again = client.get(f"/watch/{watch_id}")
     client.post(f"/watch/{watch_id}/end", data={"csrf": csrf(client)})
 
-    assert again.headers["Location"].endswith("/replay/web/0")
-    assert store.list_games("web") == [0], "the same game was saved twice"
+    assert again.headers["Location"].endswith("/replay/web-2/0")
+    assert store.list_games("web-2") == [0], "the same game was saved twice"
 
 
 def test_a_second_game_gets_the_next_index(client, store):
@@ -342,10 +343,10 @@ def test_a_second_game_gets_the_next_index(client, store):
         watch_id = deal(client, seed=SEED)
         client.post(f"/watch/{watch_id}/end", data={"csrf": csrf(client)})
 
-    assert store.list_games("web") == [0, 1]
-    assert store.get_run("web")["n_games"] == 2
+    assert store.list_games("web-2") == [0, 1]
+    assert store.get_run("web-2")["n_games"] == 2
     # Each game's wall time, from the deal to the finish (2026-09-29).
-    for line in store.get_run("web")["games"]:
+    for line in store.get_run("web-2")["games"]:
         assert 0 <= line["wall_seconds"] < 120
 
 
@@ -368,11 +369,15 @@ def test_the_lobby_lists_games_in_progress_and_played(client, store):
     client.post(f"/watch/{watch_id}/end", data={"csrf": csrf(client)})
     page = client.get("/").get_data(as_text=True)
     assert f"/watch/{watch_id}" not in page, "a finished game is still listed as in progress"
-    assert 'href="/practice"' in page and "1 game played here" in page
+    # A finished game goes to practice set two; set one is closed (2026-10-07).
+    two = page.split('href="/runs/web-2">practice set two</a>')[1].split("</li>", 1)[0]
+    assert "1 game played here" in two
+    one = page.split('href="/runs/web">practice set one</a>')[1].split("</li>", 1)[0]
+    assert "no games played here yet" in one
 
-    for path in ("/practice", "/runs/web"):
+    for path in ("/practice", "/runs/web-2"):
         run_page = client.get(path).get_data(as_text=True)
-        assert "/replay/web/0" in run_page and "<h1>practice</h1>" in run_page
+        assert "/replay/web-2/0" in run_page and "<h1>practice set two</h1>" in run_page
 
 
 def test_an_unknown_game_or_run_is_a_404(client):
@@ -384,7 +389,7 @@ def test_an_unknown_game_or_run_is_a_404(client):
 def test_the_watch_screens_need_a_session(app):
     anonymous = app.test_client()
 
-    for path in ("/watch/0000000000", "/runs/web"):
+    for path in ("/watch/0000000000", "/runs/web-2"):
         response = anonymous.get(path)
         assert response.status_code == 302
         assert "/login" in response.headers["Location"]

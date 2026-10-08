@@ -49,7 +49,7 @@ NAVBOXES: dict = {
             ("Memory", ["Logbook", "Method memory", "The debrief", "Memory dial"]),
             ("Mathematics", ["Probability", "Conditional probability and Bayes' theorem", "Independence", "Combinatorics of a deal", "Log-loss", "Entropy and bits", "Softmax and temperature", "Beta distribution"]),
             ("Measurement", ["Measurement record", "Belief benchmark", "Arena", "Dial sweeps", "Twin comparison", "Landing rule", "Self-play", "Determinism and seeds", "Character training"]),
-            ("The app", ["clude", "The lobby", "The table", "Watch", "Replay", "Looks", "The certainty tag", "A seat over MCP", "What a game costs", "Game records", "Maintainer CLI", "History of clude", "AIX Laboratories"]),
+            ("The app", ["clude", "The lobby", "The table", "Watch", "Replay", "Looks", "The certainty tag", "A seat over MCP", "What a game costs", "Game records", "Maintainer CLI", "History of clude", "AIX Protodyne"]),
             ("Classwork", ["Classwork archive", "Reinforcement learning", "Markov decision process", "Q-learning", "Deep Q-network", "DeepNash"]),
             ("Algorithms", ["Bandit action selection", "Dynamic programming", "Monte Carlo methods", "Temporal-difference learning", "Sarsa", "Q-learning", "Dyna-Q", "Monte Carlo tree search", "Function approximation", "Multilayer perceptron", "Policy gradient", "Actor-critic", "Deep Q-network", "Dueling network architecture", "Prioritised experience replay", "Proximal policy optimisation", "Generative adversarial network", "Regularised Nash dynamics"]),
             ("From the rps project", ["Mixed-strategy Nash equilibrium", "Reactive strategies", "Frequency counter", "Pattern memory", "Transition-matrix predictor", "Ensemble voting"]),
