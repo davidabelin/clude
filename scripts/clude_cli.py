@@ -1529,6 +1529,7 @@ def cmd_logbook_condense(args) -> int:
     (`condense_logbook`). Every identity's line gives the size of its call
     and an estimated cost first; `--dry-run` stops there."""
     store = open_store(args.uri)
+    print(f"store: {store.describe()}")
     if args.identity:
         if args.identity not in AGENT_SPECS:
             raise SystemExit(
@@ -1544,6 +1545,9 @@ def cmd_logbook_condense(args) -> int:
         others = [identity for identity in found if identity not in AGENT_SPECS]
         if others:
             print(f"skipped, not characters: {', '.join(others)}")
+        if not identities:
+            print("no character logbooks to condense")
+            return 0
     settings = LLMSettings(model=args.llm_model)
     backend = None if args.dry_run else _open_llm_backend(args)
     estimated = spent = 0.0
@@ -1587,7 +1591,7 @@ def cmd_logbook_condense(args) -> int:
     if backend is None:
         print(f"estimated: up to ${estimated:.2f} at list prices (dry run: no call made, nothing written)")
     else:
-        print(f"spent: ${spent:.4f} at list prices on {calls} calls; store: {store.describe()}")
+        print(f"spent: ${spent:.4f} at list prices on {calls} calls")
     return 0
 
 
