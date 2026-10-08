@@ -1,5 +1,6 @@
 """Phase 7: logbooks -- the documents (`clude_storage.logbooks`), the
-memory-depth renderer, and the `Logbook` over both store backends."""
+memory-depth renderer, and the `Logbook` over both store backends; the
+digest and flag merges that condensing leaves behind."""
 from __future__ import annotations
 
 import json
@@ -13,15 +14,20 @@ from clude_storage import (
     GcsStore,
     LocalStore,
     Logbook,
+    LogbookDigest,
     LogbookEntry,
     LogbookHead,
     SeatRecord,
     list_logbooks,
     memory_counts,
+    render_digest,
     render_entry,
     render_memory,
 )
 from clude_storage.logbooks import (
+    MAX_THEMES,
+    clean_flag_map,
+    digest_key,
     entry_key,
     entry_outcome,
     head_key,
@@ -72,6 +78,7 @@ WRITTEN = {
 def test_keys_and_flags():
     assert head_key("Plum") == "logbooks/Plum/head.json"
     assert method_key("Plum") == "logbooks/Plum/method.json"
+    assert digest_key("Plum") == "logbooks/Plum/digest.json"
     assert entry_key("Plum", 12) == "logbooks/Plum/entries/0012.json"
     with pytest.raises(ValueError):
         entry_key("Plum", 0)
@@ -222,6 +229,115 @@ def test_render_memory_at_each_depth():
     assert text.startswith("=== Entry #0001, ") and "Title: Game 1" in text and "Lessons learned:\n- Lesson 1" in text
 
 
+def test_clean_flag_map_rules():
+    known = {"parking", "room-anchoring", "slow-tempo", "tempo", "a", "b"}
+    items = [
+        {"flag": "Room Anchoring", "into": "parking"},  # normalised
+        {"flag": "room-anchoring", "into": "camping"},  # the first merge of a flag wins
+        {"flag": "never-seen", "into": "parking"},  # not a flag in use
+        {"flag": "parking", "into": "Parking"},  # onto itself
+        {"flag": "slow-tempo", "into": "!"},  # onto nothing
+        {"flag": "tempo", "into": "slow-tempo"},
+        {"flag": "a", "into": "b"},
+        {"flag": "b", "into": "a"},  # a cycle is dropped whole
+        "not a dict",
+    ]
+    assert clean_flag_map(items, known) == {"room-anchoring": "parking", "tempo": "slow-tempo"}
+    chain = [{"flag": "a", "into": "b"}, {"flag": "b", "into": "parking"}]
+    assert clean_flag_map(chain, known) == {"a": "parking", "b": "parking"}
+    assert clean_flag_map(None, known) == {}
+
+
+def test_digest_build_normalises_and_composes_renames():
+    written = {
+        "overview": "  " + " ".join(["word"] * 200) + " ",
+        "flag_map": [],
+        "themes": [
+            {"flag": "Room Anchoring", "lesson": "Leave a cleared room."},
+            {"flag": "parking", "lesson": "A second lesson under the merged flag is dropped."},
+            {"flag": "bluffing", "lesson": "  "},
+            {"flag": "", "lesson": "No heading, dropped."},
+            "not a dict",
+            *({"flag": f"t{i}", "lesson": f"Lesson {i}."} for i in range(12)),
+        ],
+    }
+    previous = LogbookDigest("Plum", 4, renamed={"stalling": "room-anchoring"})
+    digest = LogbookDigest.build(
+        "Plum", 9, written, {"room-anchoring": "parking"}, previous, model="m", date="2026-10-08",
+    )
+    assert digest.through == 9 and digest.date == "2026-10-08" and digest.model == "m"
+    assert len(digest.overview.split()) == 180  # clipped at 1.5 times the advertised 120
+    assert digest.themes[0] == {"flag": "parking", "lesson": "Leave a cleared room."}
+    assert [theme["flag"] for theme in digest.themes][:3] == ["parking", "t0", "t1"]
+    assert len(digest.themes) == MAX_THEMES
+    assert digest.renamed == {"stalling": "parking", "room-anchoring": "parking"}
+    assert LogbookDigest.from_dict(json.loads(json.dumps(digest.to_dict()))) == digest
+    with pytest.raises(ValueError):
+        LogbookDigest.build("Plum", 9, {"overview": " ", "themes": [{"flag": "x", "lesson": ""}]})
+    # An overview alone is a digest; a merge that undoes an older one leaves no self-map.
+    undone = LogbookDigest.build(
+        "Plum", 9, {"overview": "Short."}, {"parking": "stalling"},
+        LogbookDigest("Plum", 4, renamed={"stalling": "parking"}),
+    )
+    assert undone.themes == [] and undone.renamed == {"parking": "stalling"}
+
+
+def test_rename_flags_rewrites_entries_and_index(tmp_path):
+    logbook = Logbook(LocalStore(tmp_path), "Plum")
+    for entry in _entries(4):  # odd serials carry parking, even ones bluffing and parking
+        logbook.add_entry(entry)
+    merge = {"bluffing": "parking"}
+    assert logbook.rename_flags(merge, dry_run=True) == {"entries": 2, "flags": 1}
+    assert logbook.head().flags == {"parking": [1, 2, 3, 4], "bluffing": [2, 4]}
+    assert logbook.entry(2).flags == ["bluffing", "parking"]
+
+    assert logbook.rename_flags(merge) == {"entries": 2, "flags": 1}
+    assert [entry.flags for entry in logbook.entries()] == [["parking"]] * 4
+    head = logbook.head()
+    assert head.flags == {"parking": [1, 2, 3, 4]}
+    assert logbook.rebuild_head() == head
+    assert logbook.rename_flags(merge) == {"entries": 0, "flags": 0}
+
+    logbook.rename_flags({"parking": "room-anchoring"})  # a merge may coin the name it keeps
+    assert logbook.head().flags == {"room-anchoring": [1, 2, 3, 4]}
+
+
+def test_render_memory_with_a_digest():
+    entries = _entries(4)
+    head = LogbookHead.empty("Plum")
+    for entry in entries:
+        head.absorb(entry)
+    digest = LogbookDigest(
+        "Plum", 2, date="2026-10-08", overview="I park too long.",
+        themes=[{"flag": "parking", "lesson": "Leave sooner."}, {"flag": "patience", "lesson": "Wait."}],
+    )
+    plain = [render_memory(head, entries, d / 4, ["Mustard"]) for d in range(5)]
+
+    assert render_memory(head, entries, 0.0, ["Mustard"], digest) == plain[0]  # the head alone
+    half = render_memory(head, entries, 0.5, ["Mustard"], digest)
+    assert (
+        "Your digest of entries #0001 to #0002, condensed by you on 2026-10-08:\n"
+        "I park too long.\nLessons by theme:\n"
+        "- parking (4 games, latest #0004): Leave sooner.\n"
+        "- patience: Wait.\n"
+    ) in half
+    assert "Entries #0003 to #0004 of 2 since your digest, most recent last:" in half
+    assert "- #0003 (" in half and "- #0002 (" not in half
+    assert "Flags across these entries: parking (2), bluffing (1)" in half
+
+    everything = render_memory(head, entries, 1.0, ["Mustard"], digest)
+    assert "=== Entry #0003," in everything and "=== Entry #0002," not in everything
+    assert len(everything) < len(plain[4])
+    lengths = [len(render_memory(head, entries, d / 10, ["Mustard"], digest)) for d in range(11)]
+    assert lengths == sorted(lengths)
+
+    caught_up = render_memory(head, entries, 1.0, ["Mustard"], LogbookDigest("Plum", 4, overview="All of it."))
+    assert "All of it." in caught_up and "Entries" not in caught_up and "Full entries" not in caught_up
+    assert render_digest(LogbookDigest("Plum", 4, date="2026-10-08"), head) == [
+        "Your digest of entries #0001 to #0004, condensed by you on 2026-10-08:"
+    ]
+
+
 def _exercise_logbook(store):
     assert list_logbooks(store) == []
     logbook = Logbook(store, "Plum")
@@ -241,6 +357,17 @@ def _exercise_logbook(store):
     assert logbook.head().tally["games"] == 2
     assert list_logbooks(store) == ["Plum"]
     assert "Entries #0001 to #0002 of 2" in logbook.memory(0.5, opponents=["Mustard"])
+    assert [e.serial for e in logbook.entries(after=1)] == [2]
+
+    assert logbook.digest() is None
+    logbook.save_digest(LogbookDigest("Plum", 1, date="2026-10-08", overview="The first game, condensed."))
+    assert logbook.digest().through == 1
+    memory = logbook.memory(0.5, opponents=["Mustard"])
+    assert "The first game, condensed." in memory
+    assert "Entries #0002 to #0002 of 1 since your digest" in memory
+    assert "condensed" not in logbook.memory(0.0)
+    with pytest.raises(ValueError):
+        logbook.save_digest(LogbookDigest("Green", 1))
     with pytest.raises(ValueError):
         logbook.add_entry(entries[1])  # serial reused
     with pytest.raises(ValueError):
@@ -252,10 +379,11 @@ def _exercise_logbook(store):
     logbook.save_method({"games": {"r/00000": [[0.5, 1]]}})
     assert logbook.method() == {"games": {"r/00000": [[0.5, 1]]}}
 
-    # Forget the head but keep the archive; the head can be rebuilt.
+    # Forget the head and digest but keep the archive; the head can be rebuilt.
     removed = logbook.reset(keep_entries=True)
-    assert removed == 2
+    assert removed == 3
     assert logbook.head().is_empty() and logbook.serials() == [1, 2] and logbook.method() is None
+    assert logbook.digest() is None
     assert logbook.next_serial() == 3
     rebuilt = logbook.rebuild_head()
     assert rebuilt.serial == 2 and rebuilt.tally["games"] == 2
@@ -277,6 +405,7 @@ def _exercise_archive(store):
     for entry in _entries(2):
         plum.add_entry(entry)
     plum.save_method({"kind": "rows", "games": {"r/00000": [[0.5, 1]]}})
+    plum.save_digest(LogbookDigest("Plum", 1, overview="Condensed."))
 
     archive = plum.copy_to("PlumOG")
     assert archive.serials() == [1, 2]
@@ -284,10 +413,11 @@ def _exercise_archive(store):
     assert archive.head().identity == "PlumOG"
     assert archive.head().tally == plum.head().tally
     assert archive.method() == plum.method()
+    assert archive.digest() == LogbookDigest("PlumOG", 1, overview="Condensed.")
     assert archive.rebuild_head() == archive.head()
     with pytest.raises(ValueError):
         plum.copy_to("PlumOG")  # never overwrite an archive
-    assert plum.reset() == 4 and archive.exists()
+    assert plum.reset() == 5 and archive.exists()
 
     green = Logbook(store, "Green")
     assert not green.reset_arm("Plum")

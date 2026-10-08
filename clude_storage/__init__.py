@@ -9,10 +9,12 @@ from __future__ import annotations
 from .logbooks import (
     Dossier,
     Logbook,
+    LogbookDigest,
     LogbookEntry,
     LogbookHead,
     list_logbooks,
     memory_counts,
+    render_digest,
     render_entry,
     render_memory,
 )
@@ -43,6 +45,7 @@ __all__ = [
     "GcsStore",
     "LocalStore",
     "Logbook",
+    "LogbookDigest",
     "LogbookEntry",
     "LogbookHead",
     "RecordStore",
@@ -56,6 +59,7 @@ __all__ = [
     "node_from_json",
     "node_to_json",
     "open_store",
+    "render_digest",
     "render_entry",
     "render_memory",
     "split_gcs_uri",

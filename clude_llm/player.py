@@ -7,7 +7,9 @@ usage. NullBackend reproduces numerical play.
 
 Attached logbooks render a stable memory block at new_game and can receive
 a post-game debrief. Off-turn react calls produce talk, not engine actions.
-See docs/llm-wrapper.md and docs/logbooks.md for lifecycle/contracts.
+condense_logbook asks a character's model, outside any game, to fold its
+logbook into a digest. See docs/llm-wrapper.md and docs/logbooks.md for
+lifecycle/contracts.
 """
 from __future__ import annotations
 
@@ -19,16 +21,20 @@ from typing import Any, Optional
 from clude_agents.character import Character
 from clude_core.events import RemarkEvent
 from clude_core.state import ClueObservation
-from clude_storage.logbooks import LogbookEntry
+from clude_storage.logbooks import LogbookDigest, LogbookEntry, clean_flag_map
 
 from .backend import DEFAULT_MODEL, LLMBackend, LLMRequest, LLMResult
-from .logbook import debrief_prompt, opponents_of, resolve_opponents
+from .logbook import condense_prompt, debrief_prompt, opponents_of, resolve_opponents
 from .menu import EPS, accusation_menu, movement_menu, show_menu, suggestion_menu
 from .persona import Persona, load_persona, load_rules
 from .prompt import remark_prompt, system_prompt, user_prompt
-from .schema import LOGBOOK_KIND, REMARK_KIND, parse_response, schema_for
+from .schema import CONDENSE_KIND, LOGBOOK_KIND, REMARK_KIND, parse_response, schema_for
 
 TRANSCRIPT_LIMIT = 200
+
+CONDENSE_MAX_TOKENS = 8192
+"""Room for the condensing reply: up to ten themes and an overview, after
+the model's thinking on a long prompt."""
 
 
 @dataclass(frozen=True)
@@ -268,10 +274,11 @@ class LLMCharacter:
             self.last_debrief = {"called": False, "fallback": "debrief off"}
             return None
         head = self.logbook.head()
-        entries = self.logbook.entries()
+        digest = self.logbook.digest()
+        entries = self.logbook.entries(after=digest.through if digest is not None else 0)
         request = LLMRequest(
             system=self._system,
-            user=debrief_prompt(record, seat, self.character, self.decisions, head, entries),
+            user=debrief_prompt(record, seat, self.character, self.decisions, head, entries, digest),
             schema=schema_for(LOGBOOK_KIND),
             kind=LOGBOOK_KIND,
             effort=self.settings.debrief_effort,
@@ -556,3 +563,91 @@ class LLMCharacter:
             "cached_tokens": self.cached_tokens,
             "llm_seconds": round(self.llm_seconds, 3),
         }
+
+
+# ---------------------------------------------------------------------
+# Condensing a logbook (outside any game)
+# ---------------------------------------------------------------------
+
+
+def condense_request(logbook, settings: Optional[LLMSettings] = None) -> Optional[tuple]:
+    """The condensing call for `logbook`, without making it:
+    ``(request, entries, previous)``, with the entries after the stored
+    digest `previous` (None if there is none), or None when no entry is
+    new. The system prompt is the character's own persona and rules, so
+    the digest is written in its voice; effort and timeout are the
+    debrief's."""
+    settings = settings if settings is not None else LLMSettings()
+    previous = logbook.digest()
+    entries = logbook.entries(after=previous.through if previous is not None else 0)
+    if not entries:
+        return None
+    request = LLMRequest(
+        system=system_prompt(load_persona(logbook.identity), load_rules()),
+        user=condense_prompt(logbook.identity, logbook.head(), previous, entries),
+        schema=schema_for(CONDENSE_KIND),
+        kind=CONDENSE_KIND,
+        effort=settings.debrief_effort,
+        max_tokens=CONDENSE_MAX_TOKENS,
+        timeout=settings.debrief_timeout,
+    )
+    return request, entries, previous
+
+
+def condense_logbook(logbook, backend: LLMBackend, settings: Optional[LLMSettings] = None) -> dict:
+    """Ask the identity's model to condense its logbook, and store what it
+    wrote: the flag merges through every entry and the index
+    (`Logbook.rename_flags`), then the new digest. The digest is written
+    last, so a run cut short leaves a consistent logbook that a rerun
+    completes. A backend error, refusal, or malformed or empty reply
+    writes nothing. Draws no random numbers.
+
+    Returns
+    -------
+    dict
+        ``called`` and ``fallback`` (None on success, else why nothing was
+        written), as a debrief reports; when a call was made, its token
+        counts, ``seconds`` and ``model``; on success also ``through``,
+        ``themes``, ``merged`` (flags retired) and ``entries_renamed``.
+    """
+    settings = settings if settings is not None else LLMSettings()
+    prepared = condense_request(logbook, settings)
+    if prepared is None:
+        return {"called": False, "fallback": "nothing new"}
+    request, entries, previous = prepared
+    started = time.perf_counter()
+    try:
+        result = backend.complete(request)
+    except Exception as exc:  # any backend failure means no digest, never a crash
+        result = LLMResult(error=f"{type(exc).__name__}: {exc}")
+    report = {
+        "called": True,
+        "fallback": None,
+        "input_tokens": result.input_tokens,
+        "output_tokens": result.output_tokens,
+        "cached_tokens": result.cached_tokens,
+        "seconds": result.seconds or time.perf_counter() - started,
+        "model": result.model or settings.model,
+    }
+    if not result.ok:
+        report["fallback"] = "refusal" if result.stop_reason == "refusal" else (
+            f"error: {result.error or result.stop_reason or 'empty reply'}"
+        )
+        return report
+    try:
+        written = parse_response(CONDENSE_KIND, result.text)
+        known = set(logbook.head().flags) | {flag for entry in entries for flag in entry.flags}
+        mapping = clean_flag_map(written.get("flag_map"), known)
+        digest = LogbookDigest.build(
+            logbook.identity, entries[-1].serial, written, mapping, previous, model=report["model"],
+        )
+    except ValueError as exc:
+        report["fallback"] = f"malformed: {exc}"
+        return report
+    renamed = logbook.rename_flags(mapping)
+    logbook.save_digest(digest)
+    report.update(
+        through=digest.through, themes=len(digest.themes),
+        merged=renamed["flags"], entries_renamed=renamed["entries"],
+    )
+    return report

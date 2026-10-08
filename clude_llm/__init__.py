@@ -31,11 +31,13 @@ from .menu import (
     suggestion_menu,
     within_leash,
 )
-from .logbook import debrief_prompt, resolve_opponents
+from .logbook import condense_prompt, debrief_prompt, resolve_opponents
 from .persona import DISPLAY_NAMES, Persona, load_persona, load_rules
-from .player import Decision, LLMCharacter, LLMSettings
+from .player import Decision, LLMCharacter, LLMSettings, condense_logbook, condense_request
 from .prompt import remark_prompt, system_prompt, user_prompt
 from .schema import (
+    CONDENSE_KIND,
+    CONDENSE_SCHEMA,
     LABELS,
     LOGBOOK_KIND,
     LOGBOOK_SCHEMA,
@@ -47,6 +49,8 @@ from .schema import (
 )
 
 __all__ = [
+    "CONDENSE_KIND",
+    "CONDENSE_SCHEMA",
     "DEFAULT_MODEL",
     "DISPLAY_NAMES",
     "Decision",
@@ -72,6 +76,9 @@ __all__ = [
     "SuggestionMenu",
     "accusation_menu",
     "build_llm_character",
+    "condense_logbook",
+    "condense_prompt",
+    "condense_request",
     "debrief_prompt",
     "load_persona",
     "load_rules",

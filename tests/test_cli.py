@@ -104,6 +104,56 @@ def test_play_store_writes_a_record_and_logbook_commands_read_the_store(cli, cap
     assert "no logbooks" in out or "Plum: 0 entries" in out
 
 
+def test_logbook_condense_estimates_then_writes_a_digest(cli, capsys, tmp_path, monkeypatch):
+    from clude_llm import ScriptedBackend
+    from clude_storage import LocalStore, Logbook
+    from tests.test_logbooks import _entries
+
+    store = LocalStore(tmp_path)
+    for identity in ("Scarlett", "PlumOG"):
+        logbook = Logbook(store, identity)
+        for entry in _entries(3, identity):
+            logbook.add_entry(entry)
+    uri = str(tmp_path)
+
+    out = _run(cli, capsys, "logbook", "condense", "--uri", uri, "--all", "--dry-run")
+    assert "skipped, not characters: PlumOG" in out
+    assert "Scarlett: 3 entries to fold in (#0001-#0003), no digest yet; prompt " in out
+    assert "input tokens; est. up to $" in out
+    assert "(dry run: no call made, nothing written)" in out
+    assert Logbook(store, "Scarlett").digest() is None
+    with pytest.raises(SystemExit, match="not a character"):
+        cli.main(["logbook", "condense", "--uri", uri, "--identity", "PlumOG", "--dry-run"])
+    with pytest.raises(SystemExit, match="no logbook for Green"):
+        cli.main(["logbook", "condense", "--uri", uri, "--identity", "Green", "--dry-run"])
+    with pytest.raises(SystemExit):
+        cli.main(["logbook", "condense", "--uri", uri])  # --identity or --all
+
+    out = _run(cli, capsys, "logbook", "condense", "--uri", uri, "--identity", "Scarlett", "--llm-backend", "null")
+    assert "failed (error: null backend: no model configured); nothing written" in out
+    assert Logbook(store, "Scarlett").digest() is None
+
+    reply = {
+        "overview": "Three games.",
+        "flag_map": [{"flag": "bluffing", "into": "parking"}],
+        "themes": [{"flag": "parking", "lesson": "Leave sooner."}],
+    }
+    monkeypatch.setattr(cli, "_open_llm_backend", lambda args: ScriptedBackend([reply]))
+    out = _run(cli, capsys, "logbook", "condense", "--uri", uri, "--all")
+    assert "digest through #0003: 1 themes, 1 flags merged in 1 entries" in out
+    assert "spent: $" in out
+    out = _run(cli, capsys, "logbook", "condense", "--uri", uri, "--all")
+    assert "Scarlett: nothing new since digest #0003" in out
+
+    out = _run(cli, capsys, "logbook", "list", "--uri", uri)
+    assert "digest through #0003" in out
+    out = _run(cli, capsys, "logbook", "show", "--uri", uri, "--identity", "Scarlett")
+    assert "digest: through #0003, 1 themes; 0 entries since" in out
+    assert "- parking (3 games, latest #0003): Leave sooner." in out
+    out = _run(cli, capsys, "logbook", "show", "--uri", uri, "--identity", "Scarlett", "--memory", "1")
+    assert "Three games." in out and "=== Entry" not in out
+
+
 def test_play_and_arena_with_logbooks_feed_method_memory(cli, capsys, tmp_path):
     from clude_storage import GameRecord, LocalStore, Logbook
     from clude_training import memory
