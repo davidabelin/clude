@@ -8,7 +8,7 @@ Logbooks belong to a persistent identity (`SeatRecord.label`) in the same local/
 |---|---|---|
 | 0: record | Omniscient deal, events, seats and outcome | `games/<run>/<index>.json` |
 | 1: method memory | Numerical state for Mustard, White and Green | `logbooks/<identity>/method.json` |
-| 2: narrative | Model-written entries and rolling head | `logbooks/<identity>/entries/NNNN.json`, `head.json` |
+| 2: narrative | Model-written entries, rolling head and the optional digest | `logbooks/<identity>/entries/NNNN.json`, `head.json`, `digest.json` |
 
 New web Play/Watch tables remember; the Developer look alone shows a checkbox to opt out. Saved settings remain, and old documents missing the field read as false. CLI games require `--logbook`; bare TableGame does no memory I/O.
 
@@ -53,13 +53,31 @@ Profile/SeatSpec/CLI default to 0; new lobby LLM seats default to 1. **Zero is c
 
 At 0.5 the whole index appears; at 0.75 half the full entries; at 1 all. The block is stable for a game and sent after persona/rules as a second cached system block. Empty memory sends no block. `logbook show --memory DEPTH` renders exactly this selection.
 
+With a [digest](#condensing-the-digest), any depth above 0 shows it after the head, and `n` counts only the entries written after it; depth 0 still reads the head alone. Without one, the block is exactly as above.
+
 Narrative memory steers choices only inside the existing leash; it cannot widen the menu. Historical PlumOG parking/logbook findings are in [the glossary](strategy-glossary.md#plums-logbook-at-leash-05-2026-09-14), not acceptance evidence for current Plum.
 
 ## The debrief
 
 A remembering LLM seat receives the whole deal face up, its live-view history, talk, audited choices, final belief versus truth, existing head/index and field instructions. `resolve_opponents` maps model names to the opponents' persistent labels. Response schema is LOGBOOK_SCHEMA; defaults are medium effort, 4096 tokens and 180 s. Failure/refusal/malformed data writes no entry and records `last_debrief`; the finished game remains valid. `debrief=False` skips it.
 
+With a digest, the debrief shows it after the head and indexes only the entries since; the flags it lists are the merged vocabulary.
+
 Web wrap-up performs one seat's debrief per work request. Costs belong to the completed game and settle after entries finish; closing all clients can leave wrap-up pending until work resumes. Headless games update method memory without model calls or narrative entries.
+
+## Condensing: the digest
+
+At depth 1 every entry is read back in full, and every debrief indexes every earlier entry, so both grow with each game. `logbook condense` asks a character's **own model**, under its persona and rules but outside any game, to fold its entries into a digest written in its voice. The digest has three parts:
+
+- `overview`: the arc of those games, up to 120 words.
+- `themes`: up to 10 lessons, each headed by one flag and up to 60 words. Read-back shows each theme's game count and latest serial from the flag index.
+- `flag_map`: near-duplicate flags merged into the ones kept.
+
+Code validates the merges (`clean_flag_map`): only flags in use, no self-maps, chains resolved, cycles dropped. It then rewrites every entry's flags and the index, as `relabel` does for opponents, so a rebuilt head agrees. `renamed` records every merge so far.
+
+Entries are never deleted: they stay as the archive (`show --entry N`, `rebuild`). The digest records `through`, the last serial it folds in. Read-back and the debrief show the digest in place of entries 1 to `through`. A later condense reads the digest plus the entries since and writes a replacement, so the call stays bounded too. Standing instructions and dossiers are shown as context and left as they are. Prose about an opponent is not relabelled.
+
+The call reuses the debrief's effort and timeout with room for 8192 tokens. A failure, refusal or malformed or empty reply writes nothing. Merges are written first and the digest last, so an interrupted run leaves a consistent logbook that a rerun completes. Run it when no table is wrapping up (`tables list`): a debrief landing mid-call becomes an entry after the digest, but the head's flag index could miss it (`rebuild` repairs that). `reset` removes the digest; `copy` copies it.
 
 ## Running it
 
@@ -68,24 +86,25 @@ python scripts/clude_cli.py play --players 3 --roster Plum,Mustard,Green --store
 python scripts/clude_cli.py logbook list --uri data/llm
 python scripts/clude_cli.py logbook show --uri data/llm --identity Mustard --memory 0.75
 python scripts/clude_cli.py logbook rebuild --uri data/llm --identity Mustard
+python scripts/clude_cli.py logbook condense --uri data/llm --all --dry-run
 ```
 
 `--logbook [URI]` on play/arena reads then updates; omitted URI uses `--store`. `--logbook-readonly` reads without writes, and sweeps always use read-only memory. `--logbook-characters` restricts attachment.
 
-`logbook reset --identity NAME` removes head/method/entries; `--keep-entries` retains the archive. `rebuild` reconstructs the head and supported method memory, using `--from URI` if given. `--min-version` defaults to 3, excluding ring-era records; 1 includes every era. Green cannot be reconstructed. `copy --identity NAME --to ARCHIVE` archives a logbook under another identity, refusing an existing one; `reset-arm --arm NAME` forgets one arm of Green's posteriors. `relabel --label OLD --to NEW` moves what every logbook learned of an opponent to a new label (entries, dossiers, White's counts). Phase 12's PlumOG archive is `copy --identity Plum --to PlumOG`, then `reset --identity Plum`, `reset-arm --arm Plum` and `relabel --label Plum --to PlumOG`, since the other characters' dossiers and White's chains on "Plum" describe PlumOG: done on `data/llm` and on the bucket by the 2026-10-07 deploy, so the live Plum logbook starts empty and PlumOG's is the archive. A White `rebuild` from records restores the "Plum" counts (records keep the seat label); relabel again after one.
+`logbook reset --identity NAME` removes head/digest/method/entries; `--keep-entries` retains the archive. `rebuild` reconstructs the head and supported method memory, using `--from URI` if given. `--min-version` defaults to 3, excluding ring-era records; 1 includes every era. Green cannot be reconstructed. `copy --identity NAME --to ARCHIVE` archives a logbook under another identity, refusing an existing one; `reset-arm --arm NAME` forgets one arm of Green's posteriors. `relabel --label OLD --to NEW` moves what every logbook learned of an opponent to a new label (entries, dossiers, White's counts). Phase 12's PlumOG archive is `copy --identity Plum --to PlumOG`, then `reset --identity Plum`, `reset-arm --arm Plum` and `relabel --label Plum --to PlumOG`, since the other characters' dossiers and White's chains on "Plum" describe PlumOG: done on `data/llm` and on the bucket by the 2026-10-07 deploy, so the live Plum logbook starts empty and PlumOG's is the archive. A White `rebuild` from records restores the "Plum" counts (records keep the seat label); relabel again after one.
 
 ## Cost
 
-Numerical method memory spends no API tokens but can add tree-fitting latency. Narrative decisions/read-back/debriefs use the configured model; [LLM wrapper](llm-wrapper.md#cost) and [the glossary](strategy-glossary.md) retain dated cost measurements. Those old Plum costs refer to PlumOG. The web ledger includes debriefs and may stop later calls when a cap is reached.
+Numerical method memory spends no API tokens but can add tree-fitting latency. Narrative decisions/read-back/debriefs, and condensing, use the configured model; `condense --dry-run` prints each call's size and a conservative cost estimate before any is made; [LLM wrapper](llm-wrapper.md#cost) and [the glossary](strategy-glossary.md) retain dated cost measurements. Those old Plum costs refer to PlumOG. The web ledger includes debriefs and may stop later calls when a cap is reached.
 
 ## Where things are
 
 | Module | Responsibility |
 |---|---|
-| `clude_storage/logbooks.py` | Entry/head documents, Logbook and render_memory |
+| `clude_storage/logbooks.py` | Entry/head/digest documents, flag merges, Logbook and render_memory |
 | `clude_training/replay.py` | Records reconstructed into omniscient state or masked views |
 | `clude_training/memory.py` | Record contributions, load/update/rebuild |
-| `clude_llm/logbook.py` | Debrief prompt and opponent resolution |
-| `clude_llm/player.py` | Attachment, read-back and model debrief call |
+| `clude_llm/logbook.py` | Debrief and condensing prompts, opponent resolution |
+| `clude_llm/player.py` | Attachment, read-back, model debrief and condensing calls |
 
-Focused checks: `tests/test_logbooks.py`, `test_replay.py`, `test_memory.py`, `test_debrief.py`, plus web memory/wrap-up tests.
+Focused checks: `tests/test_logbooks.py`, `test_replay.py`, `test_memory.py`, `test_debrief.py`, `test_condense.py`, plus web memory/wrap-up tests.

@@ -182,9 +182,12 @@ Remove `--dry-run` to copy. Takes runs whose every record meets `--min-version` 
 python scripts/clude_cli.py logbook list --uri data/llm
 python scripts/clude_cli.py logbook show --uri data/llm --identity Mustard --memory 0.75
 python scripts/clude_cli.py logbook rebuild --uri data/llm --identity Mustard
+python scripts/clude_cli.py logbook condense --uri data/llm --all --dry-run
 ```
 
 `show` prints the head/index, `--entry N` one entry, `--raw` JSON, or `--memory DEPTH` the exact read-back block. `reset --identity NAME` removes head, method memory and entries; `--keep-entries` retains the archive. `rebuild` recomputes the head and Mustard/White memory from records; `--from URI` changes source, `--min-version` defaults to 3. Green's live arm feedback cannot be reconstructed. `copy --identity Plum --to PlumOG` archives a logbook under another identity (entries, head and method memory; it refuses an existing destination). `reset-arm --arm Plum` forgets one arm of Green's stored posteriors, which then loads at Beta(1, 1); `--identity` defaults to Green. `relabel --label Plum --to PlumOG` calls an opponent by a new label in every logbook of the store (or `--identity NAME` alone): entry tables, evaluations and dossiers, the head's dossier, and White's per-opponent transition counts; `--dry-run` reports without writing. A later White `rebuild` reads labels from the game records, where PlumOG's seats say Plum, so rerun the relabel after one.
+
+`condense --identity NAME` or `--all` asks each character's own model to fold its logbook into a digest and merge its flags ([Logbooks](logbooks.md#condensing-the-digest)); **these are paid calls**. Every identity first prints its entries to fold in, prompt words, estimated input tokens and a conservative cost, with the output priced at the call's 8192-token cap. `--dry-run` stops there and writes nothing. `--all` skips logbooks that are not a character's, such as PlumOG, which has no persona; naming one with `--identity` is refused. An identity with nothing new since its digest makes no call. `--llm-backend` and `--llm-model` work as in `play`, and `null` exercises the command without a model. A failed call writes nothing. `list` and `show` report the digest, and `show --memory` renders read-back with it.
 
 ## `tables`
 

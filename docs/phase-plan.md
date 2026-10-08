@@ -1,6 +1,6 @@
 # Phase Plan
 
-Current roadmap as of 2026-10-07. This describes the checkout, not a live production audit. Completed plans are historical decision records; the maintainer guides describe current behavior. The strategy glossary keeps dated measurements, including superseded ring-board and PlumOG results.
+Current roadmap as of 2026-10-08. This describes the checkout, not a live production audit. Completed plans are historical decision records; the maintainer guides describe current behavior. The strategy glossary keeps dated measurements, including superseded ring-board and PlumOG results.
 
 ## Completed phases
 
@@ -56,6 +56,10 @@ Wikiclude articles, rendering and assets are outside this pass. Existing source 
 | N7 | Wiki rewritten for the network, with figures, diagrams, algorithm boxes and 21 Algorithms entries; lobby and Watch copy updated; engraved portraits in the character infoboxes; deployed 2026-10-07 | None |
 
 The trained Plum has the best mid-game belief of any method, no wrong accusations and sub-millisecond calls; he wins a little less than PlumOG at his own table and less at six. Curiosity is inert for his policy hook; `accuse_threshold` and `temperature` were re-measured and kept; leash 0.35 matches PlumOG's menu width and the paid ladder kept it. With Claude he wins as often as headless, and a typical seat-game costs about $0.09. See [Phase 12](deepnash-plan.md) sections 11-13.
+
+## Logbook condensing
+
+Built 2026-10-08, outside the numbered phases. `logbook condense` has each character's own model fold its logbook into a digest that replaces the condensed entries in read-back and the debrief, and merges near-duplicate flags; the entries stay as the archive. [Logbooks](logbooks.md#condensing-the-digest) owns the details. The paid run on `data/llm` and the bucket waits on David's approval of the dry run's estimate.
 
 ## Legacy code disposition
 
