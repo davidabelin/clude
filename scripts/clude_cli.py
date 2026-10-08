@@ -61,6 +61,8 @@ from clude_llm import (
     LLMSettings,
     NullBackend,
     accusation_menu,
+    condense_logbook,
+    condense_request,
     movement_menu,
     open_backend,
     show_menu,
@@ -68,7 +70,7 @@ from clude_llm import (
     user_prompt,
 )
 from clude_llm.anthropic_backend import estimate_cost
-from clude_storage import GameRecord, Logbook, SeatRecord, list_logbooks, open_store, render_entry
+from clude_storage import GameRecord, Logbook, SeatRecord, list_logbooks, open_store, render_digest, render_entry
 from clude_storage.records import GRID_RECORD_VERSION
 from clude_storage.mirror import LOGBOOK_PREFIX, TRACE_PREFIX, copy_docs, plan_mirror
 from clude_training import memory as method_memory
@@ -1404,9 +1406,11 @@ def cmd_logbook_list(args) -> int:
         logbook = Logbook(store, identity)
         head = logbook.head()
         n_entries = len(logbook.serials())
+        digest = logbook.digest()
+        condensed = f"digest through #{digest.through:04d}; " if digest is not None else ""
         print(
             f"  {identity}: {n_entries} entries; {_tally_line(head)}; "
-            f"{len(head.dossiers)} dossiers; {len(head.flags)} flags; "
+            f"{len(head.dossiers)} dossiers; {len(head.flags)} flags; {condensed}"
             f"{method_memory.describe_memory(logbook.method())}"
         )
     return 0
@@ -1443,6 +1447,11 @@ def cmd_logbook_show(args) -> int:
     text = logbook.memory(0.0)
     if text:
         print(text.rstrip())
+    digest = logbook.digest()
+    if digest is not None:
+        since = sum(1 for serial in logbook.serials() if serial > digest.through)
+        print(f"digest: through #{digest.through:04d}, {len(digest.themes)} themes; {since} entries since")
+        print("\n".join(render_digest(digest, head)))
     entries = logbook.entries()
     if entries:
         print(f"entries ({len(entries)}):")
@@ -1507,6 +1516,78 @@ def cmd_logbook_relabel(args) -> int:
         else:
             print(f"  {identity}: nothing names {args.label}")
     print(f"store: {store.describe()}{' (dry run: nothing written)' if args.dry_run else ''}")
+    return 0
+
+
+CHARS_PER_TOKEN = 3.5
+"""For the condensing estimate: English prose runs nearer four characters a
+token, so this errs high."""
+
+
+def cmd_logbook_condense(args) -> int:
+    """Ask each character's own model to fold its logbook into a digest
+    (`condense_logbook`). Every identity's line gives the size of its call
+    and an estimated cost first; `--dry-run` stops there."""
+    store = open_store(args.uri)
+    if args.identity:
+        if args.identity not in AGENT_SPECS:
+            raise SystemExit(
+                f"{args.identity} is not a character with a persona; only characters' logbooks are "
+                "condensed (their own model writes the digest)"
+            )
+        if not Logbook(store, args.identity).exists():
+            raise SystemExit(f"no logbook for {args.identity} in {store.describe()}")
+        identities = [args.identity]
+    else:
+        found = list_logbooks(store)
+        identities = [identity for identity in found if identity in AGENT_SPECS]
+        others = [identity for identity in found if identity not in AGENT_SPECS]
+        if others:
+            print(f"skipped, not characters: {', '.join(others)}")
+    settings = LLMSettings(model=args.llm_model)
+    backend = None if args.dry_run else _open_llm_backend(args)
+    estimated = spent = 0.0
+    calls = 0
+    for identity in identities:
+        logbook = Logbook(store, identity)
+        prepared = condense_request(logbook, settings)
+        if prepared is None:
+            digest = logbook.digest()
+            since = f"since digest #{digest.through:04d}" if digest is not None else "to condense"
+            print(f"  {identity}: nothing new {since}")
+            continue
+        request, entries, previous = prepared
+        words = len(request.system.split()) + len(request.user.split())
+        tokens = round((len(request.system) + len(request.user)) / CHARS_PER_TOKEN)
+        cost = estimate_cost(args.llm_model, tokens, request.max_tokens)
+        estimated += cost or 0.0
+        start = f"after digest #{previous.through:04d}" if previous is not None else "no digest yet"
+        print(
+            f"  {identity}: {len(entries)} entries to fold in (#{entries[0].serial:04d}-"
+            f"#{entries[-1].serial:04d}), {start}; prompt {words:,} words, ~{tokens:,} input tokens; "
+            + (f"est. up to ${cost:.2f}" if cost is not None else f"{args.llm_model} is unpriced")
+        )
+        if backend is None:
+            continue
+        report = condense_logbook(logbook, backend, settings)
+        calls += 1
+        if report["fallback"] is not None:
+            print(f"    failed ({report['fallback']}); nothing written")
+            continue
+        paid = estimate_cost(
+            args.llm_model, report["input_tokens"], report["output_tokens"], report["cached_tokens"]
+        )
+        spent += paid or 0.0
+        print(
+            f"    digest through #{report['through']:04d}: {report['themes']} themes, "
+            f"{report['merged']} flags merged in {report['entries_renamed']} entries; tokens in/out/cached "
+            f"{report['input_tokens']:,}/{report['output_tokens']:,}/{report['cached_tokens']:,}; "
+            f"{report['seconds']:.1f}s" + (f"; ${paid:.4f}" if paid is not None else "")
+        )
+    if backend is None:
+        print(f"estimated: up to ${estimated:.2f} at list prices (dry run: no call made, nothing written)")
+    else:
+        print(f"spent: ${spent:.4f} at list prices on {calls} calls; store: {store.describe()}")
     return 0
 
 
@@ -1939,7 +2020,7 @@ def build_parser() -> argparse.ArgumentParser:
     store_p.set_defaults(fn=cmd_store)
 
     logbook_p = sub.add_parser(
-        "logbook", help="List, show or reset the logbooks in a store (Phase 7).",
+        "logbook", help="List, show, condense or reset the logbooks in a store (Phase 7).",
     )
     logbook_sub = logbook_p.add_subparsers(dest="action", required=True)
     lb_list = logbook_sub.add_parser(
@@ -1998,6 +2079,25 @@ def build_parser() -> argparse.ArgumentParser:
     lb_relabel.add_argument("--identity", default=None, help="Only this logbook (default: all in the store).")
     lb_relabel.add_argument("--dry-run", action="store_true", help="Report what would move; write nothing.")
     lb_relabel.set_defaults(fn=cmd_logbook_relabel)
+    lb_condense = logbook_sub.add_parser(
+        "condense",
+        help="Each character's own model folds its logbook into a digest and merges its flags (paid calls).",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    lb_condense.add_argument("--uri", default=DEFAULT_STORE, help="Store location.")
+    who = lb_condense.add_mutually_exclusive_group(required=True)
+    who.add_argument("--identity", default=None, help="Whose logbook (a character).")
+    who.add_argument("--all", action="store_true", help="Every character's logbook in the store.")
+    lb_condense.add_argument(
+        "--llm-backend", default="anthropic",
+        help="'anthropic', 'null' (never answers), 'record:PATH' or 'replay:PATH'.",
+    )
+    lb_condense.add_argument("--llm-model", default=DEFAULT_MODEL, help="Model id for the anthropic backend.")
+    lb_condense.add_argument(
+        "--dry-run", action="store_true",
+        help="Print each call's size and estimated cost; call nothing, write nothing.",
+    )
+    lb_condense.set_defaults(fn=cmd_logbook_condense)
     lb_rebuild = logbook_sub.add_parser(
         "rebuild", help="Recompute a logbook's head from its entries and its method memory from records.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,

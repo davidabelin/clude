@@ -1,9 +1,10 @@
 """Structured reply schemas and validation for model requests.
 
 Choice uses one letter, suggestion suspect/weapon letters, remark only say,
-and debrief the logbook fields. Schemas constrain shape; the wrapper still
-checks letters against allowed menu entries. Failure leads to fallback or
-an unwritten debrief, never an unchecked engine answer.
+debrief the logbook fields and condense the digest's. Schemas constrain
+shape; the wrapper still checks letters against allowed menu entries.
+Failure leads to fallback or an unwritten debrief or digest, never an
+unchecked engine answer.
 """
 from __future__ import annotations
 
@@ -27,6 +28,9 @@ LOGBOOK_KIND = "logbook"
 
 REMARK_KIND = "remark"
 """The request kind of an off-turn line (Phase 8.3b)."""
+
+CONDENSE_KIND = "condense"
+"""The request kind of the call that condenses a logbook into its digest."""
 
 REMARK_SCHEMA: dict = {
     "type": "object",
@@ -91,19 +95,33 @@ LOGBOOK_SCHEMA: dict = {
     "additionalProperties": False,
 }
 
+CONDENSE_SCHEMA: dict = {
+    "type": "object",
+    "properties": {
+        "overview": {"type": "string"},
+        "flag_map": _objects("flag", "into"),
+        "themes": _objects("flag", "lesson"),
+    },
+    "required": ["overview", "flag_map", "themes"],
+    "additionalProperties": False,
+}
+"""The model-written fields of a `LogbookDigest`; `flag_map` lists the merges."""
+
 
 def schema_for(kind: str) -> dict:
     """The one schema object used for every call of decision `kind`
-    (or the debrief, `LOGBOOK_KIND`).
+    (or the debrief, `LOGBOOK_KIND`, or the condensing, `CONDENSE_KIND`).
 
     Raises
     ------
     KeyError
         For a kind other than ``move``, ``suggest``, ``accuse``, ``show``,
-        ``logbook`` or ``remark``.
+        ``logbook``, ``condense`` or ``remark``.
     """
     if kind == LOGBOOK_KIND:
         return LOGBOOK_SCHEMA
+    if kind == CONDENSE_KIND:
+        return CONDENSE_SCHEMA
     if kind == REMARK_KIND:
         return REMARK_SCHEMA
     fields = LABEL_FIELDS[kind]
@@ -125,8 +143,9 @@ def parse_response(kind: str, text: str) -> dict:
     dict
         The label fields upper-cased (``"a"`` is accepted as ``"A"``) and
         ``say`` stripped, a missing or non-string ``say`` becoming ``""``.
-        Extra keys are ignored. For `LOGBOOK_KIND` the object as parsed:
-        `LogbookEntry.build` does the normalising. For `REMARK_KIND`,
+        Extra keys are ignored. For `LOGBOOK_KIND` and `CONDENSE_KIND` the
+        object as parsed: `LogbookEntry.build` and `LogbookDigest.build` do
+        the normalising. For `REMARK_KIND`,
         ``say`` alone, stripped.
 
     Raises
@@ -141,7 +160,7 @@ def parse_response(kind: str, text: str) -> dict:
         raise ValueError(f"not JSON ({exc})") from None
     if not isinstance(data, dict):
         raise ValueError("not a JSON object")
-    if kind == LOGBOOK_KIND:
+    if kind in (LOGBOOK_KIND, CONDENSE_KIND):
         return data
     if kind == REMARK_KIND:
         say = data.get("say", "")

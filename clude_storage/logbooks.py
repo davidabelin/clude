@@ -3,8 +3,10 @@
 Identity is SeatRecord.label: character name or normalized account key,
 independent of a human's token. Documents live under logbooks/<identity>/.
 Entries retain immutable game narratives; the head carries derived tally,
-instructions, dossiers and flag index. Method memory is separate numerical
-state. render_memory selects depth without writing. See docs/logbooks.md.
+instructions, dossiers and flag index. A digest, written by the identity's
+own model when its logbook is condensed, stands in for the entries it folds
+in. Method memory is separate numerical state. render_memory selects depth
+without writing. See docs/logbooks.md.
 """
 from __future__ import annotations
 
@@ -27,6 +29,12 @@ SUMMARY_WORDS = 40
 """Advertised bound on an entry's `summary`; clipped at 1.5x."""
 READ_WORDS = 60
 """Advertised bound on a dossier's `read`; clipped at 1.5x."""
+OVERVIEW_WORDS = 120
+"""Advertised bound on a digest's `overview`; clipped at 1.5x."""
+LESSON_WORDS = 60
+"""Advertised bound on a digest theme's `lesson`; clipped at 1.5x."""
+MAX_THEMES = 10
+"""Cap on a digest's themes."""
 
 _FLAG_JUNK = re.compile(r"[^a-z0-9]+")
 
@@ -47,6 +55,10 @@ def head_key(identity: str) -> str:
 
 def method_key(identity: str) -> str:
     return f"{logbook_prefix(identity)}/method.json"
+
+
+def digest_key(identity: str) -> str:
+    return f"{logbook_prefix(identity)}/digest.json"
 
 
 def entries_prefix(identity: str) -> str:
@@ -80,6 +92,32 @@ def normalize_flags(items) -> list:
         if flag and flag not in seen:
             seen.append(flag)
     return seen[:MAX_FLAGS]
+
+
+def clean_flag_map(items, known) -> dict:
+    """The model's flag merges as ``{old: canonical}``. Both sides are
+    normalised; a pair is kept only when the old flag is in `known`, the
+    canonical one is non-empty and different, and the old flag was not
+    mapped already. Chains resolve to their end (a -> b -> c gives
+    a -> c); a cycle is dropped."""
+    known = set(known)
+    mapping: dict = {}
+    for item in items or []:
+        if not isinstance(item, dict):
+            continue
+        old = normalize_flag(item.get("flag"))
+        new = normalize_flag(item.get("into"))
+        if old in known and new and new != old and old not in mapping:
+            mapping[old] = new
+    resolved: dict = {}
+    for old, new in mapping.items():
+        seen = {old}
+        while new in mapping and new not in seen:
+            seen.add(new)
+            new = mapping[new]
+        if new not in seen:
+            resolved[old] = new
+    return resolved
 
 
 def _text(value) -> str:
@@ -493,6 +531,127 @@ class LogbookHead:
 
 
 # ---------------------------------------------------------------------
+# The digest
+# ---------------------------------------------------------------------
+
+
+def _today() -> str:
+    return datetime.now(timezone.utc).date().isoformat()
+
+
+@dataclass
+class LogbookDigest:
+    """An identity's condensed logbook: what its own model made of
+    entries 1 to `through` when asked to fold them together. Those
+    entries stay stored as an archive; read-back and the debrief show
+    this digest in their place, then only the entries after `through`.
+
+    Parameters
+    ----------
+    identity : str
+    through : int
+        The last entry serial folded in.
+    date : str
+        ISO date of the condensing.
+    model : str or None
+        The model that wrote it.
+    overview : str
+        The arc of those games, in the identity's own voice.
+    themes : list[dict]
+        ``{"flag", "lesson"}``: one lesson per theme, headed by a flag of
+        the merged vocabulary.
+    renamed : dict[str, str]
+        Every flag merge so far, old -> canonical, kept for the record.
+    """
+
+    identity: str
+    through: int
+    date: str = ""
+    model: Optional[str] = None
+    overview: str = ""
+    themes: list = field(default_factory=list)
+    renamed: dict = field(default_factory=dict)
+    version: int = LOGBOOK_VERSION
+
+    @classmethod
+    def build(
+        cls,
+        identity: str,
+        through: int,
+        written: Optional[dict] = None,
+        mapping: Optional[dict] = None,
+        previous: Optional["LogbookDigest"] = None,
+        model: Optional[str] = None,
+        date: Optional[str] = None,
+    ) -> "LogbookDigest":
+        """A digest from the model's JSON (`written`): overview and
+        lessons clipped, theme flags normalised and passed through
+        `mapping` (this condensing's merges, `clean_flag_map`), a repeated
+        theme keeping its first lesson, at most `MAX_THEMES`. `renamed`
+        composes the `previous` digest's merges with `mapping`.
+
+        Raises
+        ------
+        ValueError
+            If neither an overview nor a theme is left.
+        """
+        written = dict(written or {})
+        mapping = dict(mapping or {})
+        themes: list = []
+        for item in written.get("themes") or []:
+            if not isinstance(item, dict):
+                continue
+            flag = normalize_flag(item.get("flag"))
+            flag = mapping.get(flag, flag)
+            lesson = _clip_words(_text(item.get("lesson")), LESSON_WORDS)
+            if flag and lesson and all(theme["flag"] != flag for theme in themes):
+                themes.append({"flag": flag, "lesson": lesson})
+        themes = themes[:MAX_THEMES]
+        overview = _clip_words(_text(written.get("overview")), OVERVIEW_WORDS)
+        if not overview and not themes:
+            raise ValueError("empty digest: no overview and no themes")
+        renamed = {
+            old: mapping.get(new, new)
+            for old, new in (previous.renamed if previous is not None else {}).items()
+        }
+        renamed.update(mapping)
+        return cls(
+            identity=identity,
+            through=int(through),
+            date=date or _today(),
+            model=model,
+            overview=overview,
+            themes=themes,
+            renamed={old: new for old, new in renamed.items() if old != new},
+        )
+
+    def to_dict(self) -> dict:
+        return {
+            "version": self.version,
+            "identity": self.identity,
+            "through": self.through,
+            "date": self.date,
+            "model": self.model,
+            "overview": self.overview,
+            "themes": [dict(theme) for theme in self.themes],
+            "renamed": dict(self.renamed),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "LogbookDigest":
+        return cls(
+            identity=data["identity"],
+            through=int(data.get("through", 0)),
+            date=data.get("date", ""),
+            model=data.get("model"),
+            overview=data.get("overview", ""),
+            themes=[dict(theme) for theme in data.get("themes", [])],
+            renamed=dict(data.get("renamed", {})),
+            version=int(data.get("version", LOGBOOK_VERSION)),
+        )
+
+
+# ---------------------------------------------------------------------
 # Rendering: what a character reads
 # ---------------------------------------------------------------------
 
@@ -608,26 +767,54 @@ def render_head(head: LogbookHead, opponents=None) -> list:
     return lines
 
 
-def render_memory(head: LogbookHead, entries: list, depth: float, opponents=None) -> str:
+def render_digest(digest: LogbookDigest, head: LogbookHead) -> list:
+    """The digest as lines: the entries it folds in, the overview, then
+    one line per theme with how many entries carry its flag and the
+    latest of them (from `head`'s flag index; left out for a flag the
+    index does not hold)."""
+    lines = [f"Your digest of entries #0001 to #{digest.through:04d}, condensed by you on {digest.date}:"]
+    if digest.overview:
+        lines.append(digest.overview)
+    if digest.themes:
+        lines.append("Lessons by theme:")
+    for theme in digest.themes:
+        serials = head.flags.get(theme["flag"], [])
+        n = len(serials)
+        count = f" ({n} game{'s' if n != 1 else ''}, latest #{max(serials):04d})" if serials else ""
+        lines.append(f"- {theme['flag']}{count}: {theme['lesson']}")
+    return lines
+
+
+def render_memory(
+    head: LogbookHead, entries: list, depth: float, opponents=None, digest: Optional[LogbookDigest] = None,
+) -> str:
     """The memory block for a character at `depth` (its `memory` dial):
-    `render_head`, then at depth > 0 an index of the most recent
-    entries with the flags recurring across them, then above 0.5 the
-    most recent entries in full (`memory_counts`). Entries are given
-    most recent last. Empty string for an empty logbook.
+    `render_head`, then at depth > 0 the digest if there is one, an index
+    of the most recent entries with the flags recurring across them, then
+    above 0.5 the most recent entries in full (`memory_counts`). With a
+    digest the dial selects only among the entries after it. Entries are
+    given most recent last. Empty string for an empty logbook.
 
     Parameters
     ----------
     head : LogbookHead
     entries : list[LogbookEntry]
-        Every entry, ascending by serial.
+        Every entry (or every entry after the digest), ascending by serial.
     depth : float
         In [0, 1].
     opponents : sequence of str or None
         The labels at this table, whose dossiers to show; None shows
         every dossier (the CLI's view).
+    digest : LogbookDigest or None
+        The condensed logbook, standing in for entries 1 to its `through`.
     """
     lines = render_head(head, opponents)
     entries = sorted(entries, key=lambda e: e.serial)
+    since = ""
+    if digest is not None and depth > 0.0:
+        lines.extend(render_digest(digest, head))
+        entries = [entry for entry in entries if entry.serial > digest.through]
+        since = " since your digest"
     indexed, full = memory_counts(len(entries), depth)
     if indexed:
         shown = entries[-indexed:]
@@ -639,7 +826,7 @@ def render_memory(head: LogbookHead, entries: list, depth: float, opponents=None
             lines.append(f"Flags across these entries: {recurring}")
         lines.append(
             f"Entries #{shown[0].serial:04d} to #{shown[-1].serial:04d} of "
-            f"{len(entries)}, most recent last:"
+            f"{len(entries)}{since}, most recent last:"
         )
         lines.extend(render_index_line(entry) for entry in shown)
     if full:
@@ -695,9 +882,10 @@ class Logbook:
         """One entry; `KeyError` if absent."""
         return LogbookEntry.from_dict(self.store.get_doc(entry_key(self.identity, serial)))
 
-    def entries(self) -> list:
-        """Every stored entry, ascending by serial."""
-        return [self.entry(serial) for serial in self.serials()]
+    def entries(self, after: int = 0) -> list:
+        """Every stored entry with a serial above `after`, ascending; only
+        those are read from the store."""
+        return [self.entry(serial) for serial in self.serials() if serial > after]
 
     def next_serial(self) -> int:
         serials = self.serials()
@@ -722,6 +910,55 @@ class Logbook:
         self.save_head(head)
         return head
 
+    # -- the digest ---------------------------------------------------
+
+    def digest(self) -> Optional[LogbookDigest]:
+        """The stored digest, or None."""
+        try:
+            return LogbookDigest.from_dict(self.store.get_doc(digest_key(self.identity)))
+        except KeyError:
+            return None
+
+    def save_digest(self, digest: LogbookDigest) -> str:
+        """Store `digest`, replacing any earlier one.
+
+        Raises
+        ------
+        ValueError
+            If the digest belongs to another identity.
+        """
+        if digest.identity != self.identity:
+            raise ValueError(f"digest for {digest.identity!r} offered to {self.identity!r}'s logbook")
+        return self.store.put_doc(digest_key(self.identity), digest.to_dict())
+
+    def rename_flags(self, mapping: dict, dry_run: bool = False) -> dict:
+        """Merge flags through `mapping` (old -> canonical, `clean_flag_map`):
+        every entry's flags rewritten and re-normalised, so a merge leaves
+        no duplicate, and the head's flag index merged to match, as a
+        rebuild from the rewritten entries would give. Returns
+        ``{"entries", "flags"}``: entries rewritten, flags retired from the
+        index. `dry_run` counts without writing."""
+        if not mapping:
+            return {"entries": 0, "flags": 0}
+        changed = 0
+        for entry in self.entries():
+            flags = normalize_flags([mapping.get(flag, flag) for flag in entry.flags])
+            if flags != entry.flags:
+                changed += 1
+                if not dry_run:
+                    data = entry.to_dict()
+                    data["flags"] = flags
+                    self.store.put_doc(entry_key(self.identity, entry.serial), data)
+        head = self.head()
+        retired = [flag for flag in head.flags if flag in mapping]
+        if retired and not dry_run:
+            merged: dict = {}
+            for flag, serials in head.flags.items():
+                merged.setdefault(mapping.get(flag, flag), set()).update(serials)
+            head.flags = {flag: sorted(serials) for flag, serials in merged.items()}
+            self.save_head(head)
+        return {"entries": changed, "flags": len(retired)}
+
     # -- method memory ------------------------------------------------
 
     def method(self) -> Optional[dict]:
@@ -745,11 +982,12 @@ class Logbook:
         return head
 
     def reset(self, keep_entries: bool = False) -> int:
-        """Forget: the head and method memory go, and the entries too
-        unless `keep_entries`. Returns how many documents were removed."""
+        """Forget: the head, digest and method memory go, and the entries
+        too unless `keep_entries`. Returns how many documents were removed."""
         removed = 0
         removed += int(self.store.delete_doc(head_key(self.identity)))
         removed += int(self.store.delete_doc(method_key(self.identity)))
+        removed += int(self.store.delete_doc(digest_key(self.identity)))
         if not keep_entries:
             for serial in self.serials():
                 removed += int(self.store.delete_doc(entry_key(self.identity, serial)))
@@ -758,8 +996,8 @@ class Logbook:
     def copy_to(self, identity: str) -> "Logbook":
         """Copy this logbook to `identity` in the same store, as an
         archive: every entry with its `identity` rewritten (`token` kept),
-        the head under the new name, the method memory as is. Returns the
-        new logbook.
+        the head and any digest under the new name, the method memory as
+        is. Returns the new logbook.
 
         Raises
         ------
@@ -778,6 +1016,10 @@ class Logbook:
         head = self.head()
         head.identity = dest.identity
         dest.save_head(head)
+        digest = self.digest()
+        if digest is not None:
+            digest.identity = dest.identity
+            dest.save_digest(digest)
         method = self.method()
         if method is not None:
             dest.save_method(method)
@@ -851,11 +1093,15 @@ class Logbook:
     # -- what a character reads ---------------------------------------
 
     def memory(self, depth: float, opponents=None) -> str:
-        """`render_memory` of this logbook at `depth`; entries are only
-        read from the store when the depth needs them."""
+        """`render_memory` of this logbook at `depth`; the digest and the
+        entries after it are only read from the store when the depth
+        needs them."""
         head = self.head()
-        entries = self.entries() if depth > 0.0 else []
-        return render_memory(head, entries, depth, opponents)
+        if depth <= 0.0:
+            return render_memory(head, [], depth, opponents)
+        digest = self.digest()
+        entries = self.entries(after=digest.through if digest is not None else 0)
+        return render_memory(head, entries, depth, opponents, digest)
 
 
 def list_logbooks(store) -> list:

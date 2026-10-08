@@ -1,9 +1,10 @@
-"""Render post-game debrief prompts and resolve opponent identities.
+"""Render post-game debrief and condensing prompts; resolve opponent identities.
 
 Debrief deliberately sees the whole deal face up plus the seat's live-view
 history, audits and prior memory. It writes narrative schema fields, not
 code-computed facts. Opponent names map back to persistent roster labels.
-See docs/logbooks.md; model calls/validation live in player.py.
+Condensing shows a character its digest and the entries since, to fold into
+a new digest. See docs/logbooks.md; model calls/validation live in player.py.
 """
 from __future__ import annotations
 
@@ -11,14 +12,19 @@ from typing import Optional, Sequence
 
 from clude_agents.explain import describe_suggestion, format_belief, seat_label, seat_labels
 from clude_core.events import AccusationEvent, RemarkEvent
-from clude_storage import GameRecord, LogbookHead
+from clude_storage import GameRecord, LogbookDigest, LogbookHead
 from clude_storage.logbooks import (
+    LESSON_WORDS,
     MAX_FLAGS,
     MAX_STANDING_INSTRUCTIONS,
+    MAX_THEMES,
+    OVERVIEW_WORDS,
     READ_WORDS,
     SUMMARY_WORDS,
     entry_outcome,
     outcome_phrase,
+    render_digest,
+    render_entry,
     render_head,
     render_index_line,
 )
@@ -166,6 +172,7 @@ def debrief_prompt(
     decisions: Sequence,
     head: LogbookHead,
     entries: Sequence,
+    digest: Optional[LogbookDigest] = None,
 ) -> str:
     """The debrief's user prompt for `seat`'s character.
 
@@ -182,7 +189,10 @@ def debrief_prompt(
     head : LogbookHead
         The logbook's current head.
     entries : Sequence[LogbookEntry]
-        Every earlier entry, ascending; their summaries and flags are shown.
+        Every earlier entry, ascending; their summaries and flags are shown
+        (with a digest, only those after it).
+    digest : LogbookDigest or None
+        The condensed logbook, shown in place of the entries it folds in.
     """
     seats = sorted(record.seats, key=lambda s: s.seat)
     names = _table_names(record)
@@ -261,8 +271,12 @@ def debrief_prompt(
         lines.extend(f"  {line}" for line in head_lines)
     else:
         lines.append("  Empty: this is your first entry.")
+    if digest is not None:
+        lines.extend(f"  {line}" for line in render_digest(digest, head))
+        entries = [entry for entry in entries if entry.serial > digest.through]
     if entries:
-        lines.append("Earlier entries, most recent last (summary and flags):")
+        heading = "Entries since your digest" if digest is not None else "Earlier entries"
+        lines.append(f"{heading}, most recent last (summary and flags):")
         lines.extend(f"  {render_index_line(entry)}" for entry in entries)
     if head.flags:
         used = ", ".join(
@@ -294,6 +308,78 @@ def debrief_prompt(
         f"read of them in at most {READ_WORDS} words; leave an opponent out to keep the read "
         "you have.",
         f"Your identity in the logbook is {label}. Answer with JSON only.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def condense_prompt(
+    identity: str,
+    head: LogbookHead,
+    digest: Optional[LogbookDigest],
+    entries: Sequence,
+) -> str:
+    """The user prompt that asks `identity`'s model to condense its
+    logbook: the previous digest if any, the logbook's standing part as
+    context, the entries to fold in whole, the flags in use, and the
+    digest's fields.
+
+    Parameters
+    ----------
+    identity : str
+        The character whose logbook this is.
+    head : LogbookHead
+        The logbook's current head.
+    digest : LogbookDigest or None
+        The previous digest; `entries` are those after it.
+    entries : Sequence[LogbookEntry]
+        The entries to fold in, ascending; at least one.
+    """
+    display = DISPLAY_NAMES.get(identity, identity)
+    first, last = entries[0].serial, entries[-1].serial
+    lines = [
+        f"No game is on. This is a quiet hour with your logbook, {display}: condense it.",
+        "You read your logbook back before every game, and it has grown long. Fold entries "
+        f"#{first:04d} to #{last:04d} into a digest that will stand in for every entry up to "
+        f"#{last:04d}. The entries stay in your archive, but from now on you read the digest in "
+        "their place, followed only by the entries written after it.",
+        "",
+    ]
+    if digest is not None:
+        lines.append("Your digest so far, which these entries extend:")
+        lines.extend(f"  {line}" for line in render_digest(digest, head))
+    else:
+        lines.append("You have no digest yet: this is your first.")
+    head_lines = render_head(head)
+    if head_lines:
+        lines += [
+            "",
+            "Shown for context (your standing instructions and your reads on opponents are kept "
+            "as they are):",
+            *(f"  {line}" for line in head_lines),
+        ]
+    lines += ["", f"The entries to fold in, #{first:04d} to #{last:04d}:", ""]
+    for entry in entries:
+        lines += [render_entry(entry), ""]
+    if head.flags:
+        used = ", ".join(
+            f"{flag} ({len(serials)})"
+            for flag, serials in sorted(head.flags.items(), key=lambda kv: (-len(kv[1]), kv[0]))
+        )
+        lines += [f"Flags you have used, with how many entries carry each: {used}.", ""]
+    fold = ", folding in your previous overview" if digest is not None else ""
+    carry = " from your digest so far and from these entries" if digest is not None else ""
+    lines += [
+        "Write the digest as JSON with these fields, in your own voice, as notes to yourself:",
+        f"- overview: the arc of these games{fold}, in at most {OVERVIEW_WORDS} words: what kind "
+        "of player you have been at this table, what has worked and what has cost you.",
+        '- flag_map: flags that name the same pattern in different words, each as {"flag": an '
+        'old flag exactly as listed above, "into": the flag to keep}. Merge only true '
+        "near-duplicates, never two different patterns; an empty list is fine. Merged flags are "
+        "rewritten in every entry and in your index, and your later entries reuse the ones you keep.",
+        f"- themes: at most {MAX_THEMES}, the patterns that matter most, each headed by one flag "
+        f"you keep and carrying one lesson in at most {LESSON_WORDS} words: what to do or avoid, "
+        f"and the evidence that taught it. Carry forward what still holds{carry}; drop what did not.",
+        f"Your identity in the logbook is {identity}. Answer with JSON only.",
     ]
     return "\n".join(lines) + "\n"
 

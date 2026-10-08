@@ -32,7 +32,7 @@ Exact system text participates in LLMRequest replay keys, so any persona, rules 
 
 ## Memory (Phase 7)
 
-A logbook attachment supplies a stable cached block at Profile.memory depth. Zero reads the condensed head; one reads full entries. Empty/unattached memory sends no block. After a game, `debrief` requests an entry against LOGBOOK_SCHEMA; failure leaves `last_debrief` and writes nothing. [Logbooks](logbooks.md) explains schema, model-visible content and administration.
+A logbook attachment supplies a stable cached block at Profile.memory depth. Zero reads the condensed head; one reads the digest, if any, and every entry after it in full. Empty/unattached memory sends no block. After a game, `debrief` requests an entry against LOGBOOK_SCHEMA; failure leaves `last_debrief` and writes nothing. Outside any game, `condense_logbook` asks the character's model, under its persona, for a digest against CONDENSE_SCHEMA; failure writes nothing. [Logbooks](logbooks.md) explains schema, model-visible content and administration.
 
 ## Backends
 
@@ -45,7 +45,7 @@ A logbook attachment supplies a stable cached block at Profile.memory depth. Zer
 
 The backend delegates authentication to the SDK; direct scripts should export `ANTHROPIC_API_KEY` explicitly. Web config also supports selected `.env` fallbacks. In earlier live checks, organization keys failed because the backend does not supply a workspace header; use the workspace-scoped key provisioned for the service. Missing/bad credentials produce fallback, which must be distinguished from a successful model run.
 
-Defaults in LLMSettings: configured model `claude-opus-5`, low effort, 2048 tokens, 30 s timeout, 200 calls/500K tokens per game, eight recent talk lines; debrief medium effort/4096 tokens/180 s; reaction 200 tokens. AnthropicBackend defaults to one SDK retry. These are code settings, not verified current provider capabilities/pricing.
+Defaults in LLMSettings: configured model `claude-opus-5`, low effort, 2048 tokens, 30 s timeout, 200 calls/500K tokens per game, eight recent talk lines; debrief medium effort/4096 tokens/180 s; condensing the debrief's effort and timeout with 8192 tokens; reaction 200 tokens. AnthropicBackend defaults to one SDK retry. These are code settings, not verified current provider capabilities/pricing.
 
 MeteredBackend wraps web calls, pricing model IDs from the repository table. It checks table/day caps before calls; actual usage can overshoot the remaining allowance by the final accepted call. It refuses unpriced models. Table/seat ledger persists across UTC midnight; daily ledger is service-wide. Model-visible prompts/logbooks contain no spend.
 
