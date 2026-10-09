@@ -48,12 +48,14 @@ Phase 11 condenses maintainer docs and docstrings. Phase 12 is complete and depl
 
 ## Environment and how to run
 
-Windows/PowerShell: use `& .venv\Scripts\python.exe ...` from the repo root. Bare Python may resolve outside the venv. Tool calls do not share exported variables; set them in the call needing them.
+**David works in Windows cmd.exe, not PowerShell**, with the `clude` venv activated (his prompt reads `(clude) Thu 10/08/2026 17:26:51.94 >`). Commands for him to run are cmd syntax from the repo root: `python ...` (the active venv's), `clude ...` for clude.bat, `scripts\deploy.bat`. Never give him PowerShell's `& .venv\...` or `$env:` forms.
 
-```powershell
-& .venv\Scripts\python.exe -m pytest -q -n auto
-& .venv\Scripts\python.exe scripts\clude_cli.py --help
+```bat
+python -m pytest -q -n auto
+python scripts\clude_cli.py --help
 ```
+
+An agent's own tool calls on his machine may run without the venv: there, use `.venv\Scripts\python.exe ...` explicitly, since bare Python may resolve outside the venv. Tool calls do not share exported variables; set them in the call needing them.
 
 [README](README.md) owns installation; [Web](docs/web.md) owns configuration, optional browser/live checks and deployment. Direct CLI defaults to local stores; **clude.bat defaults users/tables/logbook/store to the live bucket** unless `--uri` is explicit.
 
