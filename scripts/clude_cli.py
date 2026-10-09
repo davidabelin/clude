@@ -24,6 +24,7 @@ if str(ROOT) not in sys.path:
 
 import clude_constraints
 from clude_agents import AGENT_SPECS, build_agent, build_character, list_agent_specs
+from clude_agents.bandit import BanditAgent
 from clude_agents.character import best_triple, ds_belief_confidence
 from clude_agents.decision_tree import (
     DEFAULT_CHECKPOINTS as MUSTARD_CHECKPOINTS,
@@ -80,6 +81,7 @@ from clude_storage import (
     render_entry,
 )
 from clude_storage.records import DEVELOPMENT_PHASE, GRID_RECORD_VERSION
+from clude_storage.merge import apply_merge, plan_merge
 from clude_storage.mirror import LOGBOOK_PREFIX, TRACE_PREFIX, copy_docs, plan_mirror
 from clude_training import memory as method_memory
 from clude_training.table import TableError, TableGame, TableSetup, describe_request
@@ -1362,11 +1364,56 @@ def cmd_store_copy(args) -> int:
     return 0
 
 
+def cmd_store_merge(args) -> int:
+    """Fold a downloaded store into a local one in place
+    (`clude_storage.merge`); the download is left as it is."""
+    source, dest = Path(args.source), Path(args.into)
+    for label, path in (("--from", source), ("--into", dest)):
+        if str(path).startswith("gs://") or not path.is_dir():
+            print(f"store merge: {label} must be a local folder: {path}", file=sys.stderr)
+            return 2
+    if source.resolve() == dest.resolve():
+        print("store merge: --from and --into are the same folder", file=sys.stderr)
+        return 2
+    try:
+        plan = plan_merge(source, dest, bandit_decay=BanditAgent().decay_rate)
+    except ValueError as exc:
+        print(f"store merge: {exc}", file=sys.stderr)
+        return 2
+    print(f"from: {source}")
+    print(f"into: {dest}")
+    print(
+        f"{plan.added} documents only in the download, {plan.equal} equal, "
+        f"{plan.kept} only local"
+    )
+    for run, new in plan.renamed_runs.items():
+        print(f"run {run}: the local games differ; the local run becomes {new}")
+    if plan.rewritten:
+        print(f"{plan.rewritten} local documents have their run references rewritten")
+    for line in plan.logbooks:
+        print(f"logbook {line}")
+    for line in plan.memory:
+        print(f"method memory {line}")
+    for line in plan.spend:
+        print(f"spend {line}")
+    if plan.dropped:
+        print(f"{len(plan.dropped)} local documents replaced by the download's: {', '.join(plan.dropped)}")
+    for key, new in plan.moved.items():
+        print(f"{key}: the download's kept; the local one moves to {new}")
+    if args.dry_run:
+        print(f"dry run: nothing changed ({plan.changes()} documents would be)")
+        return 0
+    print(f"changed {apply_merge(plan, dest)} documents")
+    return 0
+
+
 def cmd_store(args) -> int:
     """List the runs in a record store, print one run's summary, or copy
-    it into another (`cmd_store_copy`)."""
+    or merge it into another (`cmd_store_copy`, `cmd_store_merge`)."""
     if getattr(args, "action", "list") == "copy":
         return cmd_store_copy(args)
+    if getattr(args, "action", "list") == "merge":
+        return cmd_store_merge(args)
     store = open_store(args.uri)
     print(f"store: {store.describe()}")
     if args.run:
@@ -2008,13 +2055,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     store_p = sub.add_parser(
         "store",
-        help="List the runs in a record store (a directory or gs://bucket/prefix), or copy "
-        "its grid-era runs, traces and logbooks into another (`store copy --to URI`).",
+        help="List the runs in a record store (a directory or gs://bucket/prefix), copy "
+        "its grid-era runs, traces and logbooks into another (`store copy --to URI`), or "
+        "merge a downloaded bucket folder into the local one (`store merge`).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     store_p.add_argument(
-        "action", nargs="?", choices=("list", "copy"), default="list",
-        help="`list` the runs, or `copy` them into --to (docs/web.md, \"Deploying\").",
+        "action", nargs="?", choices=("list", "copy", "merge"), default="list",
+        help="`list` the runs, `copy` them into --to (docs/web.md, \"Deploying\"), or "
+        "`merge` --from into --into (docs/cli.md).",
     )
     store_p.add_argument("--uri", default=DEFAULT_STORE, help="Store location (the source, for copy).")
     store_p.add_argument("--run", default="", help="Print this run's stored summary.")
@@ -2028,7 +2077,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--workers", type=int, default=10,
         help="copy: parallel writes (10 is the storage client's connection pool).",
     )
-    store_p.add_argument("--dry-run", action="store_true", help="copy: say what would go, copy nothing.")
+    store_p.add_argument(
+        "--from", dest="source", default="data/llm_bucket",
+        help="merge: the downloaded store, left unchanged; its names win a clash.",
+    )
+    store_p.add_argument("--into", default=WEB_STORE, help="merge: the local store, changed in place.")
+    store_p.add_argument(
+        "--dry-run", action="store_true", help="copy/merge: say what would change, change nothing.",
+    )
     store_p.set_defaults(fn=cmd_store)
 
     logbook_p = sub.add_parser(

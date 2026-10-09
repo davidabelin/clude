@@ -19,7 +19,7 @@ Examples below use `python` for readability; activate the venv or substitute its
 | `users`, `tables` | `data/llm` |
 | `play`, `arena`, `sweep` | No record store unless `--store` is passed |
 
-Use an explicit URI for account changes, reset/rebuild, abandon and copying. Read-only inspection does not imply every command is read-only: account operations, logbook reset/rebuild/copy/reset-arm/relabel, `store copy`, `tables abandon`, `tables costs --write`, recordings and training artifacts write data.
+Use an explicit URI for account changes, reset/rebuild, abandon and copying. Read-only inspection does not imply every command is read-only: account operations, logbook reset/rebuild/copy/reset-arm/relabel, `store copy`, `store merge`, `tables abandon`, `tables costs --write`, recordings and training artifacts write data.
 
 | Command | Purpose |
 |---|---|
@@ -175,6 +175,23 @@ python scripts/clude_cli.py store copy --uri data/llm --to gs://clude-game-data/
 ```
 
 Remove `--dry-run` to copy. Takes runs whose every record meets `--min-version` (3 by default), summaries, records, cached traces and all `logbooks/`. Excludes account documents, live tables, watch state, ring archives and loose root files. `--workers` defaults to 10. Matching keys are overwritten; destination-only objects are not deleted. This copies data, not accounts or a live service.
+
+### `store merge`
+
+```text
+python scripts/clude_cli.py store merge --dry-run
+python scripts/clude_cli.py store merge --from data/llm_bucket --into data/llm
+```
+
+Folds a bucket download (`--from`, default `data/llm_bucket`) into the local store (`--into`, default `data/llm`) in place. Both must be local folders. The download is not changed and its names win a clash. Documents that differ only in line endings are equal.
+
+- **Runs.** If a shared game record differs, the local run becomes `<run>_local`, including its summary, records and traces. Local references to it are rewritten, such as `web/00001` → `web_local/00001`. A local record the download lacks fills its gap.
+- **Logbooks.** The download's entries, head and digest stay. Local entries it lacks follow its last serial and are absorbed into its head. An entry older than the download's newest leaves newer standing instructions and reads in place. Mustard's and White's method memory takes the union of games. Green's local lessons are replayed on the download's posteriors.
+- **Spend.** A shared day's spend combines both days' tables.
+- **Live documents.** Accounts, tables, watch state, per-table spend and cached traces keep the download's version; the local one is dropped.
+- **Everything else.** If another document differs, the local one moves to `<name>_local.json`.
+
+Files only on the local side stay. Running it again with the same download changes nothing. `clude.bat store merge` works too, because `--uri` is ignored.
 
 ## `logbook`
 
