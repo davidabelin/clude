@@ -25,8 +25,9 @@ The tools can wait for progress and return only events after a `since` cursor. C
 | `clude_autopilot` | Hand control to the stand-in or take it back |
 | `clude_watch` | Read a live table as a spectator |
 | `clude_games`, `clude_replay` | List saved games and inspect a replay |
+| `clude_wiki_search`, `clude_wiki_read` | Search and read Wikiclude, the canon, without a login |
 
-These are the twelve tools exposed by the current server.[^tools] A spectator cannot use the seated player's decision or talk privileges. A password change revokes MCP logins, and MCP logout leaves the browser session separate.
+These are the fourteen tools exposed by the current server.[^tools] The two wiki tools need no login, since the encyclopaedia is public; the server's instructions name it the canon on the rules and the characters, to be trusted over a chat agent's own memory of Clue, and a new seat is pointed at [[Rules of play]]. A spectator cannot use the seated player's decision or talk privileges. A password change revokes MCP logins, and MCP logout leaves the browser session separate.
 
 ## Evidence, assistance and cost
 
@@ -46,6 +47,6 @@ The app's human timeouts and autopilot apply to the chat seat too. The connector
 {{references}}
 
 [^mcp]: {{cite:docs/web.md|A seat over MCP (Phase 9)}}
-[^tools]: {{cite:clude_web/mcp.py|`build_server` and its twelve registered tools}}
+[^tools]: {{cite:clude_web/mcp.py|`build_server` and its fourteen registered tools}}
 
 {{navbox:clude}}

@@ -10,9 +10,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Optional, Protocol, Sequence
+from typing import Callable, Optional, Protocol, Sequence
 
 DEFAULT_MODEL = "claude-opus-5"
 """The model an `LLMCharacter` uses unless told otherwise (decision 3)."""
@@ -25,12 +25,17 @@ class LLMRequest:
     """One call: the cached `system` prefix, the per-turn `user` text, the
     fixed response `schema`, and the decision `kind` it is for.
 
-    `memory` is the character's logbook block, sent as a second
-    cached system block after the persona; empty when the character has
-    nothing to read back, in which case the request, its `key` and the
-    API call are exactly the Phase 6 ones. `effort`, `max_tokens` and
-    `timeout` override the backend's defaults for one call (the debrief
-    asks for more of all three) and are not part of the key.
+    `memory` is the character's logbook block, sent as a cached system
+    block after the persona; empty when the character has nothing to
+    read back. `canon` is the index of the canon (`clude_llm.canon`),
+    another cached system block, between the persona and the memory;
+    `tools` are the canon's tool definitions, `lookup` answers one of
+    their calls, and `max_lookups` is how many rounds of them the
+    backend may run before the model must answer. With all of these
+    empty the request, its `key` and the API call are exactly the Phase
+    6 ones. `effort`, `max_tokens` and `timeout` override the backend's
+    defaults for one call (the debrief asks for more of all three) and,
+    like `lookup` and `max_lookups`, are not part of the key.
     """
 
     system: str
@@ -41,21 +46,32 @@ class LLMRequest:
     effort: Optional[str] = None
     max_tokens: Optional[int] = None
     timeout: Optional[float] = None
+    canon: str = ""
+    tools: tuple = ()
+    lookup: Optional[Callable] = field(default=None, compare=False, repr=False)
+    max_lookups: int = 0
 
     def key(self) -> str:
         """A stable digest of everything the model is sent: system, user
-        and schema, plus the memory block only when there is one, so
-        every recording made before logbooks existed still replays."""
+        and schema, plus the memory block, the canon block and the tools
+        only when there are any, so every recording made before each
+        existed still replays."""
         payload: dict = {"system": self.system, "user": self.user, "schema": self.schema}
         if self.memory:
             payload["memory"] = self.memory
+        if self.canon:
+            payload["canon"] = self.canon
+        if self.tools:
+            payload["tools"] = list(self.tools)
         return hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
 
 
 @dataclass
 class LLMResult:
     """What came back. `ok` is the wrapper's go/no-go: some text, no
-    error, and no refusal stop."""
+    error, and no refusal stop. `lookups` are the canon calls the
+    backend answered on the way, oldest first, each ``{"tool", "input",
+    "found", "error"}``; the token counts cover every round."""
 
     text: Optional[str] = None
     error: Optional[str] = None
@@ -65,6 +81,7 @@ class LLMResult:
     output_tokens: int = 0
     cached_tokens: int = 0
     seconds: float = 0.0
+    lookups: list = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -164,11 +181,15 @@ class RecordingBackend:
             "user": request.user,
             "result": result.to_dict(),
         }
-        if request.memory:
-            # The block repeats on every call of a game; store it once, by digest.
-            memory_key = hashlib.sha256(request.memory.encode("utf-8")).hexdigest()
-            self.data["systems"][memory_key] = request.memory
-            entry["memory"] = memory_key
+        for name in ("memory", "canon"):
+            block = getattr(request, name)
+            if block:
+                # The block repeats on every call of a game; store it once, by digest.
+                block_key = hashlib.sha256(block.encode("utf-8")).hexdigest()
+                self.data["systems"][block_key] = block
+                entry[name] = block_key
+        if request.tools:
+            entry["tools"] = [tool["name"] for tool in request.tools]
         self.data["entries"][request.key()] = entry
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.write_text(json.dumps(self.data, indent=1), encoding="utf-8")

@@ -291,7 +291,7 @@ $env:CLUDE_MCP_SECRET = 'a-local-secret-0123456789'
 
 The endpoint is `http://127.0.0.1:5000/mcp/a-local-secret-0123456789`. Hosted clients need the deployed URL/secret, configured with no transport OAuth; game account login follows through the tools. Protect the URL as a credential. Wrong/invalid paths are refused; with MCP enabled, unsupported OAuth/OpenID discovery gets JSON 404 rather than Flask's login redirect. With no secret there is no mount and Flask routing remains unchanged.
 
-Twelve tools are registered:
+Fourteen tools are registered:
 
 | Tools | Purpose |
 |---|---|
@@ -300,8 +300,9 @@ Twelve tools are registered:
 | `clude_turn`, `clude_answer` | Wait for a decision and submit it using its sequence |
 | `clude_say`, `clude_note`, `clude_autopilot` | Talk, persist private notes, hand over/reclaim the seat |
 | `clude_watch`, `clude_games`, `clude_replay` | Spectate or inspect finished games |
+| `clude_wiki_search`, `clude_wiki_read` | Search and read Wikiclude, the canon, with no login ([the plan](canon-plan.md)) |
 
-Every operation after login takes its token. Browser users deal after open seats fill; a chatbot cannot create/deal a table. MCP occupies an ordinary human seat, reasoning without any character persona/agent. `notepad` is `full`, `shown` or `none`, adjustable only before the deal; reduced modes omit the seat's own certainty as well.
+Every game operation takes the login; the two wiki tools take none, since the wiki is public, and the server's instructions name Wikiclude the canon on the rules and the characters. Browser users deal after open seats fill; a chatbot cannot create/deal a table. MCP occupies an ordinary human seat, reasoning without any character persona/agent. `notepad` is `full`, `shown` or `none`, adjustable only before the deal; reduced modes omit the seat's own certainty as well.
 
 Compact views use `since` as an event cursor; `since=0` reconstitutes a fresh conversation. Older events become a digest. Room-name movement options include legal targets/distances. `seq` protects answers from retries. Turn/answer waits share a deadline of at most 60 s while driving the same work as the browser. An advance pass is held back after an undisproved suggestion or proven solution. Notes persist on the table, not in the replay entry log.
 

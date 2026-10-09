@@ -61,6 +61,7 @@ from clude_llm import (
     LLMCharacter,
     LLMSettings,
     NullBackend,
+    WikiCanon,
     accusation_menu,
     condense_logbook,
     condense_request,
@@ -175,6 +176,16 @@ def _add_llm_args(parser: argparse.ArgumentParser) -> None:
         "--llm-characters", default="",
         help="Comma-separated subset of the roster's characters to wrap (default: all of them).",
     )
+    parser.add_argument(
+        "--llm-no-canon", action="store_true",
+        help="Offer the wrapped seats no Wikiclude tools (docs/canon-plan.md); by default the canon is attached.",
+    )
+
+
+def _llm_canon(args):
+    """The canon for the ``--llm`` seats (and the `prompt` command):
+    Wikiclude, unless ``--llm-no-canon``."""
+    return None if getattr(args, "llm_no_canon", False) else WikiCanon()
 
 
 def _open_llm_backend(args):
@@ -204,6 +215,7 @@ def _llm_kwargs(args) -> dict:
         "llm_backend": _open_llm_backend(args),
         "llm_settings": LLMSettings(model=args.llm_model),
         "llm_characters": wanted or None,
+        "llm_canon": _llm_canon(args),
     }
 
 
@@ -288,10 +300,11 @@ def _wrap_llm_seats(args, players: dict, labels: list) -> dict:
         raise SystemExit(f"--llm-characters: unknown {sorted(unknown)}; run `agents` for the names")
     backend = _open_llm_backend(args)
     settings = LLMSettings(model=args.llm_model)
+    canon = _llm_canon(args)
     wrapped = {}
     for seat, label in enumerate(labels):
         if label in AGENT_SPECS and (not wanted or label in wanted):
-            wrapper = LLMCharacter(players[seat], backend, settings=settings)
+            wrapper = LLMCharacter(players[seat], backend, settings=settings, canon=canon)
             wrapper.reset(args.seed)
             players[seat] = wrapped[seat] = wrapper
     return wrapped
@@ -802,7 +815,7 @@ def cmd_prompt(args) -> int:
     else:
         hand = sorted(obs.own_hand)
         menu = show_menu(character, obs, hand[:2] or hand, (args.viewer + 1) % state.n_players)
-    wrapper = LLMCharacter(character, NullBackend())
+    wrapper = LLMCharacter(character, NullBackend(), canon=_llm_canon(args))
     if args.logbook:
         wrapper.attach_logbook(Logbook(open_store(args.logbook), name))
         wrapper.new_game(labels)
@@ -818,6 +831,13 @@ def cmd_prompt(args) -> int:
         print(wrapper.memory_block)
     elif args.logbook:
         print(f"=== memory: {name} has nothing to read back from {args.logbook} ===")
+    if wrapper.canon_block:
+        tools = ", ".join(tool["name"] for tool in wrapper.canon.tools)
+        print(
+            f"=== canon ({len(wrapper.canon_block.split())} words; the index of Wikiclude, a cached system "
+            f"block; tools offered on every call: {tools}) ==="
+        )
+        print(wrapper.canon_block)
     print(f"=== user ({len(user.split())} words; seat P{args.viewer}, after k={k} of {total} suggestions) ===")
     print(user)
     return 0

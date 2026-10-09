@@ -47,6 +47,12 @@ The backend interface supports the live provider, an always-failing null control
 
 Recorded replies can reproduce a run without another paid model call. A seed alone cannot fix live model replies, which can vary even when the numerical menus are reproducible. [[Determinism and seeds]] separates these forms of reproduction.
 
+## The canon
+
+Since October 2026 a wrapped character also carries Wikiclude as its canon.[^canon] A third cached system block lists every article's title, and two tools, `wiki_search` and `wiki_read`, go on each decision, remark and [[The debrief|debrief]] request. The backend answers a tool call inside the same request, up to {{code:llm.max_lookups_per_call}} lookups a call and {{code:llm.max_lookups_per_game}} a game, and the model still answers in the decision's schema. A read hands over a short article whole, otherwise its lead and section list and then one section at a time, never more than {{code:canon.read_limit}} characters.
+
+The shared rules tell the character to trust the canon over its own recollection and over [[table talk]], and never to say that it consulted it. How readily a character does so is a matter of its [[persona]]: Professor Plum and Mrs. Peacock look things up by reflex, Colonel Mustard not at all. The lookups are audited with each decision and counted by the [[arena]], so the propensity is measured rather than set by a [[personality dials|dial]]. The canon describes how every character thinks in general and knows nothing of the deal in play. A chat seat has the same encyclopaedia through [[A seat over MCP|two MCP tools]].
+
 ## Limits
 
 The wrapper does not retrain the numerical method or turn a model's prose into verified card evidence. A confident explanation can accompany a poor allowed choice. Conversely, a useful strategy mentioned in conversation cannot be played if its option is outside the leash.
@@ -65,5 +71,6 @@ The wrapper does not retrain the numerical method or turn a model's prose into v
 [^wrapper]: {{cite:clude_llm/player.py|`LLMCharacter`}}
 [^prompt]: {{cite:docs/llm-wrapper.md|What the model is shown, and what it is not}}
 [^backends]: {{cite:docs/llm-wrapper.md|Backends}}
+[^canon]: {{cite:docs/llm-wrapper.md|The canon}}
 
 {{navbox:clude}}

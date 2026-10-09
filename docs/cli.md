@@ -60,7 +60,7 @@ python scripts/clude_cli.py play --roster Plum,Scarlett,floor --llm --llm-backen
 python scripts/clude_cli.py play --players 3 --roster Plum,Mustard,Green --store data/llm --logbook
 ```
 
-`--llm` wraps character seats. `--llm-characters` restricts which characters; `--llm-model` and `--llm-backend` choose the service/backend. `anthropic` and `record:PATH` can spend money; `null` and `replay:PATH` are offline. [LLM wrapper](llm-wrapper.md) covers credentials, menu rules and fallbacks.
+`--llm` wraps character seats. `--llm-characters` restricts which characters; `--llm-model` and `--llm-backend` choose the service/backend. `anthropic` and `record:PATH` can spend money; `null` and `replay:PATH` are offline. Every wrapped seat carries Wikiclude as its canon unless `--llm-no-canon`; the trailer counts its lookups. [LLM wrapper](llm-wrapper.md) covers credentials, menu rules, fallbacks and the canon.
 
 `--logbook [URI]` reads memory before play and updates it afterwards; omitted URI uses `--store`. `--logbook-readonly` reads without updating. `--logbook-characters` limits attachment. Without a logbook store, the memory dial alone has no effect. [Logbooks](logbooks.md) owns depth/schema details.
 
@@ -71,7 +71,7 @@ python scripts/clude_cli.py prompt --players 3 --roster Plum,Mustard,Green --vie
 python scripts/clude_cli.py prompt --roster floor --agent Plum --decision move --roll 6
 ```
 
-Prints system and user prompts without calling a model. `--at N` reconstructs after N suggestions; omitted means the final game. `--decision` is `move`, `suggest`, `accuse` or `show`; `--agent` overrides the viewer's roster character. `--logbook URI --memory DEPTH` includes narrative read-back. Inspect this before editing personas or checking visibility.
+Prints system and user prompts without calling a model, with the canon's index block and the two tools offered between them. `--at N` reconstructs after N suggestions; omitted means the final game. `--decision` is `move`, `suggest`, `accuse` or `show`; `--agent` overrides the viewer's roster character. `--logbook URI --memory DEPTH` includes narrative read-back. Inspect this before editing personas or checking visibility.
 
 ## `trace`
 

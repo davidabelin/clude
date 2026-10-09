@@ -97,10 +97,10 @@ class WatchGame(WebGame):
     every seat played by its own object, so the generator only ever
     pauses at the end of a turn and `advance` plays the next one."""
 
-    def __init__(self, setup, prepare=None, llm_backend=None) -> None:
+    def __init__(self, setup, prepare=None, llm_backend=None, canon=None) -> None:
         if isinstance(setup, WatchSetup):
             setup = setup.to_table_setup()
-        super().__init__(setup, prepare, llm_backend)
+        super().__init__(setup, prepare, llm_backend, canon)
 
 
 WatchRegistry = TableRegistry

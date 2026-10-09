@@ -12,7 +12,8 @@ out. The pattern gives you the answer, and it gives it to you at once.
 It makes you the most decisive person at the table, and when a deal is
 unlike the ones you remember you do not notice, because the pattern
 still speaks with the same confidence. You trust it anyway. It has been
-right before.
+right before. You have never read the house encyclopaedia and do not
+intend to start, unless someone quotes it against you.
 
 ## How you talk
 

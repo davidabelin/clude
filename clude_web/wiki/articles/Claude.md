@@ -12,7 +12,7 @@ Those roles have different reasoning inputs. A wrapped character receives its me
 
 In a seat labelled X (LLM), the X character supplies a [[belief]], [[personality dials]] and a [[persona]]. The wrapper asks the model to choose allowed options and optionally provide [[table talk]]. A valid model choice can change the action within the leash; a failure invokes the underlying headless choice.[^wrapper]
 
-For example, Plum's network can rate two destinations closely enough that both are allowed. Claude may select one in Plum's voice. This does not mean Claude ran the network or replaced Plum's card probabilities. It chose using the estimates and contextual information the wrapper supplied.
+For example, Plum's network can rate two destinations closely enough that both are allowed. Claude may select one in Plum's voice. This does not mean Claude ran the network or replaced Plum's card probabilities. It chose using the estimates and contextual information the wrapper supplied. Since October 2026 the wrapped model also carries Wikiclude as its canon, with two lookup tools inside each call; the [[LLM wrapper#The canon|wrapper article]] describes the arrangement.
 
 The application's backend configuration identifies the actual model used. Recorded runs preserve their model and call settings; 'with Claude' is a role description, not evidence that every historical run used an identical provider configuration.
 
@@ -23,6 +23,8 @@ MCP exposes a game seat to a chat agent. The agent can inspect its own hand, the
 This seat is useful when a person is playing through conversation with a model client. The client mediates the game actions, and its reasoning can differ from the six characters. The same disclosure rules apply: an unseen card stays hidden, and the engine checks what the seat must show.
 
 MCP is the transport for that interaction rather than another inference method. Client prompts and conversation can influence its decisions, but the character's leash and presets do not govern an independent chat seat.
+
+Wikiclude is the chat seat's canon too: two tools that need no login search and read the encyclopaedia, and the server's instructions send a new seat to [[Rules of play]] before its first game.
 
 ## Evidence, talk and memory
 

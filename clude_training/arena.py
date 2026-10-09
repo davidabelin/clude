@@ -95,6 +95,7 @@ class PlayerStats:
     llm_deviations: int = 0
     llm_remarks: int = 0
     llm_entries: int = 0
+    llm_lookups: int = 0
     llm_input_tokens: int = 0
     llm_output_tokens: int = 0
     llm_cached_tokens: int = 0
@@ -249,6 +250,7 @@ class PlayerStats:
             "llm_deviations": self.llm_deviations,
             "llm_remarks": self.llm_remarks,
             "llm_entries": self.llm_entries,
+            "llm_lookups": self.llm_lookups,
             "fallback_rate": self.fallback_rate,
             "deviation_rate": self.deviation_rate,
             "remarks_per_game": self.remarks_per_game,
@@ -347,11 +349,11 @@ class ArenaResult:
 
     def llm_table(self) -> str:
         """One row per LLM-piloted label: decisions, of them asked of the
-        model, fallback and deviation rates, remarks and tokens per game,
-        ms per model call."""
+        model, fallback and deviation rates, remarks per game, logbook
+        entries, canon lookups, tokens per game, ms per model call."""
         header = (
             f"{'player':<10}{'games':>6}{'decis':>7}{'asked':>7}{'fallb%':>8}{'deviate%':>10}"
-            f"{'talk/g':>8}{'entries':>8}{'tok/g':>9}{'llm ms':>8}"
+            f"{'talk/g':>8}{'entries':>8}{'lookups':>9}{'tok/g':>9}{'llm ms':>8}"
         )
         lines = [header, "-" * len(header)]
         for label in dict.fromkeys(list(self.roster) + [FILL_LABEL]):
@@ -363,7 +365,7 @@ class ArenaResult:
             ms = f"{s.llm_ms_per_call:>8.0f}" if s.llm_calls else f"{'-':>8}"
             lines.append(
                 f"{label:<10}{s.games:>6}{s.llm_decisions:>7}{s.llm_asked:>7}{fallback}{deviate}"
-                f"{s.remarks_per_game:>8.2f}{s.llm_entries:>8}{s.tokens_per_game:>9.0f}{ms}"
+                f"{s.remarks_per_game:>8.2f}{s.llm_entries:>8}{s.llm_lookups:>9}{s.tokens_per_game:>9.0f}{ms}"
             )
         return "\n".join(lines)
 
@@ -488,7 +490,7 @@ def seat_outcome(state, events, seat: int, label: str, kind: str) -> SeatOutcome
 _LLM_FIELDS: dict = {
     "decisions": "llm_decisions", "singles": "llm_singles", "llm_calls": "llm_calls",
     "played": "llm_played", "fallbacks": "llm_fallbacks", "deviations": "llm_deviations",
-    "remarks": "llm_remarks", "entries": "llm_entries", "input_tokens": "llm_input_tokens",
+    "remarks": "llm_remarks", "entries": "llm_entries", "lookups": "llm_lookups", "input_tokens": "llm_input_tokens",
     "output_tokens": "llm_output_tokens", "cached_tokens": "llm_cached_tokens",
     "llm_seconds": "llm_seconds",
 }
@@ -600,7 +602,7 @@ def _seat_costs(lineup, wrapped, characters, before: dict, model: str) -> dict:
 
 LLM_SUMMARY_KEYS: tuple = (
     "decisions", "singles", "llm_calls", "played", "fallbacks", "deviations", "remarks",
-    "entries", "input_tokens", "output_tokens", "cached_tokens", "llm_seconds",
+    "entries", "lookups", "input_tokens", "output_tokens", "cached_tokens", "llm_seconds",
 )
 """The numeric keys of `LLMCharacter.summary()`, diffed per game."""
 
@@ -617,6 +619,7 @@ def run_arena(
     llm_backend=None,
     llm_settings: Optional[LLMSettings] = None,
     llm_characters=None,
+    llm_canon=None,
     logbook_store=None,
     logbooks_readonly: bool = False,
     logbook_characters=None,
@@ -652,6 +655,9 @@ def run_arena(
         and without a backend are a paired comparison.
     llm_settings : LLMSettings or None
         Default `LLMSettings()`.
+    llm_canon : Canon or None
+        Attached to every wrapped character (docs/canon-plan.md);
+        `clude_llm.WikiCanon()` for the encyclopaedia.
     llm_characters : iterable of str or None
         Which roster characters to wrap; default all of them.
     logbook_store : RecordStore or None
@@ -695,7 +701,7 @@ def run_arena(
         if label in AGENT_SPECS:
             character = build_character(label, profiles.get(label))
             if label in wrapped:
-                character = LLMCharacter(character, llm_backend, settings=llm_settings)
+                character = LLMCharacter(character, llm_backend, settings=llm_settings, canon=llm_canon)
             character.reset(seed)
             characters[label] = character
 

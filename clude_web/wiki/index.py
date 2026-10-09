@@ -59,6 +59,15 @@ NAVBOXES: dict = {
 """The navigation boxes an article can end with (``{{navbox:clude}}``):
 a title and groups of article titles, in the order shown."""
 
+SEARCH_LIMIT = 5
+"""Matches a player's model is shown for one search (`Wiki.lookup`)."""
+
+READ_LIMIT = 8000
+"""Characters a player's model is handed for one read (`Wiki.read`)."""
+
+SKIPPED_SECTIONS = ("references",)
+"""Sections a read leaves out: footnotes are for the page, not a player."""
+
 CATEGORY_ORDER = (
     "The game", "Characters", "Methods", "Mathematics", "Personality", "Memory", "Measurement", "The app", "Classwork",
     "Algorithms",
@@ -305,6 +314,88 @@ class Wiki:
             hits.append((score, article, excerpt if at >= 0 else article.short))
         hits.sort(key=lambda hit: (-hit[0], hit[1].title.casefold()))
         return [(article, excerpt) for _, article, excerpt in hits]
+
+    # --- the canon: what a player's model reads (docs/canon-plan.md) ---
+
+    def titles(self) -> list:
+        """Every page's title, articles and stubs alike, by title."""
+        return [a.title for a in self.pages()]
+
+    def lookup(self, query: str, limit: int = SEARCH_LIMIT) -> list:
+        """`search` as a player's model is shown it: up to `limit`
+        matches, each ``{"title", "short", "excerpt"}``, a placeholder
+        marked ``"stub": True``."""
+        out = []
+        for article, excerpt in self.search(query or "")[:limit]:
+            hit = {"title": article.title, "short": article.short, "excerpt": excerpt}
+            if article.is_stub:
+                hit["stub"] = True
+            out.append(hit)
+        return out
+
+    def read(self, title: str, section: str = "", limit: int = READ_LIMIT) -> dict:
+        """One article as a player's model reads it.
+
+        Parameters
+        ----------
+        title : str
+            A title, slug or redirect.
+        section : str
+            A section heading (or its anchor) to read in full, ``all``
+            for every section, or empty: then the whole article when it
+            fits in `limit`, else the lead and the list of sections.
+        limit : int
+            The most characters of `text` to hand over, the cut mark
+            included; a longer text is cut at a word and says so in
+            ``cut``.
+
+        Returns
+        -------
+        dict
+            ``title``, ``short``, ``lead``, ``sections`` (the headings),
+            ``see_also`` (titles this article links to), ``stub`` for a
+            placeholder; with a section chosen, ``section`` and ``text``.
+            For an unknown title, ``error`` and ``matches`` (what a
+            search for it finds); for an unknown section, ``error``
+            beside the list.
+        """
+        article, _ = self.get(title or "")
+        if article is None:
+            return {"error": f"There is no article called {title!r}.", "matches": self.lookup(title)}
+        parts = [s for s in render.sections(article.body) if s[0] not in SKIPPED_SECTIONS]
+        out: dict = {
+            "title": article.title,
+            "short": article.short,
+            "lead": render.plain(article.lead),
+            "sections": [heading for _, heading, _ in parts],
+            "see_also": self._linked_titles(article),
+        }
+        if article.is_stub:
+            out["stub"] = True
+        want = " ".join((section or "").split())
+        whole = "\n\n".join(f"{heading}\n{text}" for _, heading, text in parts)
+        if not want and len(out["lead"]) + len(whole) <= limit:
+            want = "all"
+        if not want:
+            return out
+        if want.casefold() == "all":
+            out["section"], text = "all", whole
+        else:
+            match = next((s for s in parts if want.casefold() in (s[0].casefold(), s[1].casefold())), None)
+            if match is None:
+                out["error"] = f"{article.title} has no section called {want!r}; its sections are listed."
+                return out
+            out["section"], text = match[1], match[2]
+        if len(text) > limit:
+            mark = " [...]"
+            text = text[: limit - len(mark)].rsplit(" ", 1)[0] + mark
+            out["cut"] = f"cut at {limit} characters; read one section at a time"
+        out["text"] = text
+        return out
+
+    def _linked_titles(self, article: Article, limit: int = 24) -> list:
+        titles = sorted({self.articles[self._titles[key]].title for key in article.links if key in self._titles})
+        return [t for t in titles if t != article.title][:limit]
 
     # --- pieces of a page ---
 

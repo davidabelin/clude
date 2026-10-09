@@ -6,7 +6,7 @@ An LLMCharacter wraps the same numerical Character shown as **X (headless)** in 
 
 1. Build a legal menu from Character's pure scoring helpers, including any agent policy hooks. Movement, accusation and show use one letter; suggestion uses suspect/weapon letters. Own-hand bluff options are labelled explicitly.
 2. Allow scores at least `(1 - leash) * best_score`. Zero leash retains best ties; one opens all legal options. A single allowed choice needs no model call.
-3. Send persona/rules, optional stable memory block, the seat's observation and a fixed JSON response schema to the backend.
+3. Send persona/rules, the canon's index and the optional stable memory block as cached system blocks, the seat's observation and a fixed JSON response schema to the backend, with the canon's two tools while the game's lookups are under their cap.
 4. Validate the response and play an allowed choice. Budget exhaustion, backend errors/timeouts/refusals, malformed JSON and invalid letters fall back to Character, consuming its RNG as ordinary numerical play would. NullBackend therefore reproduces the numerical twin.
 5. Audit the menu, choice, fallback, deviation, proposed/spoken line, tokens and time in Decision; persisted games keep per-seat `llm_log`.
 
@@ -34,6 +34,10 @@ Exact system text participates in LLMRequest replay keys, so any persona, rules 
 
 A logbook attachment supplies a stable cached block at Profile.memory depth. Zero reads the condensed head; one reads the digest, if any, and every entry after it in full. Empty/unattached memory sends no block. After a game, `debrief` requests an entry against LOGBOOK_SCHEMA; failure leaves `last_debrief` and writes nothing. Outside any game, `condense_logbook` asks the character's model, under its persona, for a digest against CONDENSE_SCHEMA; failure writes nothing. [Logbooks](logbooks.md) explains schema, model-visible content and administration.
 
+## The canon
+
+Wikiclude is the canon an LLM seat knows ([the plan](canon-plan.md), 2026-10-09). With a `WikiCanon` attached (`LLMCharacter(canon=...)`, `attach_canon`), every decision, remark and debrief request carries a third cached system block, the index of article titles, and two tools, `wiki_search` and `wiki_read`, which `AnthropicBackend` answers inside the one call through `Wiki.lookup` and `Wiki.read`: up to `max_lookups_per_call` rounds, the last sent with tool choice none so the model must answer in schema, and no tools once a game's lookups reach `max_lookups_per_game` (the index block still goes). A read hands over a short article whole, else its lead and section list and then one section at a time, never more than 8,000 characters; footnotes are left out. The rules tell the character the canon is trusted over recollection and table talk and never cited aloud; each persona says how readily it consults it, so the propensity is prose, measured after the fact: lookups are audited per decision (`Decision.lookups`, kept in `llm_log`), summed in `summary()` and reported by the arena. Recordings keep the lookups and replay them without touching the wiki; a request without a canon is byte for byte the earlier one, and the null backend with a canon is still the headless twin. Web tables, `play --llm`, arenas and sweeps attach the canon; `--llm-no-canon` withholds it, and `prompt` prints the block and the tools. Condensing makes no lookups. One lookup round costs about $0.02 to $0.03 at Opus 5 list prices; the per-game cap bounds it at about $0.35 a seat-game.
+
 ## Backends
 
 | `--llm-backend` | Behavior | Can call the service? |
@@ -45,7 +49,7 @@ A logbook attachment supplies a stable cached block at Profile.memory depth. Zer
 
 The backend delegates authentication to the SDK; direct scripts should export `ANTHROPIC_API_KEY` explicitly. Web config also supports selected `.env` fallbacks. In earlier live checks, organization keys failed because the backend does not supply a workspace header; use the workspace-scoped key provisioned for the service. Missing/bad credentials produce fallback, which must be distinguished from a successful model run.
 
-Defaults in LLMSettings: configured model `claude-opus-5`, low effort, 2048 tokens, 30 s timeout, 200 calls/500K tokens per game, eight recent talk lines; debrief medium effort/4096 tokens/180 s; condensing the debrief's effort and timeout with 8192 tokens; reaction 200 tokens. AnthropicBackend defaults to one SDK retry. These are code settings, not verified current provider capabilities/pricing.
+Defaults in LLMSettings: configured model `claude-opus-5`, low effort, 2048 tokens, 30 s timeout, 200 calls/500K tokens per game, eight recent talk lines; debrief medium effort/4096 tokens/180 s; condensing the debrief's effort and timeout with 8192 tokens; reaction 200 tokens; three lookups a call and twelve a game. AnthropicBackend defaults to one SDK retry. These are code settings, not verified current provider capabilities/pricing.
 
 MeteredBackend wraps web calls, pricing model IDs from the repository table. It checks table/day caps before calls; actual usage can overshoot the remaining allowance by the final accepted call. It refuses unpriced models. Table/seat ledger persists across UTC midnight; daily ledger is service-wide. Model-visible prompts/logbooks contain no spend.
 

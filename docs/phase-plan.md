@@ -61,6 +61,10 @@ The trained Plum has the best mid-game belief of any method, no wrong accusation
 
 Built 2026-10-08, outside the numbered phases. `logbook condense` has each character's own model fold its logbook into a digest that replaces the condensed entries in read-back and the debrief, and merges near-duplicate flags; the entries stay as the archive. [Logbooks](logbooks.md#condensing-the-digest) owns the details. The paid run on `data/llm` and the bucket waits on David's approval of the dry run's estimate.
 
+## The canon
+
+Proposed 2026-10-09, outside the numbered phases: Wikiclude as the canon that LLM seats and MCP players search and read, through two tools inside the decision call and two loginless MCP tools. [The canon plan](canon-plan.md) holds the design, the cost estimate, David's decisions and the implementation record. Built and tested offline on 2026-10-09, not deployed; the paid acceptance game and the fixture re-recording wait on approval.
+
 ## Legacy code disposition
 
 `legacy/` is reference only and never imported. Its domain/constraints, belief tracker, opponent model and information agent informed current packages; DQN/GNN/reward-shaping experiments remain deferred. See [legacy README](../legacy/README.md).

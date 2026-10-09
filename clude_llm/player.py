@@ -6,7 +6,10 @@ the numerical character's RNG path. Decisions audit choices/fallbacks and
 usage. NullBackend reproduces numerical play.
 
 Attached logbooks render a stable memory block at new_game and can receive
-a post-game debrief. Off-turn react calls produce talk, not engine actions.
+a post-game debrief. An attached canon (docs/canon-plan.md) puts its index
+block and its two tools on every decision, remark and debrief call, under
+a per-call and a per-game cap on lookups; what was looked up is audited.
+Off-turn react calls produce talk, not engine actions.
 condense_logbook asks a character's model, outside any game, to fold its
 logbook into a digest. See docs/llm-wrapper.md and docs/logbooks.md for
 lifecycle/contracts.
@@ -63,6 +66,10 @@ class LLMSettings:
         (at medium effort it runs 40-90 s, past a move's 30 s).
     remark_max_tokens
         Room for an off-turn line: one short sentence.
+    max_lookups_per_call, max_lookups_per_game
+        How many canon lookups one call may run (a search and two
+        reads) and a game may in all; past the game's cap the canon's
+        tools are no longer offered, its index block still is.
     """
 
     model: str = DEFAULT_MODEL
@@ -79,6 +86,8 @@ class LLMSettings:
     debrief_max_tokens: int = 4096
     debrief_timeout: float = 180.0
     remark_max_tokens: int = 200
+    max_lookups_per_call: int = 3
+    max_lookups_per_game: int = 12
 
     def to_dict(self) -> dict:
         return dict(vars(self))
@@ -95,6 +104,7 @@ class Decision:
     played choice scored below the character's top option (for the
     accusation, differed from its threshold answer). `said` is the line
     the model offered; `spoke` whether `chattiness` let it through.
+    `lookups` are the canon calls answered on the way (`LLMResult.lookups`).
     """
 
     turn: int
@@ -111,6 +121,7 @@ class Decision:
     cached_tokens: int = 0
     seconds: float = 0.0
     menu: dict = field(default_factory=dict)
+    lookups: list = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return dict(vars(self))
@@ -129,6 +140,9 @@ class LLMCharacter:
     settings : LLMSettings or None
     rules : str or None
         The standing rules text; default `load_rules()`.
+    canon : Canon or None
+        What the character may look up (`attach_canon`); None offers no
+        tools and sends exactly the Phase 6 request.
 
     Notes
     -----
@@ -146,6 +160,7 @@ class LLMCharacter:
         persona: Optional[Persona] = None,
         settings: Optional[LLMSettings] = None,
         rules: Optional[str] = None,
+        canon=None,
     ) -> None:
         self.character = character
         self.backend = backend
@@ -161,6 +176,8 @@ class LLMCharacter:
         self.table: list = []
         self.logbook = None
         self.memory_block = ""
+        self.canon = None
+        self.canon_block = ""
         self.entries_written = 0
         self.last_debrief: dict = {}
         self.llm_calls = 0
@@ -173,8 +190,12 @@ class LLMCharacter:
         self.fallbacks = 0
         self.deviations = 0
         self.remarks_made = 0
+        self.lookups = 0
         self.game_calls = 0
         self.game_tokens = 0
+        self.game_lookups = 0
+        if canon is not None:
+            self.attach_canon(canon)
 
     # -- the character's surface, delegated -------------------------------
 
@@ -227,6 +248,7 @@ class LLMCharacter:
         self.table = list(table) if table is not None else []
         self.game_calls = 0
         self.game_tokens = 0
+        self.game_lookups = 0
         self.character.new_game(table)
         self.memory_block = self.read_back()
 
@@ -251,6 +273,32 @@ class LLMCharacter:
         if self.logbook is None:
             return ""
         return self.logbook.memory(self.profile.memory, opponents_of(self.table, self.name))
+
+    # -- the canon (docs/canon-plan.md) -----------------------------------------
+
+    def attach_canon(self, canon) -> None:
+        """Give the character its `Canon`: its index becomes a cached
+        system block on every call, and its tools are offered on every
+        call while the game's lookups are under `max_lookups_per_game`.
+        None detaches it."""
+        self.canon = canon
+        self.canon_block = canon.index() if canon is not None else ""
+
+    def _canon_kwargs(self) -> dict:
+        """The canon's share of an `LLMRequest`: nothing without one; the
+        index block always; the tools, the lookup and the rounds left
+        while the game's cap allows."""
+        if self.canon is None:
+            return {}
+        out: dict = {"canon": self.canon_block}
+        left = self.settings.max_lookups_per_game - self.game_lookups
+        if left > 0:
+            out.update(
+                tools=tuple(self.canon.tools),
+                lookup=self.canon.lookup,
+                max_lookups=min(self.settings.max_lookups_per_call, left),
+            )
+        return out
 
     def debrief(self, record, seat: int) -> Optional[LogbookEntry]:
         """After a game, ask the model for this game's logbook entry and
@@ -284,6 +332,7 @@ class LLMCharacter:
             effort=self.settings.debrief_effort,
             max_tokens=self.settings.debrief_max_tokens,
             timeout=self.settings.debrief_timeout,
+            **self._canon_kwargs(),
         )
         started = time.perf_counter()
         try:
@@ -296,6 +345,7 @@ class LLMCharacter:
         cost = {
             "input_tokens": result.input_tokens, "output_tokens": result.output_tokens,
             "cached_tokens": result.cached_tokens, "seconds": result.seconds,
+            "lookups": list(result.lookups),
         }
         if not result.ok:
             reason = "refusal" if result.stop_reason == "refusal" else (
@@ -354,6 +404,7 @@ class LLMCharacter:
             kind=REMARK_KIND,
             memory=self.memory_block,
             max_tokens=self.settings.remark_max_tokens,
+            **self._canon_kwargs(),
         )
         started = time.perf_counter()
         try:
@@ -366,6 +417,7 @@ class LLMCharacter:
         cost = {
             "input_tokens": result.input_tokens, "output_tokens": result.output_tokens,
             "cached_tokens": result.cached_tokens, "seconds": result.seconds,
+            "lookups": list(result.lookups),
         }
         if not result.ok:
             reason = "refusal" if result.stop_reason == "refusal" else (
@@ -467,6 +519,7 @@ class LLMCharacter:
             schema=schema_for(kind),
             kind=kind,
             memory=self.memory_block,
+            **self._canon_kwargs(),
         )
         started = time.perf_counter()
         try:
@@ -479,6 +532,7 @@ class LLMCharacter:
         cost = {
             "input_tokens": result.input_tokens, "output_tokens": result.output_tokens,
             "cached_tokens": result.cached_tokens, "seconds": result.seconds,
+            "lookups": list(result.lookups),
         }
 
         def fail(reason: str):
@@ -541,6 +595,8 @@ class LLMCharacter:
         self.output_tokens += result.output_tokens
         self.cached_tokens += result.cached_tokens
         self.game_tokens += result.input_tokens + result.output_tokens
+        self.lookups += len(result.lookups)
+        self.game_lookups += len(result.lookups)
 
     def _record(self, decision: Decision) -> None:
         self.decisions.append(decision)
@@ -557,6 +613,7 @@ class LLMCharacter:
             "fallbacks": self.fallbacks,
             "deviations": self.deviations,
             "remarks": self.remarks_made,
+            "lookups": self.lookups,
             "entries": self.entries_written,
             "input_tokens": self.input_tokens,
             "output_tokens": self.output_tokens,

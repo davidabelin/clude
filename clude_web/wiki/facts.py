@@ -1192,12 +1192,22 @@ def _publishing_values() -> dict:
         )
     for dial in NEUTRAL.to_dict():
         table[f"neutral.{dial}"] = lambda d=dial: _trim(getattr(NEUTRAL, d))
-    for name in ("debrief_max_tokens", "debrief_timeout"):
+    for name in ("debrief_max_tokens", "debrief_timeout", "max_lookups_per_call", "max_lookups_per_game"):
         table[f"llm.{name}"] = lambda n=name: _trim(getattr(LLMSettings(), n))
     for depth in (0, 0.25, 0.5, 0.75, 1):
         for index, label in enumerate(("index", "full")):
             table[f"memory.{depth}.{label}"] = lambda d=depth, i=index: str(memory_counts(10, d)[i])
+    table["canon.read_limit"] = lambda: f"{_canon_limit('READ_LIMIT'):,}"
+    table["canon.search_limit"] = lambda: str(_canon_limit("SEARCH_LIMIT"))
     return table
+
+
+def _canon_limit(name: str) -> int:
+    """A limit of the canon's reads (`index.READ_LIMIT`, `index.SEARCH_LIMIT`),
+    imported late: `index` imports `render`, which imports this module."""
+    from . import index as wiki_index  # noqa: PLC0415
+
+    return int(getattr(wiki_index, name))
 
 
 def softmax_example(temperature: float) -> float:

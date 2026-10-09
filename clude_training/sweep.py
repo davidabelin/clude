@@ -154,6 +154,7 @@ def sweep_dial(
     llm_characters=None,
     logbook_store=None,
     logbook_characters=None,
+    llm_canon=None,
 ) -> SweepResult:
     """Run the arena once per value of `dial`, setting it on every swept
     character (their other dials stay at preset), and pool the swept
@@ -170,7 +171,7 @@ def sweep_dial(
         `roster`. Characters not swept keep their presets.
     n_games, seed, roster, player_counts, max_turns, store
         Passed to `run_arena`; the same `seed` for every value.
-    llm_backend, llm_settings, llm_characters
+    llm_backend, llm_settings, llm_characters, llm_canon
         Passed to `run_arena`: sweep a dial with the characters
         LLM-piloted, the `leash` sweep being the point.
     run_id : str or None
@@ -219,6 +220,7 @@ def sweep_dial(
             llm_backend=llm_backend,
             llm_settings=llm_settings,
             llm_characters=llm_characters,
+            llm_canon=llm_canon,
             logbook_store=logbook_store,
             logbooks_readonly=True,
             logbook_characters=logbook_characters,

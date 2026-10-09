@@ -36,6 +36,7 @@ from clude_core import engine
 from clude_core.domain import ALL_CARDS, ROOMS, SUSPECTS, WEAPONS
 from clude_core.events import GameOverEvent, MoveEvent, RemarkEvent, SuggestionEvent
 from clude_llm.backend import DEFAULT_MODEL
+from clude_llm.canon import WikiCanon
 from clude_llm.metered import Ledger, MeteredBackend
 from clude_storage import GameRecord, Logbook, SeatRecord
 from clude_training import memory as method_memory
@@ -338,8 +339,8 @@ class WebGame(TableGame):
     compact bar per seat, this turn's lines and the last suggestion.
     `advance` is Watch's name for `run`."""
 
-    def __init__(self, setup: TableSetup, prepare=None, llm_backend=None) -> None:
-        super().__init__(setup, prepare, llm_backend)
+    def __init__(self, setup: TableSetup, prepare=None, llm_backend=None, canon=None) -> None:
+        super().__init__(setup, prepare, llm_backend, canon)
         self.table_id: str = ""
         self.reactions = chat.Reactions(self, lambda: seat_names(self))
         self._readings_at = -1
@@ -928,6 +929,10 @@ class TableRegistry:
             seats.update(r.seat for r in reactions.queue if r.turn == turn)
         return sorted(seats)
 
+    canon = WikiCanon()
+    """The canon every model seat of this service reads (docs/canon-plan.md):
+    one `WikiCanon` for the process, its index built on first use."""
+
     def _backend_factory(self, document: dict):
         """``seat -> MeteredBackend`` for a table with model seats, or None
         when this service has no key (its stored answers still replay)."""
@@ -1029,7 +1034,8 @@ class TableRegistry:
         document["memory"] = self._snapshot(setup) if setup.remember else None
         document["status"] = "playing"
         document["dealt"] = _now()  # the start of the game's wall time
-        game = WebGame(setup, self._prepare(setup, document["memory"]), self._backend_factory(document))
+        factory = self._backend_factory(document)
+        game = WebGame(setup, self._prepare(setup, document["memory"]), factory, self.canon if factory else None)
         game.table_id = document["id"]
         with self._lock:
             self._games[document["id"]] = game

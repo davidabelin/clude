@@ -1,12 +1,16 @@
 """Anthropic SDK adapter for structured choices, remarks and debriefs.
 
-The SDK is imported lazily. Persona/rules and optional memory are cached
-system blocks; the request supplies user text/schema. SDK errors become
-LLMResult errors so the wrapper can fall back. The adapter may use one SDK
-retry; no live call is needed at construction. See docs/llm-wrapper.md.
+The SDK is imported lazily. Persona/rules, the optional canon index and
+the optional memory are cached system blocks; the request supplies user
+text/schema. A request with canon tools runs the tool loop here, up to
+its `max_lookups` rounds, the last round sent with tool choice none so
+the model must answer in schema. SDK errors become LLMResult errors so
+the wrapper can fall back. The adapter may use one SDK retry; no live
+call is needed at construction. See docs/llm-wrapper.md.
 """
 from __future__ import annotations
 
+import json
 import time
 from typing import Optional
 
@@ -111,15 +115,17 @@ class AnthropicBackend:
 
     def params(self, request: LLMRequest) -> dict:
         """The keyword arguments of the one API call, minus the beta bits.
-        With a `request.memory` the system prompt is two cached blocks,
-        persona then logbook; the request's `effort` and `max_tokens`
-        win over the backend's when set."""
+        The system prompt is up to three cached blocks: the persona, then
+        the canon index (`request.canon`, the same all season), then the
+        logbook (`request.memory`, the same all game), stable before
+        volatile for the cache. The canon's `tools` go on the call only
+        with a `lookup` to answer them and a round to run. The request's
+        `effort` and `max_tokens` win over the backend's when set."""
         system = [{"type": "text", "text": request.system, "cache_control": {"type": "ephemeral"}}]
-        if request.memory:
-            system.append(
-                {"type": "text", "text": request.memory, "cache_control": {"type": "ephemeral"}}
-            )
-        return {
+        for block in (request.canon, request.memory):
+            if block:
+                system.append({"type": "text", "text": block, "cache_control": {"type": "ephemeral"}})
+        params = {
             "model": self.model,
             "max_tokens": request.max_tokens or self.max_tokens,
             "system": system,
@@ -129,25 +135,79 @@ class AnthropicBackend:
                 "effort": request.effort or self.effort,
             },
         }
+        if request.tools and request.lookup is not None and request.max_lookups > 0:
+            params["tools"] = [dict(tool) for tool in request.tools]
+        return params
+
+    def _create(self, params: dict, options: dict):
+        if self.server_fallbacks:
+            return self.client.beta.messages.create(
+                betas=[FALLBACK_BETA], fallbacks="default", **params, **options
+            )
+        return self.client.messages.create(**params, **options)
+
+    @staticmethod
+    def _answer(request: LLMRequest, use, lookups: list) -> dict:
+        """One `tool_result` block for the `tool_use` block `use`, through
+        `request.lookup`; a failure is an error result the model can
+        answer around, never an exception. The lookup is appended to
+        `lookups` for the audit."""
+        name = str(getattr(use, "name", "") or "")
+        arguments = dict(getattr(use, "input", None) or {})
+        try:
+            found = dict(request.lookup(name, arguments))
+            summary = str(found.pop("found", ""))
+            text = json.dumps(found, ensure_ascii=False)
+            error = False
+        except Exception as exc:  # the canon's fault, reported to the model
+            text, summary, error = f"{type(exc).__name__}: {exc}", f"{name} failed: {exc}", True
+        lookups.append({"tool": name, "input": arguments, "found": summary, "error": error})
+        block = {"type": "tool_result", "tool_use_id": getattr(use, "id", ""), "content": text}
+        if error:
+            block["is_error"] = True
+        return block
 
     def complete(self, request: LLMRequest) -> LLMResult:
+        """One decision, in one or more API rounds: a round that stops
+        for tools has each answered (`_answer`) and the exchange, the
+        model's content unchanged, appended for the next; the last
+        permitted round carries ``tool_choice: none``. Tokens are summed
+        over the rounds; `seconds` is the whole."""
         started = time.perf_counter()
         try:
             params = self.params(request)
             options = {"timeout": request.timeout} if request.timeout else {}
-            if self.server_fallbacks:
-                response = self.client.beta.messages.create(
-                    betas=[FALLBACK_BETA], fallbacks="default", **params, **options
-                )
-            else:
-                response = self.client.messages.create(**params, **options)
+            rounds = request.max_lookups if "tools" in params else 0
+            messages = list(params["messages"])
+            usage = {"input_tokens": 0, "output_tokens": 0, "cached_tokens": 0}
+            lookups: list = []
+            for round_ in range(rounds + 1):
+                call = dict(params, messages=messages)
+                if rounds and round_ == rounds:
+                    call["tool_choice"] = {"type": "none"}
+                response = self._create(call, options)
+                result = self.to_result(response, 0.0)
+                for name in usage:
+                    usage[name] += getattr(result, name)
+                content = list(getattr(response, "content", None) or [])
+                uses = [block for block in content if getattr(block, "type", None) == "tool_use"]
+                if result.stop_reason != "tool_use" or not uses:
+                    break
+                messages = messages + [
+                    {"role": "assistant", "content": content},
+                    {"role": "user", "content": [self._answer(request, use, lookups) for use in uses]},
+                ]
         except Exception as exc:  # every SDK error class is a fallback here, none is retried
             return LLMResult(
                 error=f"{type(exc).__name__}: {exc}",
                 model=self.model,
                 seconds=time.perf_counter() - started,
             )
-        return self.to_result(response, time.perf_counter() - started)
+        for name, count in usage.items():
+            setattr(result, name, count)
+        result.lookups = lookups
+        result.seconds = time.perf_counter() - started
+        return result
 
     @staticmethod
     def to_result(response, seconds: float) -> LLMResult:

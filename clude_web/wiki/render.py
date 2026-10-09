@@ -558,5 +558,22 @@ def order_footnotes(title: str, text: str) -> str:
 def plain(markup: str) -> str:
     """HTML as plain text, for the search index and for excerpts."""
     text = re.sub(r"<(math|svg|style|script)\b.*?</\1>", " ", markup, flags=re.S)
+    text = re.sub(r'<a class="thumb-open"[^>]*>.*?</a>', " ", text, flags=re.S)  # a figure's "enlarge"
     text = re.sub(r"<[^>]+>", " ", text)
     return " ".join(html.unescape(text).split())
+
+
+_H2 = re.compile(r'<h2\b[^>]*\bid="([^"]+)"[^>]*>(.*?)</h2>', flags=re.S)
+
+
+def sections(body: str) -> list:
+    """An article's body as ``(id, heading, text)`` per ``h2`` section,
+    in order, each text as `plain` makes it: what a player's model is
+    handed a section at a time (`index.Wiki.read`). Subsections stay
+    inside their section."""
+    marks = list(_H2.finditer(body))
+    out = []
+    for i, mark in enumerate(marks):
+        end = marks[i + 1].start() if i + 1 < len(marks) else len(body)
+        out.append((mark.group(1), plain(mark.group(2)), plain(body[mark.end():end])))
+    return out

@@ -21,6 +21,7 @@ from .backend import (
     ScriptedBackend,
     open_backend,
 )
+from .canon import WIKI_TOOLS, Canon, WikiCanon, index_block
 from .menu import (
     Menu,
     Option,
@@ -51,6 +52,7 @@ from .schema import (
 __all__ = [
     "CONDENSE_KIND",
     "CONDENSE_SCHEMA",
+    "Canon",
     "DEFAULT_MODEL",
     "DISPLAY_NAMES",
     "Decision",
@@ -74,12 +76,15 @@ __all__ = [
     "ReplayMiss",
     "ScriptedBackend",
     "SuggestionMenu",
+    "WIKI_TOOLS",
+    "WikiCanon",
     "accusation_menu",
     "build_llm_character",
     "condense_logbook",
     "condense_prompt",
     "condense_request",
     "debrief_prompt",
+    "index_block",
     "load_persona",
     "load_rules",
     "movement_menu",
@@ -101,7 +106,9 @@ def build_llm_character(
     backend: LLMBackend,
     profile: Optional[Profile] = None,
     settings: Optional[LLMSettings] = None,
+    canon=None,
 ) -> LLMCharacter:
     """One suspect as an LLM-piloted seat: `build_character(name, profile)`
-    wrapped with its persona file and `backend`."""
-    return LLMCharacter(build_character(name, profile), backend, settings=settings)
+    wrapped with its persona file and `backend`, and `canon` attached
+    when given (`WikiCanon()` for the encyclopaedia)."""
+    return LLMCharacter(build_character(name, profile), backend, settings=settings, canon=canon)

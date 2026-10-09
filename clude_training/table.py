@@ -333,7 +333,7 @@ class TableSetup:
         )
 
 
-def build_table(setup: TableSetup, llm_backend=None) -> tuple:
+def build_table(setup: TableSetup, llm_backend=None, canon=None) -> tuple:
     """The players for `setup`, built as `arena.headless_table` builds
     them: each character with its preset dials (an LLM seat overrides
     narrative ``memory`` with its saved dial) and reset with the game
@@ -344,7 +344,8 @@ def build_table(setup: TableSetup, llm_backend=None) -> tuple:
     `Table.wrappers`, reset and told the table like a character, when
     `llm_backend(seat)` is given to build its backend; without one -- a
     rebuild, which must never call a model -- the seat has no wrapper and
-    its stored answers are simply replayed.
+    its stored answers are simply replayed. `canon`, if given, is
+    attached to every wrapper (docs/canon-plan.md).
 
     Returns
     -------
@@ -374,7 +375,7 @@ def build_table(setup: TableSetup, llm_backend=None) -> tuple:
             from clude_llm import LLMCharacter  # noqa: PLC0415 -- only a table with model seats needs it
 
             profile = AGENT_SPECS[spec.label].profile.with_dials(memory=spec.memory)
-            wrapper = LLMCharacter(build_character(spec.label, profile), llm_backend(seat))
+            wrapper = LLMCharacter(build_character(spec.label, profile), llm_backend(seat), canon=canon)
             wrapper.reset(setup.seed)
             wrappers[seat] = wrapper
     for seat, spec in enumerate(setup.seats):
@@ -563,16 +564,16 @@ class TableGame:
     it.
     """
 
-    def __init__(self, setup: TableSetup, prepare=None, llm_backend=None) -> None:
+    def __init__(self, setup: TableSetup, prepare=None, llm_backend=None, canon=None) -> None:
         """`prepare(table)`, if given, runs after the players are built
         and before the game deals: where the web app loads the
         supported method memory and LLM narrative logbooks ("characters
         remember", enabled by default for new web tables).
         `llm_backend(seat)`, if given, builds the backend of each ``llm``
         seat's wrapper (`build_table`); without it those seats can only
-        replay stored answers."""
+        replay stored answers. `canon` goes to every wrapper."""
         self.setup = setup
-        self.table, self.external = build_table(setup, llm_backend)
+        self.table, self.external = build_table(setup, llm_backend, canon)
         if prepare is not None:
             prepare(self.table)
         self.speakers: dict = {

@@ -698,16 +698,26 @@ FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures"
 # re-recorded on 2026-10-07 (Phase 12 N6), after the trained weights and
 # Plum's leash of 0.35 were settled, so seed 2's Plum is the network
 # ($0.11 and $0.03).
+# Stale again since 2026-10-09: the rules' role-play edit, then the canon
+# (docs/canon-plan.md: a new rules section, every persona, and the index
+# block and tools on every request) moved every key. Marked xfail, strictly,
+# until re-recorded on approval; a recording that replays again flips them.
+STALE = pytest.mark.xfail(
+    strict=True, raises=AssertionError,
+    reason="recorded before the canon (2026-10-09); re-record on approval, see docs/canon-plan.md 7.3",
+)
 RECORDED_GAMES = [
     pytest.param(
         "llm_seed1.json", "1", "3", "Scarlett,Peacock",
         "Mustard/Rope/Ballroom", "P1 Mustard (floor)",
         "Turns played: 35; suggestions: 16; accusations: 1",
+        marks=STALE,
     ),
     pytest.param(
         "llm_seed2.json", "2", "4", "Plum,Mustard,Green,White",
         "Scarlett/Candlestick/Ballroom", "P1 White",
         "Turns played: 10; suggestions: 2; accusations: 1",
+        marks=STALE,
     ),
 ]
 
