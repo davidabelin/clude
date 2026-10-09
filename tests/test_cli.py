@@ -109,6 +109,10 @@ def test_logbook_condense_estimates_then_writes_a_digest(cli, capsys, tmp_path, 
     from clude_storage import LocalStore, Logbook
     from tests.test_logbooks import _entries
 
+    empty = _run(cli, capsys, "logbook", "condense", "--uri", str(tmp_path / "elsewhere"), "--all", "--dry-run")
+    assert "store: " in empty and "elsewhere" in empty and "no character logbooks to condense" in empty
+    assert "estimated" not in empty
+
     store = LocalStore(tmp_path)
     for identity in ("Scarlett", "PlumOG"):
         logbook = Logbook(store, identity)
