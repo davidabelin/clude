@@ -63,7 +63,7 @@ Built 2026-10-08, outside the numbered phases. `logbook condense` has each chara
 
 ## The canon
 
-Proposed 2026-10-09, outside the numbered phases: Wikiclude as the canon that LLM seats and MCP players search and read, through two tools inside the decision call and two loginless MCP tools. [The canon plan](canon-plan.md) holds the design, the cost estimate, David's decisions and the implementation record. Built and tested offline on 2026-10-09, not deployed; the paid acceptance game and the fixture re-recording wait on approval.
+Proposed 2026-10-09, outside the numbered phases: Wikiclude as the canon that LLM seats and MCP players search and read, through two tools inside the decision call and two loginless MCP tools. [The canon plan](canon-plan.md) holds the design, the cost estimate, David's decisions and the implementation record. Built, tested and accepted locally on 2026-10-09 ($0.31 in paid runs: the loop works against the API, both fixtures re-recorded, no seat looked anything up unprompted), not deployed.
 
 ## Legacy code disposition
 

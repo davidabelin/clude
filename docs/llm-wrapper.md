@@ -24,7 +24,7 @@ Use `clude_cli.py prompt` to inspect the actual prompt without spending. Persona
 
 `personas/<Suspect>.md` describes identity, method and voice; `rules.md` supplies shared behavior. These are executable prompts. Keep numerical flaws in agents/dials, rather than ordering the persona to make deliberately wrong decisions. Scarlett's current preset threshold is 0.3; Plum's method is the policy/belief network, not PlumOG's enumeration.
 
-Exact system text participates in LLMRequest replay keys, so any persona, rules or menu change leaves the recorded fixtures stale; never rewrite keys to pretend they are fresh. Phase 11's prompt edits did so; both fixtures were re-recorded on 2026-10-07 (Phase 12 N6), with the trained network and Plum's leash of 0.35. A further re-recording, with its outcome/tally updates, needs separate approval.
+Exact system text participates in LLMRequest replay keys, so any persona, rules or menu change leaves the recorded fixtures stale; never rewrite keys to pretend they are fresh. Phase 11's prompt edits did so; both fixtures were re-recorded on 2026-10-07 (Phase 12 N6), with the trained network and Plum's leash of 0.35, and again on 2026-10-09 for the canon ($0.12 and $0.04; neither game made a lookup). A further re-recording, with its outcome/tally updates, needs separate approval.
 
 ## The two Phase 6 dials
 

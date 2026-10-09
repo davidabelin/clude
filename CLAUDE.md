@@ -8,7 +8,7 @@ Start with `git log --oneline -5` and `git status`, then [the roadmap](docs/phas
 
 ## Status (2026-10-07)
 
-Phases 1-9 are implemented. Phase 10's main UX/sound work is built; 10h help remains open. Wikiclude has its own [plan](docs/wikiclude-plan.md) and is outside Phase 11. The canon (2026-10-09), Wikiclude read by LLM and MCP players, is built and tested offline, not deployed; both replay fixtures are stale until re-recorded.
+Phases 1-9 are implemented. Phase 10's main UX/sound work is built; 10h help remains open. Wikiclude has its own [plan](docs/wikiclude-plan.md) and is outside Phase 11. The canon (2026-10-09), Wikiclude read by LLM and MCP players, is built, tested and accepted locally ($0.31 of paid runs; the loop works, no seat looked anything up unprompted), not deployed; both replay fixtures were re-recorded that day.
 
 Phase 11 condenses maintainer docs and docstrings. Phase 12 is complete and deployed (2026-10-07, revision `clude-00026-bsp`): N2-N4 (scoring hooks, NumPy Plum, rollout/trainer) are built, and the committed weights are a trained checkpoint (the second long run's 130, exported 2026-10-06: 49% at his own table, 22% at the six-character table, the best mid-game belief on record). N1's logbook commands, N5's headless evaluation (presets kept), N6's paid ladder (leash 0.35 kept, $0.09 a typical seat-game; both LLM fixtures re-recorded) and N7's wiki pass are done; the engraved portraits are in the character infoboxes; the bucket's logbooks are archived (PlumOG) and relabelled, and a further training run is optional. PlumOG is archived, not seatable. [Phase 12](docs/deepnash-plan.md) contains evidence and acceptance steps; [the roadmap](docs/phase-plan.md) owns status. Checkout state does not confirm live deployment.
 

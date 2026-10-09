@@ -1,6 +1,6 @@
 # The canon: Wikiclude for LLM and MCP players
 
-Status: **built and tested offline, 2026-10-09.** David took every recommendation of section 6 the same day; section 7 records what was built and where it departs from sections 3 and 4. Not deployed; the paid steps of section 5 wait on approval.
+Status: **built, tested and accepted locally, 2026-10-09; not deployed.** David took every recommendation of section 6 the same day and approved the paid steps; section 7 records what was built, where it departs from sections 3 and 4, and what the paid runs found (7.3: the loop works, nobody looked anything up unprompted).
 
 ## 1. The brief (David, 2026-10-09)
 
@@ -115,6 +115,16 @@ Built locally in one pass; `tests/test_canon.py` holds the gates of section 4, a
 - The MCP tools answer in the wiki's own shape rather than a copy; `clude_sit`'s reply is unchanged (its docstring points at *Rules of play*).
 - The dial of C-D2 was not built; the arena's lookups column is the measurement.
 
-### 7.3 Left
+### 7.3 Acceptance (2026-10-09, approved by David the same day)
 
-The paid acceptance game (5.2) and the fixture re-recording (5.3), each on approval; the live check of the loop against the API (no fixture exercises `tool_use` for real); a deploy. Both replay fixtures are marked `xfail` (strict) in `tests/test_llm.py` until re-recorded: the working tree's `rules.md` edit had already moved every key, and the canon moved them again. Re-record with the commands in that test's docstring, update `RECORDED_GAMES` from the transcripts, and drop the mark.
+| Step | Run | Cost | Found |
+|---|---|---|---|
+| 5.2 | `play --seed 3 --players 3 --roster Plum,Mustard --llm`, recorded, stored as run `canon-accept-2026-10-09` in `data/llm` | $0.15 | 18 calls, every one carrying the index block and the tools; 0 fallbacks; Mustard won in 20 turns; seven lines of talk in voice, none mentioning the canon; **no lookup by either seat** |
+| 5.3 | Both fixtures re-recorded with the commands in `test_recorded_llm_games_replay_offline`'s docstring; seed 1 now 29 turns and 12 suggestions, seed 2 unchanged | $0.12, $0.04 | 15 and 6 calls, tools on all, no lookups; both replay offline again and the `xfail` marks are gone |
+| The loop | `test_the_loop_live_smoke` (`CLUDE_LLM_LIVE=1`): a decision told to read *Leash* first | cents | passed: one `wiki_read`, answered inside the call, the reply in schema |
+
+So the mechanism works end to end against the API, but in 41 ordinary calls at low effort no character found a question of fact to look up: the rules offer the canon "when a question of fact about the game or the people at the table arises", and a routine move or suggestion raises none. That is cheap, and innate in the sense asked for, but step 5.2's "Plum makes at least one lookup" was not met. Whether to nudge harder (a first-turn read of each opponent's biography, the debrief reading its opponents' articles, a higher effort for Plum) is a product decision, open.
+
+### 7.4 Left
+
+A deploy; the open question above.

@@ -766,7 +766,7 @@ def cmd_play(args) -> int:
             s = wrapper.summary()
             print(
                 f"  {_player_label(state, seat, labels)}: {s['decisions']} decisions, "
-                f"{s['llm_calls']} calls, {s['fallbacks']} fallbacks, {s['deviations']} deviations, "
+                f"{s['llm_calls']} calls, {s['fallbacks']} fallbacks, {s['deviations']} deviations, {s['lookups']} lookups, "
                 f"{s['remarks']} remarks; tokens in/out/cached "
                 f"{s['input_tokens']}/{s['output_tokens']}/{s['cached_tokens']}; "
                 f"{s['llm_seconds']:.1f}s; backend {s['backend']}, model {s['model']}"
