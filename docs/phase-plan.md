@@ -1,6 +1,6 @@
 # Phase Plan
 
-Current roadmap as of 2026-10-08. This describes the checkout, not a live production audit. Completed plans are historical decision records; the maintainer guides describe current behavior. The strategy glossary keeps dated measurements, including superseded ring-board and PlumOG results.
+Current roadmap as of 2026-10-10. This describes the checkout, not a live production audit. Completed plans are historical decision records; the maintainer guides describe current behavior. The strategy glossary keeps dated measurements, including superseded ring-board and PlumOG results.
 
 ## Completed phases
 
@@ -56,6 +56,12 @@ Wikiclude articles, rendering and assets are outside this pass. Existing source 
 | N7 | Wiki rewritten for the network, with figures, diagrams, algorithm boxes and 21 Algorithms entries; lobby and Watch copy updated; engraved portraits in the character infoboxes; deployed 2026-10-07 | None |
 
 The trained Plum has the best mid-game belief of any method, no wrong accusations and sub-millisecond calls; he wins a little less than PlumOG at his own table and less at six. Curiosity is inert for his policy hook; `accuse_threshold` and `temperature` were re-measured and kept; leash 0.35 matches PlumOG's menu width and the paid ladder kept it. With Claude he wins as often as headless, and a typical seat-game costs about $0.09. See [Phase 12](deepnash-plan.md) sections 11-13.
+
+## Phase 13 scope
+
+[Phase 13: Character development](phase13-plan.md) is the active plan, agreed 2026-10-10. Begin with a light editorial cleanup of the existing narrative logbooks; then broaden the six characters' lives, soften their fourth-wall premise, improve listening and social continuity, make Wikiclude explicitly fallible, and address participant naming and measured conversation pacing. The `focus` dial and character-authored wiki edits remain deferred.
+
+The detailed plan is written. Step 0 is edited and verified locally against David's uploaded merged snapshot: 58 entry summaries and five current characters' heads/digests, with numerical memory and PlumOG unchanged. Current Plum and two historical entries are absent from the supplied archive; references and factual tallies are preserved. [The editorial record](phase13-editorial.md) documents the changes and checks. David will manually apply/sync the edited files. Executable prompts, runtime behavior and wiki articles remain unchanged; paid rehearsals, fixture refreshes and later implementation are separate steps.
 
 ## Logbook condensing
 
