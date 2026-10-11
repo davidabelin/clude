@@ -4,10 +4,13 @@ Agreed direction, 2026-10-10. This plan follows the discussion of the fourth
 wall, the ensemble, and lives beyond Clue. It is the working checklist for
 the phase; [the roadmap](phase-plan.md) owns the short status summary.
 
-**Current state:** plan written; step 0 is edited and verified locally for
-the five current characters in the uploaded snapshot. Current Plum is absent;
-PlumOG is retained unchanged. The edited ZIP is for David to apply and sync.
-No persona, prompt, runtime, or wiki article has been changed by this pass.
+**Current state:** David reports step 0 is live (2026-10-10). Steps 1-3's six
+broader persona scripts, shared premise and listening guidance are edited
+locally for review and rehearsals. The available local
+history covers five current characters; current Plum is absent and PlumOG
+is retained unchanged. Game runtime and wiki articles are unchanged;
+steps 4-6 and model rehearsals remain planned. Both exact-game replay
+recordings are historical pending an approved refresh.
 Implementation evidence belongs in section 10 below, not in the proposed
 acceptance criteria.
 
@@ -101,10 +104,10 @@ increments may touch several files, but should have one reviewable purpose.
 
 | Step | Deliverable | Status / dependency |
 |---|---|---|
-| 0 | Existing narrative memories edited, flag vocabulary reconciled, before/after evidence retained | Locally complete for the supplied five current characters; see the [editorial record](phase13-editorial.md) for source gaps |
-| 1 | Six broader, distinctive, playable persona scripts | Planned; use step 0's history as context |
-| 2 | Light shared premise and individual fourth-wall attitudes | Planned; draft with step 1 |
-| 3 | Listening, reply, silence, and thread-continuity guidance | Planned; rehearse with steps 1-2 |
+| 0 | Existing narrative memories edited, flag vocabulary reconciled, before/after evidence retained | David reports live; original snapshot gaps are recorded in [section 10](#10-implementation-record) |
+| 1 | Six broader, distinctive, playable persona scripts | Edited locally for script review; offline verification below; ensemble behavior awaits rehearsals |
+| 2 | Light shared premise and individual fourth-wall attitudes | Drafted locally with step 1; responses remain changeable; awaits script review/rehearsals |
+| 3 | Listening, reply, silence, and thread-continuity guidance | Shared/decision/reaction guidance edited within the existing window; observed continuity awaits rehearsals |
 | 4 | Debrief and condensation guidance that preserves social continuity | Planned; separate from editing old memories |
 | 5 | Fallible Wikiclude guidance and aligned character/reference articles | Planned; agree scripts first, release related text together |
 | 6 | Consistent participant names and measured conversation pacing | Planned after the scripts; `focus` remains deferred |
@@ -464,7 +467,91 @@ head tallies remain intact. No missing memory has been invented, and no
 head rebuild was applied. The full offline suite remains unavailable in
 this environment because `pytest` is absent; no live behavior is claimed.
 
-[The editorial record](phase13-editorial.md) has the scope, counts, flag map,
+The original editorial record has the scope, counts, flag map,
 source limitations and handoff details. This completes the local editorial
 pass, not a cloud sync or a change to future debrief prompts. Steps 1-6 remain
 planned; the `focus` dial remains deferred. Repository edits are uncommitted.
+
+### 2026-10-10: step 0 live and steps 1-3 scripts
+
+David reports that step 0 is live. This increment reads the available local
+heads, digests and recent entries under `data/llm_local/logbooks/` as context;
+it does not independently audit the live store. The original editorial
+record is not present in this checkout; the snapshot limitations above
+remain part of the history.
+
+All six `clude_llm/personas/<Suspect>.md` scripts now have lives and social
+motives beyond the investigation. The agreed media habits are background,
+not compulsory topics or claims of current retrieval. Mustard's Masonic
+pride permits discretion and teasing without invented secrets. Green
+enjoys how films work; Scarlett responds to performance and vitality, with
+room for either to surprise the other. Peacock cares about the occasion
+and its company; White can enjoy competence and express sympathy; Plum
+can enjoy an idea without correcting every phrase. These modest additions
+are script choices for review, not newly discovered historical memories.
+
+Recognisable voices remain. Scarlett's absolute refusal to apologise is
+loosened, and the other parts have room for exceptions to their usual
+social manner. Green's method description now reflects sampled selection
+among five character methods, not deterministic selection of the best
+record or access to another seat's cards. White's repetition heuristic is
+distinguished from proof about a hand and from her wider social observations.
+No agent, weight, threshold, leash, schema or other runtime setting changed.
+No PlumOG history is assigned to current Plum.
+
+Shared rules now give a light account of what the actors have been told,
+without compulsory certainty, rare/hesitant departures, or a named Director.
+Initial responses differ: Mustard values respect and fellowship, Peacock
+cares whether people take one another seriously, Green wonders about approval
+and an actor's part, Scarlett enjoys the possibility of surprising her script,
+White asks what the explanation changes, and Plum is curious with room for
+private concern. These are inclinations, not immutable answers or required
+speeches. Familiar people can be recognised; an unfamiliar name or token
+does not establish the player's nature, and a bluff retains attribution.
+
+Shared, decision and reaction guidance encourages attention to the substance
+of a contribution, allows an exchange to develop without six monologues,
+and distinguishes a useful callback from repetition. Silence, a short line,
+no narration, private-card boundaries and legal JSON/menu instructions
+remain. Recent context stays at the existing eight remarks by default;
+no thread summary, new memory subsystem or pacing change is introduced.
+
+The review boundary is the combined scripts and prompt guidance in steps
+1-3. Future memory guidance (4), coordinated fallible-reference/wiki work
+(5) and participant naming/pacing (6) remain planned. The old canon-authority
+instructions still apply in rules/tools/wiki; this increment does not claim
+fallible-reference behavior or cross-path name consistency is implemented.
+Scripts must be agreed before the related wiki work and release must align
+the related text so a lookup cannot reinstate retired guidance.
+
+Both exact-game replay cases passed immediately before these edits (2
+passed). Persona, shared-rule and request edits change their keys, so the original
+2026-10-09 recordings are retained and only those two parametrized cases
+are marked pending an approved refresh. Independent recording/replay,
+schema, privacy and fake-backend checks remain active. No model call,
+fixture rewriting, memory write, deployment, commit or push is part of
+this increment. Verification below concerns offline prompt and runtime
+contracts; no observed ensemble improvement is claimed.
+
+Verification of the combined steps 1-3 increment:
+
+- Full offline suite in the project venv, with live API tests disabled:
+  `python -m pytest -q -n auto` — **619 passed, 36 skipped**. The skipped
+  cases include the two historical exact-game replays pending refresh.
+- Rendered 72 decision requests (all four kinds, six characters, depths
+  0, 0.5 and 1) and 18 reaction requests through the existing renderers.
+  Inspected representative output; JSON shapes, own-hand presentation,
+  method scores, legal-menu guidance and private-show reminders remain.
+  Current Plum's memory block is empty at every depth.
+- Prepared five fixed local scene inputs and a rubric for subsequent
+  bounded rehearsals: film, fictional news, jewels, scripts and an answered
+  question. Seed 13, roster, model/settings, rendered requests and memory
+  snapshots are retained in ignored `data/phase13-script-review/`, with
+  source hashes in `manifest.json`. These are inputs, not model responses
+  or an acceptance transcript. A future run should pass a response to the
+  next speaker and repeat selected scenes, rather than mistake six isolated
+  lines for an exchange.
+- All 86 existing local logbook/recording JSON files checked by hash remain
+  unchanged; no live-store read or write was performed.
+- All 59 local Markdown targets/anchors across the four edited guides
+  resolve; `git diff --check` is clean. Changes remain uncommitted.

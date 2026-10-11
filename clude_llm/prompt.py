@@ -87,7 +87,7 @@ def user_prompt(
     names: Optional[Sequence[str]] = None,
     recent_remarks: int = 8,
 ) -> str:
-    """The per-turn prompt for one decision.
+    """One legal-menu decision and an optional line following recent talk.
 
     Parameters
     ----------
@@ -182,6 +182,11 @@ def user_prompt(
             "from your own hand."
         )
     shape = ANSWER_SHAPES["suggest" if isinstance(menu, SuggestionMenu) else "choice"]
+    lines.append(
+        "For your line, listen to the recent exchange: respond to something that interests "
+        "you, or let it pass. It needn't end in a tactical point. Your decision still comes "
+        "from the allowed menu."
+    )
     lines.append(f"Answer with JSON only: {shape}")
     return "\n".join(lines) + "\n"
 
@@ -198,7 +203,7 @@ def remark_prompt(
     names: Optional[Sequence[str]] = None,
     recent_remarks: int = 8,
 ) -> str:
-    """The prompt for one off-turn line: who you are, the
+    """The prompt for one off-turn response to the recent exchange: who you are, the
     compact state through the same formatters as `user_prompt`, the
     recent table talk, what just happened, and the instruction to say
     one short line or nothing. No decision is asked for, so nothing here
@@ -252,8 +257,10 @@ def remark_prompt(
     lines.append(f"Just now: {trigger}")
     lines.append("")
     lines.append(
-        "You may say one short line in your voice, or nothing. Say nothing rather than "
-        "repeat a point already made, and never reveal a card you were shown."
+        "You may say one short line in your voice, or nothing. Listen to the recent exchange "
+        "and what just happened; answer the person rather than merely echoing their topic. "
+        "A callback can add something, but let an already answered point rest. Your line "
+        "needn't return to tactics. Never reveal a card you were shown."
     )
     lines.append(f"Answer with JSON only: {REMARK_SHAPE}")
     return "\n".join(lines) + "\n"
