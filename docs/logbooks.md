@@ -33,11 +33,11 @@ Entry metadata is computed by code: identity, serial/date, game ID, token, oppon
 | Fields | Content |
 |---|---|
 | `title`, `summary`, `flags` | Short title, summary up to 40 words, normalized connecting keywords |
-| `what_happened`, `final_outcome` | Narrative and result in the character's voice |
-| `evaluations` | Reads/notes on opponents present |
+| `what_happened`, `final_outcome` | The evening's narrative and the result in the character's voice |
+| `evaluations` | Reads/notes on opponents present, as players and as company |
 | `key_insights`, `lessons_learned` | Short lists |
-| `standing_instructions` | Revised list, at most eight |
-| `dossiers` | Revised opponent reads, at most 60 words each |
+| `standing_instructions` | Revised list, at most eight, covering play and conduct at the table |
+| `dossiers` | Revised opponent reads, at most 60 words each, of the person as well as the player |
 
 LogbookEntry.build normalizes/caps lists and retains only opponents present. The rolling head computes tally and flag index, carries instructions and per-opponent dossiers, and updates only dossiers touched by an entry. An entry with no instructions leaves the previous list standing. The schema was adapted from the Zenbot memory example in `docs/zenbot_memories.json`; that sample is historical reference, not the current schema authority.
 
@@ -59,7 +59,7 @@ Narrative memory steers choices only inside the existing leash; it cannot widen 
 
 ## The debrief
 
-A remembering LLM seat receives the whole deal face up, its live-view history, talk, audited choices, final belief versus truth, existing head/index and field instructions. `resolve_opponents` maps model names to the opponents' persistent labels. Response schema is LOGBOOK_SCHEMA; defaults are medium effort, 4096 tokens and 180 s. Failure/refusal/malformed data writes no entry and records `last_debrief`; the finished game remains valid. `debrief=False` skips it.
+A remembering LLM seat receives the whole deal face up, its live-view history, talk, audited choices, final belief versus truth, existing head/index and field instructions. `resolve_opponents` maps model names to the opponents' persistent labels. The field instructions ask for the evening as an occasion as well as the play, and say that a quiet game is not thereby better played, so a character does not write itself a rule against talking. Response schema is LOGBOOK_SCHEMA; defaults are medium effort, 4096 tokens and 180 s. Failure/refusal/malformed data writes no entry and records `last_debrief`; the finished game remains valid. `debrief=False` skips it.
 
 With a digest, the debrief shows it after the head and indexes only the entries since; the flags it lists are the merged vocabulary.
 

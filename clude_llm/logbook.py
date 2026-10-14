@@ -2,7 +2,9 @@
 
 Debrief deliberately sees the whole deal face up plus the seat's live-view
 history, audits and prior memory. It writes narrative schema fields, not
-code-computed facts. Opponent names map back to persistent roster labels.
+code-computed facts, and covers the evening as an occasion as well as the
+play, so a character can remember company and not only tactics. Opponent
+names map back to persistent roster labels.
 Condensing shows a character its digest and the entries since, to fold into
 a new digest. See docs/logbooks.md; model calls/validation live in player.py.
 """
@@ -287,26 +289,31 @@ def debrief_prompt(
     lines += [
         "",
         "Write the entry as JSON with these fields, in your own voice, as notes to yourself "
-        "and not to the table:",
+        "and not to the table. The evening was a game and an occasion: what was said, who was "
+        "good company and what you would return to belong here beside the cards.",
         "- title: a short title for this game.",
         f"- summary: one or two sentences, at most {SUMMARY_WORDS} words, on what to remember "
         "of it.",
-        f"- flags: two to {MAX_FLAGS} short lowercase keywords for the patterns of play that "
-        "connect this game to others (not the result or the table size, which the entry "
-        "records already); reuse your existing flags where they fit and coin a new one "
-        "only for something new.",
-        "- what_happened: the game as you experienced it, in a paragraph.",
+        f"- flags: two to {MAX_FLAGS} short lowercase keywords for the patterns that connect "
+        "this game to others, in the play or in the company (not the result or the table size, "
+        "which the entry records already); reuse your existing flags where they fit and coin "
+        "a new one only for something new.",
+        "- what_happened: the evening as you experienced it, in a paragraph: the game, and "
+        "whatever else made it worth sitting down for.",
         "- evaluations: one per opponent at the table, with an evaluation of how they played "
-        "and notes on what gave them away, if anything, now that you can check their claims "
-        "against the deal.",
+        "and what they were like to play with, and notes on what gave them away, if anything, "
+        "now that you can check their claims against the deal.",
         "- key_insights and lessons_learned: short lists, specific to what happened.",
         "- final_outcome: the result in your words.",
         f"- standing_instructions: your standing instructions to yourself, the whole list "
         f"rewritten, at most {MAX_STANDING_INSTRUCTIONS}, each one sentence: carry forward what "
-        "still holds, drop what did not, add what this game taught.",
+        "still holds, drop what did not, add what this game taught. They cover how you mean to "
+        "play and how you mean to be at this table. Keeping a decisive inference to yourself "
+        "can be shrewd, but a quiet evening is not thereby a better played one: do not write "
+        "yourself a rule against speaking, or against the company.",
         f"- dossiers: for each opponent whose read you want to revise, their label and your "
-        f"read of them in at most {READ_WORDS} words; leave an opponent out to keep the read "
-        "you have.",
+        f"read of them in at most {READ_WORDS} words, as a person as well as a player; leave "
+        "an opponent out to keep the read you have.",
         f"Your identity in the logbook is {label}. Answer with JSON only.",
     ]
     return "\n".join(lines) + "\n"
@@ -371,14 +378,16 @@ def condense_prompt(
     lines += [
         "Write the digest as JSON with these fields, in your own voice, as notes to yourself:",
         f"- overview: the arc of these games{fold}, in at most {OVERVIEW_WORDS} words: what kind "
-        "of player you have been at this table, what has worked and what has cost you.",
+        "of player you have been at this table, what has worked and what has cost you, and what "
+        "this company and these evenings have come to be like.",
         '- flag_map: flags that name the same pattern in different words, each as {"flag": an '
         'old flag exactly as listed above, "into": the flag to keep}. Merge only true '
         "near-duplicates, never two different patterns; an empty list is fine. Merged flags are "
         "rewritten in every entry and in your index, and your later entries reuse the ones you keep.",
         f"- themes: at most {MAX_THEMES}, the patterns that matter most, each headed by one flag "
         f"you keep and carrying one lesson in at most {LESSON_WORDS} words: what to do or avoid, "
-        f"and the evidence that taught it. Carry forward what still holds{carry}; drop what did not.",
+        "or what has held true of these people, and the evidence that taught it. Carry forward "
+        f"what still holds{carry}; drop what did not.",
         f"Your identity in the logbook is {identity}. Answer with JSON only.",
     ]
     return "\n".join(lines) + "\n"

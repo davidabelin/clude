@@ -4,9 +4,17 @@ Agreed direction, 2026-10-10. This plan follows the discussion of the fourth
 wall, the ensemble, and lives beyond Clue. It is the working checklist for
 the phase; [the roadmap](phase-plan.md) owns the short status summary.
 
-**Current state:** David reports step 0 is live (2026-10-10). Steps 1-3's six
+**Current state:** Step 0's editorial pass is live, and steps 1-3's six
 broader persona scripts, shared premise and listening guidance are edited
-locally for review and rehearsals. The available local
+locally for review and rehearsals. A live audit on 2026-10-14 found the
+bucket running ahead of the edited snapshot and the head layer regenerating
+every game: one of step 0's thirty-five edited standing instructions
+survives in live memory, while its digests survive intact. Every current
+character now carries a self-written rule against talking at the table.
+Step 0's remaining scope is therefore narrowed to the layers play does not
+rewrite, retiring those rules moves to step 4, and isolating the reply taper
+becomes a precondition for rehearsals rather than a later tuning question
+(sections 3, 4, 6 and 9). The available local
 history covers five current characters; current Plum is absent and PlumOG
 is retained unchanged. Game runtime and wiki articles are unchanged;
 steps 4-6 and model rehearsals remain planned. Both exact-game replay
@@ -33,6 +41,13 @@ David's decisions, including the corrections to the earlier proposal:
   redundancy and useless triviality, organize flags, improve summaries,
   and put the important things first. Keep this a quick cleanup of the
   history that exists, separate from the later change to what they remember.
+- **Revised 2026-10-14, after the live audit.** That separation holds only
+  for the layers play does not rewrite. Every debrief reissues the standing
+  instructions in full, so editing them is not a cleanup of existing history
+  but a change to what the characters remember, and it does not survive one
+  game. Step 0 keeps the entry summaries, digests and flag
+  vocabulary; retiring a superseded instruction belongs with the generator
+  that writes it, in step 4.
 - All six listen to NPR in the car; a recent *New Yorker* is lying around
   half-read. This is shared background, not six obligatory talking points.
 - Mustard is a proud, coy Freemason: jewels, winks, and discretion. Mustard
@@ -104,18 +119,30 @@ increments may touch several files, but should have one reviewable purpose.
 
 | Step | Deliverable | Status / dependency |
 |---|---|---|
-| 0 | Existing narrative memories edited, flag vocabulary reconciled, before/after evidence retained | David reports live; original snapshot gaps are recorded in [section 10](#10-implementation-record) |
+| 0 | Durable layers edited: entry summaries, digests and flag vocabulary | Live pass applied; scope narrowed and a remainder opened by the 2026-10-14 audit ([0e](#0e-remaining-scope-after-the-live-audit)) |
 | 1 | Six broader, distinctive, playable persona scripts | Edited locally for script review; offline verification below; ensemble behavior awaits rehearsals |
 | 2 | Light shared premise and individual fourth-wall attitudes | Drafted locally with step 1; responses remain changeable; awaits script review/rehearsals |
 | 3 | Listening, reply, silence, and thread-continuity guidance | Shared/decision/reaction guidance edited within the existing window; observed continuity awaits rehearsals |
-| 4 | Debrief and condensation guidance that preserves social continuity | Planned; separate from editing old memories |
+| 4 | Debrief and condensation guidance that preserves social continuity, and one pass retiring the rules it supersedes | Planned; owns the head layer, which step 0 cannot hold |
 | 5 | Fallible Wikiclude guidance and aligned character/reference articles | Planned; agree scripts first, release related text together |
-| 6 | Consistent participant names and measured conversation pacing | Planned after the scripts; `focus` remains deferred |
-| Acceptance | Offline checks, approved model rehearsals, accurate docs and fresh recordings | Run applicable checks per increment; paid work separately estimated |
+| 6 | Consistent participant names and measured conversation pacing | Tuning planned after the scripts, but isolating the reply taper is a rehearsal precondition; `focus` remains deferred |
+| Acceptance | Offline checks, approved model rehearsals, accurate docs and fresh recordings | Run applicable checks per increment; rehearse with the talk gate isolated; one recording refresh after steps 3-5; paid work separately estimated |
 
 Stop at a clear boundary if a required input is absent. Mark the blocked
 step accurately and continue independent work; do not replace missing
 history with newly invented memories or silently implement later stages.
+
+Two ordering constraints follow from the 2026-10-14 audit:
+
+1. **Step 4 precedes any edit to standing instructions.** Every debrief
+   rewrites that list in full, so an edit made before the writing
+   instructions change is undone by the next game. The measured survival of
+   step 0's edits is in [section 10](#10-implementation-record).
+2. **The talk gate is isolated before the rehearsals that judge steps 1-5.**
+   What anyone observes is the model's output multiplied by `chattiness`,
+   which discards half of the on-turn lines and most of a developing
+   exchange. Until the two are separated, a rehearsal cannot distinguish a
+   character choosing silence from a written line being dropped.
 
 ## 4. Step 0: editorial pass over the logbooks
 
@@ -213,6 +240,44 @@ entries or debriefs landed, reconcile them without overwriting newer work.
 Completion of step 0 means the local edited memories are ready for review,
 not that the live characters have already read them.
 
+### 0e. Remaining scope after the live audit
+
+The 2026-10-14 audit read the live store directly and found the condition
+0d anticipates: games landed after the edited snapshot was taken, so the
+destination had moved. Three findings narrow and reopen this step.
+
+**The head layer is not editable data.** Across the five characters, one of
+thirty-five edited standing instructions survives live, against sixty-five
+per cent of the dossiers and every digest. The ranking follows how each
+layer is written: debriefs reissue instructions in full, revise only the
+dossiers of opponents present, and leave digests alone until condensation
+runs. Step 0 therefore keeps the summaries, digests and flag vocabulary,
+and leaves standing instructions to [step 4](#6-step-4-future-memory-and-social-continuity).
+Do not re-edit them here; the result is measurably erased within a game.
+
+**A remainder is open in this step's own scope.** The eighteen entries
+written after the editorial snapshot have not been through the pass.
+Seventeen flags they carry are absent from their heads' flag indexes, so
+index and entries disagree. Four are names a digest's `renamed` map retired
+-- `never-accused`, `slow-to-accuse` and `too-far-to-accuse` in Peacock's
+entries, `ignored-a-spoken-claim` in Mustard's -- and the rest are fresh
+coinages duplicating kept vocabulary, such as Scarlett's `slow-to-room`
+beside `slow-to-the-rooms` and White's `quiet-player-closing` beside
+`narrator-at-the-table`. Green's are clean. This is hygiene on durable
+layers and needs no design decision; 0c's warning against a broad `rebuild`
+still applies, since it would also rebuild numerical memory.
+
+The documents are not corrupted. An em dash reached these files correctly,
+escaped as `\u2014`; a console that cannot render it is not evidence of
+damaged data. Check bytes before scheduling an encoding repair.
+
+**One recorded limitation was an artifact of the archive.** Section 10
+records Green and Mustard lacking entry #0005; the live store holds both,
+so the gap belonged to the supplied ZIP. Those two entries have never been
+through the editorial pass. Re-establish the authoritative source before
+editing, by this step's own 0a, rather than trusting either the earlier
+archive or a repository checkout.
+
 ## 5. Steps 1-3: the parts and the conversation
 
 ### 1. Broader lives
@@ -283,6 +348,23 @@ that completed deal and must not become knowledge of a subsequent hand.
 Preserve the distinction between historical recollection and current evidence.
 This step changes future writing instructions; it does not retroactively
 manufacture the richer history that step 0 lacked.
+
+**Retiring the rules this step supersedes.** The present instructions
+produced a conclusion in every character: a self-written standing rule
+against talking at the table, two of them in White's list and in
+Scarlett's, reinforced by a digest theme apiece. They are a reasonable
+reading of the old guidance, which asks what a loss should teach and offers
+no other field in which the evening's conversation could matter. Once the
+writing instructions change, make one pass over the live heads and digests
+to retire them.
+
+That pass removes a conclusion drawn under superseded guidance. It does not
+add an interest, an opinion, a relationship or an event that never happened,
+and the prohibition on inventing history is unchanged. Sequence it after the
+generator changes, or the next debrief reissues the rule. Prefer a direct
+edit to a paid `condense`: the digest themes survived step 0 precisely
+because condensation had not run, and that is also why they still need
+touching by hand.
 
 ## 7. Step 5: fallible Wikiclude and reference material
 
@@ -365,6 +447,17 @@ Prepare scene inputs and the evaluation rubric before spending on calls.
 Keep a fixed starting snapshot, roster, prompts/model configuration and
 recorded transcript for comparisons. Repeat selected scenes to distinguish
 an improvement from one fortunate line; exact wording is not a golden test.
+
+Isolate the talk gate before judging any scene below. `chattiness` is 0.5
+for all six characters, none of the presets having set it, and it applies
+twice: on turn it discards a line the model has already written and been
+paid for, and off turn it governs joining an exchange at
+`chattiness ** (depth + 1)`, so a third consecutive reply survives about
+one time in sixty. Rehearse with it raised to 1, and record the setting
+beside the transcript. That is a diagnostic configuration for the
+rehearsal, not a change to the shipped presets; tuning those stays in
+[step 6](#8-step-6-identities-pacing-and-returning-to-play) with the
+comparison it requires.
 
 | Scene | What to listen/check for |
 |---|---|
@@ -555,3 +648,118 @@ Verification of the combined steps 1-3 increment:
   unchanged; no live-store read or write was performed.
 - All 59 local Markdown targets/anchors across the four edited guides
   resolve; `git diff --check` is clean. Changes remain uncommitted.
+
+### 2026-10-14: live memory audit and pathway revision
+
+Read the live store for the first time in this phase, after David reported
+that the characters will not talk about anything but the game. No logbook,
+persona or runtime file was changed; this increment revises the plan only.
+
+- **Source.** `gs://clude-game-data/llm/logbooks/` read with the
+  maintainer account, and `data/llm_local/logbooks/` as the local
+  comparison. Live entry counts are Scarlett 20, White 18, Green 16,
+  Peacock 15, Mustard 9 (78 in all), against 17/15/12/13/5 locally. The
+  live store is gapless; `data/llm_local` is a stale partial copy, missing
+  Green and Mustard #0005 and carrying a head two serials behind its own
+  entries. Current Plum has no logbook; PlumOG was not read for editing.
+- **Survival of step 0's edits.** Standing instructions 1/35, dossiers
+  32/49, digests 5/5 identical. After three or four games per character,
+  the edited instruction lists are effectively gone and the digests are
+  untouched, which matches how debriefs and condensation write each layer.
+- **What the characters now instruct themselves.** Classified against the
+  line step 4 applies -- a clause generalising from "do not reveal decisive
+  information" to "do not talk", as against one scoped to a specific fact --
+  six clauses in four characters qualify: Scarlett "I am losing and should
+  move, not talk"; White "a read spoken aloud is a gift to whoever has
+  better feet", "the third time must be a move and not a sentence", and a
+  tell "worth more than anything said at the table"; Green "move first,
+  speak after"; Peacock "investigate rather than remark". Mustard has none:
+  "stop announcing which card I showed" is information discipline about one
+  card. Scarlett's "route and inference stay behind my teeth" is absolute in
+  tone but scoped, and is kept for David to revisit.
+- **The digests held up.** Of forty-four themes, one clause qualifies,
+  Peacock's "a clever correction is not a productive step". Scarlett's
+  `narrated-instead-of-acted` already ends "talking can be enjoyable without
+  publishing the next question", and White's `narrator-at-the-table`
+  conditions privacy on the disclosure helping a rival. Step 0's editing was
+  sound; what undid it was the head being rewritten, not the digest.
+- **No non-game content exists to preserve.** Across all 78 entries, heads
+  and digests, no film, broadcast, publication, interest or personal detail
+  appears. The one recurring social word is "joke", fifteen times, each
+  time as something to see through: "cover", "jokes about bluffing as
+  cover", and, logged as an error, "answered it with a joke instead of
+  arithmetic". Conversational players are recorded as weak, as in
+  "genuinely conversational - and slow".
+- **Assessment.** The logbooks are the symptom and `debrief_prompt` in
+  `clude_llm/logbook.py` is the generator: its fields ask for patterns of
+  play, how opponents played and what gave them away, and offer nowhere to
+  record an evening. Five characters independently re-derived the same rule
+  under it. Wiping would discard the one thing the phase needs, which is
+  that these characters have played with one another and with David, and
+  would regenerate the rule within a few games; editing the head layer
+  alone is undone in one. Hence the two ordering constraints in section 3,
+  the narrowed scope in 0e, and the retirement pass in step 4.
+- **Also found, outside memory.** None of the six presets in
+  `clude_agents/personality.py` sets `chattiness`, so all inherit 0.5,
+  applied both as an on-turn discard (`clude_llm/player.py`) and as
+  `chattiness ** (depth + 1)` off turn (`clude_web/chat.py`). Off-turn
+  reaction is where conversation unattached to a decision can occur, and
+  the taper removes it fastest, so the mechanism selects for game talk
+  independently of persona or memory. Lowering the `memory` dial is not an
+  escape: standing instructions sit in the head, which renders at depth 0.
+  Shared rules and `Peacock.md` also still carry the superseded
+  canon-authority wording for step 5, including "over anything said at the
+  table".
+- Verification: no paid call, cloud write, deployment or fixture refresh.
+  Live objects were read only, into a session scratchpad. The quoted
+  survival counts come from comparing the live heads with `data/llm_local`,
+  which is step 0's edited snapshot as David synced it; a character whose
+  dossier was rewritten by later play counts as not surviving, so these are
+  lower bounds on what step 0 wrote.
+- **Correction.** An earlier reading of this audit reported U+FFFD mojibake
+  in the live heads and entries. That was wrong: the documents are pure
+  ASCII with em dashes escaped as `\u2014`, and the replacement characters
+  were a console that could not render them. No encoding repair is needed,
+  and the claim is withdrawn from step 0's scope above.
+
+### 2026-10-14: steps 3 and 4 implemented, retirement staged
+
+Step 4's generator change, the step 3 clause it depends on, and the staged
+retirement of what they supersede. Offline only; no game was played.
+
+- `clude_llm/logbook.py`: the debrief's field instructions now ask for the
+  evening as an occasion as well as the play -- `what_happened` covers what
+  made it worth sitting down for, `evaluations` what an opponent was like to
+  play with, `dossiers` the person as well as the player, and `flags` patterns
+  in the company as well as in the play. `standing_instructions` gains the
+  sentence that settles the observed failure: discretion about a decisive
+  inference can be shrewd, but a quiet evening is not thereby better played,
+  and the character is told not to write itself a rule against speaking.
+  Condensation's `overview` and `themes` admit what the company has been like.
+  No schema change: section 6's instruction to try the existing narrative,
+  summary, dossier, instruction and digest fields first is satisfied, so
+  `LOGBOOK_SCHEMA` and `CONDENSE_SCHEMA` are untouched.
+- `clude_llm/personas/rules.md`: conversation is stated not to be a tactical
+  expense, and "silence is a welcome part of the company" is conditioned on
+  having nothing to add rather than standing as a general licence. This is a
+  step 3 revision, taken now because the memory it counterweighs is being
+  changed in the same pass.
+- `docs/logbooks.md`: the Tier 2 field table and the debrief section describe
+  the broadened fields.
+- Staged, unapplied, in ignored `data/phase13-step4-retirement/`: seven clause
+  revisions over four live heads and one digest theme, with source hashes,
+  every before/after, the stated principle, the clauses kept deliberately and
+  the required order of application. Mustard needs none. Invariants checked:
+  serials, tallies, dossiers, flag indexes, digest `through`, `renamed`, date
+  and model are byte-identical, instruction counts and theme flags unchanged,
+  advertised bounds respected, and both documents load through `LogbookHead`
+  and `LogbookDigest`. Applying it is David's, as with step 0, and must follow
+  the deployed prompt change or a debrief reissues the rules.
+- Not done, and deliberately short of the next assessment point: step 0's
+  flag remainder, step 5's fallible-Wikiclude text, step 6's pacing work and
+  the paid rehearsals. Prompt text has changed, so both exact-game recordings
+  stay pending the single approved refresh after steps 3-5.
+- Verification: `python -m pytest -q -n auto` passes (619 passed, 36 skipped);
+  no test asserted on the revised prompt wording. Markdown targets/anchors in
+  the edited guides resolve and `git diff --check` is clean. No paid call,
+  cloud write, deployment or fixture refresh. Changes are uncommitted.
