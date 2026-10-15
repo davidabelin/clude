@@ -78,17 +78,24 @@ SCENES = {
     },
 }
 
-# Words that mark a line as being about the investigation. Deliberately
-# generous: a line counts as game talk if it mentions any of them.
+# Markers that a line is about the investigation. Only terms with no
+# ordinary social sense: the first paid run showed that "suspect",
+# "deduction", "silence", "notes" and even "square" (Mustard's square and
+# compasses) fire on plain conversation, so they are excluded. Undercounting
+# game talk is the safer error here, since the question is whether anything
+# OTHER than the game gets said.
 GAME_WORDS = {
-    "card", "cards", "suggest", "suggestion", "accuse", "accusation", "envelope",
-    "refute", "refuted", "show", "showed", "shown", "hand", "room", "rooms",
-    "turn", "turns", "suspect", "weapon", "deal", "probability", "threshold",
-    "library", "ballroom", "kitchen", "study", "hall", "lounge", "conservatory",
-    "billiard", "dining", "candlestick", "knife", "revolver", "rope", "wrench",
-    "lead_pipe", "pipe", "passage", "corridor", "tested", "test", "silence",
-    "unrefuted", "deduction", "bluff", "square", "squares",
+    "accuse", "accuses", "accusing", "accusation", "envelope", "refute",
+    "refuted", "refutes", "unrefuted", "suggestion", "suggestions",
+    "threshold", "ballroom", "billiard", "conservatory", "candlestick",
+    "revolver", "wrench", "lead_pipe",
 }
+GAME_PHRASES = (
+    "my hand", "your hand", "his hand", "her hand", "the deal",
+    "secret passage", "show me", "showed me", "i showed",
+    "the library", "the kitchen", "the study", "the lounge", "the hall",
+    "the dining", "turns and", "proved yet", "name your room", "announce your door",
+)
 
 
 def build(name, backend, settings, memory_store):
@@ -101,7 +108,7 @@ def build(name, backend, settings, memory_store):
             from clude_storage import open_store
             from clude_storage.logbooks import Logbook
             store = open_store(memory_store)
-            wrapper.attach_logbook(Logbook(store, name, readonly=True))
+            wrapper.attach_logbook(Logbook(store, name))
         except Exception as exc:                      # pragma: no cover
             print(f"  (no logbook for {name}: {exc})")
     wrapper.new_game(table=ROSTER)
@@ -132,11 +139,17 @@ def observation(seat):
 
 
 def classify(text):
-    words = {w.strip(".,;:!?\"'").lower() for w in text.split()}
-    return "game" if words & GAME_WORDS else "other"
+    """game / other, erring toward 'other'. See GAME_WORDS."""
+    low = text.lower()
+    words = {w.strip(".,;:!?\"'\u2014-").lower() for w in text.split()}
+    if words & GAME_WORDS or any(p in low for p in GAME_PHRASES):
+        return "game"
+    return "other"
 
 
 def run_scene(key, scene, wrappers, rounds, verbose):
+    # `wrappers` is built fresh per scene by the caller, so one scene's
+    # talk cannot bleed into the next through a wrapper's own memory.
     talk = list(scene["opening"])
     lines = []
     order = scene["order"]
@@ -168,6 +181,40 @@ def run_scene(key, scene, wrappers, rounds, verbose):
     return {"scene": key, "opening": scene["opening"], "lines": lines}
 
 
+class Metering:
+    """Counts tokens and priced cost around any backend, so a rehearsal
+    reports what it actually spent rather than an estimate."""
+
+    def __init__(self, inner):
+        self.inner = inner
+        self.name = getattr(inner, "name", "inner")
+        self.calls = 0
+        self.input_tokens = 0
+        self.output_tokens = 0
+        self.cached_tokens = 0
+        self.cost = 0.0
+
+    def complete(self, request):
+        from clude_llm.anthropic_backend import PRICES_PER_MTOK, estimate_cost
+        result = self.inner.complete(request)
+        self.calls += 1
+        self.input_tokens += result.input_tokens
+        self.output_tokens += result.output_tokens
+        self.cached_tokens += result.cached_tokens
+        model = result.model if result.model in PRICES_PER_MTOK else "claude-opus-5"
+        try:
+            self.cost += estimate_cost(model, result.input_tokens,
+                                       result.output_tokens, result.cached_tokens)
+        except Exception:
+            pass
+        return result
+
+    def report(self):
+        return {"calls": self.calls, "input_tokens": self.input_tokens,
+                "output_tokens": self.output_tokens,
+                "cached_tokens": self.cached_tokens, "cost_usd": round(self.cost, 4)}
+
+
 def stub_backend():
     """Canned replies, so the plumbing and prompts can be checked for free."""
     class Stub:
@@ -193,7 +240,7 @@ def main(argv=None):
                     help=f"comma-separated, from: {','.join(SCENES)}")
     ap.add_argument("--rounds", type=int, default=6,
                     help="replies per scene (default 6, so a thread can develop)")
-    ap.add_argument("--memory-store", default="data/phase13-step4-retirement-store",
+    ap.add_argument("--memory-store", default="data/phase13-rehearsal-store",
                     help="store to read logbooks from, read-only; '' for none")
     ap.add_argument("--model", default="claude-opus-5")
     ap.add_argument("--effort", default="low")
@@ -232,7 +279,7 @@ def main(argv=None):
 
     if args.backend == "anthropic":
         from clude_llm.anthropic_backend import AnthropicBackend
-        backend = AnthropicBackend()
+        backend = Metering(AnthropicBackend())
     elif args.backend == "stub":
         backend = stub_backend()
     else:
@@ -240,17 +287,17 @@ def main(argv=None):
 
     settings = LLMSettings(model=args.model, effort=args.effort,
                            remark_max_tokens=args.max_tokens, speak=True)
-    wrappers = {}
-    for name in ROSTER:
-        wrappers[name] = build(name, backend, settings,
-                               args.memory_store or None)
-        wrappers[name].rng = Random(args.seed)
 
     print(f"backend {args.backend}; chattiness forced to 1.0; "
           f"{len(keys)} scene(s) x {args.rounds} rounds")
     results = []
     for key in keys:
         print(f"\n  == {key} ==")
+        wrappers = {}
+        for name in ROSTER:
+            wrappers[name] = build(name, backend, settings,
+                                   args.memory_store or None)
+            wrappers[name].rng = Random(args.seed)
         results.append(run_scene(key, SCENES[key], wrappers, args.rounds,
                                  not args.quiet))
 
@@ -267,13 +314,20 @@ def main(argv=None):
     if spoke:
         print(f"  non-game share of spoken lines: {tally['other'] / spoke:.0%}")
 
+    usage = backend.report() if isinstance(backend, Metering) else None
+    if usage:
+        print(f"  spent: ${usage['cost_usd']:.4f} over {usage['calls']} calls "
+              f"({usage['input_tokens']} in, {usage['cached_tokens']} cached, "
+              f"{usage['output_tokens']} out)")
+
     os.makedirs(args.out, exist_ok=True)
     path = os.path.join(args.out, f"rehearsal-{args.backend}.json")
     with open(path, "w", encoding="utf-8", newline="\n") as fh:
         json.dump({"backend": args.backend, "model": args.model,
                    "chattiness": 1.0, "rounds": args.rounds,
                    "memory_store": args.memory_store,
-                   "tally": tally, "scenes": results}, fh, indent=2)
+                   "usage": usage, "tally": tally, "scenes": results},
+                  fh, indent=2)
         fh.write("\n")
     print(f"  transcript: {path}")
     return 0

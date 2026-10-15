@@ -227,7 +227,7 @@ def test_debrief_writes_an_entry_and_the_next_prompt_shows_it(tmp_path):
 
     request = wrapper.backend.requests[-1]
     assert request.kind == LOGBOOK_KIND and request.schema is LOGBOOK_SCHEMA
-    assert request.effort == "medium" and request.max_tokens == 4096 and request.memory == ""
+    assert request.effort == "medium" and request.max_tokens == 8192 and request.memory == ""
     assert request.timeout == 180.0
     prompt = request.user
     assert prompt.startswith("The game is over. This is your debrief, Miss Scarlett")
@@ -263,6 +263,8 @@ def test_debrief_failures_write_nothing(tmp_path):
 
     for responses, reason in (
         ("not json at all", "malformed"),
+        ([LLMResult(text='{"title": "cut off mid-str', stop_reason="max_tokens",
+                     output_tokens=8192)], "truncated"),
         ([LLMResult(text="{}", stop_reason="refusal")], "refusal"),
         ([RuntimeError("boom")], "error: RuntimeError"),
     ):

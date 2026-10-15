@@ -51,7 +51,7 @@ Wikiclude is the canon an LLM seat knows ([the plan](canon-plan.md), 2026-10-09)
 
 The backend delegates authentication to the SDK; direct scripts should export `ANTHROPIC_API_KEY` explicitly. Web config also supports selected `.env` fallbacks. In earlier live checks, organization keys failed because the backend does not supply a workspace header; use the workspace-scoped key provisioned for the service. Missing/bad credentials produce fallback, which must be distinguished from a successful model run.
 
-Defaults in LLMSettings: configured model `claude-opus-5`, low effort, 2048 tokens, 30 s timeout, 200 calls/500K tokens per game, eight recent talk lines; debrief medium effort/4096 tokens/180 s; condensing the debrief's effort and timeout with 8192 tokens; reaction 200 tokens; three lookups a call and twelve a game. AnthropicBackend defaults to one SDK retry. These are code settings, not verified current provider capabilities/pricing.
+Defaults in LLMSettings: configured model `claude-opus-5`, low effort, 2048 tokens, 30 s timeout, 200 calls/500K tokens per game, eight recent talk lines; debrief medium effort/8192 tokens/180 s; condensing the debrief's effort and timeout with 8192 tokens; reaction 200 tokens; three lookups a call and twelve a game. AnthropicBackend defaults to one SDK retry. These are code settings, not verified current provider capabilities/pricing.
 
 MeteredBackend wraps web calls, pricing model IDs from the repository table. It checks table/day caps before calls; actual usage can overshoot the remaining allowance by the final accepted call. It refuses unpriced models. Table/seat ledger persists across UTC midnight; daily ledger is service-wide. Model-visible prompts/logbooks contain no spend.
 

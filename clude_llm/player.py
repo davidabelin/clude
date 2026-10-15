@@ -62,7 +62,7 @@ class LLMSettings:
        ; False skips the call.
     debrief_effort, debrief_max_tokens, debrief_timeout
         The debrief's own effort, room and patience: a reflective task,
-        unlike a move, gets ``medium``, 4096 tokens and 180 s by default
+        unlike a move, gets ``medium``, 8192 tokens and 180 s by default
         (at medium effort it runs 40-90 s, past a move's 30 s).
     remark_max_tokens
         Room for an off-turn line: one short sentence.
@@ -83,7 +83,7 @@ class LLMSettings:
     server_fallbacks: bool = True
     debrief: bool = True
     debrief_effort: str = "medium"
-    debrief_max_tokens: int = 4096
+    debrief_max_tokens: int = 8192
     debrief_timeout: float = 180.0
     remark_max_tokens: int = 200
     max_lookups_per_call: int = 3
@@ -352,6 +352,15 @@ class LLMCharacter:
                 f"error: {result.error or result.stop_reason or 'empty reply'}"
             )
             self.last_debrief = {"called": True, "fallback": reason, **cost}
+            return None
+        if result.stop_reason == "max_tokens":
+            # A cut-off reply cannot parse; say so rather than blame the JSON.
+            self.last_debrief = {
+                "called": True,
+                "fallback": f"truncated: stopped at max_tokens after "
+                            f"{result.output_tokens} output tokens",
+                **cost,
+            }
             return None
         try:
             written = parse_response(LOGBOOK_KIND, result.text)

@@ -6,19 +6,21 @@ the phase; [the roadmap](phase-plan.md) owns the short status summary.
 
 **Current state:** Step 0's editorial pass is live, and steps 1-3's six
 broader persona scripts, shared premise and listening guidance are edited
-locally for review and rehearsals. A live audit on 2026-10-14 found the
-bucket running ahead of the edited snapshot and the head layer regenerating
-every game: one of step 0's thirty-five edited standing instructions
-survives in live memory, while its digests survive intact. Every current
-character now carries a self-written rule against talking at the table.
-Step 0's remaining scope is therefore narrowed to the layers play does not
-rewrite, retiring those rules moves to step 4, and isolating the reply taper
-becomes a precondition for rehearsals rather than a later tuning question
-(sections 3, 4, 6 and 9). The available local
-history covers five current characters; current Plum is absent and PlumOG
-is retained unchanged. Game runtime and wiki articles are unchanged;
-steps 4-6 and model rehearsals remain planned. Both exact-game replay
-recordings are historical pending an approved refresh.
+locally for review and rehearsals. **Step 4 is deployed and accepted live**
+(revision `clude-00029-8k8`, 2026-10-14): two games played that evening show
+the characters remembering the company, and no live head carries a rule
+against talking any more. The generator change retired those rules by
+itself, so only the staged digest clause needed applying and the staged head
+pass is moot. One consequence of the broader entries is fixed in the same
+pass: Plum's debrief for `web-2/00012` was cut off by a 4096-token cap that
+covers thinking and reply together, and wrote no entry. The available local
+history covers five current characters; current Plum has no local logbook,
+though his live logbook holds seven entries, and PlumOG is retained
+unchanged and still carries the old rule, harmlessly, being unseatable.
+Game runtime and wiki articles are unchanged; step 0's flag remainder,
+step 5, step 6 and the model rehearsals remain planned, and the reply taper
+is still to be isolated before a rehearsal can judge steps 1-5. Both
+exact-game replay recordings are historical pending an approved refresh.
 Implementation evidence belongs in section 10 below, not in the proposed
 acceptance criteria.
 
@@ -123,7 +125,7 @@ increments may touch several files, but should have one reviewable purpose.
 | 1 | Six broader, distinctive, playable persona scripts | Edited locally for script review; offline verification below; ensemble behavior awaits rehearsals |
 | 2 | Light shared premise and individual fourth-wall attitudes | Drafted locally with step 1; responses remain changeable; awaits script review/rehearsals |
 | 3 | Listening, reply, silence, and thread-continuity guidance | Shared/decision/reaction guidance edited within the existing window; observed continuity awaits rehearsals |
-| 4 | Debrief and condensation guidance that preserves social continuity, and one pass retiring the rules it supersedes | Planned; owns the head layer, which step 0 cannot hold |
+| 4 | Debrief and condensation guidance that preserves social continuity, and one pass retiring the rules it supersedes | Deployed and accepted live 2026-10-14/15 ([record](#2026-10-15-step-4-accepted-live-and-a-debrief-lost-to-its-token-cap)); the generator retired the rules itself, so only the digest clause was applied |
 | 5 | Fallible Wikiclude guidance and aligned character/reference articles | Planned; agree scripts first, release related text together |
 | 6 | Consistent participant names and measured conversation pacing | Tuning planned after the scripts, but isolating the reply taper is a rehearsal precondition; `focus` remains deferred |
 | Acceptance | Offline checks, approved model rehearsals, accurate docs and fresh recordings | Run applicable checks per increment; rehearse with the talk gate isolated; one recording refresh after steps 3-5; paid work separately estimated |
@@ -365,6 +367,15 @@ generator changes, or the next debrief reissues the rule. Prefer a direct
 edit to a paid `condense`: the digest themes survived step 0 precisely
 because condensation had not run, and that is also why they still need
 touching by hand.
+
+**Outcome, 2026-10-14/15.** Only the digest clause needed the hand edit. Two
+games after the deploy rewrote every head from scratch under the new
+instructions, and none of them reissued a rule against talking, so the four
+staged head revisions were never applied and should not be: the documents
+they were built from have moved on. The layer a debrief does not rewrite was
+the only one that required a pass by hand, which is the distinction section
+0e drew. [The record](#2026-10-15-step-4-accepted-live-and-a-debrief-lost-to-its-token-cap)
+holds the evidence.
 
 ## 7. Step 5: fallible Wikiclude and reference material
 
@@ -763,3 +774,117 @@ retirement of what they supersede. Offline only; no game was played.
   no test asserted on the revised prompt wording. Markdown targets/anchors in
   the edited guides resolve and `git diff --check` is clean. No paid call,
   cloud write, deployment or fixture refresh. Changes are uncommitted.
+
+### 2026-10-15: step 4 accepted live, and a debrief lost to its token cap
+
+Two games were played on the deployed service on 2026-10-14 and their
+debriefs read the next day. Step 4's generator change is accepted: the
+characters now remember the company, and the rules against talking are gone
+from every live head without the staged head pass being applied.
+
+**What was deployed and applied.** `gcloud run revisions list` shows
+`clude-00029-8k8` live from 2026-10-14 20:17:33 UTC. Of the staged
+retirement, only the digest clause was written to the bucket:
+`Peacock/digest.json` was updated at 20:29:16 UTC and is identical to
+`data/phase13-step4-retirement/digests/Peacock.json`. The four staged heads
+were not applied, and two pieces of evidence agree on it -- Peacock's entry
+16, written by the first debrief after the deploy, still carries the pass's
+*before* clause ("investigate it rather than remark upon it"), and no clause
+in any of the four live heads matches a staged head clause verbatim (0 of 8,
+four times over). The head pass is therefore moot, and `verify_live.py`
+refuses it correctly: all five documents have moved on.
+
+**The games.** `web-2/00011`, three seats (david at Green, Peacock and Plum
+on models), $0.8621; `web-2/00012`, all six characters on models, $1.9666.
+$2.8287 together, from the seat costs in the game records. Both post-date
+the deploy and the digest edit.
+
+**What the fresh entries record.** The evening is in them. Scarlett's #21
+closes on Peacock's curtsey line, Mustard reasoning aloud so the rest of the
+table could borrow it, and a conversation with Green that the game ended
+underneath: "I'd sit down with all of them again." Peacock's #16 keeps the
+figure she and Plum sustained about ledgers, currencies and denominations,
+and judges the conversation "the best part of my evening and the worst part
+of my game". Plum's #7 has Green on cheap drones, NPR and the incentives of
+asymmetric war. `talkative-opponent` appears as a flag. These are the fields
+step 4 broadened, used as intended.
+
+**The rules are gone.** No live head carries a rule against talking. Five of
+the six close on a licence to converse -- White's "the company is not a
+cost", Green's "the talk costs me nothing", Peacock's "the talk is half the
+evening and worth every line of it", Scarlett's "none of that costs a turn",
+Plum's "answer Green's drones and Peacock's ledgers properly". Mustard, who
+needed no retirement, now folds the discretion into "enjoy the table without
+handing the best reader my itinerary". Each head's whole list was rewritten
+from scratch: discretion survives, scoped to own cards, a decisive inference
+or a destination in use, which is what the pass's principle asked for.
+
+One clause from the staged list is still live in a narrowed form: Peacock's
+"investigate it on my next step rather than remarking upon it at the table".
+Both post-deploy debriefs carried it forward. It is scoped to a rival's tell
+rather than to conversation generally, so it is a judgement call for David
+and not grounds to re-apply a stale pass over newer work.
+
+**A debrief lost to its token cap.** Plum has no entry for `web-2/00012`,
+though he held seat 5 on a model. The table document records seat 5 as
+failed, `"malformed: not JSON (Unterminated string starting at: line 1
+column 6955 (char 6954))"`: the reply was cut off mid-string, not malformed.
+`debrief_max_tokens` was 4096, and that cap covers the adaptive thinking and
+the reply together. The broadened entries are 7.6-9.3 KB of JSON where they
+were 5.2-8.0 KB, so a long think no longer leaves room for one -- Green's
+#17 came in at 9.3 KB, close behind Plum. This is a direct consequence of
+step 4 and was not foreseen when the fields were broadened.
+
+- `clude_llm/player.py`: `debrief_max_tokens` 4096 to 8192, matching the cap
+  condensation already uses, and a `max_tokens` stop is now reported as
+  `truncated: stopped at max_tokens after N output tokens` rather than
+  reaching the parser and being blamed on the JSON. The condensation and
+  decision paths are unchanged.
+- `tests/test_debrief.py`: a truncated reply is covered beside the refusal,
+  error and malformed cases; the request assertion follows the new cap.
+- `docs/logbooks.md`, `docs/llm-wrapper.md` and the `LLMSettings` docstring
+  carry the new figure and say that the cap covers thinking and reply.
+- Plum's seat paid for the lost entry. His head and tally still stand at #7
+  and `web-2/00011`, which is consistent, not corrupt: a failed debrief
+  writes nothing. The record for `web-2/00012` is retained, so that one
+  debrief could be re-run offline for about one seat-debrief. **Pending
+  David's approval**, as a paid call.
+
+**The rehearsal harness.** `scripts/phase13_rehearse.py`, uncommitted since
+the 2026-10-14 run, is fixed and committed with this pass:
+
+- `Logbook(store, name, readonly=True)` raised `TypeError` into the "no
+  logbook" guard -- `Logbook` takes no such argument -- so every rehearsal
+  before the fix ran with no memory attached at all. The store is a snapshot
+  copy and the harness never debriefs, so nothing was written to it.
+- Wrappers are built per scene, so one scene's talk cannot reach the next
+  through a wrapper's own memory.
+- `GAME_WORDS` is narrowed to terms with no ordinary social sense, with a
+  phrase list beside it. The first paid run showed "suspect", "deduction",
+  "silence", "notes" and even "square" -- Mustard's square and compasses --
+  firing on plain conversation. Undercounting game talk is the safer error,
+  since the question is whether anything other than the game gets said.
+- A `Metering` wrapper reports what a run actually spent, rather than an
+  estimate.
+- `--memory-store` defaulted to `data/phase13-step4-retirement-store`, which
+  does not exist; it is now `data/phase13-rehearsal-store`, the snapshot the
+  recorded run read.
+
+**Rehearsal result** (`data/phase13-rehearsal/rehearsal-anthropic.json`,
+2026-10-14): two scenes, six rounds, `claude-opus-5`, low effort, chattiness
+forced to 1.0, logbooks from the snapshot. 12 spoken lines, 9 of them free of
+game terms (75%), none silent, no errors; 12 calls, 4,881 input, 41,514
+cached, 547 output tokens, $0.0588. **Correction:** this was reported as 83%
+in discussion; the transcript is the record and the share is 75%. The scenes
+show the characters will carry a non-game exchange with the taper forced
+open. They do not measure pacing at the live taper, which section 3's second
+ordering constraint still requires before rehearsals can judge steps 1-5, and
+they covered two of the harness's five scenes. The three unrehearsed ones are
+the ones that would test the rest: `news` for the shared background,
+`scripts` for the fourth wall (step 2) and `answered` for returning to the
+game when it matters.
+
+**Verification.** `python -m pytest -q -n auto` passes (619 passed, 36
+skipped). The live work in this pass was reads only: no cloud write, no
+deployment, no paid call and no fixture refresh. Both exact-game recordings
+stay pending the single approved refresh after steps 3-5.
