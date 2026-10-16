@@ -30,7 +30,7 @@ tests. Step 0's remainder is prepared as
 `scripts/phase13_flag_hygiene.py` and awaits one `--apply`. The off-turn
 taper is deliberately left alone, with the baseline a later comparison
 would start from recorded. Wikiclude's article pass is handed to
-[its own plan](wikiclude-plan.md#14-w8-the-phase-13-alignment-pass-handed-over-2026-10-15)
+[its own plan](wikiclude-plan.md#14-w8-the-phase-13-alignment-pass)
 as W8. What remains of this phase is the deploy and that one command.
 Implementation evidence belongs in section 10 below, not in the proposed
 acceptance criteria.
@@ -137,7 +137,7 @@ increments may touch several files, but should have one reviewable purpose.
 | 2 | Light shared premise and individual fourth-wall attitudes | Drafted locally with step 1; responses remain changeable; awaits script review/rehearsals |
 | 3 | Listening, reply, silence, and thread-continuity guidance | Shared/decision/reaction guidance edited within the existing window; observed continuity awaits rehearsals |
 | 4 | Debrief and condensation guidance that preserves social continuity, and one pass retiring the rules it supersedes | Deployed and accepted live 2026-10-14/15 ([record](#2026-10-15-step-4-accepted-live-and-a-debrief-lost-to-its-token-cap)); the generator retired the rules itself, so only the digest clause was applied |
-| 5 | Fallible Wikiclude guidance and aligned character/reference articles | Prompts done 2026-10-15 ([record](#2026-10-15-step-5s-prompts-and-the-coordination-minimum-in-the-wiki)), with the three articles that restated the old brief fixed; the article pass is [Wikiclude's W8](wikiclude-plan.md#14-w8-the-phase-13-alignment-pass-handed-over-2026-10-15) |
+| 5 | Fallible Wikiclude guidance and aligned character/reference articles | Prompts done 2026-10-15 ([record](#2026-10-15-step-5s-prompts-and-the-coordination-minimum-in-the-wiki)), with the three articles that restated the old brief fixed; the article pass is [Wikiclude's W8](wikiclude-plan.md#14-w8-the-phase-13-alignment-pass) |
 | 6 | Consistent participant names and measured conversation pacing | Done 2026-10-15: names and the on-turn gate ([record](#2026-10-15-the-rehearsal-completed-and-step-6s-naming-and-pacing)); the off-turn taper is left alone on the evidence, with its baseline recorded ([record](#2026-10-15-the-taper-left-alone-the-fixtures-refreshed-step-0-closed-out)); `focus` remains deferred |
 | Acceptance | Offline checks, approved model rehearsals, accurate docs and fresh recordings | Offline suite green at 622; the five-scene rehearsal complete ($0.1373); both recordings refreshed ($0.1524); step 4 accepted live. Outstanding: the deploy of steps 5-6 and one `--apply` ([record](#2026-10-15-the-taper-left-alone-the-fixtures-refreshed-step-0-closed-out)) |
 
@@ -1094,7 +1094,7 @@ exact-game recordings stay pending the one approved refresh.
 ### 2026-10-15: the taper left alone, the fixtures refreshed, step 0 closed out
 
 The last of the phase's own work. Wikiclude's article pass is handed to
-[its own plan](wikiclude-plan.md#14-w8-the-phase-13-alignment-pass-handed-over-2026-10-15)
+[its own plan](wikiclude-plan.md#14-w8-the-phase-13-alignment-pass)
 as W8, which is where article work belongs.
 
 **The off-turn taper: no change, and why.** Section 8 says to change only

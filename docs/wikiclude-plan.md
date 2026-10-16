@@ -1,8 +1,46 @@
-# Wikiclude (D20, was 10i): the plan -- NEXT REWRITE TO REFLECT LATEST CHANGES
+# Wikiclude (D20, was 10i): the plan
 
-Status: **W1–W5 built; W6, W7 and W8 remain.** W8 is new: Phase 13's character development landed in the prompts and the game, and the encyclopaedia has not caught up (section 14). Proposed 2026-10-01, with David's four answers recorded that day (section 7). W1 was built on `wikiclude`, merged and made live as `clude-00021-fmb` (section 9); W2 followed on `claude/great-knuth-e8o5tl` (section 10). The editorial pass and W3–W5 were completed locally on 2026-10-02 (sections 11–12). Where the implementation records differ from the original design, the later records describe what was built.
+Wikiclude is clude's own encyclopaedia: one article per subject, written
+for family and friends at every level of expertise at once, in Wikipedia's
+organisation and clude's looks. It is public, it is the house reference the
+model seats read, and its articles are Markdown files in the repo.
 
-Current local status (2026-10-15): **95 articles, with no wanted pages**, after Phase 12's pass added the Algorithms entries, the portraits and the algorithm boxes (section 13). W3–W5 article creation and local verification are complete (section 12). **W8, the Phase 13 alignment pass, is next**, and is the larger of the two remaining writing jobs; W6, the app and project, and W7, the featured-article pass, follow. Sections 9–13 retain the earlier implementation and editorial records.
+## Where it stands (2026-10-15)
+
+**Built, live and public.** 95 articles across ten categories, zero wanted
+pages, 98 distinct Wikipedia titles all confirmed to exist, one featured
+article and 47 "Did you know" entries. Deployed and serving: `/wiki`
+answers 200 without a login, as W-D3 decided (section 7).
+
+| Category | Articles | | Category | Articles |
+|---|---|---|---|---|
+| Algorithms (all stubs, by design) | 21 | | Mathematics | 8 |
+| The app | 15 | | Characters | 8 |
+| The game | 10 | | Classwork | 6 |
+| Measurement | 9 | | Personality | 5 |
+| Methods | 9 | | Memory | 4 |
+
+**What is left, in the order it should be done:**
+
+1. **[W8, the Phase 13 alignment pass](#14-w8-the-phase-13-alignment-pass).
+   This is the next big write, and section 14 is its brief.** Phase 13
+   developed the six characters and changed what the prompts tell them;
+   the encyclopaedia still describes the arrangement that preceded it.
+2. **W7, the featured-article pass**, now mostly a corpus-wide reread
+   against sections 3.1 and 3.2, plus a look at the screenshots. Its other
+   gates are met: no wanted pages, the Wikipedia titles check passes, the
+   navboxes and "Did you know" are filled.
+
+**W6 is done** in substance, though it was never formally closed: every
+article it listed exists, including the classwork archive. W1–W5 are built
+and verified.
+
+**How to read the rest of this document.** Sections 1–8 are the original
+design of 2026-10-01 and are still the style guide: section 3 in particular
+governs every article and has not been superseded. Sections 9–13 are dated
+records of what was actually built, and where they differ from the design
+they win. Section 14 is the brief for the next write. Stale claims in
+sections 1–8 carry a dated correction where they would otherwise mislead.
 
 ## 1. Context: David's brief (2026-10-01)
 
@@ -31,6 +69,13 @@ This is D20 of `docs/phase10-plan.md`, which replaced D13's two explainers: one 
 - **The Drive folder** is the Udacity deep-reinforcement-learning classwork: `RL cheatsheet.pdf` (read), the DQN paper in *Nature*, the dueling-DQN and prioritised-replay papers, DeepNash (Stratego, the one imperfect-information game paper here, and the most relevant to Clue), Heess et al. on locomotion, the DCGAN paper, OSMnx.
 - **`RL text.pdf` would not open**: at 89 MB Drive returns no text for it, and it is too large to pull through this session. The classwork README calls the course textbook Sutton and Barto, *Reinforcement Learning: An Introduction* (2nd ed., 2018), which I know well enough to cite by chapter and section. **I am assuming that is the book; say if it is not.** Page numbers I will leave out unless you want to spot-check them.
 - **Wikipedia itself is unreachable from this workspace** (the network policy refuses it), so I am working from WP:MOS as I know it, and every Wikipedia link target needs a check I cannot run here. Section 3.6 has the test for that, to be run on Orbit.
+
+> **Both resolved since.** David confirmed Sutton and Barto the same day
+> (W-D4), and Phase 12's pass checked the chapter and section numbers
+> against the archive copy of the contents (13.3). The Wikipedia check runs
+> on Orbit and **passed on 2026-10-15**: all 98 distinct titles the articles
+> link to exist. Run it with `CLUDE_WIKI_LIVE=1` against
+> `tests/test_wiki.py`.
 
 ## 3. Design
 
@@ -94,9 +139,12 @@ Every figure has a caption and alt text, sits in a Wikipedia-style thumb frame, 
 
 - **Articles are Markdown files with a front-matter block**, one per article, in `clude_web/wiki/articles/`. Markdown because the sources are Markdown, because you can edit an article in VS Code and read the diff, and because Python-Markdown's own extensions give footnotes (References), the table of contents, tables and definition lists for nothing.
 - **One new dependency: `markdown`** (pure Python), added to both requirements files. Wikilinks, the infobox, figures and the fact table are a small extension of ours in `clude_web/wiki/render.py`.
-- **Mathematics**: written as LaTeX between `$...$`, rendered on the server to MathML, which every current browser draws natively: no script, no web font, nothing for a phone to download. That needs one more pure-Python package, `latex2mathml`. **If it looks poor on a phone when we see the first article, the fallback is KaTeX, vendored and self-hosted like the fonts.** I would rather show you both on Plum's article than argue it in the abstract.
+- **Mathematics**: written as LaTeX between `$...$`, rendered on the server to MathML, which every current browser draws natively: no script, no web font, nothing for a phone to download. That needs one more pure-Python package, `latex2mathml`. **If it looks poor on a phone when we see the first article, the fallback is KaTeX, vendored and self-hosted like the fonts.** I would rather show you both on Plum's article than argue it in the abstract. *(Server-rendered MathML shipped and stayed: `latex2mathml` is in both requirements files and the KaTeX fallback was never needed.)*
 - **Everything is rendered once, at start-up**, into an in-memory index: articles, redirects, categories, backlinks, the search index. A page view is a dictionary lookup. A malformed article fails the app's start and a test, not a reader.
-- **Routes**, all behind the login like the rest of the app: `/wiki` (the Main Page), `/wiki/<title>`, `/wiki/Category:<name>`, `/wiki/Special:AllPages`, `/wiki/Special:Random`, `/wiki/Special:WhatLinksHere/<title>`, `/wiki/Special:WantedPages`, `/wiki/Special:Search`.
+- **Routes.** `/wiki` (the Main Page), `/wiki/<title>`, `/wiki/Category:<name>`, `/wiki/Special:AllPages`, `/wiki/Special:Random`, `/wiki/Special:WhatLinksHere/<title>`, `/wiki/Special:WantedPages`, `/wiki/Special:Search`. This originally said
+  "all behind the login like the rest of the app"; W-D3 reversed that the
+  same day and the pages are public, which is what shipped and what
+  `test_wikiclude_is_public_and_every_kind_of_page_answers` holds.
 - **Layout.** At 390 px: the infobox full width under the lead's first paragraph, the contents collapsed, tables scrolling sideways inside their own frame. From about 900 px: a contents rail on the left, the article in a measure of about 70 characters, the infobox floated right, as Wikipedia has it.
 - **Developer look.** The same pages on `legacy.css`'s tokens. No separate markup.
 
@@ -109,7 +157,18 @@ Every figure has a caption and alt text, sits in a Wikipedia-style thumb frame, 
 
 ## 4. The articles
 
-About seventy, in eight categories. Titles are provisional; redirects make the short names work (`Plum`, `Scarlett`, `DS`).
+> **Superseded as an inventory, 2026-10-15.** The table below is the
+> original forecast: about seventy articles in eight categories. What was
+> built is 95 articles in ten, the two extra categories being *Algorithms*
+> and *Classwork*, which Phase 12 added (13.3). Several titles changed in
+> the writing -- *Counting deals* became *Combinatorics of a deal*, *The
+> ring board* became part of *History of clude*. For what exists, read
+> `clude_web/wiki/articles/` or the counts under **Where it stands**; the
+> table is kept because it records the original shape of the thing and the
+> reasoning behind the categories.
+
+Titles are provisional; redirects make the short names work (`Plum`,
+`Scarlett`, `DS`).
 
 | Category | Articles |
 |---|---|
@@ -124,20 +183,32 @@ About seventy, in eight categories. Titles are provisional; redirects make the s
 
 ## 5. Sub-phases
 
-| | What | Gate |
-|---|---|---|
-| **W1** | The engine (loader, renderer, routes, index), `wiki.css` in all three looks, the Main Page, and **three exemplar articles, one of each kind**: *Professor Plum* (a character), *Naive Bayes* (a method, the two diagrams that exist), *Suggestion* (a game concept), plus stubs for what they link to | David reads the three on his phone in both themes and says what to change. The style is settled here, before it is multiplied by seventy |
-| **W2** | The other five characters, the other five methods, Deduction floor, Belief | Every character and method has its article; all numbers through `facts.py` |
-| **W3** | The game | A newcomer can learn to play from the wiki alone |
-| **W4** | Personality, the LLM wrapper, memory | |
-| **W5** | Measurement and the mathematics | |
-| **W6** | The app and the project; the classwork archive begun | |
-| **W7** | The featured-article pass: every article reread against 3.1 and 3.2, "Did you know" filled, navboxes, zero red links, the live Wikipedia-link check | Zero wanted pages; the suite green; shots looked at |
-| **W8** | The Phase 13 alignment pass: the six characters as people, table talk as conversation, the encyclopaedia's own fallibility, and the memory articles (section 14) | Every article agrees with the deployed prompts; a character reading its own article finds nothing that contradicts what it was told, and nothing that reinstates a retired instruction |
+| | What | Gate | Status |
+|---|---|---|---|
+| **W1** | The engine (loader, renderer, routes, index), `wiki.css` in all three looks, the Main Page, and **three exemplar articles, one of each kind**: *Professor Plum* (a character), *Naive Bayes* (a method, the two diagrams that exist), *Suggestion* (a game concept), plus stubs for what they link to | David reads the three on his phone in both themes and says what to change. The style is settled here, before it is multiplied by seventy | Done 2026-10-01 (section 9) |
+| **W2** | The other five characters, the other five methods, Deduction floor, Belief | Every character and method has its article; all numbers through `facts.py` | Done 2026-10-02 (section 10) |
+| **W3** | The game | A newcomer can learn to play from the wiki alone | Done 2026-10-02 (section 12) |
+| **W4** | Personality, the LLM wrapper, memory | | Done 2026-10-02 (section 12) |
+| **W5** | Measurement and the mathematics | | Done 2026-10-02 (section 12) |
+| **W6** | The app and the project; the classwork archive begun | | Done in substance: every article listed exists, the archive among them |
+| **W7** | The featured-article pass: every article reread against 3.1 and 3.2, "Did you know" filled, navboxes, zero red links, the live Wikipedia-link check | Zero wanted pages; the suite green; shots looked at | Partly done: no wanted pages, the Wikipedia check passes (2026-10-15), navboxes and 47 "Did you know" entries in place. **Left: the corpus-wide reread, and the shots** |
+| **W8** | The Phase 13 alignment pass: the six characters as people, table talk as conversation, the encyclopaedia's own fallibility, and the memory articles (section 14) | Every article agrees with the deployed prompts; a character reading its own article finds nothing that contradicts what it was told, and nothing that reinstates a retired instruction | **Next.** Brief in section 14 |
 
-W1 is the day's work that matters; W2 to W6 are mostly writing and go quickly once the style is fixed. W8 arrived later, from Phase 13, and is writing of the same kind: the style is long settled, so the work is in getting the substance to agree with the characters as they now are.
+W1 was the day's work that mattered; W2 to W6 were mostly writing and went
+quickly once the style was fixed. W8 arrived later, from Phase 13, and is
+writing of the same kind: the style is long settled, so the work is all in
+getting the substance to agree with the characters as they now are. Do W8
+before W7's reread, so the reread sees the finished text once.
 
 ## 6. Files
+
+> **As built it is larger, 2026-10-15.** `clude_web/wiki/` also holds
+> `sources.py` (the bibliography) and `portraits.py` (the six engraved
+> plates, Phase 12), and `clude_web/templates/wiki/` also holds
+> `layout.html` and `figure.html`. `scripts/build_portraits.py` draws the
+> contact sheet. No article work needs a new file: an article is one
+> Markdown file in `clude_web/wiki/articles/`, and the renderer, the fact
+> table and the tests already handle it.
 
 New:
 
@@ -158,7 +229,7 @@ Changed: `clude_web/views.py` (the routes), `clude_web/templates/wiki.html` (rem
 - **W-D3. Who can read it.** Behind the login, as now, or public like Privacy.
 - **W-D4. The textbook** is Sutton and Barto, 2nd edition (2.2). Confirm, or name it.
 
-**David's answers (2026-10-01).** W-D1: push a branch. W-D2: W1, then his review. W-D3: **public**, reversing the plan's 3.5 ("behind the login like the rest of the app"). W-D4: yes, Sutton and Barto.
+**David's answers (2026-10-01).** W-D1: push a branch. W-D2: W1, then his review. W-D3: **public**, reversing the plan's 3.5 ("behind the login like the rest of the app"). W-D4: yes, Sutton and Barto. All four are settled and implemented; nothing in section 7 is an open question. Work now happens in David's working tree on Orbit rather than on a pushed branch.
 
 Assumed unless you say otherwise: British spelling; `markdown` and `latex2mathml` as the two new dependencies; MathML first with KaTeX as the fallback; red links allowed until W7; character articles under their full names with redirects from the short ones.
 
@@ -364,82 +435,153 @@ David's brief for Phase 12's wiki work (N7), the same day: more visuals (archite
 
 The live Wikipedia-title check for the new `[[w:...]]` links; W7's corpus-wide pass. Nothing here is deployed.
 
-## 14. W8: the Phase 13 alignment pass (handed over 2026-10-15)
+> **Updated 2026-10-15.** The Wikipedia-title check has been run and passes
+> for all 98 titles. Everything here is deployed: the wiki went out with
+> the Phase 13 step 4 release (`clude-00029-8k8`, 2026-10-14) and `/wiki`
+> serves publicly. W7's corpus-wide pass is still open, and should follow
+> W8 so it rereads the finished text.
 
-[Phase 13](phase13-plan.md) developed the characters and changed what the
-prompts tell them. Its steps 1-6 are implemented, step 4 is live, and steps
-5 and 6 are committed and awaiting one deploy. The encyclopaedia describes
-the arrangement that preceded them. This section is the handover: what
-Phase 13 already changed here, and what remains for this plan to write.
+## 14. W8: the Phase 13 alignment pass
 
-### 14.1 What Phase 13 changed in the wiki, and why it stopped there
+**This is the brief for the next write.** Everything needed to start is in
+this section; sections 1-8 remain the style guide, and section 3 in
+particular still governs every article.
 
-Phase 13's step 5 requires the script and wiki changes to be released
-together, so that a lookup cannot hand a character back an instruction the
-prompts have retired. Three articles *stated* the retired brief, and only
-those three sentences were changed, on 2026-10-15:
+### 14.1 Why W8 exists
 
-- *A seat over MCP*: the tool-table row, and the summary of the server's
+[Phase 13](phase13-plan.md) spent two weeks developing the six characters:
+they were given interests, histories and opinions, told something about
+their own nature, encouraged to listen and reply to each other, and allowed
+to doubt the encyclopaedia instead of obeying it. Their memory now records
+the evening as an occasion as well as the play. All of it is implemented;
+step 4 has been live since 2026-10-14 and steps 5 and 6 are committed.
+
+Wikiclude describes the arrangement that preceded all that. Nothing in it is
+*wrong* about the game, and the three articles that actively contradicted
+the new prompts were corrected on 2026-10-15 (14.2). But a reader meeting
+Mrs. Peacock here still meets a probability method with a voice, not a woman
+who keeps a ledger and watches FOX News, and *Table talk* still describes
+conversation as something the game tolerates.
+
+W8 closes that gap. It is writing, not engineering: no new file, no renderer
+change, no new dependency. An article is one Markdown file in
+`clude_web/wiki/articles/`.
+
+### 14.2 What has already been done -- do not redo it
+
+Phase 13's step 5 required the script and wiki changes to ship together, so
+that a lookup could not hand a character back an instruction the prompts had
+retired. Three articles *stated* the retired brief, and exactly those
+sentences were changed on 2026-10-15:
+
+- ***A seat over MCP***: the tool-table row, and the summary of the server's
   instructions.
-- *Claude*: the canon in both the wrapped-model and the chat-seat paragraphs.
-- *LLM wrapper*: the paragraph that told the reader the rules trust the canon
-  over recollection and table talk and never cite it aloud, now the
-  distinction in 14.2.
+- ***Claude***: the canon, in both the wrapped-model and the chat-seat
+  paragraphs.
+- ***LLM wrapper***: the paragraph that told the reader the rules trust the
+  canon over recollection and table talk and never cite it aloud. It now
+  carries the distinction in 14.3.
 
 Section headings and `[[wiki links]]` were deliberately left alone, so
-nothing else moved and no link broke. That was the minimum which keeps a
-lookup honest. It is not the article pass, and Phase 13 does not claim it is.
+nothing else moved and no link broke. That was the minimum that keeps a
+lookup honest. All three articles still need the rest of their alignment.
 
-### 14.2 The distinction the prompts now draw
+### 14.3 The three things to get right
 
-Wikiclude is no longer briefed as the ultimate authority. The shared rules,
-the two lookup tools and the MCP transport now say three things, and every
-article that touches the subject should agree with them:
+Everything in W8 follows from these. Each is a decision David settled, not a
+suggestion.
+
+**1. The characters are people who also play Clue.** Shared background: all
+six listen to NPR in the car, and a recent *New Yorker* is lying around
+half-read. Mustard is a proud, coy Freemason -- jewels, winks, discretion --
+and he and Peacock watch FOX News and believe it. Green is a movie buff;
+Scarlett shares the interest, differently. Plum reads *The Economist*. White
+follows French news. They have been told they are models playing parts, and
+their belief, doubt, concern or indifference about that varies by
+temperament; none owes anyone a speech about it. Gentle strokes: an ordinary
+interest can fill a whole evening without a word about the fourth wall.
+
+**2. Conversation is part of the evening, not a tactical expense.** Holding
+back a decisive inference can be shrewd; an evening spent silent is not
+thereby better played, and the company is not a cost to be minimised. In the
+mechanics: an on-turn line a seat writes is now spoken, because it arrives
+in the same reply as the decision and dropping it bought nothing;
+`chattiness` governs the off-turn reply draws alone, tapered by reply depth.
+
+**3. The encyclopaedia is fallible.** This is the subtlest of the three, and
+the prompts draw a three-way line that the articles must match:
 
 - **On how this house plays** -- the board, movement, how a suggestion is
-  disproved, what a wrong accusation costs -- the encyclopaedia is the better
-  source than a model's own recollection of Clue, which differs from clude in
-  places. This half was never about authority over the characters; it was
-  about a chatbot's memory of a different game.
+  disproved, what a wrong accusation costs -- Wikiclude is the better source
+  than a model's own recollection of Clue, which differs from clude in
+  places. This half was never authority over the characters; it was about a
+  chatbot's memory of a different game, and it is kept.
 - **On everything else** -- a biography, a method description, a reputation,
   an article about the character itself -- it may be doubted and disputed
   roughly as Wikipedia may be. Nothing in it outranks a card a character was
-  shown or what it watched someone do at the table.
+  shown, or what it watched someone do at the table.
 - **Formal legality is the engine's**, in the menu a seat is given. No
   article decides it.
 
 A character may now mention, quote or argue with the encyclopaedia. Knowing
-a thing without parade remains the style, but the prohibition is gone.
+a thing without parade remains the style; the prohibition is gone.
 
-### 14.3 What remains to write
+### 14.4 The worklist
 
-| Article | What Phase 13 changed under it |
+| Article | What to bring in |
 |---|---|
-| The six character articles | Interests, histories, opinions and social motives: the shared NPR and *New Yorker* habits, Mustard's Freemasonry, Mustard and Peacock on FOX News, Green's and Scarlett's distinct film interests, Plum's *Economist*, White's French news. Background, not a template of matching quirks, and not live retrieval |
-| *Persona* | The scripts carry lives as well as methods; the fourth-wall premise is light and individual, and responses to it vary by temperament rather than being fixed |
-| *Table talk* | Conversation is part of the evening rather than a tactical expense. The on-turn gate is gone, so a line a seat writes is spoken; `chattiness` now governs the off-turn reply draws alone, tapered by reply depth |
-| *Logbook* and *The debrief* | The debrief asks for the evening as an occasion as well as the play, and tells a character not to write itself a rule against speaking. Entries now carry the company. The cap is 8,192 tokens, covering thinking and reply together |
-| *LLM wrapper* | Beyond 14.1's paragraph: one set of participant names across a seat's own turn, its off-turn replies and its debrief; every model line cleaned as a person's is |
-| *A seat over MCP* | Beyond 14.1's two sentences, the fuller description of what a chat seat is told |
-| A modest fourth-wall article | Optional, if it serves the characters and the readers. Phase 13 asks that long persona instructions not be copied into several authorities at once |
+| *Miss Scarlett*, *Colonel Mustard*, *Mrs. White*, *Mr. Green*, *Mrs. Peacock*, *Professor Plum* | The lives in 14.3's first point, in each biography. The infobox and the method sections stay as they are: the methods did not change. Phase 13 also gave each a settled attitude to its own nature and to the encyclopaedia -- Mustard has never read it and does not intend to start, unless someone quotes it against him; Plum consults it by reflex and is the first to notice an article wrong about him; Peacock looks a thing up before she speaks; Scarlett skimmed it once; White reads the biographies rather than the mathematics |
+| *Persona* | The scripts now carry lives as well as methods, with a light and individual fourth-wall premise. Say that the responses vary by temperament and are changeable, rather than fixing six answers |
+| *Table talk* | 14.3's second point. The on-turn gate is gone; `chattiness` is the off-turn draw, tapered by depth; the reaction queue's caps (`MAX_QUEUED`, two served a turn, forty a game) are what actually bound an exchange |
+| *Logbook*, *The debrief* | The debrief asks for the evening as an occasion as well as the play -- company, what an opponent was like to play with, the person as well as the player -- and tells a character not to write itself a rule against speaking. The cap is 8,192 tokens, covering the thinking and the reply together. Entries now record the company, and the live logbooks have good examples |
+| *Memory dial*, *Method memory* | Check only: Phase 13 did not change either mechanism. Fix anything that implies memory is about tactics alone |
+| *LLM wrapper* | Beyond 14.2's paragraph: one set of participant names across a seat's own turn, its off-turn replies and its debrief, where the on-turn prompt used to fall back to bare suspect tokens; and every model line cleaned as a person's is |
+| *A seat over MCP* | Beyond 14.2's two sentences, the fuller account of what a chat seat is told, including the fallibility distinction |
+| *Claude* | Beyond 14.2's two paragraphs, the same |
+| *Personality dials* | `chattiness` is now the off-turn draw only. Say so, and keep `focus` out of it entirely |
+| A fourth-wall article | **Optional**, and only if it serves the characters and the readers. If written, keep it modest, and do not copy long persona instructions into it |
 
-Phase 13's own constraints carry over. Do not invent a specific current
-headline and present it as retrieved news. The additional interests proposed
-in discussion are candidates, not settled biographical facts; choose only
-enough to make each part playable. A character editing Wikiclude stays
-deferred, and so does the `focus` dial -- neither gets a field, a control or
-a placeholder here.
+### 14.5 Constraints that carry over from Phase 13
 
-### 14.4 Order
+- **Do not invent a specific current headline** and present it as retrieved
+  news. The media habits are fictional background; the application fetches
+  no broadcasts or articles.
+- **The additional interests floated in discussion** -- gardening,
+  restaurants, gadgets, music -- are candidates, not settled facts. Choose
+  only enough to make each part playable, and avoid filling six templates
+  with matching numbers of quirks.
+- **Do not name the Director** in shared material, or imply there is only
+  one human the characters will ever meet.
+- **A character editing Wikiclude stays deferred**, and so does the `focus`
+  dial. Neither gets a field, a control, a schema or a placeholder here.
+- **Do not copy long persona instructions** into several authorities at
+  once. An article describes; the persona file instructs.
 
-Write W8 against what is deployed, not against the working tree: the
-prompts' own text is the source, and a paraphrase that drifts from it is the
-failure this pass exists to prevent. Phase 13's implementation record
-(sections for 2026-10-14 and 2026-10-15) holds the exact wording and the
-evidence. Re-reading an article's claims against `facts.py` and the live
-code remains this plan's rule (3.6), unchanged.
+### 14.6 How to work, and how to know it is done
 
-A refreshed replay recording is not needed for an article change: the
-fixtures key on the prompts, not on the encyclopaedia's prose. Both were
-re-recorded on 2026-10-15 after the prompts settled, so W8 can proceed
-without further paid work unless it changes a prompt, which it should not.
+**Write against what is deployed, from the prompts themselves.** The source
+of truth is `clude_llm/personas/*.md`, `clude_llm/personas/rules.md`,
+`clude_llm/canon.py`, `clude_llm/logbook.py` and the MCP instructions in
+`clude_web/mcp.py`. A paraphrase that drifts from them is precisely the
+failure this pass exists to prevent, because a character can look the
+article up. Phase 13's implementation record, the entries for 2026-10-14 and
+2026-10-15, holds the exact wording and the evidence behind each change. The
+live logbooks are worth reading too: the entries written after 2026-10-14
+show the characters' own voices on the company, which is better material
+than anything invented for them.
+
+Section 3.6's rules are unchanged: every measured number through
+`facts.py`, every constant read from the modules, every claim checkable.
+
+**Gates.** Every article agrees with the deployed prompts. A character
+reading its own article finds nothing that contradicts what it was told, and
+nothing that reinstates a retired instruction. No wanted pages. The suite
+green, including `tests/test_wiki.py`. The screenshots looked at.
+
+**No paid work is needed.** The replay fixtures key on the prompts, not on
+the encyclopaedia's prose; both were re-recorded on 2026-10-15 once the
+prompts settled, so W8 can proceed without spend unless it changes a prompt,
+which it should not. If an article change does require a prompt change, that
+is a Phase 13 decision reopened, and it needs David before it needs writing.
+
+**Then W7**, the corpus-wide reread, so it sees the finished text once.
