@@ -731,21 +731,18 @@ FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures"
 # evidence and are not relabelled.
 # The index block naming every Wikiclude article is a cached system block on
 # every request with a canon, so a new article moves every replay key just as
-# a persona edit does. W8 added one on 2026-10-16; both exact-game recordings
-# are pending the one approved refresh (about $0.15 for the pair), after which
-# each row's skip comes off and its tally is updated from the transcript.
+# a persona edit does: W8's Wikiclude article (2026-10-16) did, and both games
+# were re-recorded the same day with David's approval ($0.1964 together).
 RECORDED_GAMES = [
     pytest.param(
         "llm_seed1.json", "1", "3", "Scarlett,Peacock",
         "Mustard/Rope/Ballroom", "P1 Mustard (floor)",
-        "Turns played: 29; suggestions: 13; accusations: 1",
-        marks=pytest.mark.skip(reason="W8 (2026-10-16) added the Wikiclude article, which changes the canon's index block and so every replay key; seed 1 awaits an approved fixture refresh"),
+        "Turns played: 35; suggestions: 14; accusations: 1",
     ),
     pytest.param(
         "llm_seed2.json", "2", "4", "Plum,Mustard,Green,White",
         "Scarlett/Candlestick/Ballroom", "P1 White",
         "Turns played: 10; suggestions: 2; accusations: 1",
-        marks=pytest.mark.skip(reason="W8 (2026-10-16) added the Wikiclude article, which changes the canon's index block and so every replay key; seed 2 awaits an approved fixture refresh"),
     ),
 ]
 

@@ -674,12 +674,10 @@ entry is copied, and no person is named.
   changes every replay key exactly as a persona edit does, and both
   exact-game recordings started missing the moment *Wikiclude* existed.
   14.6 did not foresee this, and the brief for any later new article should.
-  Both rows in `tests/test_llm.py` carry a pending-refresh skip with the
-  reason, as Phase 11 and Phase 13 did; the refresh is the same two
-  recordings as 2026-10-15 (about $0.15 together) and needs David's
-  approval. The alternative, folding the article into *clude* or *LLM
-  wrapper* to keep the index unchanged, is David's to choose instead; the
-  article itself says what happened, under *Keeping it true*.
+  Both rows in `tests/test_llm.py` carried a pending-refresh skip for the
+  hour it took David to decide; he approved the refresh the same day rather
+  than folding the article into another, and both games were re-recorded
+  (15.4). The article itself says what happened, under *Keeping it true*.
 
 ### 15.3 Gates
 
@@ -694,12 +692,26 @@ entry is copied, and no person is named.
 
 ### 15.4 Verification
 
-- `python -m pytest -q -n auto` on the whole offline suite: 620 passed, 36
-  skipped, the two exact-game replays among the skipped for the reason in
-  15.2 (before the skip, those two were the only failures: 620 passed, 2
-  failed, 34 skipped). A first run with `-n auto` crashed its workers with a
-  `MemoryError` while the screenshot browser was starting beside it; run on
-  its own it passes.
+- **The replay fixtures are refreshed** (approved by David, 2026-10-16),
+  the same two games as 2026-10-15, neither making a lookup and no seat
+  falling back, which is what makes the replay strict:
+    - Seed 1, `Scarlett,Peacock` at three players: envelope
+      `Mustard/Rope/Ballroom` as the seed dictates, winner `P1 Mustard
+      (floor)`, 35 turns and 14 suggestions where the 2026-10-15 row had 29
+      and 13; 17 remarks across the two model seats. $0.1602.
+    - Seed 2, `Plum,Mustard,Green,White` at four: envelope
+      `Scarlett/Candlestick/Ballroom`, winner `P1 White`, 10 turns and 2
+      suggestions, the row unchanged for the third recording running.
+      $0.0362.
+    - $0.1964 together. A first attempt ran the CLI without the API key
+      (the CLI does not read `.env`), so every call fell back and the
+      fixtures were overwritten with fallback recordings; they were
+      restored from git before the real run. Nothing was spent on it.
+- `python -m pytest -q -n 4` on the whole offline suite: 622 passed, 34
+  skipped, the two exact-game replays among the passing. Before the
+  refresh those two were the only failures. A first run with `-n auto`
+  crashed its workers with a `MemoryError` while the screenshot browser
+  was starting beside it; run on its own it passes.
 - `tests/test_wiki.py` passes: every citation names a real file and heading,
   including the Phase 13 record's and the canon plan's; every measured
   number is found under its heading; every constant computes; no wanted
@@ -714,8 +726,8 @@ entry is copied, and no person is named.
   Page, which lists *Wikiclude* under The app and counts 75 articles and
   21 stubs. The script's fixed page list has no slot for *Wikiclude*,
   *Persona* or *Table talk*; those three were proofread as rendered text.
-- No paid call, no cloud write, no deployment. The live store and Cloud Run
-  were read only.
+- $0.1964 of approved paid recording; no cloud write, no deployment. The
+  live store and Cloud Run were read only.
 
 **Left:** W7, the corpus-wide reread against sections 3.1 and 3.2, now that
 the text is finished.

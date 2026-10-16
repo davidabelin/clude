@@ -1217,7 +1217,8 @@ W7, in its own plan.
 
 One cost of the article pass belongs here too: the new *Wikiclude* article
 changed the canon's index block, which every request with a canon carries
-and every replay key hashes, so both exact-game recordings are pending a
-refresh again (about $0.15 together, David's approval needed), with the
-skip and its reason on the rows in `tests/test_llm.py`. The suite runs at
-620 passed, 36 skipped until then.
+and every replay key hashes, so both exact-game recordings went stale
+again. David approved the refresh the same day: seed 1 now runs 35 turns
+and 14 suggestions (from 29 and 13), seed 2 replayed to the same shape,
+neither made a lookup, no seat fell back, $0.1964 together. The suite
+runs at 622 passed, 34 skipped.
