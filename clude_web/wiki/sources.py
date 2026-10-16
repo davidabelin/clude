@@ -36,6 +36,8 @@ DOCS: dict = {
     "docs/phase10-plan.md": "Phase 10 plan",
     "docs/wikiclude-plan.md": "Wikiclude: the plan",
     "docs/deepnash-plan.md": "Phase 12 plan: a new Plum",
+    "docs/phase13-plan.md": "Phase 13: Character development",
+    "docs/canon-plan.md": "The canon: Wikiclude for LLM and MCP players",
     "CLAUDE.md": "clude (working notes)",
 }
 """Each citable doc and the title a citation gives it."""

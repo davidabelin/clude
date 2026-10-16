@@ -124,12 +124,15 @@ question mark and the footer. The same wooden question mark is every
 wiki page's logo (David, 2026-10-02): the side panel's home link, beside
 the wordmark, and the Main Page's welcome.
 
-W1–W5 now supply 52 full articles and one remaining project stub
-(*clude*), with no wanted pages. The game guide covers a complete turn
-and the local house rules; the later articles cover personality, the
-model wrapper, memory, mathematics and measurement. The inventory and
-local verification are recorded in the plan's section 12. W6 covers
-the app and project, and W7 remains the final editorial pass.
+The encyclopaedia holds 96 articles, 75 full and 21 algorithm
+stubs kept short by design, with no wanted pages. The game guide covers
+a complete turn and the local house rules; the later articles cover
+personality, the model wrapper, memory, mathematics, measurement, the
+app and the project, and *Wikiclude* describes the encyclopaedia itself
+and how far the model seats are told to trust it. W8 (2026-10-16)
+aligned the articles with Phase 13's characters; the inventory and
+verification are in the plan's sections 12-15, and W7, the corpus-wide
+reread, remains.
 
 **An article is a Markdown file** in `clude_web/wiki/articles/`, named
 for its title (`Professor_Plum.md`), with a front-matter block (title,
@@ -302,7 +305,7 @@ Fourteen tools are registered:
 | `clude_watch`, `clude_games`, `clude_replay` | Spectate or inspect finished games |
 | `clude_wiki_search`, `clude_wiki_read` | Search and read Wikiclude, the canon, with no login ([the plan](canon-plan.md)) |
 
-Every game operation takes the login; the two wiki tools take none, since the wiki is public, and the server's instructions name Wikiclude the canon on the rules and the characters. Browser users deal after open seats fill; a chatbot cannot create/deal a table. MCP occupies an ordinary human seat, reasoning without any character persona/agent. `notepad` is `full`, `shown` or `none`, adjustable only before the deal; reduced modes omit the seat's own certainty as well.
+Every game operation takes the login; the two wiki tools take none, since the wiki is public, and the server's instructions make Wikiclude the better source on this house's rules and an encyclopaedia open to doubt on everything else (Phase 13 step 5). Browser users deal after open seats fill; a chatbot cannot create/deal a table. MCP occupies an ordinary human seat, reasoning without any character persona/agent. `notepad` is `full`, `shown` or `none`, adjustable only before the deal; reduced modes omit the seat's own certainty as well.
 
 Compact views use `since` as an event cursor; `since=0` reconstitutes a fresh conversation. Older events become a digest. Room-name movement options include legal targets/distances. `seq` protects answers from retries. Turn/answer waits share a deadline of at most 60 s while driving the same work as the browser. An advance pass is held back after an undisproved suggestion or proven solution. Notes persist on the table, not in the replay entry log.
 

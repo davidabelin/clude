@@ -14,7 +14,7 @@ Failures return to the underlying headless character. The wrapper therefore perm
 
 Suppose the engine asks Plum where to move. His network scores every legal destination itself (for the other characters, the decision layer combines room probabilities with proximity). The wrapper ranks the legal destinations by those same scores, applies the leash and labels the allowed options. If two remain, the model receives their descriptions and scores, together with Plum's own view of the game.
 
-A valid reply selects a letter and may supply a short line of [[table talk]]. The wrapper plays the corresponding action. If the letter is outside the menu, it instead calls Plum's headless movement decision. The model does not send a new route for the engine to improvise.
+A valid reply selects a letter and may supply a short line of [[table talk]], which is published as written: it arrives in the same reply as the decision, so the draw that used to discard it saved nothing and was removed on 15 October 2026, and a character that prefers silence answers with an empty string. Every line a model writes is cleaned as a person's is, to {{code:llm.max_line}} characters at most. The wrapper plays the corresponding action. If the letter is outside the menu, it instead calls Plum's headless movement decision. The model does not send a new route for the engine to improvise.
 
 | Engine decision | Model choice |
 |---|---|
@@ -29,7 +29,9 @@ The [[leash]] article describes the special rules for held-card bluffs and accus
 
 The user prompt is built from a `ClueObservation` for the deciding seat. It includes that seat's hand, public roster and positions, the floor's deductions, the method's card estimates and diagnostics, the best accusation score, suggestion history with unseen cards hidden, recent conversation and the allowed menu.[^prompt]
 
-The system prompt supplies the [[persona]] and shared rules. When remembering is enabled and a logbook exists, a second system block supplies the selected [[memory dial|memory depth]]. That block remains stable during the game.
+The system prompt supplies the [[persona]] and shared rules, including what the character has been told about itself ([[Persona#The parts]]). When remembering is enabled and a logbook exists, a second system block supplies the selected [[memory dial|memory depth]]. That block remains stable during the game.
+
+A web table gives the wrapper one set of participant names for the whole evening, the token and a person's display name after it, and the on-turn prompt, the off-turn reply prompt and the debrief all use it. Before 15 October 2026 the on-turn prompt fell back to bare suspect tokens, so a character could call one person 'Mr. Green' on its turn and by their name off it. Without the call, in a headless arena or the CLI, the prompts use seat labels.[^names]
 
 Different seats have different private evidence. The common [[deduction floor]] is a shared algorithm, not a shared omniscient notepad. A model prompt cannot acquire another player's privately shown card merely because the application stores it for replay. After the game, the [[The debrief|debrief]] deliberately receives a revealed deal and is a separate request.
 
@@ -49,7 +51,7 @@ Recorded replies can reproduce a run without another paid model call. A seed alo
 
 ## The canon
 
-Since October 2026 a wrapped character also carries Wikiclude as its standing reference.[^canon] A third cached system block lists every article's title, and two tools, `wiki_search` and `wiki_read`, go on each decision, remark and [[The debrief|debrief]] request. The backend answers a tool call inside the same request, up to {{code:llm.max_lookups_per_call}} lookups a call and {{code:llm.max_lookups_per_game}} a game, and the model still answers in the decision's schema. A read hands over a short article whole, otherwise its lead and section list and then one section at a time, never more than {{code:canon.read_limit}} characters.
+Since October 2026 a wrapped character also carries [[Wikiclude]] as its standing reference.[^canon] A third cached system block lists every article's title, and two tools, `wiki_search` and `wiki_read`, go on each decision, remark and [[The debrief|debrief]] request. The backend answers a tool call inside the same request, up to {{code:llm.max_lookups_per_call}} lookups a call and {{code:llm.max_lookups_per_game}} a game, and the model still answers in the decision's schema. A read hands over a short article whole, otherwise its lead and section list and then one section at a time, never more than {{code:canon.read_limit}} characters.
 
 The shared rules distinguish two cases. On how this house plays -- the board, movement, how a suggestion is disproved, what a wrong accusation costs -- the encyclopaedia is the better source than a model's own recollection of Clue, and legality is settled by the engine's menu in any case. On everything else, including an article about the character itself, it may be doubted and disputed roughly as Wikipedia may be, and nothing in it outranks a card the character was shown or what it watched someone do at the table. Mentioning or quoting it is allowed; knowing a thing without parade remains the usual style. How readily a character consults it at all is a matter of its [[persona]]: Professor Plum and Mrs. Peacock look things up by reflex, Colonel Mustard not at all. The lookups are audited with each decision and counted by the [[arena]], so the propensity is measured rather than set by a [[personality dials|dial]]. The canon describes how every character thinks in general and knows nothing of the deal in play. A chat seat has the same encyclopaedia through [[A seat over MCP|two MCP tools]].
 
@@ -71,6 +73,7 @@ The wrapper does not retrain the numerical method or turn a model's prose into v
 [^wrapper]: {{cite:clude_llm/player.py|`LLMCharacter`}}
 [^prompt]: {{cite:docs/llm-wrapper.md|What the model is shown, and what it is not}}
 [^backends]: {{cite:docs/llm-wrapper.md|Backends}}
+[^names]: {{cite:docs/phase13-plan.md|2026-10-15: the rehearsal completed, and step 6's naming and pacing}}
 [^canon]: {{cite:docs/llm-wrapper.md|The canon}}
 
 {{navbox:clude}}

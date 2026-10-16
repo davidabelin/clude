@@ -7,7 +7,7 @@ dyk: ... that a headless character can use numerical [[method memory]] without a
 ---
 **Method memory** is numerical information retained across games by three [[clude]] methods. Mustard accumulates training rows, White retains opponent-specific transition counts, and Green retains the parameters used to choose among his five arms. It can be loaded and updated for either headless or model-piloted seats when remembering is enabled.[^memory]
 
-This differs from a narrative [[logbook]]. No language model is needed to use method memory, and the [[memory dial]] does not control it. Scarlett, Plum and Peacock recompute their methods from the current observation without persistent numerical method memory.
+This differs from a narrative [[logbook]]. No language model is needed to use method memory, and the [[memory dial]] does not control it. A logbook also remembers the company at the table, which no method memory does. Scarlett, Plum and Peacock recompute their methods from the current observation without persistent numerical method memory.
 
 ## Three different forms
 

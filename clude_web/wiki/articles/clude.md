@@ -6,7 +6,7 @@ redirects: The app, The project
 ---
 **clude** is a web app for playing [[Clue]] with people, six numerical characters and chat agents. Each suspect uses a different [[Category:Methods|method]] to estimate the hidden cards, constrained by a shared [[deduction floor]]. A character can play headless, choosing from its numerical scores, or with [[Claude]] choosing among scored options and giving it a voice. The project compares how these ways of reasoning affect both beliefs and play.[^project]
 
-It is David Abelin's project for family and friends. Its name combines Claude and Clue. **Wikiclude**, the encyclopaedia within the app, explains the game, the characters and the recorded experiments. The encyclopaedia is public; playing, watching live tables and opening saved games require an account.[^web]
+It is David Abelin's project for family and friends. Its name combines Claude and Clue. [[Wikiclude]], the encyclopaedia within the app, explains the game, the characters and the recorded experiments. The encyclopaedia is public; playing, watching live tables and opening saved games require an account.[^web]
 
 ## Playing and learning
 

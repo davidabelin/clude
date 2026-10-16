@@ -137,9 +137,9 @@ increments may touch several files, but should have one reviewable purpose.
 | 2 | Light shared premise and individual fourth-wall attitudes | Drafted locally with step 1; responses remain changeable; awaits script review/rehearsals |
 | 3 | Listening, reply, silence, and thread-continuity guidance | Shared/decision/reaction guidance edited within the existing window; observed continuity awaits rehearsals |
 | 4 | Debrief and condensation guidance that preserves social continuity, and one pass retiring the rules it supersedes | Deployed and accepted live 2026-10-14/15 ([record](#2026-10-15-step-4-accepted-live-and-a-debrief-lost-to-its-token-cap)); the generator retired the rules itself, so only the digest clause was applied |
-| 5 | Fallible Wikiclude guidance and aligned character/reference articles | Prompts done 2026-10-15 ([record](#2026-10-15-step-5s-prompts-and-the-coordination-minimum-in-the-wiki)), with the three articles that restated the old brief fixed; the article pass is [Wikiclude's W8](wikiclude-plan.md#14-w8-the-phase-13-alignment-pass) |
+| 5 | Fallible Wikiclude guidance and aligned character/reference articles | Done: prompts 2026-10-15 ([record](#2026-10-15-step-5s-prompts-and-the-coordination-minimum-in-the-wiki)), live 2026-10-16; the article pass written 2026-10-16 as [Wikiclude's W8](wikiclude-plan.md#15-as-implemented-w8-2026-10-16) |
 | 6 | Consistent participant names and measured conversation pacing | Done 2026-10-15: names and the on-turn gate ([record](#2026-10-15-the-rehearsal-completed-and-step-6s-naming-and-pacing)); the off-turn taper is left alone on the evidence, with its baseline recorded ([record](#2026-10-15-the-taper-left-alone-the-fixtures-refreshed-step-0-closed-out)); `focus` remains deferred |
-| Acceptance | Offline checks, approved model rehearsals, accurate docs and fresh recordings | Offline suite green at 622; the five-scene rehearsal complete ($0.1373); both recordings refreshed ($0.1524); step 4 accepted live. Outstanding: the deploy of steps 5-6 and one `--apply` ([record](#2026-10-15-the-taper-left-alone-the-fixtures-refreshed-step-0-closed-out)) |
+| Acceptance | Offline checks, approved model rehearsals, accurate docs and fresh recordings | Offline suite green at 622; the five-scene rehearsal complete ($0.1373); both recordings refreshed ($0.1524); step 4 accepted live. Steps 5-6 live and the flag pass applied, as observed 2026-10-16 ([record](#2026-10-16-the-article-pass-and-what-the-live-store-shows)) |
 
 Stop at a clear boundary if a required input is absent. Mark the blocked
 step accurately and continue independent work; do not replace missing
@@ -1188,3 +1188,36 @@ Its `--dry` output is the review; nothing else in the logbooks is touched.
 skipped, the two exact-game replays among the passing. $0.1524 of approved
 paid recording. One live write made this pass (Plum's entry #0008, recorded
 above); the flag pass is prepared and unapplied.
+
+### 2026-10-16: the article pass, and what the live store shows
+
+The last deliverable of step 5, the article pass, is written as Wikiclude's
+W8 and recorded in [that plan](wikiclude-plan.md#15-as-implemented-w8-2026-10-16):
+the six biographies, *Persona*, *Table talk*, *Logbook*, *The debrief*,
+*Memory dial*, *Method memory*, *Personality dials*, *LLM wrapper*, *A seat
+over MCP* and *Claude* now describe the arrangement steps 1-6 made, each
+claim about what a character is told written from the persona and rules
+files and cited to them, and a new *Wikiclude* article carries the
+three-way trust line and what each character makes of the encyclopaedia.
+The measured numbers the articles quote from this record go through
+`facts.py` and are checked under their headings here.
+
+Two things were read, not changed, before writing. `gcloud run revisions
+list` shows `clude-00032-bvr` active from 2026-10-16 16:25:36 UTC, so the
+deploy steps 5 and 6 were waiting on has happened and the articles were
+written against live prompts. `logbook list` on the bucket shows every
+tally agreeing with its entry count (Scarlett 22 of 22, White 20 of 20,
+Peacock 17 of 17, Green 17 of 17, Mustard 11 of 11, Plum 8 of 8), which is
+the state the flag pass restores and a debrief does not, so `--apply` has
+been run. Three more games have been played since the record above:
+Scarlett #22, Mustard #11 and White #20 are dated 2026-10-16 and record the
+company as the broadened debrief asks. With that, every row of section 3
+is done, and the phase is complete; what remains for the encyclopaedia is
+W7, in its own plan.
+
+One cost of the article pass belongs here too: the new *Wikiclude* article
+changed the canon's index block, which every request with a canon carries
+and every replay key hashes, so both exact-game recordings are pending a
+refresh again (about $0.15 together, David's approval needed), with the
+skip and its reason on the rows in `tests/test_llm.py`. The suite runs at
+620 passed, 36 skipped until then.

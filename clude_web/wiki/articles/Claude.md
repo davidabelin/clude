@@ -12,7 +12,9 @@ Those roles have different reasoning inputs. A wrapped character receives its me
 
 In a seat labelled X (LLM), the X character supplies a [[belief]], [[personality dials]] and a [[persona]]. The wrapper asks the model to choose allowed options and optionally provide [[table talk]]. A valid model choice can change the action within the leash; a failure invokes the underlying headless choice.[^wrapper]
 
-For example, Plum's network can rate two destinations closely enough that both are allowed. Claude may select one in Plum's voice. This does not mean Claude ran the network or replaced Plum's card probabilities. It chose using the estimates and contextual information the wrapper supplied. Since October 2026 the wrapped model also carries Wikiclude as its standing reference, with two lookup tools inside each call; the [[LLM wrapper#The canon|wrapper article]] describes the arrangement.
+For example, Plum's network can rate two destinations closely enough that both are allowed. Claude may select one in Plum's voice. This does not mean Claude ran the network or replaced Plum's card probabilities. It chose using the estimates and contextual information the wrapper supplied. Since October 2026 the wrapped model also carries [[Wikiclude]] as its standing reference, with two lookup tools inside each call, to be preferred to its own memory of Clue on this house's rules and doubted like any encyclopaedia on the rest; the [[LLM wrapper#The canon|wrapper article]] and [[Wikiclude#How far to trust it|the encyclopaedia's own article]] describe the arrangement.
+
+The model is also told, in the shared rules, that it is a language model playing the part, and the persona says what the character makes of that; [[Persona#The parts]] describes the arrangement. The role is a part with a life and opinions, written so that an ordinary conversation can fill a whole game, rather than a label on a seat.[^rules]
 
 The application's backend configuration identifies the actual model used. Recorded runs preserve their model and call settings; 'with Claude' is a role description, not evidence that every historical run used an identical provider configuration.
 
@@ -24,7 +26,7 @@ This seat is useful when a person is playing through conversation with a model c
 
 MCP is the transport for that interaction rather than another inference method. Client prompts and conversation can influence its decisions, but the character's leash and presets do not govern an independent chat seat.
 
-Wikiclude is the chat seat's reference too: two tools that need no login search and read the encyclopaedia, and the server's instructions send a new seat to [[Rules of play]] before its first game.
+[[Wikiclude]] is the chat seat's reference too, on the same terms: two tools that need no login search and read it, the server's instructions send a new seat to [[Rules of play]] before its first game, and [[A seat over MCP#What the chat seat is told]] gives the rest of what the seat is told.
 
 ## Evidence, talk and memory
 
@@ -50,5 +52,6 @@ A seed reproduces the numerical setup but does not guarantee identical live mode
 [^wrapper]: {{cite:docs/llm-wrapper.md|What happens on one decision}}
 [^mcp]: {{cite:docs/web.md|A seat over MCP (Phase 9)}}
 [^memory]: {{cite:docs/logbooks.md|Three tiers}}
+[^rules]: {{cite:clude_llm/personas/rules.md|The company and the parts}}
 
 {{navbox:clude}}

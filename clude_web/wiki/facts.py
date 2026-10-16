@@ -1194,12 +1194,42 @@ def _publishing_values() -> dict:
         table[f"neutral.{dial}"] = lambda d=dial: _trim(getattr(NEUTRAL, d))
     for name in ("debrief_max_tokens", "debrief_timeout", "max_lookups_per_call", "max_lookups_per_game"):
         table[f"llm.{name}"] = lambda n=name: _trim(getattr(LLMSettings(), n))
+    table.update(_talk_values())
     for depth in (0, 0.25, 0.5, 0.75, 1):
         for index, label in enumerate(("index", "full")):
             table[f"memory.{depth}.{label}"] = lambda d=depth, i=index: str(memory_counts(10, d)[i])
     table["canon.read_limit"] = lambda: f"{_canon_limit('READ_LIMIT'):,}"
     table["canon.search_limit"] = lambda: str(_canon_limit("SEARCH_LIMIT"))
     return table
+
+
+def _talk_values() -> dict:
+    """The talk and logbook constants the Personality and Memory articles
+    quote (Phase 13 / W8): the reaction queue's caps and delay, the length a
+    model's line is cut to, the talk window a prompt shows, and the caps
+    on what a debrief or a digest may write."""
+    from inspect import signature
+
+    from clude_llm import prompt as llm_prompt
+    from clude_llm.player import MAX_LINE
+    from clude_storage import logbooks
+    from clude_web import chat
+
+    return {
+        "chat.max_queued": lambda: str(chat.MAX_QUEUED),
+        "chat.per_turn": lambda: str(chat.PER_TURN),
+        "chat.per_game": lambda: str(chat.PER_GAME),
+        "chat.delay": lambda: f"{chat.DELAY[0]:g} to {chat.DELAY[1]:g}",
+        "llm.max_line": lambda: str(MAX_LINE),
+        "llm.recent_remarks": lambda: str(signature(llm_prompt.user_prompt).parameters["recent_remarks"].default),
+        "logbook.instructions": lambda: str(logbooks.MAX_STANDING_INSTRUCTIONS),
+        "logbook.flags": lambda: str(logbooks.MAX_FLAGS),
+        "logbook.summary_words": lambda: str(logbooks.SUMMARY_WORDS),
+        "logbook.read_words": lambda: str(logbooks.READ_WORDS),
+        "logbook.overview_words": lambda: str(logbooks.OVERVIEW_WORDS),
+        "logbook.lesson_words": lambda: str(logbooks.LESSON_WORDS),
+        "logbook.themes": lambda: str(logbooks.MAX_THEMES),
+    }
 
 
 def _canon_limit(name: str) -> int:
@@ -1225,6 +1255,36 @@ def softmax_example(temperature: float) -> float:
 
 
 CODE.update(_publishing_values())
+
+PHASE13_PLAN = "docs/phase13-plan.md"
+CANON_PLAN = "docs/canon-plan.md"
+_P13_NAMING = "2026-10-15: the rehearsal completed, and step 6's naming and pacing"
+_P13_TAPER = "2026-10-15: the taper left alone, the fixtures refreshed, step 0 closed out"
+_P13_LIVE = "2026-10-15: step 4 accepted live, and a debrief lost to its token cap"
+_P13_AUDIT = "2026-10-14: live memory audit and pathway revision"
+_REHEARSAL = "five scenes, 30 lines, 22 free of game terms (73%), $0.1373"
+
+FACTS.update({
+    # Phase 13: what the talk gate cost, and how the reaction queue paced two games (W8).
+    "talk.gate.written": Fact("81", PHASE13_PLAN, _P13_NAMING, "81 on-turn lines written, 39 spoken"),
+    "talk.gate.spoken": Fact("39", PHASE13_PLAN, _P13_NAMING, "81 on-turn lines written, 39 spoken"),
+    "talk.gate.dropped": Fact("42", PHASE13_PLAN, _P13_NAMING, "**42 paid for and thrown away**"),
+    "talk.reactions.three": Fact("22", PHASE13_PLAN, _P13_TAPER, "22 reaction lines over 37 turns"),
+    "talk.reactions.three.turns": Fact("37", PHASE13_PLAN, _P13_TAPER, "22 reaction lines over 37 turns"),
+    "talk.reactions.six": Fact("41", PHASE13_PLAN, _P13_TAPER, "41 over 57"),
+    "talk.reactions.six.turns": Fact("57", PHASE13_PLAN, _P13_TAPER, "41 over 57"),
+    "talk.reactions.runs": Fact("twelve", PHASE13_PLAN, _P13_TAPER, "twelve runs of three"),
+    "rehearsal.lines": Fact("30", PHASE13_PLAN, _P13_NAMING, _REHEARSAL),
+    "rehearsal.free": Fact("22", PHASE13_PLAN, _P13_NAMING, _REHEARSAL),
+    "rehearsal.pct": Fact("73", PHASE13_PLAN, _P13_NAMING, _REHEARSAL),
+    "rehearsal.cost": Fact("0.1373", PHASE13_PLAN, _P13_NAMING, _REHEARSAL),
+    "debrief.plum.out": Fact("3,407", PHASE13_PLAN, _P13_LIVE, "Those 3,407 output tokens confirm the diagnosis"),
+    "debrief.plum.cost": Fact("0.1281", PHASE13_PLAN, _P13_LIVE, "$0.1281 for 8,580 in and 3,407 out"),
+    "audit.entries": Fact("78", PHASE13_PLAN, _P13_AUDIT, "(78 in all)"),
+    "audit.clauses": Fact("six", PHASE13_PLAN, _P13_AUDIT, "six clauses in four characters qualify"),
+    "canon.calls": Fact("41", CANON_PLAN, "7.3 Acceptance (2026-10-09, approved by David the same day)",
+                        "in 41 ordinary calls at low effort no character found a question of fact to look up"),
+})
 
 
 _STEP = re.compile(r"example\.mustard\.step\.(\d+)\.(threshold|value|answer|feature)$")

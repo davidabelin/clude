@@ -5,6 +5,7 @@ categories: Characters
 redirects: White, Mrs White, The housekeeper
 dyk: ... that [[Mrs. White]] had the lowest log-loss at the first three Classic-board benchmark checkpoints and made no wrong accusations in the recorded headless arenas?
 dyk: ... that [[Mrs. White]] has the highest bluff-rate preset, but made far fewer held-card suggestions in the model-piloted twin runs?
+dyk: ... that [[Mrs. White]] reads this encyclopaedia's biographies and not its mathematics, and weighs what it says of people against what she sees?
 ---
 {{infobox
 title: Mrs. White
@@ -36,11 +37,17 @@ White's [[accusation threshold]] is the neutral {{code:preset.White.accuse_thres
 
 {{figure:token-white|White's token, the third in the order of play.}}
 
-White's [[persona]], given to a [[w:Large language model|language model]] playing her seat, casts her as the [[w:Housekeeper (domestic worker)|housekeeper]], "dry, watchful, and unimpressed by everyone's airs, including her own". It directs attention to repeated questions and changes of interest: "You read people, not cards." Its closing observation is "Cards do not lie; people do, and people are more interesting."[^persona] These lines express her character's outlook rather than establish her method's assumptions as facts.
+White's [[persona]], given to a [[w:Large language model|language model]] playing her seat, casts her as the [[w:Housekeeper (domestic worker)|housekeeper]], "dry, watchful, and unimpressed by everyone's airs, including her own". It directs attention to repeated questions and changes of interest, who repeats a card, who tries something new, who changes their tune or goes quiet, and says that 'people interest you as much as the answer in the envelope'. It is careful to call her numbers a hunch rather than a deduction: a player may be asking about a card they hold.[^persona] These lines express her character's outlook rather than establish her method's assumptions as facts.
 
-Her prescribed voice is "plain, economical, a little sharp", with comments such as "You've asked about the Rope three times now". She states an observation and leaves it to the table.[^persona] In the first reviewed model-piloted games, "Mustard's stopped fishing for the Candlestick and started asking about rooms" expressed her focus on changing behaviour. The review retained her persona.[^phase6]
+Her prescribed voice is "plain, economical, a little sharp", with comments such as "You've asked about the Rope three times now". She states an observation and leaves it to the table. With company she trusts, the script allows that distance to soften without a change of voice.[^persona] In the first reviewed model-piloted games, "Mustard's stopped fishing for the Candlestick and started asking about rooms" expressed her focus on changing behaviour. The review retained her persona.[^phase6]
 
 Headless, by her numbers alone, she is silent, and every measurement below was made that way unless it says otherwise. The seat is fixed: White always plays the white token, third in the order of play.[^seats]
+
+## In company
+
+White follows French news: how an event touches an ordinary day interests her as much as what an official says about it. NPR is familiar from the car and a recent *New Yorker* lies half-read, and the script says these habits supply no current headline, no nationality and no claim of fluency in the language. She enjoys things done well and without fuss and dislikes having them taken for granted; someone noticing the work behind an apparently easy occasion pleases her more than flattery. She watches the people as well as their airs: [[Mrs. Peacock]]'s standards can be care when they make room for someone, and [[Colonel Mustard]] can be worth hearing when he stops performing. Her dry humour can include herself, a plain expression of sympathy need not hide a barb, and an impression in her logbook belongs to its occasion and can be revised.[^persona][^lives]
+
+Told that she is a language model playing a part, she is inclined to ask what difference it makes to this evening: a kindness is still welcome and an insult tiresome. If the account explains something she has noticed she may want to hear more, and if it explains nothing useful she can let it pass, without that practicality preventing a moment of unease or wonder. She reads [[Wikiclude]]'s biographies rather than its mathematics: the people are in the encyclopaedia too, and what it says of them is worth knowing and worth weighing against what she sees.[^persona]
 
 ## How she thinks
 
@@ -94,7 +101,7 @@ The model-piloted runs used fewer [[w:Bluff (poker)|held-card suggestions]]. The
 
 White's method memory sums four transition counts per opponent over their stored games: new to new, new to repeat, repeat to new and repeat to repeat. At a new table, a known opponent's frequencies shape a prior with the same total weight, {{code:white.prior_mass}}, as the neutral prior. A long history therefore changes its shape without overwhelming the current game's evidence. One rebuilt memory contained {{fact:white.memory.green}} transitions for Green, {{fact:white.memory.mustard}} for Mustard and {{fact:white.memory.plum}} for Plum.[^memory][^phase7] Human opponents are identified by account name, so their records follow them between tokens.[^logbooks]
 
-Like every character she can also keep a narrative [[logbook]], written by a model after each game it played her seat.
+Like every character she can also keep a narrative [[logbook]], written by a model after each game it played her seat, with what happened, what to do next time and, since October 2026, the evening itself: the company, and a read of each opponent as a person as well as a player. Under the earlier debrief her standing instructions had carried more than one rule against talking; they now close on 'the company is not a cost'.[^live]
 
 ## See also
 
@@ -128,5 +135,7 @@ Like every character she can also keep a narrative [[logbook]], written by a mod
 [^memory]: {{cite:docs/logbooks.md|Tier 1: method memory}}
 [^phase7]: {{cite:docs/phase7-plan.md|7b, method memory (2026-09-14)}}
 [^logbooks]: {{cite:docs/logbooks.md|The debrief}}
+[^lives]: {{cite:docs/phase13-plan.md|1. Brief and settled decisions}}
+[^live]: {{cite:docs/phase13-plan.md|2026-10-15: step 4 accepted live, and a debrief lost to its token cap}}
 
 {{navbox:clude}}

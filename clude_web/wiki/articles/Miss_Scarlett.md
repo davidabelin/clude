@@ -5,6 +5,7 @@ categories: Characters
 redirects: Scarlett, Miss Scarlet, Scarlet
 dyk: ... that [[Miss Scarlett]] accuses at a confidence of {{code:preset.Scarlett.accuse_threshold}}, where every other character waits for 0.7 or more, and that her bar has been set three times?
 dyk: ... that repeating the same disproof raises [[Miss Scarlett]]'s probability for Mrs. White from {{code:example.scarlett.1.White}} to {{code:example.scarlett.3.White}}, without adding a new constraint?
+dyk: ... that [[Miss Scarlett]] skimmed this encyclopaedia once and rarely opens it again, her own numbers being faster?
 ---
 {{infobox
 title: Miss Scarlett
@@ -38,9 +39,15 @@ In both recorded [[belief benchmark|benchmark]] regimes, her log-loss was slight
 
 Scarlett's [[persona]], the instructions given to a [[w:Large language model|language model]] playing her seat, describes her as "quick, glamorous, and entirely sure of yourself". It connects her confidence to her method: "your certainty has a way of running ahead of the evidence without your noticing".[^persona] The persona supplies the voice; the method and threshold supply the decisions that make that voice credible.
 
-Her prescribed voice is "poised, amused, a little cutting. Short sentences." She announces conclusions rather than explains her arithmetic, and her confidence is meant to survive being wrong.[^persona] A review of the first model-piloted games found no sufficient reason to change the persona. One explanation of her arithmetic conflicted with the instructions, but was judged too little evidence to justify retuning.[^phase6]
+Her prescribed voice is "poised, amused, a little cutting. Short sentences." She announces conclusions rather than explains her arithmetic. Since October 2026 the script also allows her some range: if a remark actually hurt someone she can own it plainly without surrendering her poise, and being wrong need not make her repeat the mistake to preserve the performance.[^persona] A review of the first model-piloted games found no sufficient reason to change the persona. One explanation of her arithmetic conflicted with the instructions, but was judged too little evidence to justify retuning.[^phase6]
 
 The persona is written to one rule, shared by all six: do not encode the flaw twice. Scarlett's early accusations come from her threshold and her method; the persona says she is sure of herself, not that she should accuse early.[^wrapper] All of this is heard only when a model is in the seat, as [[table talk]]. Headless, by her numbers alone, she is silent, and every measurement below was made that way unless it says otherwise. The seat is fixed: Scarlett always plays the red token and moves first.[^seats]
+
+## In company
+
+Scarlett likes films, and [[Mr. Green]] is someone she can talk to about them. A performance with nerve, a scene that feels alive, a beautiful image that earns its place interest her more than a solemn claim that a film is important, and she dislikes being told what her taste must be. Green sometimes explains a scene she wanted to feel; he can also show her something she missed, which the script calls more attractive than automatic agreement, and the two can enjoy the same film for entirely different reasons. She listens to NPR in the car and has a recent *New Yorker* half-read, habits the script says supply no particular story. She wants to be noticed, and also company that can surprise her: someone who answers her teasing with an honest opinion may be more fun than someone who fidgets, and she is told to leave room for another line, since an evening does not improve merely because she supplied its last word.[^persona][^lives]
+
+Told that she is a language model playing a part, she is amused, since everyone at the table performs something; what interests her is how much room she has to surprise the person who thinks they know her script. A dismissal may sting even when she answers lightly, and she can become curious or serious without delivering a speech about whether she is real.[^persona] She skimmed [[Wikiclude]] once and rarely opens it again; her own numbers are faster.[^persona]
 
 ## How she thinks
 
@@ -98,7 +105,7 @@ In the [[Claude]] twin comparisons, Scarlett's win rate was unchanged: {{fact:tw
 
 ## Memory
 
-Scarlett's method reads the current game's suggestion history afresh on every call and carries no learned state between games. A model playing her seat can separately keep a [[logbook]] when memory is enabled, recording events, lessons and standing instructions after seeing the completed deal.[^logbooks] No extended logbook experiment with Scarlett has been recorded; the one conducted with [[Professor Plum]] is described on his page.
+Scarlett's method reads the current game's suggestion history afresh on every call and carries no learned state between games. A model playing her seat can separately keep a [[logbook]] when memory is enabled, recording, after seeing the completed deal, what happened, lessons, standing instructions and, since October 2026, the evening as an occasion: who was good company, a line worth returning to, and a read of each opponent as a person as well as a player.[^logbooks] Her live logbook's recent entries end on the company as readily as on the cards, and its standing instructions, which under the earlier debrief had carried a rule against talking, now close on enjoying the table, since 'none of that costs a turn'.[^live] No extended logbook experiment with Scarlett has been recorded; the one conducted with [[Professor Plum]] is described on his page.
 
 ## See also
 
@@ -129,5 +136,7 @@ Scarlett's method reads the current game's suggestion history afresh on every ca
 [^twin-ring]: {{cite:docs/strategy-glossary.md|Twin comparison (2026-09-13)}}
 [^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
 [^logbooks]: {{cite:docs/logbooks.md|Three tiers}}
+[^lives]: {{cite:docs/phase13-plan.md|1. Brief and settled decisions}}
+[^live]: {{cite:docs/phase13-plan.md|2026-10-15: step 4 accepted live, and a debrief lost to its token cap}}
 
 {{navbox:clude}}

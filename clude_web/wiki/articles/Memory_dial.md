@@ -10,7 +10,7 @@ Zero does **not** mean remembering off. The table's remembering setting separate
 
 ## A ten-entry example
 
-Consider a logbook with ten entries, in chronological order. The head always supplies its tally, standing instructions and dossiers for opponents at the current table. The dial then adds the following material:
+Consider a logbook with ten entries, in chronological order. The head always supplies its tally, standing instructions and dossiers for opponents at the current table; since October 2026 a dossier reads the opponent as a person as well as a player, and the instructions cover how the character means to be at the table as well as how it means to play. The dial then adds the following material:
 
 | Depth | Indexed summaries | Full entries |
 |---|---|---|

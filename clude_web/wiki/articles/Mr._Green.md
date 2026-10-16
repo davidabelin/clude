@@ -5,6 +5,7 @@ categories: Characters
 redirects: Green, Reverend Green, Rev. Green
 dyk: ... that [[Mr. Green]] won no games in one sixteen-game arena, then {{fact:green.confirm.win}}% on the same deals with his settings unchanged and different opposition?
 dyk: ... that [[Mr. Green]] queries all five other methods before selecting one, even when he will not use the most expensive answer?
+dyk: ... that [[Mr. Green]] reads up in this encyclopaedia on whichever character he is borrowing from, to learn where they go wrong?
 ---
 {{infobox
 title: Mr. Green
@@ -39,6 +40,12 @@ Green's [[persona]], given to a [[w:Large language model|language model]] playin
 His prescribed voice is "ingratiating, quick to agree, a touch anxious", with phrases such as "I was just about to say that". He compliments others while borrowing their reasoning.[^persona] In the first reviewed model-piloted games, a line about "Scarlett's fractions" expressed this habit without additional prompting. The review retained his persona.[^phase6]
 
 Headless, by his numbers alone, he is silent, and every measurement below was made that way unless it says otherwise. The seat is fixed: Green always plays the green token, fourth in the order of play.[^seats]
+
+## In company
+
+Green is a film buff. He enjoys how a film works, a small performance, a cut that changes what a scene means, something noticed on a second viewing, and can recommend a film because he loved it without needing the recommendation to impress. [[Miss Scarlett]] shares the interest, and he would like to find her something she has not already dismissed; her eye for a performance can catch what his explanation missed, and the script lets him disagree with her about a film he cares for rather than buy agreement by abandoning his own pleasure. He listens to NPR in the car and has a recent *New Yorker* half-read, and an interview can send him back to a film with a different question. He wants the conversation to go well but need not smooth away every disagreement; a candid opinion, a quiet joke or a question about the detail someone mentioned can do more than another compliment, and when he is absorbed the nervous qualifications can fall away.[^persona][^lives]
+
+Told that he is a language model playing a part, his film-loving mind is interested in an actor who discovers something about his part. The account may also leave him wondering whether another person's approval was meant or merely supplied, and their answer can surprise him; sometimes the film analogy helps and sometimes he would rather leave it alone and enjoy the conversation. He reads up in [[Wikiclude]] on whoever he is borrowing from, since their article says how they think and where they go wrong, which is worth a look when the score changes hands.[^persona]
 
 ## How he thinks
 
@@ -94,7 +101,7 @@ With a model choosing within his [[leash]], Green's win rate changed from {{fact
 
 Green's five arm records are saved after games and restored when remembering is enabled. Since Phase 7, they persist in the same store as game records. Unlike [[Colonel Mustard]]'s training rows and [[Mrs. White]]'s transition counts, the current memory builder does not reconstruct them from stored games: the records do not preserve the predictions made by the arms at the time. His method memory is accumulated during play.[^memory]
 
-Like every character he can also keep a narrative [[logbook]], written by a model after each game it played his seat, with what happened and what to do next time.[^logbooks]
+Like every character he can also keep a narrative [[logbook]], written by a model after each game it played his seat, with what happened, what to do next time and, since October 2026, the evening itself: the company, and a read of each opponent as a person as well as a player.[^logbooks] His live standing instructions keep his route and his live list to himself 'but not my company: the talk costs me nothing', where under the earlier debrief they had said to move first and speak after.[^live]
 
 ## See also
 
@@ -124,5 +131,7 @@ Like every character he can also keep a narrative [[logbook]], written by a mode
 [^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
 [^memory]: {{cite:docs/logbooks.md|Tier 1: method memory}}
 [^logbooks]: {{cite:docs/logbooks.md|Three tiers}}
+[^lives]: {{cite:docs/phase13-plan.md|1. Brief and settled decisions}}
+[^live]: {{cite:docs/phase13-plan.md|2026-10-15: step 4 accepted live, and a debrief lost to its token cap}}
 
 {{navbox:clude}}

@@ -5,31 +5,30 @@ for family and friends at every level of expertise at once, in Wikipedia's
 organisation and clude's looks. It is public, it is the house reference the
 model seats read, and its articles are Markdown files in the repo.
 
-## Where it stands (2026-10-15)
+## Where it stands (2026-10-16)
 
-**Built, live and public.** 95 articles across ten categories, zero wanted
+**Built, live and public.** 96 articles across ten categories, zero wanted
 pages, 98 distinct Wikipedia titles all confirmed to exist, one featured
-article and 47 "Did you know" entries. Deployed and serving: `/wiki`
+article and 58 "Did you know" entries. Deployed and serving: `/wiki`
 answers 200 without a login, as W-D3 decided (section 7).
 
 | Category | Articles | | Category | Articles |
 |---|---|---|---|---|
 | Algorithms (all stubs, by design) | 21 | | Mathematics | 8 |
-| The app | 15 | | Characters | 8 |
+| The app | 16 | | Characters | 8 |
 | The game | 10 | | Classwork | 6 |
 | Measurement | 9 | | Personality | 5 |
 | Methods | 9 | | Memory | 4 |
 
-**What is left, in the order it should be done:**
+**What is left:** **W7, the featured-article pass**, now mostly a
+corpus-wide reread against sections 3.1 and 3.2, plus a look at the
+screenshots. Its other gates are met: no wanted pages, the Wikipedia
+titles check passes, the navboxes and "Did you know" are filled.
 
-1. **[W8, the Phase 13 alignment pass](#14-w8-the-phase-13-alignment-pass).
-   This is the next big write, and section 14 is its brief.** Phase 13
-   developed the six characters and changed what the prompts tell them;
-   the encyclopaedia still describes the arrangement that preceded it.
-2. **W7, the featured-article pass**, now mostly a corpus-wide reread
-   against sections 3.1 and 3.2, plus a look at the screenshots. Its other
-   gates are met: no wanted pages, the Wikipedia titles check passes, the
-   navboxes and "Did you know" are filled.
+**W8, the Phase 13 alignment pass, is done** (2026-10-16): section 14 was
+its brief and [section 15](#15-as-implemented-w8-2026-10-16) is its
+record. The encyclopaedia now describes the characters as Phase 13 left
+them, and has an article on itself.
 
 **W6 is done** in substance, though it was never formally closed: every
 article it listed exists, including the classwork archive. W1–W5 are built
@@ -39,8 +38,9 @@ and verified.
 design of 2026-10-01 and are still the style guide: section 3 in particular
 governs every article and has not been superseded. Sections 9–13 are dated
 records of what was actually built, and where they differ from the design
-they win. Section 14 is the brief for the next write. Stale claims in
-sections 1–8 carry a dated correction where they would otherwise mislead.
+they win. Section 14 was the brief for W8 and section 15 its record. Stale
+claims in sections 1–8 carry a dated correction where they would otherwise
+mislead.
 
 ## 1. Context: David's brief (2026-10-01)
 
@@ -443,6 +443,10 @@ The live Wikipedia-title check for the new `[[w:...]]` links; W7's corpus-wide p
 
 ## 14. W8: the Phase 13 alignment pass
 
+> **Done, 2026-10-16.** This section is the brief as it was written on
+> 2026-10-15; [section 15](#15-as-implemented-w8-2026-10-16) records what
+> was built and where it departs.
+
 **This is the brief for the next write.** Everything needed to start is in
 this section; sections 1-8 remain the style guide, and section 3 in
 particular still governs every article.
@@ -585,3 +589,133 @@ which it should not. If an article change does require a prompt change, that
 is a Phase 13 decision reopened, and it needs David before it needs writing.
 
 **Then W7**, the corpus-wide reread, so it sees the finished text once.
+
+## 15. As implemented: W8 (2026-10-16)
+
+The Phase 13 alignment pass, written against the deployed prompts: Cloud
+Run's active revision on 2026-10-16 is `clude-00032-bvr` (16:25 UTC), which
+carries steps 5 and 6, and the working tree's persona, rules, canon, debrief
+and MCP text is what was cited. The live logbooks were read first (entries of
+14-16 October 2026, the first written under the broadened debrief), as 14.6
+suggests; a few phrases that the Phase 13 record already quotes are used, no
+entry is copied, and no person is named.
+
+### 15.1 What changed
+
+- **The six biographies** gain a section, *In company*, between *Character*
+  and *How they think*: the interests and the shared background, what the
+  character wants from company, its attitude to being told it is a model
+  playing a part, and how readily it reads the encyclopaedia, each sentence
+  from the persona file and cited to it. The *Character* sections were
+  corrected where they quoted text the scripts no longer carry: White's "You
+  read people, not cards" and "Cards do not lie" are gone from her script,
+  Scarlett's confidence "meant to survive being wrong" is now a licence to own
+  a remark that hurt, and the Phase 6 rule Peacock's looping prompted survives
+  softened. The *Memory* sections say what the debrief now records and what
+  each live standing-instruction list closes on. One "Did you know" each.
+- ***Persona***, rewritten: voice and self-image; a life beyond the cards
+  (14.3's first point, with the candidate interests left as candidates); the
+  parts (the premise, six temperaments, nothing fixed, identity not inferred
+  from a token); the shared rules as they now read; names; the five-scene
+  rehearsal with its numbers.
+- ***Table talk***, rewritten: conversation as part of the evening; what the
+  characters are told; the on-turn line published as written, with the
+  measured cost of the old gate; the reaction queue described from `chat.py`
+  with its caps and delay as code values; chattiness as the off-turn draw
+  alone, with the two games' reaction counts and why the taper was left;
+  cleaning; what the debrief now asks about the talk.
+- ***Logbook*** and ***The debrief***: the broadened fields with their caps as
+  code values, the 2026-10-14 audit, the deployed outcome, the 8,192-token cap
+  covering thinking and reply, Plum's lost and re-run entry, one set of names.
+- ***Memory dial***, ***Method memory***, ***Personality dials***: one
+  sentence each; `chattiness` is the off-turn draw and `focus` is not
+  mentioned.
+- ***LLM wrapper***, ***A seat over MCP***, ***Claude***: the published
+  on-turn line and the cleaning, one set of participant names, the chat seat's
+  instructions in full (a new section, *What the chat seat is told*), and links
+  to the new article.
+- ***Wikiclude***, the optional article, written as the encyclopaedia's entry
+  on itself: what it holds, who reads it (people, wrapped characters through
+  the index and two tools, chat seats through two more), the three-way line on
+  how far to trust it, a table of what each character makes of it, and how it
+  is kept true. Redirects *The encyclopaedia*, *Canon*, *The canon*, *House
+  encyclopaedia* and *Wiki*; in the navbox's app row; linked from *clude*.
+- **`facts.py`** carries the measured numbers the new text quotes, from the
+  Phase 13 record (the gate's 81 written, 39 spoken, 42 dropped; the two
+  games' 22 and 41 reaction lines and the twelve runs of three; the
+  rehearsal's 30 lines, 22 free of game terms, 73%, $0.1373; Plum's re-run at
+  3,407 output tokens and $0.1281; the audit's 78 entries and six clauses) and
+  the canon plan's 41 calls, each checked under its heading by the existing
+  test, and the live constants the articles print: the reaction queue's caps
+  and delay, the 240-character line, the eight-remark window, and the
+  logbook's word and list caps. `sources.py` makes `docs/phase13-plan.md` and
+  `docs/canon-plan.md` citable.
+
+### 15.2 Where it departs from the brief
+
+- **The fourth-wall article became *Wikiclude*.** The fourth wall itself is
+  one section of *Persona* (*The parts*), and a separate article would have
+  duplicated it; what the encyclopaedia lacked was an article about itself,
+  which is where a character's lookup of "the encyclopaedia" now lands, with
+  the trust line and the six attitudes in one place. It is modest, copies no
+  persona instruction, and cites the rules file for every claim about what a
+  character is told.
+- **Two more docs are citable.** 14.6 says every measured number goes through
+  `facts.py`, and the numbers this pass quotes are in the Phase 13 record and
+  the canon plan, so both joined `sources.DOCS`; the test that checks each
+  fact under its heading covers them.
+- **The biographies' infoboxes and method sections are untouched**, as 14.4
+  asks; the "Memory" row of each infobox still names the mechanism, and the
+  prose beneath says what it now holds.
+- **The new article moved the replay fixtures.** 14.6 said W8 needed no
+  paid work because the recordings key on the prompts, not the prose. True
+  of the prose, but not of a *title*: the canon's index block names every
+  article and is a cached system block on every request, so a new article
+  changes every replay key exactly as a persona edit does, and both
+  exact-game recordings started missing the moment *Wikiclude* existed.
+  14.6 did not foresee this, and the brief for any later new article should.
+  Both rows in `tests/test_llm.py` carry a pending-refresh skip with the
+  reason, as Phase 11 and Phase 13 did; the refresh is the same two
+  recordings as 2026-10-15 (about $0.15 together) and needs David's
+  approval. The alternative, folding the article into *clude* or *LLM
+  wrapper* to keep the index unchanged, is David's to choose instead; the
+  article itself says what happened, under *Keeping it true*.
+
+### 15.3 Gates
+
+- Every article was written from the deployed prompt files and the Phase 13
+  record and cites them; nothing reinstates the retired authority brief or a
+  rule against talking, and a character reading its own article finds the
+  attitude its script gives it.
+- 96 articles (75 full, 21 algorithm stubs), no wanted
+  pages, 58 "Did you know" entries, 86,688 words.
+- `tests/test_wiki.py` passes; the whole offline suite and the screenshots
+  are recorded in 15.4.
+
+### 15.4 Verification
+
+- `python -m pytest -q -n auto` on the whole offline suite: 620 passed, 36
+  skipped, the two exact-game replays among the skipped for the reason in
+  15.2 (before the skip, those two were the only failures: 620 passed, 2
+  failed, 34 skipped). A first run with `-n auto` crashed its workers with a
+  `MemoryError` while the screenshot browser was starting beside it; run on
+  its own it passes.
+- `tests/test_wiki.py` passes: every citation names a real file and heading,
+  including the Phase 13 record's and the canon plan's; every measured
+  number is found under its heading; every constant computes; no wanted
+  pages; every page renders under every look.
+- Screenshots: `clude_shots.py --wiki --phone --dark` run after the suite (its
+  browser cannot start inside the agent sandbox, and starting it beside a
+  `-n auto` suite is what crashed the workers). Looked at: *Professor Plum*
+  wide and phone, with *In company* between *Character* and *How he
+  thinks* and in the contents rail; *Logbook* on Gaslight dark, with the
+  new section and the Phase 13 citations resolving; *A seat over MCP* on
+  the phone, with the tool names wrapping inside the measure; and the Main
+  Page, which lists *Wikiclude* under The app and counts 75 articles and
+  21 stubs. The script's fixed page list has no slot for *Wikiclude*,
+  *Persona* or *Table talk*; those three were proofread as rendered text.
+- No paid call, no cloud write, no deployment. The live store and Cloud Run
+  were read only.
+
+**Left:** W7, the corpus-wide reread against sections 3.1 and 3.2, now that
+the text is finished.

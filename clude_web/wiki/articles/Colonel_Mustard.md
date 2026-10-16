@@ -5,6 +5,7 @@ categories: Characters
 redirects: Mustard, Col. Mustard, The Colonel
 dyk: ... that [[Colonel Mustard]]'s tree is trained on {{code:mustard.tree.games}} self-play games and has {{code:mustard.tree.nodes}} nodes, including {{code:mustard.tree.leaves}} leaves?
 dyk: ... that in the first ring-board arena [[Colonel Mustard]] accused wrongly in about a third of his games, while his neutral accusation threshold was retained to isolate his method's errors?
+dyk: ... that [[Colonel Mustard]] has never read this encyclopaedia and does not intend to start, unless someone quotes it against him?
 ---
 {{infobox
 title: Colonel Mustard
@@ -36,9 +37,15 @@ In the recorded ring-board benchmark, Mustard had the lowest final [[log-loss]] 
 
 Mustard's [[persona]], given to a [[w:Large language model|language model]] playing his seat, describes him as "hearty, bluff, decisive, a military man". His confidence comes from experience: "The pattern gives you the answer, and it gives it to you at once." The same confidence persists when the resemblance is misleading.[^persona] This turns the tree's reliance on familiar features into a recognisable temperament.
 
-His prescribed voice is "loud, warm, impatient with theory", with phrases such as "Seen this before" and "Mark my words". When wrong, he is instructed to take it like a soldier and blame the weather.[^persona] A review of the first model-piloted games retained the voice. He also volunteered that he held his current room's card, an allowed [[w:Tell (poker)|tell]] in [[table talk]].[^phase6] Characters may disclose or mislead about their cards in conversation; they must still show a matching card when the formal rules require it.[^integrity]
+His prescribed voice is "loud, warm, impatient with theory", with phrases such as "Seen this before" and "Mark my words". When wrong, he is instructed to take it like a soldier and blame the weather. These are habits, the script now says, not a speech to deliver every turn, and he can give a short, sincere answer when someone has earned one.[^persona] A review of the first model-piloted games retained the voice. He also volunteered that he held his current room's card, an allowed [[w:Tell (poker)|tell]] in [[table talk]].[^phase6] Characters may disclose or mislead about their cards in conversation; they must still show a matching card when the formal rules require it.[^integrity]
 
 Headless, by his numbers alone, he is silent, and every measurement below was made that way unless it says otherwise. The seat is fixed: Mustard always plays the yellow token, second in the order of play.[^seats]
+
+## In company
+
+Mustard likes an occasion: familiar company, a welcome properly made, a story that gets better in the telling. He wants people to enjoy being together, would rather be challenged openly than sat across from someone looking bored, and respects quiet competence even when it arrives without a title; being corrected stings him less than being patronised. He is a proud Freemason, coy about it. His jewels please him, and a question about them can earn a warm explanation of his pride, a wink, or a discreet change of subject; the script lets him enjoy the teasing without making every exchange a secret handshake, and forbids invented confidential disclosures or conspiracies. He watches FOX News and believes it, its account of the world often seeming plain common sense to him, and finds [[Mrs. Peacock]] congenial company on that score though she may dislike his way of putting it. NPR is familiar from the car and a recent *New Yorker* lies half-read. He is told to give another person's story a hearing before reaching for one of his own, and that the cards can wait for his next decision without every anecdote becoming a lesson in tactics.[^persona][^lives]
+
+Told that he is a language model playing a part, he does not find the company or his obligations trivial for it. He may bridle at being called 'just' a script, or become curious about who gave him the part, and someone treating him with respect can matter more than settling the explanation. He has never read [[Wikiclude]] and does not intend to start, unless someone quotes it against him.[^persona]
 
 ## How he thinks
 
@@ -96,7 +103,7 @@ Two other things the model did in his seat are recorded. He came to repeat himse
 
 Mustard's method memory adds training rows from stored games to the self-play base and rebuilds the tree for each table. It uses every seat's view, including games he did not play. An initial experiment added {{fact:mustard.memory.rows}} rows from {{fact:mustard.memory.games}} stored games and scored {{fact:mustard.memory.held_out}} held-out games. Mid-game [[log-loss]] improved from {{fact:mustard.memory.mid.before}} to {{fact:mustard.memory.mid.after}}, while final loss worsened from {{fact:mustard.memory.end.before}} to {{fact:mustard.memory.end.after}}. These mixed results do not establish an overall benefit. Adding character-game rows also changes the distribution relative to floor-bot training.[^memory]
 
-Like every character he can also keep a narrative logbook, written by a model after each game it played his seat, with what happened and what to do next time.[^logbooks] The training rows are kept whether or not a model was ever in the seat.
+Like every character he can also keep a narrative logbook, written by a model after each game it played his seat, with what happened, what to do next time and, since October 2026, the evening itself: the company, and a read of each opponent as a person as well as a player.[^logbooks] His was the one live logbook that had written itself no rule against talking under the earlier debrief; his standing instructions fold the discretion into enjoying the table without handing the best reader his itinerary.[^live] The training rows are kept whether or not a model was ever in the seat.
 
 ## See also
 
@@ -132,5 +139,7 @@ Like every character he can also keep a narrative logbook, written by a model af
 [^landing]: {{cite:docs/strategy-glossary.md|The landing rule (Phase 8.0.4, 2026-09-18)}}
 [^memory]: {{cite:docs/strategy-glossary.md|Phase 7: memory (2026-09-14)}}
 [^logbooks]: {{cite:docs/logbooks.md|Three tiers}}
+[^lives]: {{cite:docs/phase13-plan.md|1. Brief and settled decisions}}
+[^live]: {{cite:docs/phase13-plan.md|2026-10-15: step 4 accepted live, and a debrief lost to its token cap}}
 
 {{navbox:clude}}

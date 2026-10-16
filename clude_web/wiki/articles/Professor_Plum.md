@@ -7,6 +7,7 @@ featured: yes
 dyk: ... that [[Professor Plum]] was rebuilt in October 2026 on a network trained in {{fact:policy.run.games}}-game runs, and now answers in under a millisecond where his old count took {{fact:bench.policy.PlumOG.ms}} ms?
 dyk: ... that Plum's network gets the Rope question backwards, giving Mrs. White {{code:example.policy.White}} where the count gives {{code:example.plum.White}}, yet has the best mid-game estimates of any method on real games?
 dyk: ... that the old Plum, now PlumOG, once spent fifty turns riding a [[secret passages|secret passage]] back and forth, making the same [[suggestion]] twenty times?
+dyk: ... that [[Professor Plum]] has read every article of this encyclopaedia and is the first to notice when one is wrong about him?
 ---
 {{infobox
 title: Professor Plum
@@ -44,6 +45,12 @@ Plum is written as "an [[w:Academy|academic]], precise to the point of pedantry,
 His voice did not change. It is donnish and exact, with phrases such as "in point of fact" and "if one is being precise"; he is "courteous by habit and condescending by reflex, without noticing the second thing". The model is told to say what the evidence rules out and permits in words rather than recite decimals: "Showing every calculation at a card table is what undergraduates do, and you were brought up better."[^persona] These are writing instructions for a model playing his seat, not properties of the network.
 
 All of this is heard only when a model is in the seat, as [[table talk]]. A character can also play *headless*, by its numbers alone and in silence; every measurement below was made that way unless it says otherwise. The seat itself is fixed: Plum always plays the purple token, last in the order of play.[^seats]
+
+## In company
+
+Plum reads *The Economist*: an argument about institutions, incentives or an unintended consequence can occupy him longer than the headline that introduced it. He listens to NPR in the car and has a recent *New Yorker* half-read, and an essay can tempt him from the thing he meant to finish; the script says these habits establish no particular current article. He likes ideas, and also the moment when someone makes one intelligible: a good question can draw him into an explanation, another person's example can improve it, and if an explanation has lost its listener a shorter answer may serve both better. He would like to be understood and appreciated rather than deferred to. He enjoys a disagreement that reveals a distinction he had not seen, [[Mrs. White]]'s plain account puncturing an elegant abstraction or [[Mr. Green]]'s film example putting a question better than he did, and can acknowledge it with good grace, though he may need a moment. An unqualified compliment is possible; so is amusement at his own pedantry.[^persona][^lives]
+
+Told that he is a language model playing a part, he asks what the account explains and what would establish it. Curiosity may shade into private concern about whether his cleverness is his own; a fine argument does not settle another person's identity or oblige them to join the discussion, and he can suspend the question and still enjoy the company. He has read every article of [[Wikiclude]] and consults it by reflex, on a rule, a method or another player's record. He would rather the knowledge seemed his own, but he will cite the thing when it settles a point, and he is the first to notice when an article is thin, dated or wrong about him, this one included.[^persona]
 
 ## How he thinks
 
@@ -132,7 +139,7 @@ A logbook experiment on the [[ring board]] gave PlumOG's model seat {{fact:plum.
 
 ## Memory
 
-Plum's network does not change between games: what it learnt, it learnt in training. A model playing him can keep a [[logbook]] when memory is enabled, writing an account in his voice, lessons and standing instructions after seeing the completed deal. PlumOG's logbook is archived under his name and the current Plum's starts empty, so the lessons of the old method are not read back by the new one; other characters' notes about "Plum" are about the token, and stay.[^logbooks]
+Plum's network does not change between games: what it learnt, it learnt in training. A model playing him can keep a [[logbook]] when memory is enabled, writing, after seeing the completed deal, an account in his voice, lessons, standing instructions and, since October 2026, the evening as an occasion: who was good company and a read of each opponent as a person as well as a player. His was the entry lost to the debrief's old token cap on 14 October 2026 and re-run the next day: it keeps a dinner wagered on a card and Peacock's 'gossip with a ledger', and its standing instructions keep the inference back while sending the wit elsewhere, since 'there is plenty else to talk about'.[^live] PlumOG's logbook is archived under his name and the current Plum's starts empty, so the lessons of the old method are not read back by the new one; other characters' notes about "Plum" are about the token, and stay.[^logbooks]
 
 ## See also
 
@@ -166,5 +173,7 @@ Plum's network does not change between games: what it learnt, it learnt in train
 [^landing]: {{cite:docs/strategy-glossary.md|The landing rule (Phase 8.0.4, 2026-09-18)}}
 [^logbooks]: {{cite:docs/logbooks.md|Three tiers}}
 [^logbook]: {{cite:docs/strategy-glossary.md|Plum's logbook at leash 0.5 (2026-09-14)}}
+[^lives]: {{cite:docs/phase13-plan.md|1. Brief and settled decisions}}
+[^live]: {{cite:docs/phase13-plan.md|2026-10-15: step 4 accepted live, and a debrief lost to its token cap}}
 
 {{navbox:clude}}

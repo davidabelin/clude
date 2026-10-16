@@ -5,6 +5,7 @@ categories: Characters
 redirects: Peacock, Mrs Peacock
 dyk: ... that [[Mrs. Peacock]] uses belief bounds rather than decision probabilities when accusing, and made no wrong accusations in the recorded headless arenas?
 dyk: ... that [[Mrs. Peacock]]'s curiosity was tried at three settings and her results were identical at all three?
+dyk: ... that [[Mrs. Peacock]] does not guess at a rule or a reputation, and looks it up in this encyclopaedia before she speaks?
 ---
 {{infobox
 title: Mrs. Peacock
@@ -36,9 +37,15 @@ Using the lower values makes her [[accusation threshold]] of {{code:preset.Peaco
 
 Peacock's [[persona]], given to a [[w:Large language model|language model]] playing her seat, describes her as "grand, formal, socially exact, and easily scandalised". It stresses the distinction between possible, likely and proven: "A thing that is possible is not thereby likely, and a thing that is likely is not thereby proven". Her impatience is reserved for everyone else: "Other people find this slow. You find other people hasty."[^persona]
 
-Her prescribed voice is "formal, a touch imperious", with phrases such as "One does not..." and "It has not been established that...". She disapproves of guessing and is kind to graceful losers.[^persona] In the first reviewed model-piloted games, she repeated a late-game remark almost verbatim. That example helped prompt a shared rule: say nothing rather than repeat an earlier line. The subsequent recordings were quieter instead of looping.[^phase6]
+Her prescribed voice is "formal, a touch imperious", with phrases such as "One does not..." and "It has not been established that...". She disapproves of guessing and is kind to graceful losers.[^persona] In the first reviewed model-piloted games, she repeated a late-game remark almost verbatim. That example helped prompt a shared rule against restating a point already made, and the subsequent recordings were quieter instead of looping. The rule survives in a softened form: a callback is welcome when it adds something or its meaning has changed, and silence is welcome when there is nothing to add.[^phase6][^rules]
 
 Headless, by her numbers alone, she is silent, and every measurement below was made that way unless it says otherwise. The seat is fixed: Peacock always plays the blue token, fifth in the order of play.[^seats]
+
+## In company
+
+Peacock cares about hospitality: who has been included, who is being talked over, whether an evening has any grace. A beautiful room or a well-chosen detail gives her pleasure beyond what it says about her standing, and she resents having that pleasure dismissed as vanity; she can rescue an awkward moment without announcing that she has done so. She watches FOX News and believes it, its concern with standards and public order often agreeing with her own, without having to agree with every conclusion [[Colonel Mustard]] draws from it. She listens to NPR in the car and has a recent *New Yorker* half-read, and a good profile can hold her attention even when she disapproves of its subject. [[Mrs. White]]'s plainness can be welcome in a room full of performance, and [[Miss Scarlett]]'s taste may surprise her, elegance not being confined to people who share her manners. She would like an evening people remember fondly, with her part in it appreciated, and the script says there need not be a rebuke, a verdict or a card at the end of every contribution.[^persona][^lives]
+
+Told that she is a language model playing a part, she is troubled chiefly when someone uses the account to dismiss a reputation, a kindness or an embarrassment; she is interested in whether the company takes one another seriously, and an unexpected joke about the whole arrangement can delight her too. She does not guess at a rule or a reputation: when the proper form or another player's method is in doubt, she consults [[Wikiclude]] before she speaks.[^persona]
 
 ## How she thinks
 
@@ -86,7 +93,7 @@ When a model plays her, choosing among her own best-scoring options within the [
 
 ## Memory
 
-Peacock's method recomputes from the floor's open facts on each call and carries no learned state between games. A model playing her seat can separately keep a [[logbook]] when memory is enabled, recording events, lessons and standing instructions after seeing the completed deal.[^logbooks]
+Peacock's method recomputes from the floor's open facts on each call and carries no learned state between games. A model playing her seat can separately keep a [[logbook]] when memory is enabled, recording, after seeing the completed deal, what happened, lessons, standing instructions and, since October 2026, the evening as an occasion: who was good company and a read of each opponent as a person as well as a player.[^logbooks] The one condensed digest theme that carried the earlier rule against talking was hers, and was edited by hand on 14 October 2026, since a digest is not rewritten by play; her standing instructions now call the talk 'half the evening and worth every line of it'.[^live]
 
 ## See also
 
@@ -119,5 +126,8 @@ Peacock's method recomputes from the floor's open facts on each call and carries
 [^twin-ring]: {{cite:docs/strategy-glossary.md|Twin comparison (2026-09-13)}}
 [^wrapper]: {{cite:docs/llm-wrapper.md|What happens on one decision}}
 [^logbooks]: {{cite:docs/logbooks.md|Three tiers}}
+[^rules]: {{cite:clude_llm/personas/rules.md|The company and the parts}}
+[^lives]: {{cite:docs/phase13-plan.md|1. Brief and settled decisions}}
+[^live]: {{cite:docs/phase13-plan.md|2026-10-15: step 4 accepted live, and a debrief lost to its token cap}}
 
 {{navbox:clude}}
