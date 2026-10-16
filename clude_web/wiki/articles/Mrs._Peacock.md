@@ -29,7 +29,7 @@ Wrong accusations | {{fact:arena.grid.Peacock.wrong}}%
 
 **Mrs. Peacock** is one of the six [[Clue#The cards|suspects]] in [[Clue]] and the cautious [[Category:Characters|character]] in [[clude]]. Her [[Dempster-Shafer theory|Dempster–Shafer]] method assigns evidence to sets of possible cards. For each card, it calculates *belief*, the mass supporting that card alone, and *plausibility*, the mass that does not exclude it. When a single probability is needed, each set's mass is shared equally among its members. When she [[accusation|accuses]], she instead uses the product of the selected cards' [[w:Upper and lower probabilities|belief bounds]].[^module]
 
-Using the lower values makes her [[accusation threshold]] of {{code:preset.Peacock.accuse_threshold}} more conservative than the same threshold applied to her decision probabilities. She made no wrong accusations in the recorded headless arenas on either board, and tied with [[Professor Plum]] for wins in the tabulated [[Classic board]] arena. Her decision probabilities nevertheless had slightly worse [[log-loss]] than the [[uniform baseline]] in both benchmark regimes. The project attributes this deficit to its heuristic allocation of evidence across categories.[^glossary]
+Using the lower values makes her [[accusation threshold]] of {{code:preset.Peacock.accuse_threshold}} more conservative than the same threshold applied to her decision probabilities. She made no wrong accusations in the recorded headless arenas on either board, and tied with [[Professor Plum]] for wins in the tabulated [[Classic board]] arena. Her decision probabilities nevertheless had slightly worse [[log-loss]] than the [[uniform baseline]] in every recorded benchmark. The project attributes this deficit to its heuristic allocation of evidence across categories.[^glossary]
 
 ## Character
 
@@ -75,21 +75,19 @@ The threshold is tested against her belief rather than her probability by a func
 
 ### The quality of her numbers
 
-{{table:bench.ring|The six methods on the ring board, Phase 5: log-loss at four checkpoints. Lower is better.}}
+The [[belief benchmark]] scores her decision probabilities rather than the bounds used for accusation. In every recorded benchmark, her log-loss was slightly higher than the [[uniform baseline]] at every checkpoint. On the Classic board, halfway loss was {{fact:bench.grid.Peacock.50}} versus {{fact:bench.grid.uniform.50}}, and final loss {{fact:bench.grid.Peacock.100}} versus {{fact:bench.grid.uniform.100}}. Final first-choice accuracy was {{fact:bench.grid.Peacock.top1}}, the same as the baseline. These results evaluate the single-number estimates, not whether the bounds are calibrated or whether caution is always advantageous.[^grid] Computation took a fraction of a millisecond per call.
 
-The [[belief benchmark]] scores her decision probabilities rather than the bounds used for accusation. In both recorded regimes, her log-loss was slightly higher than the [[uniform baseline]] at every checkpoint. On the Classic board, halfway loss was {{fact:bench.grid.Peacock.50}} versus {{fact:bench.grid.uniform.50}}, and final loss {{fact:bench.grid.Peacock.100}} versus {{fact:bench.grid.uniform.100}}. Final first-choice accuracy was {{fact:bench.grid.Peacock.top1}}, the same as the baseline. These results evaluate the single-number estimates, not whether the bounds are calibrated or whether caution is always advantageous.[^ring][^grid] Computation took a fraction of a millisecond per call.
-
-{{table:bench.grid|The same benchmark on the Classic board, {{fact:bench.grid.games}} games, 15 September 2026.}}
+{{table:bench.grid|The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
 
 ### At the table
 
 {{table:arena.grid|The six characters over {{fact:arena.grid.games}} games on the Classic board at their tuned presets, tables of three to six, 15 September 2026.}}
 
-Peacock made no wrong accusations in the recorded headless arenas. In the first ring-board arena she won {{fact:arena.ring.first.Peacock.win}}% of her games; with tuned presets, {{fact:arena.ring.Peacock.win}}%. Her first accusation then came at mean turn {{fact:arena.ring.Peacock.first}}, and she never accused in {{fact:arena.ring.Peacock.never}}% of games. In the tabulated Classic-board run she won {{fact:arena.grid.Peacock.win}}%, tied with Plum, and first accused at mean turn {{fact:arena.grid.Peacock.first}}, the latest of the six. Each character played 16 to 20 games per arena, with estimated [[w:Standard error|standard error]] {{fact:arena.noise}} percentage points.[^first][^ring-arena][^arena][^grid-presets] After the [[landing rule]] change, her exact repeats on the mixed table changed from {{fact:landing.repeats.Peacock.mixed}}.[^landing]
+Peacock made no wrong accusations in the recorded headless arenas. In the tabulated Classic-board run she won {{fact:arena.grid.Peacock.win}}%, tied with Plum, and first accused at mean turn {{fact:arena.grid.Peacock.first}}, the latest of the six. Each character played 16 to 20 games per arena, with estimated [[w:Standard error|standard error]] {{fact:arena.noise}} percentage points.[^arena][^grid-presets] After the [[landing rule]] change, her exact repeats on the mixed table changed from {{fact:landing.repeats.Peacock.mixed}}.[^landing]
 
 ### With Claude in the seat
 
-When a model plays her, choosing among her own best-scoring options within the [[leash]], her caution gives a little. The leash lets a model accuse once the character's confidence is within a quarter of its threshold, and the recorded model-piloted games brought earlier accusations. At a four-seat table where every character played with [[Claude]] her first accusation came at turn {{fact:twin.grid.Peacock.first_llm}} instead of {{fact:twin.grid.Peacock.first_base}}, she never accused in {{fact:twin.grid.Peacock.never_llm}}% of games rather than {{fact:twin.grid.Peacock.never_base}}%, and her wins went from {{fact:twin.grid.Peacock.win_base}}% to {{fact:twin.grid.Peacock.win_llm}}%, about {{fact:twin.grid.sigma.peacock}} [[w:Standard deviation|standard deviations]], still with no wrong accusation. On the ring board the same comparison had left her where she was, {{fact:twin.ring.Peacock.win_base}}% both ways. Her [[w:Bluff (poker)|bluffing]] fell with the model, from {{fact:twin.grid.bluff.peacock.base}} own-card suggestions a game to {{fact:twin.grid.bluff.peacock.llm}}, as it did for every character that does not loop.[^twin][^twin-ring][^wrapper]
+When a model plays her, choosing among her own best-scoring options within the [[leash]], her caution gives a little. The leash lets a model accuse once the character's confidence is within a quarter of its threshold, and the recorded model-piloted games brought earlier accusations. At a four-seat table where every character played with [[Claude]] her first accusation came at turn {{fact:twin.grid.Peacock.first_llm}} instead of {{fact:twin.grid.Peacock.first_base}}, she never accused in {{fact:twin.grid.Peacock.never_llm}}% of games rather than {{fact:twin.grid.Peacock.never_base}}%, and her wins went from {{fact:twin.grid.Peacock.win_base}}% to {{fact:twin.grid.Peacock.win_llm}}%, about {{fact:twin.grid.sigma.peacock}} [[w:Standard deviation|standard deviations]], still with no wrong accusation. Her [[w:Bluff (poker)|bluffing]] fell with the model, from {{fact:twin.grid.bluff.peacock.base}} own-card suggestions a game to {{fact:twin.grid.bluff.peacock.llm}}, as it did for every character that does not loop.[^twin][^wrapper]
 
 ## Memory
 
@@ -116,14 +114,10 @@ Peacock's method recomputes from the floor's open facts on each call and carries
 [^presets]: {{cite:clude_agents/personality.py|`PRESETS`, Peacock's entry and its note}}
 [^rule]: {{cite:docs/architecture.md|Personality layer (Phase 5c)}}
 [^grid-presets]: {{cite:docs/strategy-glossary.md|Tuned presets on the grid (Stage 1e, 2026-09-15)}}
-[^ring]: {{cite:docs/strategy-glossary.md|Belief benchmark, FloorBot regime (Phase 5)}}
 [^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
-[^first]: {{cite:docs/strategy-glossary.md|Arena, first pass (untuned presets)}}
-[^ring-arena]: {{cite:docs/strategy-glossary.md|Arena, tuned presets}}
 [^arena]: {{cite:docs/strategy-glossary.md|Arena on the grid, tuned presets (Stage 1f, re-run)}}
 [^landing]: {{cite:docs/strategy-glossary.md|The landing rule (Phase 8.0.4, 2026-09-18)}}
 [^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
-[^twin-ring]: {{cite:docs/strategy-glossary.md|Twin comparison (2026-09-13)}}
 [^wrapper]: {{cite:docs/llm-wrapper.md|What happens on one decision}}
 [^logbooks]: {{cite:docs/logbooks.md|Three tiers}}
 [^rules]: {{cite:clude_llm/personas/rules.md|The company and the parts}}

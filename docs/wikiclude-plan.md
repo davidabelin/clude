@@ -731,3 +731,36 @@ entry is copied, and no person is named.
 
 **Left:** W7, the corpus-wide reread against sections 3.1 and 3.2, now that
 the text is finished.
+
+### 15.5 The ring board leaves the players' pages (2026-10-16)
+
+David's instruction, after W8: the ring board should never have been in the
+encyclopaedia as a point of reference, so take it out wherever an article
+makes sense without it, and leave it only where it is needed.
+
+- **The six biographies** lose their ring-board benchmark table, the
+  ring-board arena and twin-comparison numbers, and Green's arm-trust figure
+  (which is drawn from the ring run); the Classic-board numbers that made the
+  same point stay, and three footnotes per page that only the ring numbers
+  cited are gone. Where a historical fact is the point, the board is "the
+  earlier board": Scarlett's first threshold, Mustard's leash ladder, Plum's
+  replacement and PlumOG's logbook experiment, and the first arena's wrong
+  rate for Mustard.
+- **The method pages** follow: *Naive Bayes*, *Decision tree*, *Markov chain*,
+  *Bandit ensemble* and *Dempster-Shafer theory* drop the ring table (D-S gets
+  the Classic one it lacked) and say "the earlier benchmark" where the ring
+  result is the only evidence for a claim. *Exact posterior enumeration* keeps
+  its "two boards" section, since PlumOG's story is the move between them.
+- **Shared pages** with an incidental mention (*Logbook*, *The debrief*,
+  *Personality dials*, *Method memory*) say "the earlier board".
+- **Kept as they are**, because the board is their subject or the record is
+  the point: *Classic board* (its history and the *Ring board* redirect),
+  *History of clude*, *Dial sweeps*, *Measurement record*, *Leash*'s ladders,
+  *Belief*'s two-board comparison, *Belief benchmark*, *Arena*, *Bluffing* and
+  *Suggestion*'s ring-only bluff sweep, *Character training* and
+  *Determinism and seeds*.
+- `facts.py` is untouched: the ring-keyed facts and tables remain for the
+  pages that still cite them, and no key is renamed.
+
+`tests/test_wiki.py` passes and the whole offline suite with it; no title
+changed, so the replay fixtures are unaffected.

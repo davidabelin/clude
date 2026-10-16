@@ -23,7 +23,7 @@ A **decision tree** estimates an answer by following a sequence of yes-or-no que
 
 Mustard's default tree is trained on {{code:mustard.tree.games}} floor-bot self-play games. When method memory is enabled, it is retrained with additional stored-game examples. Training chooses the questions rather than a programmer specifying them all. The method is inexpensive to consult, but its accuracy depends on how well those features and training games represent the current position.[^module]
 
-[[w:Decision tree learning|Decision trees]] are widely used in [[w:Machine learning|machine learning]] because their paths can be inspected and followed by hand.[^cart] In the recorded Classic-board benchmark, Mustard had the lowest final log-loss of the six methods. The earlier ring-board run also gave him the lowest final loss, but substantially worse mid-game results. These outcomes show the importance of training data and evaluation conditions.[^glossary]
+[[w:Decision tree learning|Decision trees]] are widely used in [[w:Machine learning|machine learning]] because their paths can be inspected and followed by hand.[^cart] In the recorded Classic-board benchmark, Mustard had the lowest final log-loss of the six methods. The earlier benchmark also gave him the lowest final loss, but substantially worse mid-game results. These outcomes show the importance of training data and evaluation conditions.[^glossary]
 
 ## At the table
 
@@ -124,11 +124,9 @@ Mustard has persistent method memory. When it is enabled, rows from stored games
 
 ### The quality of his numbers
 
-{{table:bench.ring|The six methods on the ring board, Phase 5: log-loss at four checkpoints. Lower is better.}}
+In the earlier benchmark the tree had the best belief of the six at the end of a game, {{fact:bench.ring.Mustard.100}}, and one of the worst in the middle, {{fact:bench.ring.Mustard.50}} and {{fact:bench.ring.Mustard.75}} against the baseline's {{fact:bench.ring.uniform.50}} and {{fact:bench.ring.uniform.75}}: confidently wrong, where the other methods were merely uncertain.[^ring] On the first benchmark of all, before the floor bot and the smoothing, its score at the end had been {{fact:mustard.phase4}} against the baseline's {{fact:uniform.phase4}}, two-thirds of it from the {{fact:phase4.zero_categories}} per cent of categories where a leaf put exactly nothing on the true card.[^phase4]
 
-On the ring board the tree had the best belief of the six at the end of a game, {{fact:bench.ring.Mustard.100}}, and one of the worst in the middle, {{fact:bench.ring.Mustard.50}} and {{fact:bench.ring.Mustard.75}} against the baseline's {{fact:bench.ring.uniform.50}} and {{fact:bench.ring.uniform.75}}: confidently wrong, where the other methods were merely uncertain.[^ring] On the first benchmark of all, before the floor bot and the smoothing, its score at the end had been {{fact:mustard.phase4}} against the baseline's {{fact:uniform.phase4}}, two-thirds of it from the {{fact:phase4.zero_categories}} per cent of categories where a leaf put exactly nothing on the true card.[^phase4]
-
-{{table:bench.grid|The same benchmark on the Classic board, {{fact:bench.grid.games}} games, 15 September 2026.}}
+{{table:bench.grid|The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
 
 In the Classic-board benchmark, with the tree trained on that board, halfway loss was {{fact:bench.grid.Mustard.50}}, compared with the baseline's {{fact:bench.grid.uniform.50}}. Final loss was {{fact:bench.grid.Mustard.100}}, the lowest of the six methods, and final first-choice accuracy was {{fact:bench.grid.Mustard.top1}}, the highest. The improved results are consistent with training on a more suitable game distribution, although several aspects of the regime changed together.[^grid]
 
@@ -136,9 +134,9 @@ In the Classic-board benchmark, with the tree trained on that board, halfway los
 
 {{table:arena.grid|The six characters over {{fact:arena.grid.games}} games on the Classic board at their tuned presets, 15 September 2026.}}
 
-Mustard uses the neutral [[accusation threshold]] of {{code:preset.Mustard.accuse_threshold}} to keep the method's effect visible without an unusually low or high threshold. Wrong accusations still depend on both the estimates and this decision rule. He accused wrongly in {{fact:arena.ring.first.Mustard.wrong}}% of games in the first ring-board arena, {{fact:arena.ring.Mustard.wrong}}% with tuned presets, and {{fact:arena.grid.Mustard.wrong}}% in the tabulated Classic-board arena.[^arena][^ringarena]
+Mustard uses the neutral [[accusation threshold]] of {{code:preset.Mustard.accuse_threshold}} to keep the method's effect visible without an unusually low or high threshold. Wrong accusations still depend on both the estimates and this decision rule. He accused wrongly in {{fact:arena.grid.Mustard.wrong}}% of games in the tabulated Classic-board arena, and in {{fact:arena.ring.first.Mustard.wrong}}% in the first arena of all, before the presets were tuned.[^arena][^ringarena]
 
-In the Classic-board twin comparison, with [[Claude]] piloting every character, Mustard's wrong-accusation rate fell from {{fact:twin.grid.Mustard.wrong_base}}% to {{fact:twin.grid.Mustard.wrong_llm}}%, and wins rose from {{fact:twin.grid.Mustard.win_base}}% to {{fact:twin.grid.Mustard.win_llm}}%.[^twin] A separate ring-board leash experiment, with only Mustard model-piloted, did not reproduce that reduction: at the preset [[leash]], his wrong rate was {{fact:ladder.mustard.0.25.wrong}}%, compared with {{fact:ladder.mustard.headless.wrong}}% headless.[^ladder] The project attributes much of the twin-run improvement to other model-piloted seats ending games earlier. The trials do not isolate a reliable benefit from model judgement alone.
+In the Classic-board twin comparison, with [[Claude]] piloting every character, Mustard's wrong-accusation rate fell from {{fact:twin.grid.Mustard.wrong_base}}% to {{fact:twin.grid.Mustard.wrong_llm}}%, and wins rose from {{fact:twin.grid.Mustard.win_base}}% to {{fact:twin.grid.Mustard.win_llm}}%.[^twin] A separate leash experiment on the earlier board, with only Mustard model-piloted, did not reproduce that reduction: at the preset [[leash]], his wrong rate was {{fact:ladder.mustard.0.25.wrong}}%, compared with {{fact:ladder.mustard.headless.wrong}}% headless.[^ladder] The project attributes much of the twin-run improvement to other model-piloted seats ending games earlier. The trials do not isolate a reliable benefit from model judgement alone.
 
 ## Limitations
 

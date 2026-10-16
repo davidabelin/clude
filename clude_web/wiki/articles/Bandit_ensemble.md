@@ -3,7 +3,7 @@ title: Bandit ensemble
 short: Mr. Green's adaptive selection among the other five methods
 categories: Methods
 redirects: Bandit, Multi-armed bandit, Thompson sampling, Green's method, Ensemble, The ensemble
-dyk: ... that [[Mr. Green]] selects from five other methods, and that after sixty ring-board benchmark games the mean arm scores for Plum and Mustard were about twice Scarlett's?
+dyk: ... that [[Mr. Green]] selects from five other methods, and that after sixty benchmark games the mean arm scores for Plum and Mustard were about twice Scarlett's?
 dyk: ... that in arena play the [[bandit ensemble]] updates once per completed game, using the methods' ranked log-loss scores?
 ---
 {{infobox
@@ -101,23 +101,23 @@ The chosen arm's probabilities are returned unchanged, with its name recorded in
 
 ### Whom he comes to trust
 
-{{figure:green-trust|The mean of each arm's record after the ring board's benchmark of sixty games. The dashed line is the prior's 0.5.}}
+{{figure:green-trust|The mean of each arm's record after the earlier benchmark's sixty games. The dashed line is the prior's 0.5.}}
 
-The rank reward separated the arms where the earlier reward had not. Over sixty benchmark games on the ring board the records spread by about {{fact:green.arms.spread}} in mean: Plum and Mustard at {{fact:green.arms.ring.plum}} and {{fact:green.arms.ring.mustard}}, White at {{fact:green.arms.ring.white}}, Peacock at {{fact:green.arms.ring.peacock}} and Scarlett at {{fact:green.arms.ring.scarlett}}, which is the order the benchmark itself ranks the methods at the end of a game.[^glossary] On the Classic board the same run left him leaning on Mustard ({{fact:green.arms.grid.mustard}}) and Plum ({{fact:green.arms.grid.plum}}) and away from Peacock ({{fact:green.arms.grid.peacock}}) and Scarlett ({{fact:green.arms.grid.scarlett}}).[^grid]
+The rank reward separated the arms where the earlier reward had not. Over the earlier benchmark's sixty games the records spread by about {{fact:green.arms.spread}} in mean: Plum and Mustard at {{fact:green.arms.ring.plum}} and {{fact:green.arms.ring.mustard}}, White at {{fact:green.arms.ring.white}}, Peacock at {{fact:green.arms.ring.peacock}} and Scarlett at {{fact:green.arms.ring.scarlett}}, which is the order the benchmark itself ranks the methods at the end of a game.[^glossary] On the Classic board the same run left him leaning on Mustard ({{fact:green.arms.grid.mustard}}) and Plum ({{fact:green.arms.grid.plum}}) and away from Peacock ({{fact:green.arms.grid.peacock}}) and Scarlett ({{fact:green.arms.grid.scarlett}}).[^grid]
 
 ### The quality of his numbers
 
 {{table:bench.grid|The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
 
-Green's benchmark loss reflects which arms were selected. In the ring-board run, his final loss was {{fact:bench.ring.Green.100}}, joint-lowest with Plum, and his final first-choice accuracy was {{fact:bench.ring.Green.top1}}, the highest of the six. In the Classic-board run, final loss was {{fact:bench.grid.Green.100}}, second-lowest. He beat the uniform baseline at all four checkpoints, including halfway: {{fact:bench.grid.Green.50}} versus {{fact:bench.grid.uniform.50}}. Computing all five arms made his runtime comparable to Plum's plus the other methods' costs.[^ring][^grid]
+Green's benchmark loss reflects which arms were selected. In the earlier run, his final loss was {{fact:bench.ring.Green.100}}, joint-lowest with Plum, and his final first-choice accuracy was {{fact:bench.ring.Green.top1}}, the highest of the six. In the Classic-board run, final loss was {{fact:bench.grid.Green.100}}, second-lowest. He beat the uniform baseline at all four checkpoints, including halfway: {{fact:bench.grid.Green.50}} versus {{fact:bench.grid.uniform.50}}. Computing all five arms made his runtime comparable to Plum's plus the other methods' costs.[^ring][^grid]
 
 ### At the table
 
 {{table:green.threshold|Green with only his accusation threshold moved, three arenas of 24 games on the Classic board, 15 September 2026.}}
 
-Green won {{fact:arena.ring.Green.win}}% of his games in the tuned ring-board arena and none of sixteen in the first Classic-board arena. Lowering the threshold produced only one win in sixteen, with two wrong accusations at 0.5, so the preset was retained. Across nine arenas that day, his win rates spanned {{fact:green.swing}} per cent. A confirmation run using the original 24 deals gave {{fact:green.confirm.win}}% wins with his settings unchanged but other characters retuned. The outcomes varied with the opposition as well as the sequence of play; a single small arena does not establish his competitive strength.[^tuned]
+Green won none of sixteen games in the first Classic-board arena. Lowering the threshold produced only one win in sixteen, with two wrong accusations at 0.5, so the preset was retained. Across nine arenas that day, his win rates spanned {{fact:green.swing}} per cent. A confirmation run using the original 24 deals gave {{fact:green.confirm.win}}% wins with his settings unchanged but other characters retuned. The outcomes varied with the opposition as well as the sequence of play; a single small arena does not establish his competitive strength.[^tuned]
 
-In the twin arenas, adding [[Claude]] changed Green's win rate from {{fact:twin.ring.Green.win_base}}% to {{fact:twin.ring.Green.win_llm}}% on the ring board and from {{fact:twin.grid.Green.win_base}}% to {{fact:twin.grid.Green.win_llm}}% on the Classic board. These differences were within the reported sampling uncertainty.[^twin]
+In the twin arena, adding [[Claude]] changed Green's win rate from {{fact:twin.grid.Green.win_base}}% to {{fact:twin.grid.Green.win_llm}}%. The difference was within the reported sampling uncertainty.[^twin]
 
 ## Limitations
 

@@ -80,7 +80,7 @@ Because the scores use a common scale, a temperature can be applied to movement,
 
 These values are read from the current implementation. The neutral profile used as a comparison point is a separate set of defaults, not the average of the six presets. Mustard and White retain its accusation threshold deliberately: their method's mistakes should not also be programmed through an unusually reckless threshold.[^profile]
 
-[[Dial sweeps]] informed the presets on the ring board and later on the Classic board. The chosen values express playing styles supported by those experiments; they are not universally optimal settings. Changed opponents can change a character's results even when its own settings stay fixed.[^tuning]
+[[Dial sweeps]] informed the presets, first on the earlier board and again on the Classic board. The chosen values express playing styles supported by those experiments; they are not universally optimal settings. Changed opponents can change a character's results even when its own settings stay fixed.[^tuning]
 
 ## Model and memory dials
 

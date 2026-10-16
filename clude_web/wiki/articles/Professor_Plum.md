@@ -119,7 +119,7 @@ The Plum who played from the first games until 5 October 2026 is kept as **PlumO
 
 ### Why he was replaced
 
-On the ring board he was the best or joint-best reader of the cards from three-quarters of the way through a game. The move to the [[Classic board]] on 15 September 2026 left more possibilities open at each point of a game, and his search ran out of steps in {{fact:plum.fallback.calls}} of {{fact:bench.grid.snapshots}} benchmark calls. Five times as many samples improved his halfway log-loss from {{fact:budget.grid.200k-2k.50}} to {{fact:budget.grid.200k-10k.50}}, but it stayed worse than the uniform baseline's {{fact:budget.grid.uniform.50}}, and a call took {{fact:budget.grid.200k-10k.ms}} ms. Mr. Green, who consults every method before choosing one, paid that cost on every turn.[^grid][^budget]
+On the board the game was first played on he was the best or joint-best reader of the cards from three-quarters of the way through a game. The move to the [[Classic board]] on 15 September 2026 left more possibilities open at each point of a game, and his search ran out of steps in {{fact:plum.fallback.calls}} of {{fact:bench.grid.snapshots}} benchmark calls. Five times as many samples improved his halfway log-loss from {{fact:budget.grid.200k-2k.50}} to {{fact:budget.grid.200k-10k.50}}, but it stayed worse than the uniform baseline's {{fact:budget.grid.uniform.50}}, and a call took {{fact:budget.grid.200k-10k.ms}} ms. Mr. Green, who consults every method before choosing one, paid that cost on every turn.[^grid][^budget]
 
 {{figure:plum-budget|PlumOG's log-loss through a game on the Classic board, before and after his sample was raised from 2,000 to 10,000, against the uniform baseline. Lower is better.}}
 
@@ -135,7 +135,7 @@ In one recorded game, with [[Claude]] in his seat, he was in the Kitchen with on
 
 ### His logbook
 
-A logbook experiment on the [[ring board]] gave PlumOG's model seat {{fact:plum.logbook.games}} paired games with the leash at 0.5. With logbooks, his stalls fell from {{fact:plum.logbook.stalls.off}} to {{fact:plum.logbook.stalls.on}}, and his entries kept naming "room-anchoring" and "slow-tempo"; he also made two wrong accusations below his threshold while trying to play faster. Win rates changed little: {{fact:plum.logbook.off.win}}% without logbooks and {{fact:plum.logbook.on.win}}% with them.[^logbook]
+A logbook experiment on that earlier board gave PlumOG's model seat {{fact:plum.logbook.games}} paired games with the leash at 0.5. With logbooks, his stalls fell from {{fact:plum.logbook.stalls.off}} to {{fact:plum.logbook.stalls.on}}, and his entries kept naming "room-anchoring" and "slow-tempo"; he also made two wrong accusations below his threshold while trying to play faster. Win rates changed little: {{fact:plum.logbook.off.win}}% without logbooks and {{fact:plum.logbook.on.win}}% with them.[^logbook]
 
 ## Memory
 

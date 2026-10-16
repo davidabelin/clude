@@ -50,9 +50,9 @@ The CLI opts in with `--logbook`. A read-only logbook supplies a fixed memory st
 
 ## Recorded experiment
 
-On the ring board, a 14 September 2026 experiment compared {{fact:plum.logbook.games}} paired games of model-piloted Plum with and without an accumulating logbook, at leash 0.5. Recorded stalls fell from {{fact:plum.logbook.stalls.off}} to {{fact:plum.logbook.stalls.on}}; in the last quarter they fell from {{fact:plum.logbook.last.off}} to {{fact:plum.logbook.last.on}}. The outcome table also recorded wrong accusations with memory.[^experiment]
+A 14 September 2026 experiment, on the earlier board, compared {{fact:plum.logbook.games}} paired games of model-piloted Plum with and without an accumulating logbook, at leash 0.5. Recorded stalls fell from {{fact:plum.logbook.stalls.off}} to {{fact:plum.logbook.stalls.on}}; in the last quarter they fell from {{fact:plum.logbook.last.off}} to {{fact:plum.logbook.last.on}}. The outcome table also recorded wrong accusations with memory.[^experiment]
 
-{{table:plum.logbook|Historical ring-board Plum comparison at leash 0.5. Outcome percentages are per game; the on leg accumulated its logbook during the run.}}
+{{table:plum.logbook|Historical Plum comparison at leash 0.5 on the earlier board. Outcome percentages are per game; the on leg accumulated its logbook during the run.}}
 
 The result supports a narrow interpretation: these saved lessons accompanied fewer stalls when the menu allowed an escape. It does not establish that more memory always improves winning, and it predates the Classic-board [[landing rule]]. That rule later changed the scores responsible for the passage loop.
 

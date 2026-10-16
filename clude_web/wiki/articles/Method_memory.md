@@ -25,7 +25,7 @@ Stored records can generate labelled card-feature rows from every seat's masked 
 
 Mustard can learn from eligible stored games he did not play in. Contributions are keyed by game id, so updating from the same game twice does not add a second copy. A more varied history can change which tests and leaf frequencies the tree learns, but extra data can also shift it away from the evaluation policy.
 
-In the historical ring-era memory experiment, {{fact:mustard.memory.games}} stored ladder games supplied {{fact:mustard.memory.rows}} rows. On {{fact:mustard.memory.held_out}} held-out floor-player games, mid-game log-loss improved from {{fact:mustard.memory.mid.before}} to {{fact:mustard.memory.mid.after}}, while final-checkpoint loss worsened from {{fact:mustard.memory.end.before}} to {{fact:mustard.memory.end.after}}. More training history did not improve every checkpoint.[^measured]
+In the historical memory experiment of September 2026, {{fact:mustard.memory.games}} stored ladder games supplied {{fact:mustard.memory.rows}} rows. On {{fact:mustard.memory.held_out}} held-out floor-player games, mid-game log-loss improved from {{fact:mustard.memory.mid.before}} to {{fact:mustard.memory.mid.after}}, while final-checkpoint loss worsened from {{fact:mustard.memory.end.before}} to {{fact:mustard.memory.end.after}}. More training history did not improve every checkpoint.[^measured]
 
 ## White's opponent priors
 
@@ -33,7 +33,7 @@ White pools repeat/new transition counts under an opponent's roster identity. At
 
 An opponent who repeatedly changed questions in earlier games can start with a different prior shape from one who often repeated cards. Current-game transitions still update that chain. The interpretation connecting repeated questions to hidden cards remains White's heuristic; remembering it does not turn it into a logical rule.
 
-Like Mustard, White can use games she did not occupy because records include the relevant histories. Version-filtered rebuilding prevents old ring-board behaviour from automatically re-entering a Classic-board reset.
+Like Mustard, White can use games she did not occupy because records include the relevant histories. Version-filtered rebuilding prevents behaviour recorded on the earlier board from automatically re-entering a Classic-board reset.
 
 ## Green's arm state
 

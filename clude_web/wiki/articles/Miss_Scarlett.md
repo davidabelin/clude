@@ -73,7 +73,7 @@ A character's belief says what it thinks; five [[personality dials]] say what it
 | [[Secrecy]] | {{code:preset.Scarlett.secrecy}} | When she must show a card, how strongly she prefers one that player has already seen. |
 | [[Temperature]] | {{code:preset.Scarlett.temperature}} | How much chance enters her choices. |
 
-The threshold has been set three times, and its history is most of her record. The first pass gave her 0.5, meant to be low; on the ring board, where games were short, her tally reached even that so seldom that she accused in one game of twenty and never won. In the sweeps that moved every character's threshold together she reached a bar of 0.2 in only {{fact:scarlett.ring.accused_in}} games, the others ending the game before she got there, so she was given arenas of her own with only her dial moved: 0.3 won nothing, 0.2 and 0.15 were within noise of each other, and 0.15 was adopted as the lower bar, since the flavour asked for "early".[^tuned] On the Classic board, where games run forty turns and more, the question was asked again.
+The threshold has been set three times, and its history is most of her record. The first pass gave her 0.5, meant to be low; on the earlier board, where games were short, her tally reached even that so seldom that she accused in one game of twenty and never won. In the sweeps that moved every character's threshold together she reached a bar of 0.2 in only {{fact:scarlett.ring.accused_in}} games, the others ending the game before she got there, so she was given arenas of her own with only her dial moved: 0.3 won nothing, 0.2 and 0.15 were within noise of each other, and 0.15 was adopted as the lower bar, since the flavour asked for "early".[^tuned] On the Classic board, where games run forty turns and more, the question was asked again.
 
 {{table:scarlett.threshold|Scarlett over three arenas of 24 games on the Classic board, with only her accusation threshold changed, 15 September 2026.}}
 
@@ -89,19 +89,19 @@ The [[belief benchmark]] scores each method's probabilities against the truth at
 
 {{table:bench.grid|The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
 
-In both the ring-board and Classic-board benchmarks, Scarlett's log-loss was slightly higher than the baseline at every checkpoint.[^ring] The repeated adjustments reduced probability accuracy on average. In the Classic-board run, final first-choice accuracy was {{fact:bench.grid.Scarlett.top1}}, compared with {{fact:bench.grid.uniform.top1}} for the baseline. Her card ranking was slightly better while her probability estimates were worse.[^grid] This is consistent with the distinction between classification accuracy and [[w:Calibration (statistics)|calibration]] discussed in the naive Bayes literature.[^domingos]
+In every recorded benchmark, Scarlett's log-loss was slightly higher than the baseline at every checkpoint.[^grid] The repeated adjustments reduced probability accuracy on average. In the Classic-board run, final first-choice accuracy was {{fact:bench.grid.Scarlett.top1}}, compared with {{fact:bench.grid.uniform.top1}} for the baseline. Her card ranking was slightly better while her probability estimates were worse.[^grid] This is consistent with the distinction between classification accuracy and [[w:Calibration (statistics)|calibration]] discussed in the naive Bayes literature.[^domingos]
 
 ### At the table
 
 {{table:arena.grid|The six characters over {{fact:arena.grid.games}} games on the Classic board at their tuned presets, tables of three to six, 15 September 2026.}}
 
-On the ring board, at the tuned presets, she won {{fact:arena.ring.Scarlett.win}}% of her games and accused wrongly in {{fact:arena.ring.Scarlett.wrong}}%, last on the one count and first on the other, which the notes record as the flavour: "overconfident, early, usually wrong, occasionally first".[^ring-arena] On the Classic board at the raised threshold she won {{fact:arena.grid.Scarlett.win}}% and was wrong in {{fact:arena.grid.Scarlett.wrong}}%, still the most wrong accusations at the table but no longer "both the least successful and the most reckless seat".[^arena] Her first accusation came at turn {{fact:arena.grid.Scarlett.first}}, later than four of the other five: the raised bar is why. A character plays 16 to 20 of the 24 games, so each percentage carries a [[w:Standard error|standard error]] of {{fact:arena.noise}} points.[^grid-presets]
+At the raised threshold she won {{fact:arena.grid.Scarlett.win}}% of her games and was wrong in {{fact:arena.grid.Scarlett.wrong}}%: still the most wrong accusations at the table, but no longer "both the least successful and the most reckless seat", which is what the notes had called her before the bar moved.[^arena] Her first accusation came at turn {{fact:arena.grid.Scarlett.first}}, later than four of the other five: the raised bar is why. A character plays 16 to 20 of the 24 games, so each percentage carries a [[w:Standard error|standard error]] of {{fact:arena.noise}} points.[^grid-presets]
 
 The [[landing rule]] took her exact repeats of her own earlier suggestions on the mixed table from {{fact:landing.repeats.Scarlett.mixed}}.[^landing]
 
 ### With Claude in the seat
 
-In the [[Claude]] twin comparisons, Scarlett's win rate was unchanged: {{fact:twin.ring.Scarlett.win_base}}% on the ring board and {{fact:twin.grid.Scarlett.win_base}}% on the Classic board. Wrong-accusation rates changed from {{fact:twin.ring.Scarlett.wrong_base}}% to {{fact:twin.ring.Scarlett.wrong_llm}}% and from {{fact:twin.grid.Scarlett.wrong_base}}% to {{fact:twin.grid.Scarlett.wrong_llm}}%, respectively, within the uncertainty of these runs. The clearer behavioural change was fewer [[w:Bluff (poker)|held-card suggestions]]: {{fact:twin.ring.bluff.scarlett.base}} to {{fact:twin.ring.bluff.scarlett.llm}} per game on the ring and {{fact:twin.grid.bluff.scarlett.base}} to {{fact:twin.grid.bluff.scarlett.llm}} on the Classic board. Those counts do not by themselves establish why the model changed its choices.[^twin-ring][^twin]
+In the [[Claude]] twin comparison, Scarlett's win rate was unchanged at {{fact:twin.grid.Scarlett.win_base}}%. Her wrong-accusation rate changed from {{fact:twin.grid.Scarlett.wrong_base}}% to {{fact:twin.grid.Scarlett.wrong_llm}}%, within the uncertainty of the run. The clearer behavioural change was fewer [[w:Bluff (poker)|held-card suggestions]]: {{fact:twin.grid.bluff.scarlett.base}} to {{fact:twin.grid.bluff.scarlett.llm}} per game. Those counts do not by themselves establish why the model changed its choices.[^twin]
 
 ## Memory
 
@@ -128,12 +128,9 @@ Scarlett's method reads the current game's suggestion history afresh on every ca
 [^domingos]: {{cite:domingos-pazzani}}
 [^presets]: {{cite:clude_agents/personality.py|`PRESETS`}}
 [^grid-presets]: {{cite:docs/strategy-glossary.md|Tuned presets on the grid (Stage 1e, 2026-09-15)}}
-[^ring]: {{cite:docs/strategy-glossary.md|Belief benchmark, FloorBot regime (Phase 5)}}
 [^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
-[^ring-arena]: {{cite:docs/strategy-glossary.md|Arena, tuned presets}}
 [^arena]: {{cite:docs/strategy-glossary.md|Arena on the grid, tuned presets (Stage 1f, re-run)}}
 [^landing]: {{cite:docs/strategy-glossary.md|The landing rule (Phase 8.0.4, 2026-09-18)}}
-[^twin-ring]: {{cite:docs/strategy-glossary.md|Twin comparison (2026-09-13)}}
 [^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
 [^logbooks]: {{cite:docs/logbooks.md|Three tiers}}
 [^lives]: {{cite:docs/phase13-plan.md|1. Brief and settled decisions}}

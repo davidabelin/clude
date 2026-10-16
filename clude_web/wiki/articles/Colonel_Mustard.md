@@ -4,7 +4,7 @@ short: The decisive character whose decision tree learns from past games
 categories: Characters
 redirects: Mustard, Col. Mustard, The Colonel
 dyk: ... that [[Colonel Mustard]]'s tree is trained on {{code:mustard.tree.games}} self-play games and has {{code:mustard.tree.nodes}} nodes, including {{code:mustard.tree.leaves}} leaves?
-dyk: ... that in the first ring-board arena [[Colonel Mustard]] accused wrongly in about a third of his games, while his neutral accusation threshold was retained to isolate his method's errors?
+dyk: ... that [[Colonel Mustard]]'s accusation threshold is the neutral one on purpose, so that a wrong accusation can be laid at his tree's door and not a dial's?
 dyk: ... that [[Colonel Mustard]] has never read this encyclopaedia and does not intend to start, unless someone quotes it against him?
 ---
 {{infobox
@@ -29,7 +29,7 @@ Wrong accusations | {{fact:arena.grid.Mustard.wrong}}%
 
 **Colonel Mustard** is one of the six [[Clue#The cards|suspects]] in [[Clue]] and the [[clude]] [[Category:Characters|character]] who uses a [[decision tree]]. For each unresolved card, the tree asks questions about possible holders, previous [[suggestion|suggestions]] and the stage of the game. It assigns a score from training examples with similar features. This [[w:Pattern recognition|pattern-based]] approach is fast, but can be misleading when a current position differs from the games used for training.[^module]
 
-In the recorded ring-board benchmark, Mustard had the lowest final [[log-loss]] but some of the highest mid-game losses. With training on the [[Classic board]], he matched the uniform baseline at halfway and again had the lowest final loss. His [[accusation threshold]] is the neutral {{code:preset.Mustard.accuse_threshold}}, chosen to avoid adding an unusually hasty threshold to an already overconfident method. He is one of three characters with persistent method memory.[^glossary]
+In the recorded [[Classic board]] benchmark, Mustard had the lowest final [[log-loss]] of the six and matched the uniform baseline at halfway; the earlier benchmark had shown the same end and a worse middle. His [[accusation threshold]] is the neutral {{code:preset.Mustard.accuse_threshold}}, chosen to avoid adding an unusually hasty threshold to an already overconfident method. He is one of three characters with persistent method memory.[^glossary]
 
 ## Character
 
@@ -75,11 +75,9 @@ The neutral threshold is a rule the project calls "don't encode the flaw twice".
 
 ### The quality of his numbers
 
-{{table:bench.ring|The six methods on the ring board, Phase 5: log-loss at four checkpoints. Lower is better.}}
+On the first benchmark of all, before the tree was regrown on better games and its leaves smoothed, his score at the end of a game was {{fact:mustard.phase4}} against the baseline's {{fact:uniform.phase4}}, and {{fact:mustard.phase4.zeros}} per cent of that came from the one category in fifteen or so where a leaf put exactly nothing on the true card. A hard zero costs a [[log-loss]] of {{fact:bench.zero_cost}}, and would have read to the accusation test as certainty.[^phase4] With the smoothing and the floor-bot games he became the best method at the end of a game and stayed confidently wrong in the middle, "which is the character".[^glossary]
 
-On the first benchmark of all, before the tree was regrown on better games and its leaves smoothed, his score at the end of a game was {{fact:mustard.phase4}} against the baseline's {{fact:uniform.phase4}}, and {{fact:mustard.phase4.zeros}} per cent of that came from the one category in fifteen or so where a leaf put exactly nothing on the true card. A hard zero costs a [[log-loss]] of {{fact:bench.zero_cost}}, and would have read to the accusation test as certainty.[^phase4] With the smoothing and the floor-bot games, on the ring board, he became the best method at the end ({{fact:bench.ring.Mustard.100}}) and stayed confidently wrong in the middle: {{fact:bench.ring.Mustard.50}} and {{fact:bench.ring.Mustard.75}} against the [[uniform baseline]]'s {{fact:bench.ring.uniform.50}} and {{fact:bench.ring.uniform.75}}, "which is the character".[^ring]
-
-{{table:bench.grid|The same benchmark on the Classic board, {{fact:bench.grid.games}} games, 15 September 2026.}}
+{{table:bench.grid|The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
 
 In the Classic-board benchmark, with a tree trained on that board, halfway loss was {{fact:bench.grid.Mustard.50}} against the baseline's {{fact:bench.grid.uniform.50}}. Final loss was {{fact:bench.grid.Mustard.100}}, the lowest of the six, and final first-choice accuracy was {{fact:bench.grid.Mustard.top1}}, the highest. His calls took a fraction of a millisecond.[^grid]
 
@@ -87,13 +85,13 @@ In the Classic-board benchmark, with a tree trained on that board, halfway loss 
 
 {{table:arena.grid|The six characters over {{fact:arena.grid.games}} games on the Classic board at their tuned presets, 15 September 2026.}}
 
-In the first ring-board arena, Mustard accused wrongly in {{fact:arena.ring.first.Mustard.wrong}}% of games. With tuned presets, that fell to {{fact:arena.ring.Mustard.wrong}}%, while he won {{fact:arena.ring.Mustard.win}}%.[^first][^ring-arena] The tabulated Classic-board run recorded {{fact:arena.grid.Mustard.wrong}}% wrong accusations and {{fact:arena.grid.Mustard.win}}% wins, with a first accusation at mean turn {{fact:arena.grid.Mustard.first}}. Each character played 16 to 20 of the 24 games, giving an estimated [[w:Standard error|standard error]] of {{fact:arena.noise}} percentage points.[^arena][^grid-presets]
+The tabulated Classic-board run recorded {{fact:arena.grid.Mustard.wrong}}% wrong accusations and {{fact:arena.grid.Mustard.win}}% wins, with a first accusation at mean turn {{fact:arena.grid.Mustard.first}}; in the first arena of all, before the presets were tuned, he had been wrong in {{fact:arena.ring.first.Mustard.wrong}}% of his games.[^first] Each character played 16 to 20 of the 24 games, giving an estimated [[w:Standard error|standard error]] of {{fact:arena.noise}} percentage points.[^arena][^grid-presets]
 
 ### With Claude in the seat
 
-The twin arenas initially suggested that [[Claude]] improved Mustard's decisions within the [[leash]]. With a model in every seat of a four-player table, his wrong-accusation rate fell from {{fact:twin.ring.Mustard.wrong_base}}% to {{fact:twin.ring.Mustard.wrong_llm}}% on the ring board, while his win rate rose from {{fact:twin.ring.Mustard.win_base}}% to {{fact:twin.ring.Mustard.win_llm}}%. On the Classic board the corresponding changes were {{fact:twin.grid.Mustard.wrong_base}}% to {{fact:twin.grid.Mustard.wrong_llm}}%, and {{fact:twin.grid.Mustard.win_base}}% to {{fact:twin.grid.Mustard.win_llm}}%. The initial interpretation was that model judgement helped him avoid the tree's confident errors.[^twin-ring][^twin]
+The twin arenas initially suggested that [[Claude]] improved Mustard's decisions within the [[leash]]. With a model in every seat of a four-player table, his wrong-accusation rate fell from {{fact:twin.grid.Mustard.wrong_base}}% to {{fact:twin.grid.Mustard.wrong_llm}}%, while his win rate rose from {{fact:twin.grid.Mustard.win_base}}% to {{fact:twin.grid.Mustard.win_llm}}%. The initial interpretation was that model judgement helped him avoid the tree's confident errors.[^twin]
 
-{{table:ladder.mustard|Mustard alone with Claude at four leashes on the ring board, 24 paired games each against the same two headless opponents, 13 September 2026. "Departures" counts the choices on which the model overrode his top option.}}
+{{table:ladder.mustard|Mustard alone with Claude at four leashes, 24 paired games each against the same two headless opponents on the earlier board, 13 September 2026. "Departures" counts the choices on which the model overrode his top option.}}
 
 The separate leash experiment did not establish that the model corrected the tree's errors. With only Mustard model-piloted, the wrong rate at the preset leash was {{fact:ladder.mustard.0.25.wrong}}%, compared with {{fact:ladder.mustard.headless.wrong}}% headless. Wins did not change beyond the run's uncertainty. Even at the widest leash, the model overrode the top option on only {{fact:ladder.mustard.1.devs}} of {{fact:ladder.mustard.1.played}} choices. The project therefore withdrew its earlier "rescue" interpretation and attributed much of the twin-run improvement to other model-piloted seats ending games sooner.[^ladder][^glossary]
 
@@ -128,12 +126,9 @@ Like every character he can also keep a narrative logbook, written by a model af
 [^rule]: {{cite:docs/architecture.md|Personality layer (Phase 5c)}}
 [^grid-presets]: {{cite:docs/strategy-glossary.md|Tuned presets on the grid (Stage 1e, 2026-09-15)}}
 [^phase4]: {{cite:docs/strategy-glossary.md|Phase 4 benchmark results (RandomBot regime, historical)}}
-[^ring]: {{cite:docs/strategy-glossary.md|Belief benchmark, FloorBot regime (Phase 5)}}
 [^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
 [^first]: {{cite:docs/strategy-glossary.md|Arena, first pass (untuned presets)}}
-[^ring-arena]: {{cite:docs/strategy-glossary.md|Arena, tuned presets}}
 [^arena]: {{cite:docs/strategy-glossary.md|Arena on the grid, tuned presets (Stage 1f, re-run)}}
-[^twin-ring]: {{cite:docs/strategy-glossary.md|Twin comparison (2026-09-13)}}
 [^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
 [^ladder]: {{cite:docs/strategy-glossary.md|Mustard}} The per-character leash ladder, 2026-09-13.
 [^landing]: {{cite:docs/strategy-glossary.md|The landing rule (Phase 8.0.4, 2026-09-18)}}

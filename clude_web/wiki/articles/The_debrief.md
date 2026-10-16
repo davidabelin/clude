@@ -39,7 +39,7 @@ An error, refusal, truncation or malformed response leaves the logbook unchanged
 
 A later [[memory dial|memory block]] can include the new summary or full entry and the head's instructions. It can steer the model among options the current leash allows. It cannot widen a menu, revise the hidden deal or certify an opponent's current cards.
 
-The historical [[Logbook#Recorded experiment|Plum experiment]] found fewer stalls alongside accumulating narrative memory when the escape move was available. That evidence concerns a particular ring-board run and does not establish that reflection always improves winning. The later [[landing rule]] addressed the scoring mechanism directly.
+The historical [[Logbook#Recorded experiment|Plum experiment]] found fewer stalls alongside accumulating narrative memory when the escape move was available. That evidence concerns one run on the earlier board and does not establish that reflection always improves winning. The later [[landing rule]] addressed the scoring mechanism directly.
 
 What a debrief writes about the company can also do something: a character that remembers who was good to play with, and a line it would return to, has somewhere to start the next evening's conversation. The two games played on the day the broadened instructions were deployed produced entries that do, and no standing instruction against talking.[^live]
 

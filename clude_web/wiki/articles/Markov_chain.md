@@ -120,11 +120,9 @@ When [[Claude]] plays her seat it is shown each opponent's repeat probability be
 
 ### The quality of her numbers
 
-{{table:bench.ring|The six methods on the ring board, Phase 5: log-loss at four checkpoints. Lower is better.}}
+In the earlier benchmark the chain had the best belief of the six at the halfway checkpoint, {{fact:bench.ring.White.50}} against the baseline's {{fact:bench.ring.uniform.50}}, and beat the baseline at every checkpoint; at the end it fell behind the three methods that read the floor's facts more closely, {{fact:bench.ring.White.100}} against Plum's {{fact:bench.ring.Plum.100}}. On the first benchmark of all, before the flat prior, it had been the worst belief of the six by a distance, {{fact:white.phase4}}, nearly all of it from unnamed cards read as impossible.[^ring][^phase4]
 
-On the ring board the chain had the best belief of the six at the halfway checkpoint, {{fact:bench.ring.White.50}} against the baseline's {{fact:bench.ring.uniform.50}}, and beat the baseline at every checkpoint; at the end it fell behind the three methods that read the floor's facts more closely, {{fact:bench.ring.White.100}} against Plum's {{fact:bench.ring.Plum.100}}. On the first benchmark of all, before the flat prior, it had been the worst belief of the six by a distance, {{fact:white.phase4}}, nearly all of it from unnamed cards read as impossible.[^ring][^phase4]
-
-{{table:bench.grid|The same benchmark on the Classic board, {{fact:bench.grid.games}} games, 15 September 2026.}}
+{{table:bench.grid|The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
 
 In the Classic-board benchmark, White had the lowest log-loss at the first three checkpoints: {{fact:bench.grid.White.25}}, {{fact:bench.grid.White.50}} and {{fact:bench.grid.White.75}}. At the end she was second to Mustard. The project relates her mid-game performance to the floor-bot regime, in which players repeatedly name unresolved cards. That explanation is plausible, but the comparison does not isolate opponent behaviour from all other features of the games.[^grid][^glossary]
 
@@ -132,7 +130,7 @@ In the Classic-board benchmark, White had the lowest log-loss at the first three
 
 {{table:arena.grid|The six characters over {{fact:arena.grid.games}} games on the Classic board at their tuned presets, 15 September 2026.}}
 
-White made no wrong accusations in the recorded headless arenas, with [[accusation threshold]] {{code:preset.White.accuse_threshold}}. In the tabulated Classic-board run, she named her own cards in {{fact:arena.grid.White.named}} suggestions per game, consistent with her [[bluff rate]] of {{code:preset.White.bluff_rate}}, the highest preset. Her win rates were {{fact:arena.ring.White.win}}% on the tuned ring-board run and {{fact:arena.grid.first.White.win}}% then {{fact:arena.grid.White.win}}% in two Classic-board arenas with her settings unchanged. The variation cautions against inferring a stable ranking from these small runs.[^arena][^tuned]
+White made no wrong accusations in the recorded headless arenas, with [[accusation threshold]] {{code:preset.White.accuse_threshold}}. In the tabulated Classic-board run, she named her own cards in {{fact:arena.grid.White.named}} suggestions per game, consistent with her [[bluff rate]] of {{code:preset.White.bluff_rate}}, the highest preset. Her win rates were {{fact:arena.grid.first.White.win}}% then {{fact:arena.grid.White.win}}% in two Classic-board arenas with her settings unchanged. The variation cautions against inferring a stable ranking from these small runs.[^arena][^tuned]
 
 With [[Claude]] in her seat at a four-seat table she won {{fact:twin.grid.White.win_llm}}% of her games, the most of anyone, as she had without it; what changed was her bluffing, which fell from {{fact:twin.grid.bluff.white.base}} own-card suggestions a game to {{fact:twin.grid.bluff.white.llm}}. The recorded model-piloted games used fewer held-card suggestions; this does not establish the model's reason for each choice.[^twin]
 

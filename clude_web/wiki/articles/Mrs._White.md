@@ -77,11 +77,9 @@ White's dials have remained unchanged since the first tuning.[^grid-presets] On 
 
 ### The quality of her numbers
 
-{{table:bench.ring|The six methods on the ring board, Phase 5: log-loss at four checkpoints. Lower is better.}}
+In the first, random-bot benchmark, White had the highest final [[log-loss]]: {{fact:white.phase4}}, compared with {{fact:uniform.phase4}} for the baseline. Unnamed cards received zero probability and accounted for {{fact:white.phase4.zeros}}% of the loss. Phase 5 added a flat initial score so unnamed cards remained possible, and changed the game regime to floor-bot self-play, after which she beat the [[uniform baseline]] at every checkpoint.[^phase4][^glossary]
 
-In the first, random-bot benchmark, White had the highest final [[log-loss]]: {{fact:white.phase4}}, compared with {{fact:uniform.phase4}} for the baseline. Unnamed cards received zero probability and accounted for {{fact:white.phase4.zeros}}% of the loss. Phase 5 added a flat initial score so unnamed cards remained possible, and changed the game regime to floor-bot self-play.[^phase4][^glossary] In the subsequent ring-board run, she beat the [[uniform baseline]] at all four checkpoints and had the lowest halfway loss, {{fact:bench.ring.White.50}}. Her final loss was {{fact:bench.ring.White.100}}, behind three other methods.[^ring]
-
-{{table:bench.grid|The same benchmark on the Classic board, {{fact:bench.grid.games}} games, 15 September 2026.}}
+{{table:bench.grid|The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
 
 In the Classic-board benchmark, her losses at the first three checkpoints were {{fact:bench.grid.White.25}}, {{fact:bench.grid.White.50}} and {{fact:bench.grid.White.75}}, each the lowest of the six. Final loss was {{fact:bench.grid.White.100}}, second to [[Colonel Mustard]]. She answered in a fraction of a millisecond per call.[^grid]
 
@@ -89,13 +87,13 @@ In the Classic-board benchmark, her losses at the first three checkpoints were {
 
 {{table:arena.grid|The six characters over {{fact:arena.grid.games}} games on the Classic board at their tuned presets, tables of three to six, 15 September 2026.}}
 
-White made no wrong accusations in the recorded headless arenas. Her win rates were {{fact:arena.ring.White.win}}% on the tuned ring board, {{fact:arena.grid.first.White.win}}% in the first Classic-board arena and {{fact:arena.grid.White.win}}% in the second. Her settings were unchanged between the last two, but the opposition was not identical. The fifteen-percentage-point swing illustrates variability, rather than defining a universal noise floor. Each character played 16 to 20 games per arena, with estimated [[w:Standard error|standard error]] {{fact:arena.noise}} percentage points.[^ring-arena][^arena][^grid-presets] After the [[landing rule]] change, her exact repeats on the mixed table changed from {{fact:landing.repeats.White.mixed}}.[^landing]
+White made no wrong accusations in the recorded headless arenas. Her win rates were {{fact:arena.grid.first.White.win}}% in the first Classic-board arena and {{fact:arena.grid.White.win}}% in the second. Her settings were unchanged between the last two, but the opposition was not identical. The fifteen-percentage-point swing illustrates variability, rather than defining a universal noise floor. Each character played 16 to 20 games per arena, with estimated [[w:Standard error|standard error]] {{fact:arena.noise}} percentage points.[^arena][^grid-presets] After the [[landing rule]] change, her exact repeats on the mixed table changed from {{fact:landing.repeats.White.mixed}}.[^landing]
 
 ### With Claude in the seat
 
-In the four-seat [[Claude]] twin comparison, White's win rate rose from {{fact:twin.ring.White.win_base}}% to {{fact:twin.ring.White.win_llm}}% on the ring board. On the Classic board, she won {{fact:twin.grid.White.win_llm}}% of her model-piloted games, the highest rate in the run, as it had been headless. Her mean first-accusation turn changed from {{fact:twin.grid.White.first_base}} to {{fact:twin.grid.White.first_llm}}, and she recorded no wrong accusations. These are results from the paired runs, not a general guarantee that model piloting improves her play.[^twin-ring][^twin]
+In the four-seat [[Claude]] twin comparison, White won {{fact:twin.grid.White.win_llm}}% of her model-piloted games, the highest rate in the run, as it had been headless. Her mean first-accusation turn changed from {{fact:twin.grid.White.first_base}} to {{fact:twin.grid.White.first_llm}}, and she recorded no wrong accusations. These are results from the paired runs, not a general guarantee that model piloting improves her play.[^twin]
 
-The model-piloted runs used fewer [[w:Bluff (poker)|held-card suggestions]]. Their mean count fell from {{fact:twin.ring.bluff.white.base}} to {{fact:twin.ring.bluff.white.llm}} per game on the ring board and from {{fact:twin.grid.bluff.white.base}} to {{fact:twin.grid.bluff.white.llm}} on the Classic board. The number of cards shown changed little. The notes suggest that the personas give little encouragement to bluff, but the measured counts do not establish a single motive for every choice.[^twin-ring]
+The model-piloted runs used fewer [[w:Bluff (poker)|held-card suggestions]]. Their mean count fell from {{fact:twin.grid.bluff.white.base}} to {{fact:twin.grid.bluff.white.llm}} per game. The number of cards shown changed little. The notes suggest that the personas give little encouragement to bluff, but the measured counts do not establish a single motive for every choice.[^twin]
 
 ## Memory
 
@@ -126,11 +124,8 @@ Like every character she can also keep a narrative [[logbook]], written by a mod
 [^sweeps]: {{cite:docs/strategy-glossary.md|Dial sweeps}}
 [^phase4]: {{cite:docs/strategy-glossary.md|Phase 4 benchmark results (RandomBot regime, historical)}}
 [^glossary]: {{cite:docs/strategy-glossary.md|White -- Markov model over suggestion sequences}}
-[^ring]: {{cite:docs/strategy-glossary.md|Belief benchmark, FloorBot regime (Phase 5)}}
-[^ring-arena]: {{cite:docs/strategy-glossary.md|Arena, tuned presets}}
 [^arena]: {{cite:docs/strategy-glossary.md|Arena on the grid, tuned presets (Stage 1f, re-run)}}
 [^landing]: {{cite:docs/strategy-glossary.md|The landing rule (Phase 8.0.4, 2026-09-18)}}
-[^twin-ring]: {{cite:docs/strategy-glossary.md|Twin comparison (2026-09-13)}}
 [^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
 [^memory]: {{cite:docs/logbooks.md|Tier 1: method memory}}
 [^phase7]: {{cite:docs/phase7-plan.md|7b, method memory (2026-09-14)}}

@@ -112,9 +112,9 @@ The two bounds are also the origin of a piece of the design: the "two-tone belie
 
 The [[belief benchmark]] scores the pignistic probability, since that is the number the rest of the system uses, by [[log-loss]] against the [[uniform baseline]].
 
-{{table:bench.ring|The six methods on the ring board, Phase 5: log-loss at four checkpoints. Lower is better.}}
+{{table:bench.grid|The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
 
-In the recorded benchmarks on both boards, Peacock's log-loss was slightly worse than the baseline at every checkpoint. The Classic-board values were {{fact:bench.grid.Peacock.25}}, {{fact:bench.grid.Peacock.50}}, {{fact:bench.grid.Peacock.75}} and {{fact:bench.grid.Peacock.100}}, against {{fact:bench.grid.uniform.25}}, {{fact:bench.grid.uniform.50}}, {{fact:bench.grid.uniform.75}} and {{fact:bench.grid.uniform.100}}. Her final first-choice accuracy was {{fact:bench.grid.Peacock.top1}}, the same as the baseline's.[^glossary] In the Rope example, her {{code:example.peacock.White}} for White exceeds the equal-weight count's {{code:example.plum.White}}. The difference comes from the heuristic category split and the pignistic allocation of the remaining mass.
+In every recorded benchmark, Peacock's log-loss was slightly worse than the baseline at every checkpoint. The Classic-board values were {{fact:bench.grid.Peacock.25}}, {{fact:bench.grid.Peacock.50}}, {{fact:bench.grid.Peacock.75}} and {{fact:bench.grid.Peacock.100}}, against {{fact:bench.grid.uniform.25}}, {{fact:bench.grid.uniform.50}}, {{fact:bench.grid.uniform.75}} and {{fact:bench.grid.uniform.100}}. Her final first-choice accuracy was {{fact:bench.grid.Peacock.top1}}, the same as the baseline's.[^glossary] In the Rope example, her {{code:example.peacock.White}} for White exceeds the equal-weight count's {{code:example.plum.White}}. The difference comes from the heuristic category split and the pignistic allocation of the remaining mass.
 
 The accusation test uses the belief values rather than the decision probabilities. The benchmark does not directly evaluate those bounds, so its results alone cannot establish how well they express uncertainty.[^ring]
 
