@@ -1,4 +1,4 @@
-# Wikiclude (D20, was 10i): the plan
+# Wikiclude (D20, was 10i): the plan -- NEXT REWRITE TO REFLECT LATEST CHANGES
 
 Status: **W1–W5 built; W6, W7 and W8 remain.** W8 is new: Phase 13's character development landed in the prompts and the game, and the encyclopaedia has not caught up (section 14). Proposed 2026-10-01, with David's four answers recorded that day (section 7). W1 was built on `wikiclude`, merged and made live as `clude-00021-fmb` (section 9); W2 followed on `claude/great-knuth-e8o5tl` (section 10). The editorial pass and W3–W5 were completed locally on 2026-10-02 (sections 11–12). Where the implementation records differ from the original design, the later records describe what was built.
 
