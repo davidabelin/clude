@@ -857,11 +857,21 @@ step 4 and was not foreseen when the fields were broadened.
   error and malformed cases; the request assertion follows the new cap.
 - `docs/logbooks.md`, `docs/llm-wrapper.md` and the `LLMSettings` docstring
   carry the new figure and say that the cap covers thinking and reply.
-- Plum's seat paid for the lost entry. His head and tally still stand at #7
-  and `web-2/00011`, which is consistent, not corrupt: a failed debrief
-  writes nothing. The record for `web-2/00012` is retained, so that one
-  debrief could be re-run offline for about one seat-debrief. **Pending
-  David's approval**, as a paid call.
+- Plum's seat paid for the lost entry, and a failed debrief writes nothing,
+  so his head and tally stood at #7 and `web-2/00011` -- consistent, not
+  corrupt. **Re-run 2026-10-15** from the retained record, approved by
+  David: entry #0008, "The Dining Room, Again", $0.1281 for 8,580 in and
+  3,407 out, uncached because a one-off has no warm cache behind it. Those
+  3,407 output tokens confirm the diagnosis -- under the old 4,096 cap the
+  reply alone left under 700 for the thinking. The entry reads like its
+  five peers: it keeps Peacock's "gossip with a ledger", Mustard's dinner
+  wagered on a card and Scarlett on the pleasure of watching someone walk
+  into it anyway, and its standing instructions keep the inference back
+  while sending the wit elsewhere -- "there is plenty else to talk about"
+  -- with no rule against talking. The re-run used the working tree, so
+  this one entry was written under steps 5 and 6's revised prompts while
+  its five peers were written under the deployed ones; no names were
+  attached, so it saw the same seat labels they did.
 
 **The rehearsal harness.** `scripts/phase13_rehearse.py`, uncommitted since
 the 2026-10-14 run, is fixed and committed with this pass:
