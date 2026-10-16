@@ -719,23 +719,26 @@ FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures"
 # (docs/canon-plan.md: a new rules section, every persona, and the index
 # block and the two tools on every request), $0.12 and $0.04; neither
 # game made a lookup, so the recordings carry the tools and no tool rounds.
-# Phase 13 steps 1-3 (2026-10-10) change all personas, shared rules and
-# request guidance. Both recordings
-# remain historical evidence; refresh after the related text settles and
-# David approves the spend. Only these exact-game cases are pending;
-# recording round trips, replay misses and fake-backend checks remain active.
+# Re-recorded on 2026-10-15, after Phase 13 steps 1-6 settled the personas,
+# the shared rules (including the fallible-encyclopaedia section), the
+# request guidance and the on-turn talk gate, $0.1149 and $0.0375. David
+# approved the spend that day. Neither game made a lookup, so the
+# recordings carry the two tools and no tool rounds. Both seeds keep their
+# envelope, which follows from the seed; seed 1 gained a suggestion and
+# seed 2 replayed identically. With the on-turn gate gone every line a seat
+# wrote is spoken, so these recordings are the first that carry the whole
+# of what the models said. The earlier recordings stay in the history as
+# evidence and are not relabelled.
 RECORDED_GAMES = [
     pytest.param(
         "llm_seed1.json", "1", "3", "Scarlett,Peacock",
         "Mustard/Rope/Ballroom", "P1 Mustard (floor)",
-        "Turns played: 29; suggestions: 12; accusations: 1",
-        marks=pytest.mark.skip(reason="Phase 13 scripts/prompts changed; historical seed 1 awaits an approved fixture refresh"),
+        "Turns played: 29; suggestions: 13; accusations: 1",
     ),
     pytest.param(
         "llm_seed2.json", "2", "4", "Plum,Mustard,Green,White",
         "Scarlett/Candlestick/Ballroom", "P1 White",
         "Turns played: 10; suggestions: 2; accusations: 1",
-        marks=pytest.mark.skip(reason="Phase 13 scripts/prompts changed; historical seed 2 awaits an approved fixture refresh"),
     ),
 ]
 
@@ -760,7 +763,7 @@ def test_recorded_llm_games_replay_offline(
             --llm-backend record:tests/fixtures/llm_seed1.json --verbose
 
     and update its row in `RECORDED_GAMES` from the transcript it prints,
-    removing that row's pending-refresh skip after the approved refresh.
+    with the spend approved first.
     The envelope follows from the seed and stays put; the winner and the
     turn count do not, because the model's choices are its own and are
     not reproducible across recordings."""

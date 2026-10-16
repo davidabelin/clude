@@ -24,10 +24,14 @@ source than a model's memory of Clue on how this house plays), a seat is
 given one set of participant names for the whole evening, and the on-turn
 talk gate is gone -- it discarded 42 of the 81 lines those two games paid
 for. The five-scene rehearsal is complete ($0.1373, 73% of 30 lines free of
-game terms). Step 0's flag remainder, the off-turn taper and `PER_TURN`, and
-Wikiclude's fuller article pass remain open; the article pass is David's
-next piece, written against what is live. Both exact-game replay recordings
-are historical pending an approved refresh.
+game terms). Both exact-game replay recordings were
+refreshed that day ($0.1524) and replay again, so the suite runs 622
+tests. Step 0's remainder is prepared as
+`scripts/phase13_flag_hygiene.py` and awaits one `--apply`. The off-turn
+taper is deliberately left alone, with the baseline a later comparison
+would start from recorded. Wikiclude's article pass is handed to
+[its own plan](wikiclude-plan.md#14-w8-the-phase-13-alignment-pass-handed-over-2026-10-15)
+as W8. What remains of this phase is the deploy and that one command.
 Implementation evidence belongs in section 10 below, not in the proposed
 acceptance criteria.
 
@@ -128,14 +132,14 @@ increments may touch several files, but should have one reviewable purpose.
 
 | Step | Deliverable | Status / dependency |
 |---|---|---|
-| 0 | Durable layers edited: entry summaries, digests and flag vocabulary | Live pass applied; scope narrowed and a remainder opened by the 2026-10-14 audit ([0e](#0e-remaining-scope-after-the-live-audit)) |
+| 0 | Durable layers edited: entry summaries, digests and flag vocabulary | Live pass applied; the 2026-10-14 remainder is prepared as `scripts/phase13_flag_hygiene.py` and awaits one `--apply` ([record](#2026-10-15-the-taper-left-alone-the-fixtures-refreshed-step-0-closed-out)) |
 | 1 | Six broader, distinctive, playable persona scripts | Edited locally for script review; offline verification below; ensemble behavior awaits rehearsals |
 | 2 | Light shared premise and individual fourth-wall attitudes | Drafted locally with step 1; responses remain changeable; awaits script review/rehearsals |
 | 3 | Listening, reply, silence, and thread-continuity guidance | Shared/decision/reaction guidance edited within the existing window; observed continuity awaits rehearsals |
 | 4 | Debrief and condensation guidance that preserves social continuity, and one pass retiring the rules it supersedes | Deployed and accepted live 2026-10-14/15 ([record](#2026-10-15-step-4-accepted-live-and-a-debrief-lost-to-its-token-cap)); the generator retired the rules itself, so only the digest clause was applied |
-| 5 | Fallible Wikiclude guidance and aligned character/reference articles | Prompts done 2026-10-15 ([record](#2026-10-15-step-5s-prompts-and-the-coordination-minimum-in-the-wiki)), with the three articles that restated the old brief fixed; the fuller article pass follows the deploy |
-| 6 | Consistent participant names and measured conversation pacing | Names done and the on-turn gate removed 2026-10-15 ([record](#2026-10-15-the-rehearsal-completed-and-step-6s-naming-and-pacing)); the off-turn taper, `PER_TURN` and stale triggers remain open; `focus` remains deferred |
-| Acceptance | Offline checks, approved model rehearsals, accurate docs and fresh recordings | Run applicable checks per increment; rehearse with the talk gate isolated; one recording refresh after steps 3-5; paid work separately estimated |
+| 5 | Fallible Wikiclude guidance and aligned character/reference articles | Prompts done 2026-10-15 ([record](#2026-10-15-step-5s-prompts-and-the-coordination-minimum-in-the-wiki)), with the three articles that restated the old brief fixed; the article pass is [Wikiclude's W8](wikiclude-plan.md#14-w8-the-phase-13-alignment-pass-handed-over-2026-10-15) |
+| 6 | Consistent participant names and measured conversation pacing | Done 2026-10-15: names and the on-turn gate ([record](#2026-10-15-the-rehearsal-completed-and-step-6s-naming-and-pacing)); the off-turn taper is left alone on the evidence, with its baseline recorded ([record](#2026-10-15-the-taper-left-alone-the-fixtures-refreshed-step-0-closed-out)); `focus` remains deferred |
+| Acceptance | Offline checks, approved model rehearsals, accurate docs and fresh recordings | Offline suite green at 622; the five-scene rehearsal complete ($0.1373); both recordings refreshed ($0.1524); step 4 accepted live. Outstanding: the deploy of steps 5-6 and one `--apply` ([record](#2026-10-15-the-taper-left-alone-the-fixtures-refreshed-step-0-closed-out)) |
 
 Stop at a clear boundary if a required input is absent. Mark the blocked
 step accurately and continue independent work; do not replace missing
@@ -1086,3 +1090,101 @@ skipped). One test asserted the old section heading and now asserts the new
 one; nothing else asserted on the revised wording. No paid call, cloud
 write, deployment or fixture refresh. Prompt text changed again, so the two
 exact-game recordings stay pending the one approved refresh.
+
+### 2026-10-15: the taper left alone, the fixtures refreshed, step 0 closed out
+
+The last of the phase's own work. Wikiclude's article pass is handed to
+[its own plan](wikiclude-plan.md#14-w8-the-phase-13-alignment-pass-handed-over-2026-10-15)
+as W8, which is where article work belongs.
+
+**The off-turn taper: no change, and why.** Section 8 says to change only
+the mechanism an observed failure implicates, and section 3's second
+constraint is satisfied now that the on-turn half is gone. The evidence does
+not implicate the taper:
+
+- `chattiness ** (depth + 1)` at 0.5 gives a third consecutive reply about
+  one chance in sixty, which sounds decisive until the records are read.
+  `web-2/00011` produced 22 reaction lines over 37 turns and `web-2/00012`
+  41 over 57, with runs of two and three reaction lines within a single
+  turn -- twelve runs of three in `00012`.
+- A run of three against `PER_TURN = 2` means the turn advanced inside the
+  exchange. Whatever is ending these exchanges, it is reached before the
+  taper's third draw matters often enough to see.
+- So the candidates are `PER_TURN`, the `MAX_QUEUED = 2` queue, stale
+  triggers dropped when the turn moves on, and the sorted-seat order that
+  favours earlier seats. Each is a bounded-opportunity question, and each
+  wants the comparison section 8 requires: one dial moved, the reaction
+  count and the run-length distribution read off the next games.
+- Deferring this is not deferring step 6. Naming and the on-turn gate were
+  the deliverables; the taper is tuning, and tuning without a comparison is
+  what the section warns against. The measurements above are the baseline a
+  later comparison starts from.
+
+**The replay fixtures are refreshed** (approved by David, 2026-10-15), the
+single refresh steps 3-5 were waiting for, taken after steps 5 and 6 settled
+the prompts:
+
+- Seed 1, `Scarlett,Peacock` at three players: envelope `Mustard/Rope/Ballroom`
+  as the seed dictates, winner `P1 Mustard (floor)`, 29 turns and 13
+  suggestions where the old row had 12. $0.1149.
+- Seed 2, `Plum,Mustard,Green,White` at four: envelope
+  `Scarlett/Candlestick/Ballroom`, winner `P1 White`, 10 turns and 2
+  suggestions -- the row is unchanged, the game having replayed to the same
+  shape. $0.0375.
+- $0.1524 together. Neither game made a lookup, so both recordings carry the
+  two tools and no tool rounds, as the 2026-10-09 pair did. No seat fell
+  back in either, which is what makes the replay strict.
+- Both rows lose their pending-refresh skip, so `-n auto` now runs 622 tests
+  against 620. The earlier recordings stay in the history as evidence and are
+  not relabelled, per section 9.
+- With the on-turn gate gone these are the first recordings that carry the
+  whole of what the models said rather than a coin-flipped half of it.
+
+**Step 0's remainder, and what the audit understated.** The flag indexes
+were the symptom; the cause was that the editorial pass applied a head
+computed from a snapshot that several already-stored entries post-dated, so
+those entries were never folded in at all. Three fields are wrong in
+consequence, not one:
+
+- **The flag index**, as 0e reports: entries Scarlett #16-17, Mustard #7,
+  White #15 and Peacock #13-14 contribute nothing to it.
+- **The tally**, which 0e does not mention and which matters more, since
+  `logbook list` prints it and the debrief shows it to the character:
+  Scarlett 19 games where she has 21, White 18 of 19, Peacock 15 of 17, and
+  Mustard 9 games and 4 wins where he has 10 and 5 -- his unabsorbed entry
+  was a win.
+- **Each dossier's `games_together`**, undercounted by the same entries.
+
+`rebuild_head()` is the obvious tool and is the wrong one, exactly as 0c
+warns. Measured before use: a full rebuild also replaces each dossier's
+`read` with whatever the last entry mentioning that opponent happened to
+say, which would discard step 0's edited reads for `david` (Scarlett,
+White), `floor` (Scarlett, Green) and `guest` (Peacock) -- the surviving 65%
+the audit measured. So `scripts/phase13_flag_hygiene.py` rebuilds the index,
+recounts the tally, corrects the counters, and leaves every read, date and
+serial exactly as stored.
+
+Flag vocabulary is normalised first, in the entries, from each character's
+own digest `renamed` map plus the duplicate coinages 0e names: Mustard's
+`ignored-a-spoken-claim`, Peacock's `slow-to-accuse`, `too-far-to-accuse`
+and `bluff-naming-own-cards`, Scarlett's `slow-to-room`, White's
+`quiet-player-closing` and `repeat-ask-tell`. Green and Plum are clean.
+`never-accused` is deliberately **not** retired although Peacock's digest
+retires it: she used it in her two most recent entries, after that digest,
+the tally carries the fact in its own field, and retiring a name in active
+use is a design decision, which this step is not. Fresh coinages with no
+kept equivalent are left as vocabulary.
+
+The script is `--dry` by default-refusing and idempotent: a second `--apply`
+reports every character clean. **Not yet applied.** The bulk write to the
+live bucket was refused by this session's tool permissions, so the one
+command is David's:
+
+    python scripts\phase13_flag_hygiene.py --apply
+
+Its `--dry` output is the review; nothing else in the logbooks is touched.
+
+**Verification.** `python -m pytest -q -n auto` passes: 622 passed, 34
+skipped, the two exact-game replays among the passing. $0.1524 of approved
+paid recording. One live write made this pass (Plum's entry #0008, recorded
+above); the flag pass is prepared and unapplied.

@@ -1,8 +1,8 @@
 # Wikiclude (D20, was 10i): the plan
 
-Status: **W1–W5 built; W6 and W7 remain.** Proposed 2026-10-01, with David's four answers recorded that day (section 7). W1 was built on `wikiclude`, merged and made live as `clude-00021-fmb` (section 9); W2 followed on `claude/great-knuth-e8o5tl` (section 10). The editorial pass and W3–W5 were completed locally on 2026-10-02 (sections 11–12). Where the implementation records differ from the original design, the later records describe what was built.
+Status: **W1–W5 built; W6, W7 and W8 remain.** W8 is new: Phase 13's character development landed in the prompts and the game, and the encyclopaedia has not caught up (section 14). Proposed 2026-10-01, with David's four answers recorded that day (section 7). W1 was built on `wikiclude`, merged and made live as `clude-00021-fmb` (section 9); W2 followed on `claude/great-knuth-e8o5tl` (section 10). The editorial pass and W3–W5 were completed locally on 2026-10-02 (sections 11–12). Where the implementation records differ from the original design, the later records describe what was built.
 
-Current local status (2026-10-02): **52 full articles and one project stub, with no wanted pages.** W3–W5 article creation and local verification are complete (section 12). W6, the app and project, is next. These changes have not been deployed; sections 9–11 retain the earlier implementation and editorial records.
+Current local status (2026-10-15): **95 articles, with no wanted pages**, after Phase 12's pass added the Algorithms entries, the portraits and the algorithm boxes (section 13). W3–W5 article creation and local verification are complete (section 12). **W8, the Phase 13 alignment pass, is next**, and is the larger of the two remaining writing jobs; W6, the app and project, and W7, the featured-article pass, follow. Sections 9–13 retain the earlier implementation and editorial records.
 
 ## 1. Context: David's brief (2026-10-01)
 
@@ -133,8 +133,9 @@ About seventy, in eight categories. Titles are provisional; redirects make the s
 | **W5** | Measurement and the mathematics | |
 | **W6** | The app and the project; the classwork archive begun | |
 | **W7** | The featured-article pass: every article reread against 3.1 and 3.2, "Did you know" filled, navboxes, zero red links, the live Wikipedia-link check | Zero wanted pages; the suite green; shots looked at |
+| **W8** | The Phase 13 alignment pass: the six characters as people, table talk as conversation, the encyclopaedia's own fallibility, and the memory articles (section 14) | Every article agrees with the deployed prompts; a character reading its own article finds nothing that contradicts what it was told, and nothing that reinstates a retired instruction |
 
-W1 is the day's work that matters; W2 to W6 are mostly writing and go quickly once the style is fixed.
+W1 is the day's work that matters; W2 to W6 are mostly writing and go quickly once the style is fixed. W8 arrived later, from Phase 13, and is writing of the same kind: the style is long settled, so the work is in getting the substance to agree with the characters as they now are.
 
 ## 6. Files
 
@@ -362,3 +363,83 @@ David's brief for Phase 12's wiki work (N7), the same day: more visuals (archite
 ### 13.4 Left
 
 The live Wikipedia-title check for the new `[[w:...]]` links; W7's corpus-wide pass. Nothing here is deployed.
+
+## 14. W8: the Phase 13 alignment pass (handed over 2026-10-15)
+
+[Phase 13](phase13-plan.md) developed the characters and changed what the
+prompts tell them. Its steps 1-6 are implemented, step 4 is live, and steps
+5 and 6 are committed and awaiting one deploy. The encyclopaedia describes
+the arrangement that preceded them. This section is the handover: what
+Phase 13 already changed here, and what remains for this plan to write.
+
+### 14.1 What Phase 13 changed in the wiki, and why it stopped there
+
+Phase 13's step 5 requires the script and wiki changes to be released
+together, so that a lookup cannot hand a character back an instruction the
+prompts have retired. Three articles *stated* the retired brief, and only
+those three sentences were changed, on 2026-10-15:
+
+- *A seat over MCP*: the tool-table row, and the summary of the server's
+  instructions.
+- *Claude*: the canon in both the wrapped-model and the chat-seat paragraphs.
+- *LLM wrapper*: the paragraph that told the reader the rules trust the canon
+  over recollection and table talk and never cite it aloud, now the
+  distinction in 14.2.
+
+Section headings and `[[wiki links]]` were deliberately left alone, so
+nothing else moved and no link broke. That was the minimum which keeps a
+lookup honest. It is not the article pass, and Phase 13 does not claim it is.
+
+### 14.2 The distinction the prompts now draw
+
+Wikiclude is no longer briefed as the ultimate authority. The shared rules,
+the two lookup tools and the MCP transport now say three things, and every
+article that touches the subject should agree with them:
+
+- **On how this house plays** -- the board, movement, how a suggestion is
+  disproved, what a wrong accusation costs -- the encyclopaedia is the better
+  source than a model's own recollection of Clue, which differs from clude in
+  places. This half was never about authority over the characters; it was
+  about a chatbot's memory of a different game.
+- **On everything else** -- a biography, a method description, a reputation,
+  an article about the character itself -- it may be doubted and disputed
+  roughly as Wikipedia may be. Nothing in it outranks a card a character was
+  shown or what it watched someone do at the table.
+- **Formal legality is the engine's**, in the menu a seat is given. No
+  article decides it.
+
+A character may now mention, quote or argue with the encyclopaedia. Knowing
+a thing without parade remains the style, but the prohibition is gone.
+
+### 14.3 What remains to write
+
+| Article | What Phase 13 changed under it |
+|---|---|
+| The six character articles | Interests, histories, opinions and social motives: the shared NPR and *New Yorker* habits, Mustard's Freemasonry, Mustard and Peacock on FOX News, Green's and Scarlett's distinct film interests, Plum's *Economist*, White's French news. Background, not a template of matching quirks, and not live retrieval |
+| *Persona* | The scripts carry lives as well as methods; the fourth-wall premise is light and individual, and responses to it vary by temperament rather than being fixed |
+| *Table talk* | Conversation is part of the evening rather than a tactical expense. The on-turn gate is gone, so a line a seat writes is spoken; `chattiness` now governs the off-turn reply draws alone, tapered by reply depth |
+| *Logbook* and *The debrief* | The debrief asks for the evening as an occasion as well as the play, and tells a character not to write itself a rule against speaking. Entries now carry the company. The cap is 8,192 tokens, covering thinking and reply together |
+| *LLM wrapper* | Beyond 14.1's paragraph: one set of participant names across a seat's own turn, its off-turn replies and its debrief; every model line cleaned as a person's is |
+| *A seat over MCP* | Beyond 14.1's two sentences, the fuller description of what a chat seat is told |
+| A modest fourth-wall article | Optional, if it serves the characters and the readers. Phase 13 asks that long persona instructions not be copied into several authorities at once |
+
+Phase 13's own constraints carry over. Do not invent a specific current
+headline and present it as retrieved news. The additional interests proposed
+in discussion are candidates, not settled biographical facts; choose only
+enough to make each part playable. A character editing Wikiclude stays
+deferred, and so does the `focus` dial -- neither gets a field, a control or
+a placeholder here.
+
+### 14.4 Order
+
+Write W8 against what is deployed, not against the working tree: the
+prompts' own text is the source, and a paraphrase that drifts from it is the
+failure this pass exists to prevent. Phase 13's implementation record
+(sections for 2026-10-14 and 2026-10-15) holds the exact wording and the
+evidence. Re-reading an article's claims against `facts.py` and the live
+code remains this plan's rule (3.6), unchanged.
+
+A refreshed replay recording is not needed for an article change: the
+fixtures key on the prompts, not on the encyclopaedia's prose. Both were
+re-recorded on 2026-10-15 after the prompts settled, so W8 can proceed
+without further paid work unless it changes a prompt, which it should not.
