@@ -18,6 +18,7 @@ import pytest
 
 import clude_constraints
 from clude_agents import PRESETS
+from clude_core.engine import MoveChoice
 from clude_core.events import RemarkEvent
 from clude_llm import REMARK_KIND, REMARK_SCHEMA, LLMRequest, LLMResult, LLMSettings, parse_response, schema_for
 from clude_storage import open_store
@@ -93,6 +94,44 @@ def test_react_is_silent_on_an_empty_reply_a_failure_or_a_spent_budget():
     spent = _wrapped(PRESETS["Plum"], [{"say": "hi"}], settings=LLMSettings(max_calls_per_game=0))
     assert spent.react(obs, "x") is None and spent.decisions[-1].fallback == "budget"
     assert spent.backend.calls == 0
+
+
+def test_one_participant_is_called_one_thing_on_a_turn_and_off_it():
+    """Phase 13 step 6. A model seat is told what the table screen calls
+    every seat -- the token, and a person's display name after it -- on its
+    own turn as well as in an off-turn reply. The on-turn prompt used to
+    fall back to the bare suspect tokens, so a character addressed the same
+    person two ways in one evening."""
+    talker = Talker("Charmed, I am sure.")
+    setup = TableSetup(
+        (SeatSpec("Scarlett", "llm", "Scarlett"), SeatSpec("White", "floor"),
+         SeatSpec("Peacock", "human", "ann")),
+        SEED,
+    )
+    game = tables.WebGame(setup, llm_backend=lambda seat: talker)
+    game.table_id = "t"
+    expected = tables.seat_names(game)
+    assert expected == ["Scarlett", "White", "Peacock (Ann)"]
+    wrapper = game.table.wrappers[0]
+    assert wrapper.names == expected, "the web tells every wrapper the screen's names"
+    at_table = f"At the table: {', '.join(expected)}."
+
+    # Off turn: the names the caller hands over.
+    obs = clude_constraints.observe(game.state, 0)
+    wrapper.react(obs, 'Peacock (Ann) said: "Good evening."', expected)
+    assert at_table in talker.remark_requests[-1].user
+
+    # On its own turn: the same names, with no caller to supply them. The
+    # engine drives a web model seat through work requests, so the decision
+    # is asked for here directly, as the wrapper's own tests do.
+    asked = []
+    inner = talker.complete
+    talker.complete = lambda request: (asked.append(request), inner(request))[1]
+    choices = [MoveChoice("move", room) for room in ("Study", "Hall", "Lounge")]
+    wrapper.choose_movement(obs, choices, random.Random(SEED))
+    menus = [r for r in asked if r.kind != REMARK_KIND]
+    assert menus, "a three-way menu is a call"
+    assert at_table in menus[-1].user
 
 
 # --- the queue -----------------------------------------------------------

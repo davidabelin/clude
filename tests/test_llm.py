@@ -306,14 +306,31 @@ def test_a_valid_leashed_choice_is_played_and_its_line_buffered():
     fresh = _character(Profile(leash=1.0, chattiness=1.0))
     assert talker.character.rng.getstate() == fresh.rng.getstate()  # the LLM path spent no character RNG
 
-    quiet = _wrapped(Profile(leash=1.0, chattiness=0.0), [{"choice": "B", "say": "Shh."}])
+    # On its own turn a written line is said whatever the chattiness dial: the
+    # line came back in the same reply as the choice, so dropping it bought
+    # nothing (Phase 13 step 6). chattiness now governs off-turn draws alone.
+    reticent = _wrapped(Profile(leash=1.0, chattiness=0.0), [{"choice": "B", "say": "Shh."}])
+    reticent.choose_movement(obs, choices, ENGINE_RNG)
+    assert reticent.take_remarks() == ["Shh."] and reticent.decisions[-1].spoke
+
+    # Silence is the character's own choice, made by answering with nothing.
+    quiet = _wrapped(Profile(leash=1.0, chattiness=1.0), [{"choice": "B", "say": ""}])
     quiet.choose_movement(obs, choices, ENGINE_RNG)
-    assert quiet.take_remarks() == [] and quiet.decisions[-1].said == "Shh." and not quiet.decisions[-1].spoke
+    assert quiet.take_remarks() == [] and quiet.decisions[-1].said == "" and not quiet.decisions[-1].spoke
     muted = _wrapped(
         Profile(leash=1.0, chattiness=1.0), [{"choice": "B", "say": "Shh."}], settings=LLMSettings(speak=False)
     )
     muted.choose_movement(obs, choices, ENGINE_RNG)
     assert muted.take_remarks() == []
+
+    # A stray newline never reaches the record: one remark is one line there,
+    # in a replay fixture and in the next debrief prompt.
+    sloppy = _wrapped(
+        Profile(leash=1.0, chattiness=1.0),
+        [{"choice": "B", "say": "Two rooms left.\n\nI shall take the nearer."}],
+    )
+    sloppy.choose_movement(obs, choices, ENGINE_RNG)
+    assert sloppy.take_remarks() == ["Two rooms left. I shall take the nearer."]
 
 
 BAD_REPLIES = [

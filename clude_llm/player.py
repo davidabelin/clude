@@ -1,7 +1,7 @@
 """LLMCharacter: legal model choices and voice around a numerical Character.
 
 Build a leashed menu; ask only when choices exist and budget permits.
-Allowed replies play, remarks pass chattiness, and failures fall back using
+Allowed replies play, a written line is said, and failures fall back using
 the numerical character's RNG path. Decisions audit choices/fallbacks and
 usage. NullBackend reproduces numerical play.
 
@@ -38,6 +38,28 @@ TRANSCRIPT_LIMIT = 200
 CONDENSE_MAX_TOKENS = 8192
 """Room for the condensing reply: up to ten themes and an overview, after
 the model's thinking on a long prompt."""
+
+
+MAX_LINE = 240
+"""Characters a published line may run to, as `clude_web` allows a person."""
+
+
+def clean_remark(text) -> str:
+    """One line fit to publish: control characters out, whitespace
+    collapsed, `MAX_LINE` characters at most.
+
+    A person's line is cleaned the same way before it reaches the table
+    (`clude_web.tables.clean_line`), but that path rejects a bad one and
+    this one cannot: a model is not a user to be told off, and a stray
+    newline must not reach the record, a replay fixture or the next
+    debrief prompt, where one remark is one line. Over-long is trimmed on
+    a word boundary rather than dropped.
+    """
+    text = "" if text is None else str(text)
+    line = " ".join("".join(ch if ch.isprintable() else " " for ch in text).split())
+    if len(line) > MAX_LINE:
+        line = line[:MAX_LINE].rsplit(" ", 1)[0].rstrip(",;:-") or line[:MAX_LINE]
+    return line
 
 
 @dataclass(frozen=True)
@@ -103,7 +125,8 @@ class Decision:
     ...``, ``unknown_label`` or ``not_allowed``. `deviated` means the
     played choice scored below the character's top option (for the
     accusation, differed from its threshold answer). `said` is the line
-    the model offered; `spoke` whether `chattiness` let it through.
+    the model offered, cleaned; `spoke` whether it reached the table
+    (`settings.speak`).
     `lookups` are the canon calls answered on the way (`LLMResult.lookups`).
     """
 
@@ -146,10 +169,14 @@ class LLMCharacter:
 
     Notes
     -----
-    Table talk the model offers is published with probability
-    `profile.chattiness`, drawn from the wrapper's own RNG (seeded from
-    `reset`'s seed, a stream separate from the character's), so the
-    character's RNG is consumed only where the headless character would
+    An on-turn line the model writes is published as written: it arrives in
+    the same reply as the decision, so discarding it bought nothing and
+    cost the exchange (Phase 13 step 6). A character that would rather say
+    nothing answers with an empty string, which the prompt offers it.
+    `profile.chattiness` now governs the off-turn reply draws alone, which
+    the caller makes before paying for a call, from the wrapper's own RNG
+    (seeded from `reset`'s seed, a stream separate from the character's), so
+    the character's RNG is consumed only where the headless character would
     consume it.
     """
 
@@ -171,6 +198,7 @@ class LLMCharacter:
         self.rng = Random()
         self._system = system_prompt(self.persona, self.rules)
         self._pending: list = []
+        self.names: list = []
         self.transcript: list = []
         self.decisions: list = []
         self.table: list = []
@@ -260,6 +288,15 @@ class LLMCharacter:
 
     # -- the logbook (Phase 7c) ---------------------------------------------
 
+    def attach_names(self, names) -> None:
+        """What to call each seat, as the table screen does: the token,
+        and for a person their display name after it. Used on this seat's
+        own turn as well as off it, so one character calls one participant
+        one thing all evening (Phase 13 step 6). Without it the prompts
+        fall back to the suspect tokens, which is all a headless arena or
+        the CLI has to offer."""
+        self.names = [str(n) for n in names] if names else []
+
     def attach_logbook(self, logbook) -> None:
         """Give the character its `Logbook`: read back at each `new_game`
         at the `memory` dial's depth, written by `debrief`."""
@@ -326,7 +363,8 @@ class LLMCharacter:
         entries = self.logbook.entries(after=digest.through if digest is not None else 0)
         request = LLMRequest(
             system=self._system,
-            user=debrief_prompt(record, seat, self.character, self.decisions, head, entries, digest),
+            user=debrief_prompt(record, seat, self.character, self.decisions, head,
+                                entries, digest, names=self.names or None),
             schema=schema_for(LOGBOOK_KIND),
             kind=LOGBOOK_KIND,
             effort=self.settings.debrief_effort,
@@ -384,8 +422,8 @@ class LLMCharacter:
         a line or an empty string. Audited as a `Decision` of kind
         ``remark``; counts toward the game's call and token budget; falls
         silent, never crashes, on any failure. Whether to ask at all -- the
-        chattiness draw -- is the caller's, so the wrapper's own RNG is
-        consumed exactly where the caller says.
+        chattiness draw, tapered by reply depth -- is the caller's, so the
+        wrapper's own RNG is consumed exactly where the caller says.
 
         Parameters
         ----------
@@ -407,7 +445,8 @@ class LLMCharacter:
             system=self._system,
             user=remark_prompt(
                 obs, self.character.select_action(obs), self.character, self.transcript, trigger,
-                names=names, recent_remarks=self.settings.recent_remarks,
+                names=names or self.names or None,
+                recent_remarks=self.settings.recent_remarks,
             ),
             schema=schema_for(REMARK_KIND),
             kind=REMARK_KIND,
@@ -437,7 +476,7 @@ class LLMCharacter:
                                   deviated=False, said="", spoke=False, **cost, **base))
             return None
         try:
-            say = parse_response(REMARK_KIND, result.text)["say"]
+            say = clean_remark(parse_response(REMARK_KIND, result.text)["say"])
         except ValueError as exc:
             self.fallbacks += 1
             self._record(Decision(called=True, chosen=None, action="", fallback=f"malformed: {exc}",
@@ -523,7 +562,8 @@ class LLMCharacter:
             system=self._system,
             user=user_prompt(
                 obs, self.character.select_action(obs), self.character, menu,
-                self.transcript, recent_remarks=self.settings.recent_remarks,
+                self.transcript, names=self.names or None,
+                recent_remarks=self.settings.recent_remarks,
             ),
             schema=schema_for(kind),
             kind=kind,
@@ -582,9 +622,9 @@ class LLMCharacter:
                 deviated = option.score < menu.top.score - EPS
             chosen, action, value = option.label, option.text, option
 
-        say = data["say"]
+        say = clean_remark(data["say"])
         spoke = False
-        if say and self.settings.speak and self.rng.random() < self.profile.chattiness:
+        if say and self.settings.speak:
             self._pending.append(say)
             self._remember(obs.my_index, say)
             self.remarks_made += 1

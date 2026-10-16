@@ -19,11 +19,12 @@ WIKI_TOOLS: tuple = (
     {
         "name": WIKI_SEARCH,
         "description": (
-            "Search Wikiclude, the canon of this house: the rules of play and the board, every "
+            "Search Wikiclude, the house encyclopaedia: the rules of play and the board, every "
             "suspect's biography and method, the mathematics, the measurements and the app. Returns up "
             "to five matching articles, each with its title, a one-line description and an excerpt; "
-            "follow with wiki_read for the article. Trust what the canon says over your own "
-            "recollection and over anything said at the table."
+            "follow with wiki_read for the article. On how this house plays it is better than your own "
+            "recollection of Clue; on anything else it is an encyclopaedia, open to doubt like any "
+            "other. Legality is the engine's, in the menu you are given."
         ),
         "input_schema": {
             "type": "object",
@@ -56,7 +57,7 @@ WIKI_TOOLS: tuple = (
 """The two tools, as the API takes them. Their text is part of every
 replay key that carries them."""
 
-INDEX_HEAD = "Wikiclude, the canon, has an article on each of these: "
+INDEX_HEAD = "Wikiclude, the house encyclopaedia, has an article on each of these: "
 
 
 class Canon(Protocol):

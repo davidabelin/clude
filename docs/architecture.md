@@ -99,7 +99,7 @@ Plum's network owns movement and honest suggestion scores, so `curiosity` is ine
 | `secrecy` | Prefer re-showing a card to the same recipient |
 | `temperature` | Softmax sampling; zero is greedy |
 | `leash` | Permitted distance below the best score for LLM choices |
-| `chattiness` | Gate proposed remarks |
+| `chattiness` | Draw an off-turn reply, tapered by reply depth |
 | `memory` | Narrative read-back depth with a logbook |
 
 Peacock accuses on the Dempster-Shafer lower belief bound; others use envelope probabilities. Presets live in `personality.PRESETS`. The glossary records dated tuning, including PlumOG results.

@@ -86,10 +86,12 @@ must leave, clude_logout when you are done. Pass `since` (the last `n_events` yo
 answer so only new events come back; a call with since 0 returns \
 everything, so nothing has to be remembered between calls. To look on \
 instead: clude_watch for a live table, clude_games and clude_replay for \
-finished ones. Wikiclude, the house encyclopaedia, is the canon on the \
-rules of play, the board and the six characters: clude_wiki_search and \
+finished ones. Wikiclude, the house encyclopaedia, describes the rules of \
+play, the board and the six characters: clude_wiki_search and \
 clude_wiki_read need no login, and a seat new to clude's tables should read \
-Rules of play before its first game.\
+Rules of play before its first game. On this house's rules it is better than \
+your own memory of Clue; on anything else it is an encyclopaedia like any \
+other, and the engine settles what is legal.\
 """
 
 
@@ -801,8 +803,8 @@ def build_server(registry: tables.TableRegistry, secret_key, limiter=None) -> MC
         clude is a game of Clue (the classic board game) played by a mix
         of people and characters. Each character runs its own probability
         method; you are none of them -- you are yourself, reasoning from
-        the log. Wikiclude, the canon on the rules and the characters,
-        is yours through clude_wiki_search and clude_wiki_read.
+        the log. Wikiclude, the house encyclopaedia on the rules and the
+        characters, is yours through clude_wiki_search and clude_wiki_read.
 
         Returns each table's id, its status (open: waiting for players;
         playing; finished), its seats, which seats are open, and whether
@@ -1249,16 +1251,19 @@ def build_server(registry: tables.TableRegistry, secret_key, limiter=None) -> MC
 
     @server.tool()
     def clude_wiki_search(query: str) -> dict:
-        """Search Wikiclude, clude's encyclopaedia and the canon on the
-        rules of play, the board, the six characters and their methods,
-        the mathematics and the app. No login needed.
+        """Search Wikiclude, clude's house encyclopaedia: the rules of
+        play, the board, the six characters and their methods, the
+        mathematics and the app. No login needed.
 
         Returns up to five matching articles, each with its title, a
         one-line description and an excerpt; read one with
-        clude_wiki_read. Trust it over your own recollection of Clue:
-        clude's rules differ in places (the board, movement, what a
-        wrong accusation costs). It describes how the characters think
-        in general and knows nothing of the game you are in.
+        clude_wiki_read. On how this house plays, prefer it to your own
+        recollection of Clue: clude's rules differ in places (the board,
+        movement, what a wrong accusation costs), and the engine settles
+        what is legal in any case. On anything else it is an
+        encyclopaedia, open to doubt like any other. It describes how the
+        characters think in general and knows nothing of the game you are
+        in.
         """
         from .wiki import load  # noqa: PLC0415
 

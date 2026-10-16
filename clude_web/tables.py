@@ -343,6 +343,9 @@ class WebGame(TableGame):
         super().__init__(setup, prepare, llm_backend, canon)
         self.table_id: str = ""
         self.reactions = chat.Reactions(self, lambda: seat_names(self))
+        names = seat_names(self)
+        for wrapper in self.table.wrappers.values():
+            wrapper.attach_names(names)
         self._readings_at = -1
         self._readings: list = []
         self._beliefs_at = -1

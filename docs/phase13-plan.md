@@ -17,10 +17,17 @@ covers thinking and reply together, and wrote no entry. The available local
 history covers five current characters; current Plum has no local logbook,
 though his live logbook holds seven entries, and PlumOG is retained
 unchanged and still carries the old rule, harmlessly, being unseatable.
-Game runtime and wiki articles are unchanged; step 0's flag remainder,
-step 5, step 6 and the model rehearsals remain planned, and the reply taper
-is still to be isolated before a rehearsal can judge steps 1-5. Both
-exact-game replay recordings are historical pending an approved refresh.
+Game runtime is unchanged. Steps 5 and 6 then landed locally and are
+**waiting on one deploy**: the prompts now brief Wikiclude as a fallible
+encyclopaedia (the engine still settles legality, and it is still the better
+source than a model's memory of Clue on how this house plays), a seat is
+given one set of participant names for the whole evening, and the on-turn
+talk gate is gone -- it discarded 42 of the 81 lines those two games paid
+for. The five-scene rehearsal is complete ($0.1373, 73% of 30 lines free of
+game terms). Step 0's flag remainder, the off-turn taper and `PER_TURN`, and
+Wikiclude's fuller article pass remain open; the article pass is David's
+next piece, written against what is live. Both exact-game replay recordings
+are historical pending an approved refresh.
 Implementation evidence belongs in section 10 below, not in the proposed
 acceptance criteria.
 
@@ -126,8 +133,8 @@ increments may touch several files, but should have one reviewable purpose.
 | 2 | Light shared premise and individual fourth-wall attitudes | Drafted locally with step 1; responses remain changeable; awaits script review/rehearsals |
 | 3 | Listening, reply, silence, and thread-continuity guidance | Shared/decision/reaction guidance edited within the existing window; observed continuity awaits rehearsals |
 | 4 | Debrief and condensation guidance that preserves social continuity, and one pass retiring the rules it supersedes | Deployed and accepted live 2026-10-14/15 ([record](#2026-10-15-step-4-accepted-live-and-a-debrief-lost-to-its-token-cap)); the generator retired the rules itself, so only the digest clause was applied |
-| 5 | Fallible Wikiclude guidance and aligned character/reference articles | Planned; agree scripts first, release related text together |
-| 6 | Consistent participant names and measured conversation pacing | Tuning planned after the scripts, but isolating the reply taper is a rehearsal precondition; `focus` remains deferred |
+| 5 | Fallible Wikiclude guidance and aligned character/reference articles | Prompts done 2026-10-15 ([record](#2026-10-15-step-5s-prompts-and-the-coordination-minimum-in-the-wiki)), with the three articles that restated the old brief fixed; the fuller article pass follows the deploy |
+| 6 | Consistent participant names and measured conversation pacing | Names done and the on-turn gate removed 2026-10-15 ([record](#2026-10-15-the-rehearsal-completed-and-step-6s-naming-and-pacing)); the off-turn taper, `PER_TURN` and stale triggers remain open; `focus` remains deferred |
 | Acceptance | Offline checks, approved model rehearsals, accurate docs and fresh recordings | Run applicable checks per increment; rehearse with the talk gate isolated; one recording refresh after steps 3-5; paid work separately estimated |
 
 Stop at a clear boundary if a required input is absent. Mark the blocked
@@ -141,10 +148,15 @@ Two ordering constraints follow from the 2026-10-14 audit:
    instructions change is undone by the next game. The measured survival of
    step 0's edits is in [section 10](#10-implementation-record).
 2. **The talk gate is isolated before the rehearsals that judge steps 1-5.**
-   What anyone observes is the model's output multiplied by `chattiness`,
-   which discards half of the on-turn lines and most of a developing
-   exchange. Until the two are separated, a rehearsal cannot distinguish a
-   character choosing silence from a written line being dropped.
+   What anyone observed was the model's output multiplied by `chattiness`,
+   which discarded half of the on-turn lines and most of a developing
+   exchange. Until the two were separated, a rehearsal could not distinguish
+   a character choosing silence from a written line being dropped.
+   **Settled 2026-10-15:** the on-turn half is gone -- a written line is
+   published, and silence is the character answering with nothing -- so what
+   a rehearsal sees on turn is what the character wrote. The off-turn taper
+   stands, and a rehearsal that judges a developing exchange still forces it
+   open and records the setting.
 
 ## 4. Step 0: editorial pass over the logbooks
 
@@ -460,12 +472,13 @@ recorded transcript for comparisons. Repeat selected scenes to distinguish
 an improvement from one fortunate line; exact wording is not a golden test.
 
 Isolate the talk gate before judging any scene below. `chattiness` is 0.5
-for all six characters, none of the presets having set it, and it applies
-twice: on turn it discards a line the model has already written and been
+for all six characters, none of the presets having set it. It used to apply
+twice: on turn it discarded a line the model had already written and been
 paid for, and off turn it governs joining an exchange at
 `chattiness ** (depth + 1)`, so a third consecutive reply survives about
-one time in sixty. Rehearse with it raised to 1, and record the setting
-beside the transcript. That is a diagnostic configuration for the
+one time in sixty. The on-turn half was removed on 2026-10-15, so only the
+off-turn taper needs isolating now. Rehearse with it raised to 1, and record
+the setting beside the transcript. That is a diagnostic configuration for the
 rehearsal, not a change to the shipped presets; tuning those stays in
 [step 6](#8-step-6-identities-pacing-and-returning-to-play) with the
 comparison it requires.
@@ -888,3 +901,178 @@ game when it matters.
 skipped). The live work in this pass was reads only: no cloud write, no
 deployment, no paid call and no fixture refresh. Both exact-game recordings
 stay pending the single approved refresh after steps 3-5.
+
+### 2026-10-15: the rehearsal completed, and step 6's naming and pacing
+
+The three unrehearsed scenes were run, and step 6's first two deliverables
+implemented: one set of participant names, and the on-turn talk gate removed.
+
+**The rehearsal is complete.** `news`, `scripts` and `answered` ran at six
+rounds on `claude-opus-5`: 18 spoken lines, 13 of them free of game terms
+(72%), none silent, no errors, $0.0785 over 18 calls. With the earlier two
+scenes that is five scenes, 30 lines, 22 free of game terms (73%), $0.1373
+over 30 calls, merged into
+`data/phase13-rehearsal/rehearsal-anthropic-complete.json` with each run's
+own date, tally and usage kept beside the whole.
+
+What the three scenes showed, scene by scene:
+
+- `scripts` is the best of the five. Plum and Scarlett carry a real exchange
+  about a script telling you what is said and never what is meant by saying
+  it, and Plum thanks her for putting it more economically than he did. No
+  six-seat identity recital, which is what the scene was there to check.
+- `answered` opens on a live game cue -- the Library untested all evening --
+  and five of the six replies leave the game rather than take it up. Read
+  with care: these seats are off turn with nothing to decide, so the scene
+  shows willingness to converse rather than a refusal to return to play.
+  Returning to the game when a decision needs attention is a live-table
+  question, and the two games of 2026-10-14 are the better evidence for it.
+- `news` is the weakest. Mustard's opening about the roadworks draws two
+  replies that revert to the game ("Twelve turns and nothing settled"), so
+  the shared background did not carry the scene on its own.
+- Across scenes, White's "Twelve turns and nothing settled" and Peacock's
+  "Nothing has been established yet, Mrs. White -- but ..." recur almost
+  verbatim. The harness builds each scene from the same stub observation
+  with the same seed, so near-identical context is expected; it is a harness
+  artefact to keep in mind when reading these transcripts, not a finding
+  about the characters.
+
+**Participant names.** A character was told three different things about
+who it was sitting with: `seat_names` off turn (the token, and a person's
+capitalised display name after it), the bare suspect tokens on its own turn
+(`user_prompt` was called without `names`), and `P2 White (david)` at the
+debrief. That is why a fresh entry can call one person both "Mr. Green" and
+"david".
+
+- `clude_llm/player.py`: `attach_names` beside `attach_logbook`, and the
+  on-turn, off-turn and debrief prompts all use the attached list. An
+  explicit list from the caller still wins, so `chat.Reactions` is unchanged.
+- `clude_web/tables.py`: `WebGame.__init__` gives every wrapper the same
+  `seat_names(self)` the screen and the reaction queue use. It runs whether
+  or not "characters remember" is on, since naming is not a memory feature.
+- `clude_llm/logbook.py`: `debrief_prompt` takes `names`. The prompt still
+  names the roster labels the dossiers are keyed on, so a character is not
+  left to guess a key from a display name; only what it reads changes.
+- Without the call -- a headless arena, the CLI, the rehearsal harness --
+  the prompts fall back to seat labels exactly as before.
+
+**The on-turn talk gate is gone** (David's decision, 2026-10-15). An
+on-turn line arrives in the same reply as the decision, so the
+`chattiness` draw that discarded it saved nothing and cost the exchange.
+Measured over the two games of 2026-10-14: 81 on-turn lines written, 39
+spoken, **42 paid for and thrown away** (48% in `web-2/00011`, 54% in
+`web-2/00012`). A character that would rather say nothing answers with an
+empty string, which the prompt has always offered it.
+
+- `clude_llm/player.py`: the draw is removed. `chattiness` now governs the
+  off-turn reply draws alone, which the caller makes *before* paying for a
+  call. Expect roughly twice the on-turn lines at the same cost.
+- The off-turn taper, `chattiness ** (depth + 1)`, is **untouched**, per
+  section 8: change only the mechanism the evidence implicates. The two
+  games already reached runs of two and three reaction lines in a turn, and
+  `PER_TURN = 2` looks more like the binding cap than the taper does.
+  Flattening the taper or lifting that cap stays available, and wants a
+  comparison that can explain the result.
+- This stops consuming one draw from the wrapper's own RNG per on-turn
+  decision, so the off-turn draws that share that stream now fall
+  differently. Both exact-game recordings were already pending refresh.
+
+**A model's line is now cleaned like a person's.** `clean_remark` collapses
+whitespace, drops control characters and trims past 240 characters on a word
+boundary, at both points where a line is parsed. A person's line has always
+been cleaned on its way to the table (`clude_web.tables.clean_line`), but
+that path rejects a bad line and this one must not: a stray newline would
+otherwise reach the record, a replay fixture and the next debrief prompt,
+where one remark is one line. No live line has ever needed it -- 521 remarks
+across the `web-2` games are clean -- so this closes a gap rather than
+fixing an observed break.
+
+**Harness.** `--memory-store` now defaults to a store that exists.
+
+**Verification.** `python -m pytest -q -n auto` passes (620 passed, 36
+skipped), including a new test that one participant is called one thing on a
+turn and off it, and the on-turn line and cleaning cases in
+`tests/test_llm.py`. One test asserted the old gate and now asserts the new
+contract. $0.0785 of approved paid rehearsal; no other paid call, no cloud
+write, no deployment, no fixture refresh.
+
+**Not done.** Step 6's remaining pacing questions (the taper, `PER_TURN`,
+stale queued triggers, sorted-seat order), step 5's fallible-Wikiclude text,
+step 0's flag remainder, and the deployment these changes are waiting for.
+
+### 2026-10-15: step 5's prompts, and the coordination minimum in the wiki
+
+The executable prompts no longer brief Wikiclude as an ultimate authority.
+The settled decision is that it is fallible, trusted roughly as Wikipedia
+may be, while formal legality stays the engine's. The revision draws that
+line explicitly rather than simply weakening the old instruction:
+
+- **On how this house plays** -- the board, movement, how a suggestion is
+  disproved, what a wrong accusation costs -- the encyclopaedia is still
+  the better source than a model's own recollection of Clue, which differs
+  from clude in places. This half of the old brief was never about
+  authority over the characters; it was about a chatbot's memory of a
+  different game. It is kept, and now says so.
+- **On everything else** -- a biography, a method description, a
+  reputation, an article about the character itself -- it may be doubted
+  and disputed. Nothing in it outranks a card the character was shown or
+  what it watched someone do at the table.
+- **Legality** is settled by the engine, in the menu supplied. No article
+  decides it, and the prompts now say that where the authority claim used
+  to stand.
+- **The compulsory silence is gone.** A character may mention, quote or
+  argue with the encyclopaedia; knowing a thing without parade remains the
+  usual style, so effortless familiarity survives as a style rather than a
+  prohibition.
+
+Files:
+
+- `clude_llm/personas/rules.md`: the section is now "The encyclopaedia" and
+  carries the three-way distinction above.
+- `clude_llm/canon.py`: `wiki_search`'s description loses "trust what the
+  canon says over your own recollection and over anything said at the
+  table"; `INDEX_HEAD` calls it the house encyclopaedia. `wiki_read` needed
+  no change.
+- `clude_web/mcp.py`: the server instructions, `clude_tables`' description
+  and `clude_wiki_search`'s docstring, for chat seats -- who get the same
+  distinction, since a chat seat's memory of Clue is exactly the case the
+  rules half exists for.
+- `clude_llm/personas/Plum.md`: he consults it by reflex still, would
+  rather the knowledge seemed his own, will cite it when it settles a
+  point, and is the first to notice an article that is thin, dated or wrong
+  about him -- the pedant as the natural doubter.
+- `clude_llm/personas/White.md`: what the encyclopaedia says of people is
+  worth knowing *and worth weighing against* what she sees, where it used
+  to come before what she sees.
+- Mustard ("never read it and does not intend to start, unless someone
+  quotes it against you"), Peacock, Scarlett and Green needed no change:
+  their habits are propensities, which is what the plan asks personality to
+  decide, and Mustard's clause already assumed the thing could be disputed.
+
+**The coordination minimum in Wikiclude.** This section requires the script
+and wiki changes to be released together, so a lookup cannot reinstate a
+retired instruction. Three articles restated the old brief and are fixed
+now, in the sentences that stated it: `A_seat_over_MCP` (the tool table row
+and the MCP instruction summary), `Claude` (the canon in both the wrapped
+and the chat-seat paragraphs), and `LLM_wrapper` (the paragraph that told
+the reader the rules trust the canon over recollection and table talk and
+never cite it aloud, now the three-way distinction). Section headings and
+`[[wiki links]]` are untouched, so nothing else in the encyclopaedia moved.
+
+That is the minimum which keeps a lookup honest, not the article pass this
+step asks for. The six character articles, Persona, Table talk, Logbook,
+The debrief, A seat over MCP in full, and a possible modest fourth-wall
+article remain to be written, and David's sequence is to deploy first and
+write them against what is then live.
+
+- `docs/canon-plan.md` carries a dated supersession note at the top: the
+  authority brief is replaced, the access, tools, caps, index block and
+  lookup limits it records still describe the implementation. The plan's
+  own decisions are preserved rather than rewritten.
+- `docs/llm-wrapper.md` describes the new line in the canon section.
+
+**Verification.** `python -m pytest -q -n auto` passes (620 passed, 36
+skipped). One test asserted the old section heading and now asserts the new
+one; nothing else asserted on the revised wording. No paid call, cloud
+write, deployment or fixture refresh. Prompt text changed again, so the two
+exact-game recordings stay pending the one approved refresh.

@@ -1,5 +1,14 @@
 # The canon: Wikiclude for LLM and MCP players
 
+> **Superseded in part, 2026-10-15.** The authority brief below -- the
+> encyclopaedia trusted over recollection and table talk, and never cited
+> aloud -- was replaced by [Phase 13 step 5](phase13-plan.md#7-step-5-fallible-wikiclude-and-reference-material).
+> Wikiclude remains the better source on how this house plays, and the engine
+> still settles legality; on everything else it is a fallible encyclopaedia,
+> open to doubt, and a character may say that it looked something up. The
+> access, tools, caps, index block and lookup limits recorded here are
+> unchanged and still describe the implementation.
+
 Status: **built, tested and accepted locally, 2026-10-09; not deployed.** David took every recommendation of section 6 the same day and approved the paid steps; section 7 records what was built, where it departs from sections 3 and 4, and what the paid runs found (7.3: the loop works, nobody looked anything up unprompted).
 
 ## 1. The brief (David, 2026-10-09)

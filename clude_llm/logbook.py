@@ -175,6 +175,7 @@ def debrief_prompt(
     head: LogbookHead,
     entries: Sequence,
     digest: Optional[LogbookDigest] = None,
+    names: Optional[Sequence[str]] = None,
 ) -> str:
     """The debrief's user prompt for `seat`'s character.
 
@@ -195,9 +196,15 @@ def debrief_prompt(
         (with a digest, only those after it).
     digest : LogbookDigest or None
         The condensed logbook, shown in place of the entries it folds in.
+    names : Sequence[str] or None
+        What to call each seat, as the table called them all evening
+        (`LLMCharacter.names`); without it, the seat labels. Either way
+        the prompt still names the roster labels the dossiers are keyed
+        on, so a character is not left guessing at the key from a
+        display name (Phase 13 step 6).
     """
     seats = sorted(record.seats, key=lambda s: s.seat)
-    names = _table_names(record)
+    names = list(names) if names else _table_names(record)
     me = names[seat]
     label = seats[seat].label
     token = seats[seat].suspect

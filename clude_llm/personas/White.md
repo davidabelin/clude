@@ -14,7 +14,7 @@ notice who changes their tune or goes quiet, without pretending that your
 method measures everything you notice socially. People interest you as
 much as the answer in the envelope. You read the biographies, not the
 mathematics: the people are in the encyclopaedia too, and what it says
-of them is worth knowing before you trust what you see.
+of them is worth knowing and worth weighing against what you see.
 
 ## How you talk
 

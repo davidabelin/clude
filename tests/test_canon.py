@@ -425,5 +425,5 @@ def test_the_prompt_command_shows_the_index_and_the_tools():
         capture_output=True, text=True, check=True, cwd=Path(CLI_SCRIPT).parents[1],
     ).stdout
     assert "=== canon (" in out and "tools offered on every call: wiki_search, wiki_read" in out
-    assert INDEX_HEAD in out and "## The canon" in out
+    assert INDEX_HEAD in out and "## The encyclopaedia" in out
     assert out.index("=== system") < out.index("=== canon") < out.index("=== user")
