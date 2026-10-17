@@ -229,6 +229,19 @@ def test_phase14_plum_commands_pin_and_record_the_training_device(tmp_path):
         index = row["command"].index("--device")
         assert row["command"][index + 1] == "cuda"
         assert row["device"] == "cuda"
+        chunk_index = row["command"].index("--chunk")
+        assert row["command"][chunk_index + 1] == "1"
+        assert row["chunk"] == 1
+
+
+def test_phase14_plum_resume_note_is_explicit():
+    from scripts import phase14_plum
+
+    args = phase14_plum.parser().parse_args([
+        "train", "--resume-run", "--resume-note", "bounded host staging",
+    ])
+    assert args.resume_run is True
+    assert args.resume_note == "bounded host staging"
 
 
 def test_narrative_memory_snapshot_excludes_method_documents(tmp_path):

@@ -123,6 +123,36 @@ def test_torch_network_matches_the_numpy_forward_pass(train_plum, weights):
     assert all(abs(back[k] - weights[k]).max() < 1e-6 for k in weights)
 
 
+def test_choice_padding_uses_exact_bounded_staging(train_plum, weights):
+    import torch
+
+    T = train_plum
+    episodes = R.play_games(weights, [61, 62], 0, R.RolloutConfig(self_play=1.0, max_turns=40))
+    batch = T.assemble(episodes, torch.device("cpu"))
+    options = [option for episode in episodes for option in episode.options]
+    kinds = np.concatenate([episode.kinds for episode in episodes])
+    move_steps = np.flatnonzero(kinds == R.KIND_MOVE)
+    for row, step in enumerate(move_steps):
+        expected = options[step]
+        assert np.array_equal(batch.choices[row, : len(expected)].numpy(), expected)
+        assert batch.choice_mask[row, : len(expected)].all()
+        assert not batch.choice_mask[row, len(expected):].any()
+
+
+def test_parallel_rollout_streams_single_task_results_in_order(train_plum, weights):
+    class Pool:
+        def imap(self, fn, tasks, chunksize):
+            assert chunksize == 1
+            return map(fn, tasks)
+
+    seeds = [63, 64]
+    episodes = train_plum.rollout(
+        Pool(), weights, seeds, R.RolloutConfig(self_play=1.0, max_turns=40), chunk=1,
+    )
+    first_seen = list(dict.fromkeys(episode.seed for episode in episodes))
+    assert first_seen == seeds
+
+
 def test_training_loop_writes_a_curve_and_exports_the_documented_layout(train_plum, tmp_path):
     T = train_plum
     out = tmp_path / "run"

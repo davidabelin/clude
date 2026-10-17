@@ -27,7 +27,7 @@ def _atomic_json(path: Path, value: dict) -> None:
     temporary.replace(path)
 
 
-def _commands(root: Path, workers: int, device: str) -> list[dict]:
+def _commands(root: Path, workers: int, device: str, chunk: int = 1) -> list[dict]:
     commands = []
     trainer = ROOT / "scripts" / "train_plum.py"
     for run_number, seed in enumerate(RUN_SEEDS, 1):
@@ -36,7 +36,8 @@ def _commands(root: Path, workers: int, device: str) -> list[dict]:
         stage2 = run / "stage2"
         common = [
             sys.executable, str(trainer), "--iterations", "150", "--games", "512",
-            "--workers", str(workers), "--shaping", "1.0", "--eval-every", "10",
+            "--workers", str(workers), "--chunk", str(chunk),
+            "--shaping", "1.0", "--eval-every", "10",
             "--seed", str(seed), "--device", device,
         ]
         commands.append({
@@ -44,6 +45,7 @@ def _commands(root: Path, workers: int, device: str) -> list[dict]:
             "stage": 1,
             "fresh_initialisation": True,
             "device": device,
+            "chunk": chunk,
             "command": common + ["--out", str(stage1)],
             "output": str(stage1),
         })
@@ -52,6 +54,7 @@ def _commands(root: Path, workers: int, device: str) -> list[dict]:
             "stage": 2,
             "fresh_initialisation": False,
             "device": device,
+            "chunk": chunk,
             "resume": str(stage1 / "latest.npz"),
             "command": common + [
                 "--resume", str(stage1 / "latest.npz"),
@@ -72,7 +75,8 @@ def cmd_plan(args) -> int:
         "runs": 3,
         "games_per_stage": 150 * 512,
         "device": args.device,
-        "commands": _commands(args.output_root, args.workers, args.device),
+        "chunk": args.chunk,
+        "commands": _commands(args.output_root, args.workers, args.device, args.chunk),
         "status": "planned",
     }
     _atomic_json(args.output_root / "training.json", plan)
@@ -91,15 +95,18 @@ def cmd_train(args) -> int:
         )
     corpus = FrozenCorpus.open(args.manifest)
     path = args.output_root / "training.json"
+    current_context = experiment_context(args.manifest)
     plan = {
         "phase": 14,
         "corpus_sha256": corpus.sha256,
-        "context": experiment_context(args.manifest),
+        "context": current_context,
         "runs": 3,
         "games_per_stage": 150 * 512,
         "device": str(requested_device),
-        "commands": _commands(args.output_root, args.workers, str(requested_device)),
+        "chunk": args.chunk,
+        "commands": _commands(args.output_root, args.workers, str(requested_device), args.chunk),
         "completed": [],
+        "history": [],
         "status": "running",
     }
     if path.exists():
@@ -115,7 +122,27 @@ def cmd_train(args) -> int:
             raise FileExistsError(
                 f"training manifest already started: {path}; use --resume-run deliberately"
             )
+        previous_context = previous.get("context")
         plan["completed"] = previous.get("completed", [])
+        plan["history"] = previous.get("history", [])
+        if previous_context != current_context:
+            if not args.resume_note:
+                raise ValueError(
+                    "code context changed during Plum training; provide --resume-note "
+                    "to record the audited amendment"
+                )
+            for row in plan["completed"]:
+                row.setdefault("context", previous_context)
+            plan["history"].append({
+                "event": "code_context_change",
+                "after_completed": [
+                    {"run": row["run"], "stage": row["stage"]}
+                    for row in plan["completed"]
+                ],
+                "before": previous_context,
+                "after": current_context,
+                "note": args.resume_note,
+            })
     _atomic_json(path, plan)
     completed = {(row["run"], row["stage"]) for row in plan["completed"]}
     for item in plan["commands"]:
@@ -129,6 +156,7 @@ def cmd_train(args) -> int:
         plan["completed"].append({
             "run": item["run"], "stage": item["stage"],
             "checkpoint": str(output / "latest.npz"),
+            "context": current_context,
         })
         _atomic_json(path, plan)
     plan["status"] = "complete"
@@ -163,6 +191,10 @@ def parser() -> argparse.ArgumentParser:
         command.add_argument("--output-root", type=Path, default=DEFAULT_ROOT)
         command.add_argument("--workers", type=int, default=12)
         command.add_argument(
+            "--chunk", type=int, default=1,
+            help="Games per worker result; Phase 14 uses one to bound Windows IPC payloads.",
+        )
+        command.add_argument(
             "--device", default="cuda",
             help="PyTorch training device recorded in the plan (Phase 14 defaults to CUDA).",
         )
@@ -170,6 +202,10 @@ def parser() -> argparse.ArgumentParser:
             command.add_argument(
                 "--resume-run", action="store_true",
                 help="Continue only stages recorded incomplete in the matching training manifest.",
+            )
+            command.add_argument(
+                "--resume-note",
+                help="Auditable reason for resuming after a code-context change.",
             )
         command.set_defaults(fn=fn)
     evaluate = sub.add_parser("evaluate")

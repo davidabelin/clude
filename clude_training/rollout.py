@@ -312,7 +312,7 @@ def play_games(weights: dict, seeds: list, first_index: int = 0, config: Rollout
 
 
 def _play_task(args: tuple) -> list:
-    """`play_games` unpacked, for `multiprocessing.Pool.imap_unordered`."""
+    """`play_games` unpacked, for ordered process-pool iteration."""
     return play_games(*args)
 
 

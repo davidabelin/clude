@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import gc
 import json
 import math
 import multiprocessing as mp
@@ -168,6 +169,40 @@ class Replay:
         return states[idx], possible[idx], targets[idx]
 
 
+def _padded_choices(
+    options: list,
+    move_steps: np.ndarray,
+    n_max: int,
+    device: torch.device,
+    *,
+    staging_rows: int = 1024,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Pad move choices on the target device using bounded host staging.
+
+    A full 512-game iteration can require more than 200 MiB for the padded
+    choice tensor. Building that array in NumPy and then copying it to CUDA
+    doubles the peak committed memory on Windows. Chunked float32 staging
+    preserves the exact rows and order while bounding the extra host buffer.
+    """
+    choices = torch.zeros(
+        (len(move_steps), n_max, dn.CHOICE_SIZE), dtype=torch.float32, device=device,
+    )
+    choice_mask = torch.zeros(
+        (len(move_steps), n_max), dtype=torch.bool, device=device,
+    )
+    for start in range(0, len(move_steps), staging_rows):
+        stop = min(start + staging_rows, len(move_steps))
+        block = np.zeros((stop - start, n_max, dn.CHOICE_SIZE), dtype=np.float32)
+        mask = np.zeros((stop - start, n_max), dtype=bool)
+        for local_row, step in enumerate(move_steps[start:stop]):
+            rows = options[step]
+            block[local_row, : len(rows)] = rows
+            mask[local_row, : len(rows)] = True
+        choices[start:stop].copy_(torch.as_tensor(block, device=device))
+        choice_mask[start:stop].copy_(torch.as_tensor(mask, device=device))
+    return choices, choice_mask
+
+
 def assemble(episodes: list, device: torch.device) -> Batch:
     episodes = [ep for ep in episodes if len(ep)]
     states = np.concatenate([ep.states for ep in episodes])
@@ -192,13 +227,9 @@ def assemble(episodes: list, device: torch.device) -> Batch:
     options = [o for ep in episodes for o in ep.options]
     move_steps = np.flatnonzero(kinds == R.KIND_MOVE)
     n_max = max((options[i].shape[0] for i in move_steps), default=1)
-    choices = np.zeros((len(move_steps), n_max, dn.CHOICE_SIZE), dtype=np.float32)
-    choice_mask = np.zeros((len(move_steps), n_max), dtype=bool)
+    choices, choice_mask = _padded_choices(options, move_steps, n_max, device)
     move_row = np.full(n, -1, dtype=np.int64)
     for row, i in enumerate(move_steps):
-        rows = options[i]
-        choices[row, : len(rows)] = rows
-        choice_mask[row, : len(rows)] = True
         move_row[i] = row
 
     sugg_steps = np.flatnonzero((kinds == R.KIND_SUSPECT) | (kinds == R.KIND_WEAPON))
@@ -215,7 +246,7 @@ def assemble(episodes: list, device: torch.device) -> Batch:
     return Batch(
         states=t(states, torch.float32), kinds=t(kinds), actions=t(actions), gains=t(gains),
         terminal=t(terminal), episode=t(episode), bounds=bounds, targets=t(targets),
-        possible=t(possible), move_row=t(move_row), choices=t(choices), choice_mask=t(choice_mask),
+        possible=t(possible), move_row=t(move_row), choices=choices, choice_mask=choice_mask,
         sugg_row=t(sugg_row), cand_mask=t(cand_mask), cand_target=t(cand_target),
     )
 
@@ -409,9 +440,11 @@ def rollout(pool, weights: dict, seeds: list, config: R.RolloutConfig, chunk: in
     tasks = R.rollout_tasks(weights, seeds, chunk, config)
     if pool is None:
         results = [R._play_task(task) for task in tasks]
-    else:
-        results = pool.map(R._play_task, tasks)
-    return [ep for episodes in results for ep in episodes]
+        return [ep for episodes in results for ep in episodes]
+    episodes = []
+    for result in pool.imap(R._play_task, tasks, chunksize=1):
+        episodes.extend(result)
+    return episodes
 
 
 def train(args: argparse.Namespace) -> dict:
@@ -449,6 +482,7 @@ def train(args: argparse.Namespace) -> dict:
             rolled = time.perf_counter()
             stats = R.RolloutStats.of(episodes).to_dict()
             batch = assemble(episodes, device)
+            del episodes
             logp = step_log_probs(net, batch, args.policy_temperature)
             logp_ref = step_log_probs(ref, batch, args.policy_temperature)
             step_rewards = batch.terminal + args.shaping * batch.gains + args.eta * (logp_ref - logp)
@@ -506,6 +540,9 @@ def train(args: argparse.Namespace) -> dict:
             curve.flush()
             last = line
             say(format_line(line))
+            del batch, logp, logp_ref, step_rewards, G, values, adv_all
+            del perm, idx, loss, parts
+            gc.collect()
     finally:
         curve.close()
         if pool is not None:
