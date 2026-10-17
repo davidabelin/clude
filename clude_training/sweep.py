@@ -7,8 +7,11 @@ See docs/cli.md and docs/strategy-glossary.md.
 """
 from __future__ import annotations
 
+import hashlib
+import math
+import random
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Callable, Optional
 
 from clude_agents import AGENT_SPECS
 from clude_agents.personality import DIALS, preset
@@ -35,6 +38,44 @@ SWEEP_METRICS: tuple = (
     "deviation_rate",
     "remarks_per_game",
 )
+
+PHASE14_HEADLESS_GRIDS: dict = {
+    "accuse_threshold": (0.2, 0.4, 0.6, 0.8, 1.0),
+    "bluff_rate": (0.0, 0.25, 0.5, 1.0),
+    "curiosity": (0.0, 0.5, 1.0),
+    "secrecy": (0.0, 0.5, 1.0),
+    "temperature": (0.0, 0.05, 0.1, 0.2, 0.5, 2.0),
+}
+PHASE14_PAID_GRIDS: dict = {
+    "chattiness": (0.0, 0.25, 0.5, 0.75, 1.0),
+    "memory": (0.0, 0.25, 0.5, 0.75, 1.0),
+}
+PAIRED_METRICS: tuple = (
+    "win_rate", "wrong_accusation_rate", "mean_cards_leaked",
+    "mean_own_cards_named", "mean_suggestions", "mean_turns",
+)
+DIRECT_FOOTPRINTS: dict = {
+    "accuse_threshold": ("wrong_accusation_rate", "never_accused_rate", "mean_first_accusation_turn"),
+    "bluff_rate": ("mean_own_cards_named",),
+    "curiosity": ("mean_suggestions",),
+    "secrecy": ("mean_cards_leaked", "reshow_rate"),
+    "temperature": ("mean_turns",),
+    "leash": ("deviation_rate",),
+    "chattiness": ("remarks_per_game",),
+    "memory": ("llm_lookups", "llm_entries"),
+}
+
+
+def phase14_isolated_values(dial: str, current: float) -> tuple:
+    """Phase 14's three-value isolated screen around a preset."""
+    current = float(current)
+    if dial == "temperature":
+        return tuple(dict.fromkeys((0.0, current, round(2.0 * current, 12))))
+    if dial not in DIALS:
+        raise ValueError(f"unknown dial {dial!r}; dials are {DIALS}")
+    return tuple(dict.fromkeys((
+        round(max(0.0, current - 0.2), 12), current, round(min(1.0, current + 0.2), 12),
+    )))
 
 
 def pooled_stats(stats_by_label: dict, labels) -> PlayerStats:
@@ -71,6 +112,8 @@ class SweepResult:
     roster: tuple
     rows: list = field(default_factory=list)
     results: list = field(default_factory=list)
+    metadata: dict = field(default_factory=dict)
+    not_applicable: tuple = ()
 
     def monotone(self, metric: str, tolerance: float = 1e-9) -> Optional[str]:
         """``"increasing"``, ``"decreasing"``, ``"flat"`` or None.
@@ -123,19 +166,140 @@ class SweepResult:
         return "\n".join(lines)
 
     def to_dict(self) -> dict:
-        """JSON-ready: the rows' pooled metrics and every run's summary."""
+        """JSON-ready Phase 14 evidence, including paired uncertainty."""
         return {
             "dial": self.dial,
             "values": list(self.values),
             "characters": list(self.characters),
             "roster": list(self.roster),
+            "not_applicable": list(self.not_applicable),
+            "metadata": dict(self.metadata),
+            "completed_values": [row.value for row in self.rows],
+            "complete": len(self.rows) == len(self.values),
             "rows": [
                 {"value": row.value, "mean_turns": row.mean_turns, **row.stats.to_dict()}
                 for row in self.rows
             ],
+            "per_character": self.per_character_rows(),
+            "direct_footprint": self.direct_footprint(),
+            "paired_deltas": self.paired_deltas(),
+            "usage": self.usage(),
             "monotone": {metric: self.monotone(metric) for metric in SWEEP_METRICS},
             "runs": [r.to_dict() for r in self.results],
         }
+
+    def per_character_rows(self) -> list:
+        """One row per value and swept character, without pooling."""
+        rows = []
+        for value, result in zip(self.values, self.results):
+            for character in self.characters:
+                stats = result.per_player.get(character)
+                if stats is not None:
+                    rows.append({"value": value, **stats.to_dict()})
+        return rows
+
+    def direct_footprint(self) -> dict:
+        """The metrics closest to the dial's direct decision surface."""
+        metrics = DIRECT_FOOTPRINTS[self.dial]
+        return {
+            "metrics": list(metrics),
+            "rows": [
+                {"value": row.value, **{metric: row.metric(metric) for metric in metrics}}
+                for row in self.rows
+            ],
+        }
+
+    def usage(self) -> dict:
+        """Tokens and recorded list-price cost by value and in total."""
+        rows = []
+        totals = {
+            "llm_calls": 0, "input_tokens": 0, "output_tokens": 0,
+            "cached_tokens": 0, "list_price_cost": 0.0,
+        }
+        for value, result in zip(self.values, self.results):
+            stats = list(result.per_player.values())
+            row = {
+                "value": value,
+                "llm_calls": sum(s.llm_calls for s in stats),
+                "input_tokens": sum(s.llm_input_tokens for s in stats),
+                "output_tokens": sum(s.llm_output_tokens for s in stats),
+                "cached_tokens": sum(s.llm_cached_tokens for s in stats),
+                "list_price_cost": round(sum(g.cost or 0.0 for g in result.games), 6),
+            }
+            rows.append(row)
+            for key in totals:
+                totals[key] += row[key]
+        totals["list_price_cost"] = round(totals["list_price_cost"], 6)
+        return {"values": rows, "total": totals}
+
+    def paired_deltas(self, bootstrap_samples: int = 2000) -> list:
+        """Paired-seed bootstrap intervals versus the first completed value."""
+        if not self.results:
+            return []
+        baseline = self.results[0]
+        rows = []
+        for value, result in zip(self.values, self.results):
+            metrics = {}
+            for metric in PAIRED_METRICS:
+                differences = _paired_game_differences(baseline, result, self.characters, metric)
+                metrics[metric] = _bootstrap_interval(
+                    differences, f"{self.dial}|{value}|{metric}", bootstrap_samples
+                )
+            rows.append({"value": value, "baseline_value": self.values[0], "metrics": metrics})
+        return rows
+
+
+def _outcome_metric(outcome, metric: str) -> float:
+    if metric == "win_rate":
+        return float(outcome.won)
+    if metric == "wrong_accusation_rate":
+        return float(outcome.wrong_accusation)
+    if metric == "mean_cards_leaked":
+        return float(outcome.cards_leaked)
+    if metric == "mean_own_cards_named":
+        return float(outcome.own_cards_named)
+    if metric == "mean_suggestions":
+        return float(outcome.suggestions)
+    raise ValueError(metric)
+
+
+def _paired_game_differences(baseline, candidate, characters: tuple, metric: str) -> list:
+    if len(baseline.games) != len(candidate.games):
+        raise ValueError("paired sweep runs have different game counts")
+    differences = []
+    for left, right in zip(baseline.games, candidate.games):
+        if left.seed != right.seed:
+            raise ValueError("paired sweep runs have different seed sequences")
+        if metric == "mean_turns":
+            differences.append(float(right.turns - left.turns))
+            continue
+        left_by_label = {outcome.label: outcome for outcome in left.seat_outcomes}
+        right_by_label = {outcome.label: outcome for outcome in right.seat_outcomes}
+        labels = [label for label in characters if label in left_by_label and label in right_by_label]
+        if not labels:
+            continue
+        before = sum(_outcome_metric(left_by_label[label], metric) for label in labels) / len(labels)
+        after = sum(_outcome_metric(right_by_label[label], metric) for label in labels) / len(labels)
+        differences.append(after - before)
+    return differences
+
+
+def _bootstrap_interval(differences: list, key: str, samples: int) -> dict:
+    if not differences:
+        return {"delta": float("nan"), "low": float("nan"), "high": float("nan"), "n_pairs": 0}
+    delta = sum(differences) / len(differences)
+    if len(differences) == 1 or not any(abs(value - differences[0]) > 1e-15 for value in differences):
+        low = high = delta
+    else:
+        seed = int(hashlib.sha256(key.encode("utf-8")).hexdigest()[:16], 16)
+        rng = random.Random(seed)
+        means = sorted(
+            sum(differences[rng.randrange(len(differences))] for _ in differences) / len(differences)
+            for _ in range(samples)
+        )
+        low = means[max(0, math.floor(0.025 * (samples - 1)))]
+        high = means[min(samples - 1, math.ceil(0.975 * (samples - 1)))]
+    return {"delta": delta, "low": low, "high": high, "n_pairs": len(differences)}
 
 
 def sweep_dial(
@@ -155,6 +319,10 @@ def sweep_dial(
     logbook_store=None,
     logbook_characters=None,
     llm_canon=None,
+    metadata: Optional[dict] = None,
+    on_update: Optional[Callable[[SweepResult], None]] = None,
+    agent_overrides: Optional[dict] = None,
+    agent_states: Optional[dict] = None,
 ) -> SweepResult:
     """Run the arena once per value of `dial`, setting it on every swept
     character (their other dials stay at preset), and pool the swept
@@ -197,7 +365,11 @@ def sweep_dial(
     if not values:
         raise ValueError("sweep needs at least one value")
     roster = parse_roster(roster)
-    swept = tuple(characters) if characters else tuple(l for l in roster if l in AGENT_SPECS)
+    requested = tuple(characters) if characters else tuple(l for l in roster if l in AGENT_SPECS)
+    if dial == "curiosity" and characters is not None and "Plum" in requested:
+        raise ValueError("curiosity is N/A for current Plum")
+    not_applicable = ("Plum",) if dial == "curiosity" and "Plum" in requested else ()
+    swept = tuple(name for name in requested if name not in not_applicable)
     for name in swept:
         if name not in AGENT_SPECS or name not in roster:
             raise ValueError(f"{name!r} is not a character in the roster {roster}")
@@ -205,7 +377,17 @@ def sweep_dial(
         raise ValueError("nothing to sweep: the roster has no characters")
     run_id = run_id or f"sweep-{seed}-{n_games}"
 
-    sweep = SweepResult(dial=dial, values=values, characters=swept, roster=roster)
+    context = {
+        "n_games_per_value": n_games,
+        "seed": seed,
+        "player_counts": list(player_counts),
+        "max_turns": max_turns,
+        **dict(metadata or {}),
+    }
+    sweep = SweepResult(
+        dial=dial, values=values, characters=swept, roster=roster,
+        metadata=context, not_applicable=not_applicable,
+    )
     for value in values:
         profiles = {name: preset(name).with_dials(**{dial: value}) for name in swept}
         result = run_arena(
@@ -224,9 +406,13 @@ def sweep_dial(
             logbook_store=logbook_store,
             logbooks_readonly=True,
             logbook_characters=logbook_characters,
+            agent_overrides=agent_overrides,
+            agent_states=agent_states,
         )
         sweep.results.append(result)
         sweep.rows.append(
             SweepRow(value=value, stats=pooled_stats(result.per_player, swept), mean_turns=result.mean_turns)
         )
+        if on_update is not None:
+            on_update(sweep)
     return sweep

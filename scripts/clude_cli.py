@@ -508,11 +508,14 @@ def _print_seats(state, labels) -> None:
     print("seats: " + ", ".join(_player_label(state, p, labels) for p in range(state.n_players)))
 
 
-def _write_json(path_text: str, data: dict) -> None:
+def _write_json(path_text: str, data: dict, announce: bool = True) -> None:
     path = Path(path_text)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
-    print(f"\nSaved: {path}")
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    temporary.replace(path)
+    if announce:
+        print(f"\nSaved: {path}")
 
 
 # ---------------------------------------------------------------------
@@ -1315,6 +1318,13 @@ def cmd_sweep(args) -> int:
         characters = [c.strip() for c in args.characters.split(",") if c.strip()] or None
         player_counts = (args.players,) if args.players else DEFAULT_PLAYER_COUNTS
         store = open_store(args.store) if args.store else None
+        from clude_training.recalibration import experiment_context
+
+        context = experiment_context(Path(args.corpus_manifest) if args.corpus_manifest else None)
+        update = (
+            (lambda current: _write_json(args.json, current.to_dict(), announce=False))
+            if args.json else None
+        )
         sweep = sweep_dial(
             args.dial,
             args.values,
@@ -1328,6 +1338,8 @@ def cmd_sweep(args) -> int:
             run_id=args.run_id,
             logbook_store=_logbook_store(args),
             logbook_characters=_logbook_characters(args),
+            metadata=context,
+            on_update=update,
             **_llm_kwargs(args),
         )
     except ValueError as exc:
@@ -2063,6 +2075,10 @@ def build_parser() -> argparse.ArgumentParser:
     sweep_p.add_argument(
         "--characters", default="",
         help="Comma-separated characters to set the dial on (default: every character in the roster).",
+    )
+    sweep_p.add_argument(
+        "--corpus-manifest", default="", metavar="PATH",
+        help="Verified Phase 14 manifest whose corpus hash is attached to the result.",
     )
     _add_arena_args(sweep_p)
     _add_llm_args(sweep_p)

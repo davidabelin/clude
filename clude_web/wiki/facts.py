@@ -940,7 +940,7 @@ def chain_example() -> dict:
     p01 = totals["01"] / (totals["00"] + totals["01"])
     p10 = totals["10"] / (totals["10"] + totals["11"])
     stationary = p01 / (p01 + p10)
-    assert abs(float(stationary) - _stationary_repeat_probability(symbols)) < 1e-12
+    assert abs(float(stationary) - _stationary_repeat_probability(symbols, cells)) < 1e-12
     return {"sequence": symbols, "counts": counts, "totals": totals, "p01": p01, "p10": p10, "stationary": stationary}
 
 

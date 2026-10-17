@@ -9,11 +9,11 @@ Outcome reward is +1 win/-1 eliminated/0 otherwise, with optional deduction
 shaping defaulting to zero.
 
 --help owns complete flags. Evaluations write config/curve/checkpoints,
-best.npz and latest.npz under ignored data/plum-training. --export copies
-final weights, not the best checkpoint, to committed plum.npz; validate and
-update goldens deliberately. Determinism is bounded to fixed seeds, machine
-and library versions. See docs/deepnash-plan.md for smoke failures, policy
-limitations and outstanding acceptance, plus weights/README.md for export.
+best.npz and latest.npz under ignored data/plum-training. The trainer never
+replaces committed weights: Phase 14 promotion names one measured checkpoint
+and checks the current/candidate hashes separately. Determinism is bounded to
+fixed seeds, machine and library versions. See docs/deepnash-plan.md for smoke
+failures and policy limitations, plus weights/README.md for promotion.
 """
 from __future__ import annotations
 
@@ -396,7 +396,6 @@ def parse_args(argv: Optional[list] = None) -> argparse.Namespace:
     p.add_argument("--bench-games", type=int, default=20, help="benchmark games at an evaluation")
     p.add_argument("--resume", type=Path, default=None, help="start from this weights file instead of a fresh draw")
     p.add_argument("--out", type=Path, default=None, help="run directory (default data/plum-training/<timestamp>)")
-    p.add_argument("--export", action="store_true", help="copy the final weights to clude_agents/weights/plum.npz")
     p.add_argument("--device", default="cpu")
     p.add_argument("--quiet", action="store_true")
     return p.parse_args(argv)
@@ -510,9 +509,6 @@ def train(args: argparse.Namespace) -> dict:
             pool.join()
     weights = net.to_numpy()
     dn.save_weights(weights, out / "latest.npz")
-    if args.export:
-        dn.save_weights(weights, dn.WEIGHTS_PATH)
-        say(f"exported to {dn.WEIGHTS_PATH}; re-capture the goldens (tests/test_character.py)")
     say(f"done: {out} (best Plum-table win rate {best_win:.3f} in best.npz)")
     return last
 

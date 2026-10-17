@@ -15,7 +15,15 @@ from clude_training.arena import (
     parse_roster,
     run_arena,
 )
-from clude_training.sweep import SweepResult, SweepRow, pooled_stats, sweep_dial
+from clude_training.sweep import (
+    PHASE14_HEADLESS_GRIDS,
+    PHASE14_PAID_GRIDS,
+    SweepResult,
+    SweepRow,
+    phase14_isolated_values,
+    pooled_stats,
+    sweep_dial,
+)
 
 
 def test_lineup_rotates_truncates_and_fills():
@@ -162,6 +170,10 @@ def test_run_arena_small_table_reports_every_label():
     assert [tuple(g.labels) for g in result.games] == [("Scarlett", "floor", "White")] * 3
     data = result.to_dict()
     json.dumps(data)
+    assert len(data["games"][0]["seat_outcomes"]) == 3
+    assert {row["label"] for row in data["games"][0]["seat_outcomes"]} == {
+        "Scarlett", "White", "floor",
+    }
     assert data["profiles"]["Scarlett"]["accuse_threshold"] == pytest.approx(0.3)
     table = result.summary_table()
     assert "Scarlett" in table and "floor" in table and "win%" in table
@@ -178,6 +190,28 @@ def test_run_arena_is_paired_across_profiles():
     assert b.profiles["Scarlett"]["accuse_threshold"] == 1.0
 
 
+def test_arena_accepts_frozen_candidate_agents_and_rejects_memory_overlap(tmp_path):
+    from clude_agents.decision_tree import DecisionTreeAgent
+    from clude_storage import LocalStore
+
+    candidate = DecisionTreeAgent(n_training_games=1, max_depth=2, min_samples_leaf=2)
+    result = run_arena(
+        n_games=1, seed=3, roster=("Mustard", "floor"), player_counts=(3,), max_turns=30,
+        agent_overrides={"Mustard": candidate},
+    )
+    assert result.per_player["Mustard"].games == 1
+    with pytest.raises(ValueError, match="cannot also load"):
+        run_arena(
+            n_games=1, seed=3, roster=("Mustard", "floor"), player_counts=(3,), max_turns=20,
+            agent_overrides={"Mustard": candidate}, logbook_store=LocalStore(tmp_path),
+        )
+    with pytest.raises(ValueError, match="matching agent_overrides"):
+        run_arena(
+            n_games=1, seed=3, roster=("Green", "floor"), player_counts=(3,), max_turns=10,
+            agent_states={"Green": {"arms": {}}},
+        )
+
+
 def test_sweep_of_accuse_threshold_moves_wrong_accusations():
     sweep = sweep_dial(
         "accuse_threshold", [0.0, 1.0], n_games=2, seed=41, roster=("Scarlett", "floor"),
@@ -191,6 +225,12 @@ def test_sweep_of_accuse_threshold_moves_wrong_accusations():
     assert sweep.monotone("wrong_accusation_rate") in ("decreasing", "flat")
     assert sweep.monotone("mean_first_accusation_turn") in ("increasing", "flat", None)
     json.dumps(sweep.to_dict())
+    data = sweep.to_dict()
+    assert data["complete"] is True
+    assert len(data["per_character"]) == 2
+    assert data["paired_deltas"][1]["metrics"]["win_rate"]["n_pairs"] == 2
+    assert data["usage"]["total"]["input_tokens"] == 0
+    assert data["direct_footprint"]["metrics"][0] == "wrong_accusation_rate"
     assert "monotone:" in sweep.summary_table()
     with pytest.raises(ValueError):
         sweep_dial("charm", [0.5], n_games=1, roster=("Scarlett",))
@@ -220,3 +260,25 @@ def test_sweep_monotone_verdicts():
     assert sweep([0.5, 0.1]).monotone("mean_first_accusation_turn") is None  # NaN: nobody accused
     pooled = pooled_stats({"a": _row(0, 0.5).stats, "b": _row(0, 0.1).stats}, ("a", "b"))
     assert pooled.games == 20 and pooled.games_with_wrong_accusation == 6
+
+
+def test_phase14_grids_isolated_values_and_plum_na():
+    assert set(PHASE14_HEADLESS_GRIDS) == {
+        "accuse_threshold", "bluff_rate", "curiosity", "secrecy", "temperature",
+    }
+    assert PHASE14_PAID_GRIDS == {
+        "chattiness": (0.0, 0.25, 0.5, 0.75, 1.0),
+        "memory": (0.0, 0.25, 0.5, 0.75, 1.0),
+    }
+    assert phase14_isolated_values("secrecy", 0.1) == (0.0, 0.1, 0.3)
+    assert phase14_isolated_values("temperature", 0.2) == (0.0, 0.2, 0.4)
+    sweep = sweep_dial(
+        "curiosity", [0.0], n_games=1, seed=2, roster=("Plum", "Mustard", "floor"),
+        player_counts=(3,), max_turns=20,
+    )
+    assert sweep.characters == ("Mustard",) and sweep.not_applicable == ("Plum",)
+    with pytest.raises(ValueError, match="N/A"):
+        sweep_dial(
+            "curiosity", [0.0], n_games=1, roster=("Plum", "floor"),
+            characters=("Plum",), player_counts=(3,), max_turns=10,
+        )

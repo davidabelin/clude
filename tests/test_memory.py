@@ -68,11 +68,11 @@ def test_transition_counts_and_prior_cells():
     assert transition_counts([]) == {"00": 0, "01": 0, "10": 0, "11": 0}
     assert transition_counts([0, 1, 1, 0]) == {"00": 0, "01": 1, "10": 1, "11": 1}
     plain = prior_cells(None)
-    assert plain == {(0, 0): 1.0, (0, 1): 1.0, (1, 0): 1.0, (1, 1): 1.0}
+    assert plain == {(0, 0): 0.5, (0, 1): 0.5, (1, 0): 0.5, (1, 1): 0.5}
     assert sum(plain.values()) == pytest.approx(PRIOR_MASS)
     repeater = prior_cells({"00": 0, "01": 0, "10": 0, "11": 36})
     assert sum(repeater.values()) == pytest.approx(PRIOR_MASS)
-    assert repeater[(1, 1)] > 3.0 and repeater[(0, 0)] < 0.2
+    assert repeater[(1, 1)] > 0.9 * PRIOR_MASS and repeater[(0, 0)] < 0.1 * PRIOR_MASS
 
 
 def test_white_uses_a_remembered_prior_only_for_a_seat_the_table_names():
@@ -155,6 +155,9 @@ def test_contributions_from_a_record():
     counts = memory.white_counts(record)
     assert set(counts) <= {"Mustard", "White", "Green"}
     assert all(set(c) == {"00", "01", "10", "11"} for c in counts.values())
+    renamed = memory.white_counts(record, {"Mustard": "MustardArchive"})
+    if "Mustard" in counts:
+        assert renamed["MustardArchive"] == counts["Mustard"] and "Mustard" not in renamed
     assert memory.game_id_of(record) == "r/00000"
     assert memory.kind_for("Mustard") == "rows" and memory.kind_for("Plum") is None
     with pytest.raises(ValueError):

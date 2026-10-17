@@ -247,6 +247,7 @@ def run_benchmark(
     player_counts: tuple = DEFAULT_PLAYER_COUNTS,
     max_turns: int = DEFAULT_MAX_TURNS,
     bot: str = DEFAULT_BOT,
+    agent_states: Optional[dict] = None,
 ) -> BenchmarkResult:
     """Run agents (plus the uniform baseline) over shared self-play
     snapshots and score each one's belief against the eventual ground
@@ -263,6 +264,9 @@ def run_benchmark(
         the registry. Pass a subset to benchmark one method, or a
         hand-built instance (``{"Mustard": DecisionTreeAgent(...)}``) to
         evaluate non-default hyperparameters.
+    agent_states : dict[str, dict] or None
+        State to load immediately after reset for named agents. Phase 14 uses
+        this to benchmark a frozen Green posterior without changing it.
 
     Returns
     -------
@@ -276,8 +280,17 @@ def run_benchmark(
     """
     if agents is None:
         agents = {spec.name: spec.factory() for spec in list_agent_specs()}
-    for agent in agents.values():
+    agent_states = dict(agent_states or {})
+    unknown_states = sorted(set(agent_states) - set(agents))
+    if unknown_states:
+        raise ValueError(f"agent_states name agents not in the benchmark: {unknown_states}")
+    for name, agent in agents.items():
         agent.reset(seed)
+        if name in agent_states:
+            loader = getattr(agent, "load_state", None)
+            if loader is None:
+                raise ValueError(f"{name}'s agent has no load_state method")
+            loader(agent_states[name])
 
     names = list(agents) + [UNIFORM]
     result = BenchmarkResult(

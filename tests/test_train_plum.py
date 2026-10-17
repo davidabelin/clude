@@ -147,3 +147,8 @@ def test_training_loop_writes_a_curve_and_exports_the_documented_layout(train_pl
     agent.reset(0)
     ep = R.play_games(dn.load_weights(out / "latest.npz"), [70], 0, R.RolloutConfig(self_play=1.0, max_turns=20))
     assert ep and len(ep[0]) > 0
+
+
+def test_trainer_has_no_committed_weights_export_switch(train_plum):
+    with pytest.raises(SystemExit):
+        train_plum.parse_args(["--export"])

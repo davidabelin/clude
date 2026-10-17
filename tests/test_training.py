@@ -204,6 +204,22 @@ def test_benchmark_lets_green_learn_across_games():
     assert max(means) - min(means) > 0.1, "Green's arms did not separate"
 
 
+def test_benchmark_loads_an_explicit_initial_state_after_reset():
+    from clude_agents.bandit import BanditAgent
+
+    green = BanditAgent()
+    state = {"arms": {"Plum": [9.0, 2.0]}}
+    result = run_benchmark(
+        n_games=1, seed=3, checkpoints=(1.0,), agents={"Green": green},
+        agent_states={"Green": state}, player_counts=(3,), max_turns=30,
+    )
+    # Benchmark feedback may move it, but it cannot have been reset to Beta(1,1).
+    plum = result.agents["Green"].candidates["Plum"]
+    assert (plum.alpha, plum.beta) != (1.0, 1.0)
+    with pytest.raises(ValueError, match="not in the benchmark"):
+        run_benchmark(n_games=1, agents={"Green": BanditAgent()}, agent_states={"White": {}})
+
+
 def test_benchmark_accepts_an_agent_subset_and_records_call_cost():
     result = run_benchmark(
         n_games=3, seed=11, checkpoints=(1.0,), agents=_scarlett(), player_counts=(3,)

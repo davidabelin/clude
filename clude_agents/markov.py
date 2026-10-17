@@ -23,9 +23,10 @@ from clude_core.state import ClueObservation
 # Laplace-smoothed transition-count prior so a short/empty sequence
 # returns the neutral P(repeat) = 0.5 rather than an undefined ratio.
 _PRIOR = 1.0
-# Total pseudo-count of the transition prior: the four cells at `_PRIOR`.
-# A remembered opponent's prior is spread over the cells at this mass.
-PRIOR_MASS = 4.0
+# Total pseudo-count of a remembered opponent's transition prior. The
+# memoryless chain still uses one Laplace count per cell (`_PRIOR`); a stored
+# identity's evidence is deliberately lighter after Phase 14 recalibration.
+PRIOR_MASS = 2.0
 # The floor's own prior for an unresolved card, before any Markov
 # evidence is added; the same scale as one repeat-weighted mention.
 _BASE_SCORE = 1.0

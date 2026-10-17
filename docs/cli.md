@@ -127,7 +127,7 @@ python scripts/train_plum.py --iterations 20 --games 256 --workers 8
 
 `python -m clude_training.rollout` (from the repo root; run as a file, like any module here, it cannot find its sibling packages) plays a few games on the committed weights and prints what the rollout records, for a look at the data before a run.
 
-The separate PyTorch script gathers engine rollouts, fits policy/value/belief heads and evaluates the NumPy agent. It writes configuration, curve, checkpoints, `best.npz` and `latest.npz` under ignored `data/plum-training/<run>/`. `--export` additionally replaces committed `clude_agents/weights/plum.npz` with the **final** weights; it does not select the best checkpoint automatically. Export is a deliberate validated change requiring golden updates. See [weights](../clude_agents/weights/README.md) and [Phase 12](deepnash-plan.md), sections 11-12.
+The separate PyTorch script gathers engine rollouts, fits policy/value/belief heads and evaluates the NumPy agent. It writes configuration, curve, checkpoints, `best.npz` and `latest.npz` under ignored `data/plum-training/<run>/`; it cannot replace committed weights. Phase 14's maintenance command promotes one explicitly selected and accepted checkpoint only after checking the current and candidate hashes and writing a local backup. See [weights](../clude_agents/weights/README.md) and [Phase 14](phase14-plan.md).
 
 `scripts/leash_width.py --games 24 --seed 7007` plays Plum's table headless and counts, at each of Plum's multi-option move and suggestion menus, how many options each leash from 0.1 to 0.5 would allow, for the network and for PlumOG with his old dials (`--methods`). It is how a new method's leash is matched to an old one's menu width; PlumOG takes a couple of minutes.
 

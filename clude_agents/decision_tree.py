@@ -18,13 +18,13 @@ from clude_agents.base import CATEGORIES, ClueBelief, SeededAgentMixin, mask_and
 from clude_core.state import ClueObservation
 from clude_training.self_play import DEFAULT_BOT, generate_snapshots
 
-DEFAULT_N_TRAINING_GAMES = 25
+DEFAULT_N_TRAINING_GAMES = 50
 DEFAULT_TRAINING_SEED = 2026
 DEFAULT_CHECKPOINTS: tuple = (0.5, 1.0)
 DEFAULT_MAX_DEPTH = 6
-DEFAULT_MIN_SAMPLES_LEAF = 20
+DEFAULT_MIN_SAMPLES_LEAF = 40
 DEFAULT_TRAINING_BOT = DEFAULT_BOT
-DEFAULT_SMOOTHING_M = 3.0
+DEFAULT_SMOOTHING_M = 1.0
 MAX_TURN_FOR_NORMALIZATION = 50.0
 
 # Positional names for the tuple `_features` returns, in order -- the only

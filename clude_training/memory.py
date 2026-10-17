@@ -58,13 +58,19 @@ def mustard_rows(record: GameRecord, checkpoints: tuple = MUSTARD_CHECKPOINTS) -
     return rows
 
 
-def white_counts(record: GameRecord) -> dict:
+def white_counts(record: GameRecord, label_map: Optional[dict] = None) -> dict:
     """Every seat's `transition_counts` in `record`, summed per roster
-    label; seats with fewer than two suggestions contribute nothing."""
+    label; seats with fewer than two suggestions contribute nothing.
+
+    ``label_map`` is used only by an explicit historical rebuild such as
+    Phase 14's Plum/PlumOG separation.  Ordinary live updates retain the
+    labels written in the record.
+    """
     state = state_from_record(record)
     seats = list(range(state.n_players))
     _named, symbols, _evidence = suggestion_patterns(state.suggestion_log, seats)
-    labels = {s.seat: s.label for s in record.seats}
+    label_map = label_map or {}
+    labels = {s.seat: label_map.get(s.label, s.label) for s in record.seats}
     out: dict = {}
     for seat in seats:
         counts = transition_counts(symbols[seat])
@@ -96,9 +102,10 @@ def empty_memory(kind: str) -> dict:
     raise ValueError(f"unknown memory kind {kind!r}")
 
 
-def absorb(memory: dict, record: GameRecord) -> bool:
+def absorb(memory: dict, record: GameRecord, white_label_map: Optional[dict] = None) -> bool:
     """Add `record`'s contribution to a ``rows`` or ``counts`` document;
-    False if the game is already in it (or the kind takes no records)."""
+    False if the game is already in it (or the kind takes no records).
+    ``white_label_map`` applies only to a counts contribution."""
     kind = memory.get("kind")
     if kind not in ("rows", "counts"):
         return False
@@ -106,7 +113,9 @@ def absorb(memory: dict, record: GameRecord) -> bool:
     games = memory.setdefault("games", {})
     if game_id in games:
         return False
-    games[game_id] = mustard_rows(record) if kind == "rows" else white_counts(record)
+    games[game_id] = (
+        mustard_rows(record) if kind == "rows" else white_counts(record, white_label_map)
+    )
     return True
 
 

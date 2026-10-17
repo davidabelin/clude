@@ -12,8 +12,9 @@ second training run (`run2`, resumed from the first run's checkpoint
 110; `docs/deepnash-plan.md` 11 has both runs and the measurements
 that chose it). Before that day it was `init_weights(INIT_SEED)`'s
 seeded random draw. Training writes checkpoints under
-`data/plum-training/<run>/` (gitignored). `--export` replaces this
-file with a run's final state, not an automatically selected best
-checkpoint; the exports so far were copies of a measured checkpoint.
-Evaluate before replacing it, record the exported run and checkpoint
-in the plan doc, and refresh the goldens each time.
+`data/plum-training/<run>/` (gitignored) and cannot replace this file.
+Phase 14 promotion uses `scripts/phase14_recalibrate.py promote-plum`
+with an explicitly selected checkpoint, the expected hash of this file
+and a local backup path. It is a dry run unless `--apply` is supplied.
+Evaluate and accept the checkpoint before promotion, record the run and
+checkpoint in the plan, then refresh the goldens deliberately.

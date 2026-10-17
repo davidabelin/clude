@@ -16,7 +16,7 @@ from random import Random
 from typing import Optional
 
 import clude_constraints
-from clude_agents import AGENT_SPECS, build_character
+from clude_agents import AGENT_SPECS, Character, build_character
 from clude_agents.bandit import RevealedOutcome
 from clude_core.domain import SUSPECTS
 from clude_core import engine
@@ -67,6 +67,24 @@ class SeatOutcome:
     suggestions: int
     reshow_choices: int = 0
     reshows: int = 0
+
+    def to_dict(self) -> dict:
+        """JSON-ready per-game outcome used by paired sweep intervals."""
+        return {
+            "label": self.label,
+            "kind": self.kind,
+            "seat": self.seat,
+            "suspect": self.suspect,
+            "won": self.won,
+            "accused": self.accused,
+            "wrong_accusation": self.wrong_accusation,
+            "first_accusation_turn": self.first_accusation_turn,
+            "cards_leaked": self.cards_leaked,
+            "own_cards_named": self.own_cards_named,
+            "suggestions": self.suggestions,
+            "reshow_choices": self.reshow_choices,
+            "reshows": self.reshows,
+        }
 
 
 @dataclass
@@ -251,6 +269,9 @@ class PlayerStats:
             "llm_remarks": self.llm_remarks,
             "llm_entries": self.llm_entries,
             "llm_lookups": self.llm_lookups,
+            "llm_input_tokens": self.llm_input_tokens,
+            "llm_output_tokens": self.llm_output_tokens,
+            "llm_cached_tokens": self.llm_cached_tokens,
             "fallback_rate": self.fallback_rate,
             "deviation_rate": self.deviation_rate,
             "remarks_per_game": self.remarks_per_game,
@@ -276,6 +297,7 @@ class GameSummary:
     n_accusations: int
     hit_cap: bool
     cost: Optional[float] = None
+    seat_outcomes: tuple = ()
 
     def to_dict(self) -> dict:
         out = {
@@ -291,6 +313,8 @@ class GameSummary:
         }
         if self.cost is not None:
             out["cost"] = self.cost
+        if self.seat_outcomes:
+            out["seat_outcomes"] = [outcome.to_dict() for outcome in self.seat_outcomes]
         return out
 
 
@@ -623,6 +647,8 @@ def run_arena(
     logbook_store=None,
     logbooks_readonly: bool = False,
     logbook_characters=None,
+    agent_overrides: Optional[dict] = None,
+    agent_states: Optional[dict] = None,
 ) -> ArenaResult:
     """Play `n_games` games and accumulate per-player metrics.
 
@@ -672,6 +698,14 @@ def run_arena(
         Which roster characters get a logbook; default every character
         in the roster. The rest play exactly as they do without memory,
         so a run can isolate one character's logbook against a baseline.
+    agent_overrides : dict[str, AgentProtocol] or None
+        Candidate belief agents for named characters. Used by offline
+        recalibration arenas; profiles and accusation confidence still come
+        from the character registry. Incompatible with loading a logbook for
+        the same label, because the candidate must remain the frozen input.
+    agent_states : dict[str, dict] or None
+        State loaded into an overridden agent immediately after its run-level
+        reset. Intended for Green validation from a frozen Beta posterior.
 
     Returns
     -------
@@ -685,6 +719,14 @@ def run_arena(
     """
     roster = parse_roster(roster)
     profiles = dict(profiles or {})
+    agent_overrides = dict(agent_overrides or {})
+    agent_states = dict(agent_states or {})
+    bad_overrides = sorted(name for name in agent_overrides if name not in roster or name not in AGENT_SPECS)
+    if bad_overrides:
+        raise ValueError(f"agent_overrides {bad_overrides} are not characters in the roster {roster}")
+    bad_states = sorted(set(agent_states) - set(agent_overrides))
+    if bad_states:
+        raise ValueError(f"agent_states require matching agent_overrides: {bad_states}")
     wrapped: set = set()
     if llm_backend is not None:
         llm_settings = llm_settings or LLMSettings()
@@ -699,10 +741,23 @@ def run_arena(
     characters = {}
     for label in roster:
         if label in AGENT_SPECS:
-            character = build_character(label, profiles.get(label))
+            if label in agent_overrides:
+                spec = AGENT_SPECS[label]
+                character = Character(
+                    agent_overrides[label],
+                    profile=profiles.get(label, spec.profile),
+                    confidence_fn=spec.confidence_fn,
+                )
+            else:
+                character = build_character(label, profiles.get(label))
             if label in wrapped:
                 character = LLMCharacter(character, llm_backend, settings=llm_settings, canon=llm_canon)
             character.reset(seed)
+            if label in agent_states:
+                loader = getattr(character.agent, "load_state", None)
+                if loader is None:
+                    raise ValueError(f"{label}'s candidate agent has no load_state method")
+                loader(agent_states[label])
             characters[label] = character
 
     logbooks: dict = {}
@@ -713,9 +768,13 @@ def run_arena(
         bad = sorted(name for name in remembering if name not in characters)
         if bad:
             raise ValueError(f"logbook_characters {bad} are not characters in the roster {roster}")
+        overlap = sorted(remembering & set(agent_overrides))
+        if overlap and not logbooks_readonly:
+            raise ValueError(f"candidate agents cannot also load logbook memory: {overlap}")
         logbooks = {label: Logbook(logbook_store, label) for label in characters if label in remembering}
         loaded = sorted(
-            label for label, logbook in logbooks.items() if method_memory.load_into(characters[label], logbook)
+            label for label, logbook in logbooks.items()
+            if label not in agent_overrides and method_memory.load_into(characters[label], logbook)
         )
         for label in wrapped & set(logbooks):
             characters[label].attach_logbook(logbooks[label])
@@ -816,9 +875,11 @@ def run_arena(
             if store is not None:
                 store.put_game(run_id, g, record.to_dict())
 
+        game_outcomes = []
         for seat, label in enumerate(lineup):
             kind = "llm" if label in wrapped else _kind_of(label)
             outcome = seat_outcome(state, events, seat, label, kind)
+            game_outcomes.append(outcome)
             if label in characters:
                 calls, secs = cost_before[label]
                 ch = characters[label]
@@ -844,6 +905,7 @@ def run_arena(
                 n_accusations=len(state.accusation_log),
                 hit_cap=winner is None and any(state.active),
                 cost=game_cost,
+                seat_outcomes=tuple(game_outcomes),
             )
         )
     result.per_player = {
