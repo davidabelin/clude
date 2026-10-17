@@ -220,6 +220,17 @@ def test_plum_evaluation_never_selects_a_checkpoint_automatically(tmp_path):
     assert report["candidates"][0]["ready_for_promotion"] is False
 
 
+def test_phase14_plum_commands_pin_and_record_the_training_device(tmp_path):
+    from scripts import phase14_plum
+
+    commands = phase14_plum._commands(tmp_path, workers=3, device="cuda")
+    assert len(commands) == 6
+    for row in commands:
+        index = row["command"].index("--device")
+        assert row["command"][index + 1] == "cuda"
+        assert row["device"] == "cuda"
+
+
 def test_narrative_memory_snapshot_excludes_method_documents(tmp_path):
     source = LocalStore(tmp_path / "source")
     source.put_doc("logbooks/White/head.json", {"version": 1, "identity": "White"})

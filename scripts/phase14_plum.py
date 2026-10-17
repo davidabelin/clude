@@ -27,7 +27,7 @@ def _atomic_json(path: Path, value: dict) -> None:
     temporary.replace(path)
 
 
-def _commands(root: Path, workers: int) -> list[dict]:
+def _commands(root: Path, workers: int, device: str) -> list[dict]:
     commands = []
     trainer = ROOT / "scripts" / "train_plum.py"
     for run_number, seed in enumerate(RUN_SEEDS, 1):
@@ -37,12 +37,13 @@ def _commands(root: Path, workers: int) -> list[dict]:
         common = [
             sys.executable, str(trainer), "--iterations", "150", "--games", "512",
             "--workers", str(workers), "--shaping", "1.0", "--eval-every", "10",
-            "--seed", str(seed),
+            "--seed", str(seed), "--device", device,
         ]
         commands.append({
             "run": run_number,
             "stage": 1,
             "fresh_initialisation": True,
+            "device": device,
             "command": common + ["--out", str(stage1)],
             "output": str(stage1),
         })
@@ -50,6 +51,7 @@ def _commands(root: Path, workers: int) -> list[dict]:
             "run": run_number,
             "stage": 2,
             "fresh_initialisation": False,
+            "device": device,
             "resume": str(stage1 / "latest.npz"),
             "command": common + [
                 "--resume", str(stage1 / "latest.npz"),
@@ -69,7 +71,8 @@ def cmd_plan(args) -> int:
         "context": experiment_context(args.manifest),
         "runs": 3,
         "games_per_stage": 150 * 512,
-        "commands": _commands(args.output_root, args.workers),
+        "device": args.device,
+        "commands": _commands(args.output_root, args.workers, args.device),
         "status": "planned",
     }
     _atomic_json(args.output_root / "training.json", plan)
@@ -78,6 +81,14 @@ def cmd_plan(args) -> int:
 
 
 def cmd_train(args) -> int:
+    import torch
+
+    requested_device = torch.device(args.device)
+    if requested_device.type == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError(
+            "CUDA training was requested but torch.cuda.is_available() is false; "
+            "install a CUDA-enabled PyTorch build before starting Phase 14"
+        )
     corpus = FrozenCorpus.open(args.manifest)
     path = args.output_root / "training.json"
     plan = {
@@ -86,7 +97,8 @@ def cmd_train(args) -> int:
         "context": experiment_context(args.manifest),
         "runs": 3,
         "games_per_stage": 150 * 512,
-        "commands": _commands(args.output_root, args.workers),
+        "device": str(requested_device),
+        "commands": _commands(args.output_root, args.workers, str(requested_device)),
         "completed": [],
         "status": "running",
     }
@@ -94,6 +106,11 @@ def cmd_train(args) -> int:
         previous = json.loads(path.read_text(encoding="utf-8"))
         if previous.get("corpus_sha256") != corpus.sha256:
             raise ValueError("existing Plum training belongs to a different frozen corpus")
+        if previous.get("device", "cpu") != str(requested_device):
+            raise ValueError(
+                "existing Plum training uses a different device; archive it and start "
+                "a fresh three-run experiment"
+            )
         if previous.get("status") != "planned" and not args.resume_run:
             raise FileExistsError(
                 f"training manifest already started: {path}; use --resume-run deliberately"
@@ -145,6 +162,10 @@ def parser() -> argparse.ArgumentParser:
         command.add_argument("--manifest", type=Path, default=DEFAULT_CORPUS)
         command.add_argument("--output-root", type=Path, default=DEFAULT_ROOT)
         command.add_argument("--workers", type=int, default=12)
+        command.add_argument(
+            "--device", default="cuda",
+            help="PyTorch training device recorded in the plan (Phase 14 defaults to CUDA).",
+        )
         if name == "train":
             command.add_argument(
                 "--resume-run", action="store_true",
