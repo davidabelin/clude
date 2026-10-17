@@ -179,12 +179,11 @@ def _door_marker(room: str, cell: Square, square: Square) -> str:
 
 
 def _door_leaf(index: int, room: str, cell: Square, square: Square, hinge_at_start: bool) -> str:
-    """A door, closed (2026-10-01): a leaf lying across the doorway from
-    its hinge to the other jamb, `data-door` its index in `board.DOORS`.
-    Its style carries the hinge as `transform-origin` and, as `--swing`,
-    the quarter turn that opens it into the room, so the stylesheet can
-    swing it open and shut as a token comes through -- geometry, never
-    paint."""
+    """A closed door leaf and small knob, `data-door` its index in
+    `board.DOORS`. The group carries the hinge as `transform-origin` and,
+    as `--swing`, the quarter turn that opens it into the room, so the
+    stylesheet can swing both pieces together as a token comes through.
+    Geometry only; the stylesheet supplies the paint."""
     door = _door_marker(room, cell, square)
     x1, y1, x2, y2 = (float(door.split(f'{name}="')[1].split('"')[0]) for name in ("x1", "y1", "x2", "y2"))
     (hx, hy), (ox, oy) = ((x1, y1), (x2, y2)) if hinge_at_start else ((x2, y2), (x1, y1))
@@ -193,10 +192,15 @@ def _door_leaf(index: int, room: str, cell: Square, square: Square, hinge_at_sta
     # gives (-(oy - hy), ox - hx); if that points into the room, the
     # door opens clockwise.
     clockwise = (-(oy - hy), ox - hx) == (dx * CELL, dy * CELL)
+    knob_x = hx + (ox - hx) * 0.72
+    knob_y = hy + (oy - hy) * 0.72
     return (
-        f'<line class="board-door board-door-leaf" data-door="{index}" data-room="{_escape(room)}" '
+        f'<g class="board-door board-door-leaf" data-door="{index}" data-room="{_escape(room)}" '
         f'x1="{hx:g}" y1="{hy:g}" x2="{ox:g}" y2="{oy:g}" '
-        f'style="transform-origin: {hx:g}px {hy:g}px; --swing: {90 if clockwise else -90}deg"/>'
+        f'style="transform-origin: {hx:g}px {hy:g}px; --swing: {90 if clockwise else -90}deg">'
+        f'<line class="board-door-leaf-line" x1="{hx:g}" y1="{hy:g}" x2="{ox:g}" y2="{oy:g}"/>'
+        f'<circle class="board-door-knob" cx="{knob_x:g}" cy="{knob_y:g}" r="1.8"/>'
+        "</g>"
     )
 
 

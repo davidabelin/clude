@@ -121,6 +121,8 @@
   /* A closed door: wood, a step warmer and lighter than the wall it
      sits in, so it shows without shouting (2026-10-01). */
   --board-door-leaf: #C99D63;
+  --board-door-knob: #76552F;
+  --board-door-knob-edge: #F2E7CF;
   --board-cellar: #E9E2D3;
   --board-label: #5A4F40;
   /* Each room's floor tint (2026-10-01): pale and low in chroma, so the
@@ -175,6 +177,7 @@
   --dur-flash: 80ms;
   --ease-snap: cubic-bezier(.2,.8,.2,1);
   --ease-panel: cubic-bezier(.4,0,.2,1);
+  --ease-door: cubic-bezier(.45,0,.55,1);
 }
 
 /* Gaslight dark (5.2), when the look fixes it: both looks on this sheet
@@ -215,6 +218,8 @@
     --board-wall: #9A9186;
     --board-door: #D6A75A;
     --board-door-leaf: #D9824A;
+    --board-door-knob: #F3C979;
+    --board-door-knob-edge: #7F4F2E;
     --board-cellar: #1B181C;
     --board-label: #A9A090;
     --room-ballroom: #2E2620;
@@ -755,21 +760,27 @@ button.warn[disabled] { opacity: 0.45; cursor: not-allowed; }
 .board-wall-inner { stroke: var(--brass); stroke-width: 0.8; stroke-linecap: square; }
 
 /* Doors (2026-10-01): closed, a wooden leaf across the doorway, a shade
-   off the wall so it reads as a door and not as more wall. As a token
-   comes in through one, table.js and replay.js add `opening` and the
-   leaf swings into the room about its hinge (the transform-origin and
-   `--swing` the generator writes) and shut again. With motion off it
-   stays shut. */
+   off the wall so it reads as a door and not as more wall. The knob is
+   part of the swinging group. As a token comes in, table.js and replay.js
+   add `opening` and the leaf swings into the room about its hinge (the
+   transform-origin and `--swing` the generator writes) and shuts again.
+   With motion off it stays shut. */
 .board-door-leaf {
   stroke: var(--board-door-leaf);
   stroke-width: 3;
   stroke-linecap: butt;
   pointer-events: none;
+  transform-box: view-box;
 }
-.board-door-leaf.opening { animation: door-swing var(--dur-door) var(--ease-panel) 1; }
+.board-door-knob {
+  fill: var(--board-door-knob);
+  stroke: var(--board-door-knob-edge);
+  stroke-width: 0.65;
+}
+.board-door-leaf.opening { animation: door-swing var(--dur-door) var(--ease-door) 1; }
 @keyframes door-swing {
   0%, 100% { transform: rotate(0deg); }
-  30%, 65% { transform: rotate(var(--swing, 90deg)); }  /* --swing: from the SVG */
+  36%, 64% { transform: rotate(var(--swing, 90deg)); }  /* --swing: from the SVG */
 }
 
 /* A secret passage (2026-10-01): a sunk plate in the room's outer

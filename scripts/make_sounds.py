@@ -14,7 +14,7 @@ struck plate. No music.
 - `refute`: somebody disproved a suggestion.
 - `accent`: an accusation, or the end of the game.
 - `door`: a token going into a room through a door (2026-10-01): a
-  latch, a short creak as it swings, and the knock of it shutting,
+  gentle wooden squeak as it swings and a warm, low thud as it shuts,
   timed to the board's swing (`--dur-door`, 1.1 s).
 - `passage`: a token taking a secret passage: stone dragged aside, a
   hollow draught under it, and a low settle.
@@ -126,44 +126,43 @@ def _resonator(freq: float, r: float):
 
 
 def door(n: int) -> list:
-    """A door opening and shutting: the latch's click, a creak while it
-    swings (stick-slip pulses through a wooden resonance, their rate
-    rising as it turns), and the knock of it closing with the latch
-    again, about a second later, as the board's leaf comes home."""
+    """A soft wooden squeak as a door opens, then a rounded low thud as
+    it shuts near the end of the board's 1.1-second swing."""
     noise = _noise(23)
-    wood = _resonator(620, 0.992)
-    grain = _resonator(1480, 0.985)
     out = []
     phase = 0.0
-    shut = 0.98
+    shut = 1.04
     for i in range(n):
         t = i / RATE
         x = next(noise)
-        # The latch, twice: a little click like `tick`, lower.
-        latch = 0.0
-        for at in (0.0, shut):
-            if t >= at:
-                u = t - at
-                latch += 0.5 * x * math.exp(-u / 0.0012) + 0.5 * _partial(u, 1700, 0.006)
-        # The creak: pulses at a rate gliding up as the door turns.
+        # A smooth, slightly bending fundamental and its soft harmonics
+        # make a clear squeak without the harsh edge of pulsed friction.
         creak = 0.0
-        if 0.03 <= t <= 0.42:
-            u = (t - 0.03) / 0.39
-            rate = 70 + 60 * u + 8 * math.sin(2 * math.pi * 7 * t)
-            phase += rate / RATE
-            pulse = 1.0 if phase >= 1.0 else 0.02 * x
-            phase -= math.floor(phase)
-            swell = math.sin(math.pi * u) ** 1.5
-            creak = swell * (0.08 * wood(pulse) + 0.04 * grain(pulse))
-        else:
-            wood(0.0)
-            grain(0.0)
-        # The knock as it shuts: a low wooden body and a damped thump.
+        if 0.045 <= t <= 0.52:
+            u = max(0.0, min(1.0, (t - 0.045) / 0.475))
+            bend = u * u * (3 - 2 * u)
+            freq = 590 - 150 * bend
+            vibrato = 1 + 0.018 * math.sin(2 * math.pi * 4.2 * t)
+            phase += 2 * math.pi * freq * vibrato / RATE
+            swell = math.sin(math.pi * u) ** 1.25
+            creak = swell * (
+                0.72 * math.sin(phase)
+                + 0.22 * math.sin(2 * phase + 0.16)
+                + 0.06 * math.sin(3 * phase + 0.31)
+            )
+        # A little soft texture under a mellow wooden body; keep the
+        # transient rounded so repeat plays do not turn clicky.
         knock = 0.0
         if t >= shut:
             u = t - shut
-            knock = 0.9 * _partial(u, 140, 0.045) + 0.45 * _partial(u, 410, 0.02) + 0.25 * x * math.exp(-u / 0.004)
-        out.append((0.6 * latch + creak + knock) * _attack(t, 0.0004))
+            texture = x * math.exp(-u / 0.006)
+            knock = (
+                0.78 * _partial(u, 112, 0.105)
+                + 0.34 * _partial(u, 196, 0.07)
+                + 0.12 * _partial(u, 315, 0.035)
+                + 0.025 * texture
+            ) * _attack(u, 0.002)
+        out.append((0.48 * creak + knock) * _attack(t, 0.0004))
     return out
 
 
