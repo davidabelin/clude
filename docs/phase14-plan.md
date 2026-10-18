@@ -121,7 +121,56 @@ calibration check; its paired arena lost 3.1 win-rate points and did not add
 wrong accusations. It preserves the per-identity repeat/new method and is
 accepted in code. The counts document is staged locally only.
 
-Plum, Green, all dial sweeps, paid confirmation, fixture refresh, production
-deployment and live method promotion remain open. The trainer cannot export
-committed weights; checkpoint and method promotion are separate hash-guarded,
-backed-up dry runs unless `--apply` is explicitly supplied.
+### Plum and Green — retrained locally, no Plum promotion
+
+All three independent Plum runs completed on CUDA. Each run trained for
+150×512 games at the original regime and another 150×512 games at the Phase 12
+lower-rate regime, for 460,800 current-rule rollouts in total. Stage 2 reused
+stage 1's seed block: the trajectories changed with the policy, but the three
+runs contain 230,400 distinct seeded deal/line-up setups rather than 460,800.
+The trainer did not overwrite the committed weights. A first checkpoint
+evaluation found no candidate that cleared every original promotion gate, so
+the incumbent remained the headless default while the result was investigated.
+
+A first four-way tournament compared the incumbent with each run's full
+`stage2/latest.npz` checkpoint. Every entrant received the same fresh deals,
+dice, Plum seat and opponents. The selection block used 384 games per entrant
+in each context; the untouched confirmation block used 768. Plum appeared in
+1,920 games per entrant across a fixed Plum/Mustard/Green table and a rotating
+three-to-six-player roster. Run 3 led the pooled win ranking at 30.8%, followed
+by run 1 at 29.9%, the incumbent at 27.9% and run 2 at 27.7%. All three new
+runs cleared the checkpoint log-loss guardrail. Run 3's confirmation advantage
+over the incumbent was 4.6 points (95% paired bootstrap interval 0.3 to 8.7)
+at the fixed table, but 2.1 points (-2.7 to 7.0) in the mixed tables; it was
+also not distinguishable from run 1 in either context. Every entrant made
+wrong accusations over the larger sample (seven for run 3 and the incumbent,
+eight for run 1 and seven for run 2). This run is retained as a historical
+fixed-table diagnostic, not as the selection tournament: 60% of its Plum games
+used only Mustard and Green, so its pooled result was not roster-balanced.
+
+The replacement tournament enumerated all 26 possible line-ups containing
+Plum. Each entrant played 240 games at each table size per block, with every
+opponent appearing exactly 672 times; selection and confirmation used separate
+960-game seed blocks. Across the 1,920 games per entrant, run 3 led at 22.9%,
+then run 1 at 22.0%, run 2 at 21.7% and the incumbent at 18.3%. On the untouched
+confirmation block, run 3 beat the incumbent by 4.9 points (95% paired
+bootstrap interval 1.5 to 8.3), while run 1 beat it by 3.4 points (0.1 to 6.9).
+Run 3 did not separate from run 1 (1.5 points, -2.3 to 5.1) or run 2 (2.5
+points, -1.1 to 6.0). Every candidate cleared the checkpoint log-loss guardrail.
+Wrong accusations are reported for the LLM head, not used to reject a headless
+network. Run 3 is the best observed replacement, but the paired evidence does
+not establish a unique winner among the three new networks. Plum is
+**retrained but not promoted**; `balanced-tournament.json` retains the balanced
+paired evidence and resumable configuration locally.
+
+Green's nine-candidate fresh-state search selected step size 4 and decay 1.05.
+It cleared every held-out loss/calibration checkpoint and the separate
+200-game validation arena, gaining 2.3 win-rate points and reducing wrong
+accusations by 2.3 points against the fresh-state baseline. Its 200-game state
+is staged locally with Mustard and White; none of those method documents has
+been promoted live.
+
+All dial sweeps, paid confirmation, fixture refresh, production deployment and
+live method promotion remain open. The trainer cannot export committed weights;
+checkpoint and method promotion are separate hash-guarded, backed-up dry runs
+unless `--apply` is explicitly supplied.

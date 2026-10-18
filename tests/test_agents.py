@@ -482,6 +482,14 @@ def test_bandit_updates_posteriors_toward_a_consistently_correct_arm():
         assert scarlett_mean > other_mean
 
 
+def test_green_uses_phase14_learning_defaults():
+    from clude_agents.bandit import BanditAgent
+
+    agent = BanditAgent()
+    assert agent.step_size == 4.0
+    assert agent.decay_rate == 1.05
+
+
 def test_rank_rewards_are_linear_in_rank_with_shared_ties():
     from clude_agents.bandit import rank_rewards
 

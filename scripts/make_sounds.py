@@ -3,9 +3,9 @@
     python scripts/make_sounds.py
 
 Writes `clude_web/static/sounds/{tick,turn,refute,accent,door,passage}.wav`: short,
-mono, 22.05 kHz, 16-bit, synthesised here from sines and a seeded noise
-so the files are the same on every run and owe nothing to anyone's
-sample library. Mechanical rather than musical, to fit "engraved, not
+mono, 22.05 kHz, 16-bit cues. The generated cues use sines and seeded
+noise; the door cue is shaped from the public-domain recording noted
+below. Mechanical rather than musical, to fit "engraved, not
 brass-plated": a relay's click, a desk bell, a card snapped down, a
 struck plate. No music.
 
@@ -14,8 +14,10 @@ struck plate. No music.
 - `refute`: somebody disproved a suggestion.
 - `accent`: an accusation, or the end of the game.
 - `door`: a token going into a room through a door (2026-10-01): a
-  gentle wooden squeak as it swings and a warm, low thud as it shuts,
-  timed to the board's swing (`--dur-door`, 1.1 s).
+  real squeaky-door recording, trimmed and sped up to fit the board's
+  swing, with its solid closing thud near the end.
+  Source: LeonMire, “Squeaky door.ogg” (PDSounds record 505), public
+  domain: https://commons.wikimedia.org/wiki/File:Squeaky_door.ogg
 - `passage`: a token taking a secret passage: stone dragged aside, a
   hollow draught under it, and a low settle.
 
@@ -31,6 +33,7 @@ from pathlib import Path
 
 RATE = 22050
 OUT = Path(__file__).resolve().parents[1] / "clude_web" / "static" / "sounds"
+DOOR_SOURCE = Path(__file__).resolve().parent / "assets" / "door-source.wav"
 
 
 def _noise(seed: int):
@@ -126,43 +129,60 @@ def _resonator(freq: float, r: float):
 
 
 def door(n: int) -> list:
-    """A soft wooden squeak as a door opens, then a rounded low thud as
-    it shuts near the end of the board's 1.1-second swing."""
-    noise = _noise(23)
+    """The door-source excerpt, warmed and sped up slightly to fit a move.
+
+    The 1.5-second source cut contains the hinge squeak and the real
+    closing impact. A short, quiet echo adds a wooden twang; extra bass
+    is mixed into the closing tail. Resampling places the impact near the
+    end of the board's swing.
+    """
+    with wave.open(str(DOOR_SOURCE), "rb") as source:
+        if (source.getnchannels(), source.getsampwidth(), source.getframerate()) != (1, 2, RATE):
+            raise ValueError(f"unexpected door source format: {DOOR_SOURCE}")
+        raw = source.readframes(source.getnframes())
+    source_samples = [sample[0] / 32768.0 for sample in struct.iter_unpack("<h", raw)]
+    last = len(source_samples) - 1
+    if last < 1 or n < 2:
+        raise ValueError("door source and cue must each contain at least two samples")
+    scale = last / (n - 1)
     out = []
-    phase = 0.0
-    shut = 1.04
     for i in range(n):
+        position = i * scale
+        left = int(position)
+        fraction = position - left
+        right = min(left + 1, last)
+        out.append(source_samples[left] * (1 - fraction) + source_samples[right] * fraction)
+    fade_in = round(0.008 * RATE)
+    for i in range(fade_in):
+        out[i] *= i / fade_in
+    # A faint 24 ms reflection lends the squeak some wood without making
+    # the closing impact echo. A low shelf rises only around the thud.
+    delay = round(0.024 * RATE)
+    bass_alpha = 1 - math.exp(-2 * math.pi * 280 / RATE)
+    bass = 0.0
+    for i, sample in enumerate(out):
         t = i / RATE
-        x = next(noise)
-        # A smooth, slightly bending fundamental and its soft harmonics
-        # make a clear squeak without the harsh edge of pulsed friction.
-        creak = 0.0
-        if 0.045 <= t <= 0.52:
-            u = max(0.0, min(1.0, (t - 0.045) / 0.475))
-            bend = u * u * (3 - 2 * u)
-            freq = 590 - 150 * bend
-            vibrato = 1 + 0.018 * math.sin(2 * math.pi * 4.2 * t)
-            phase += 2 * math.pi * freq * vibrato / RATE
-            swell = math.sin(math.pi * u) ** 1.25
-            creak = swell * (
-                0.72 * math.sin(phase)
-                + 0.22 * math.sin(2 * phase + 0.16)
-                + 0.06 * math.sin(3 * phase + 0.31)
-            )
-        # A little soft texture under a mellow wooden body; keep the
-        # transient rounded so repeat plays do not turn clicky.
-        knock = 0.0
-        if t >= shut:
-            u = t - shut
-            texture = x * math.exp(-u / 0.006)
-            knock = (
-                0.78 * _partial(u, 112, 0.105)
-                + 0.34 * _partial(u, 196, 0.07)
-                + 0.12 * _partial(u, 315, 0.035)
-                + 0.025 * texture
-            ) * _attack(u, 0.002)
-        out.append((0.48 * creak + knock) * _attack(t, 0.0004))
+        bass += bass_alpha * (sample - bass)
+        if t < 0.78 and i >= delay:
+            sample += 0.13 * out[i - delay]
+        if t >= 0.82:
+            sample += 0.65 * min(1.0, (t - 0.82) / 0.18) * bass
+        out[i] = sample
+
+    # The source has about 100 ms of low-level room noise after the hinge
+    # has settled and before the closing impact. Keep a short 5 ms crossfade
+    # at the join, then move the impact forward while retaining cue duration.
+    gap_start = round(1.08 * RATE)
+    gap_end = round(1.18 * RATE)
+    crossfade = round(0.005 * RATE)
+    if gap_end + crossfade < len(out):
+        join = [
+            out[gap_start - crossfade + i] * (1 - i / crossfade)
+            + out[gap_end + i] * (i / crossfade)
+            for i in range(crossfade)
+        ]
+        out = out[:gap_start - crossfade] + join + out[gap_end + crossfade:]
+        out.extend([0.0] * (n - len(out)))
     return out
 
 
@@ -196,7 +216,7 @@ CUES = {
     "turn": (turn, 0.75, 0.40),
     "refute": (refute, 0.22, 0.50),
     "accent": (accent, 1.40, 0.55),
-    "door": (door, 1.20, 0.45),
+    "door": (door, 1.35, 0.52),
     "passage": (passage, 1.25, 0.50),
 }
 """Cue -> (recipe, seconds, peak level). The peaks leave the loudest

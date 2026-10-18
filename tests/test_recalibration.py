@@ -244,6 +244,64 @@ def test_phase14_plum_resume_note_is_explicit():
     assert args.resume_note == "bounded host staging"
 
 
+def test_phase14_plum_tournament_has_separate_fresh_seed_blocks():
+    from scripts import phase14_plum
+
+    args = phase14_plum.parser().parse_args(["tournament"])
+    assert args.selection_games == 384
+    assert args.confirmation_games == 768
+    assert args.selection_seed != args.confirmation_seed
+    assert args.benchmark_seed not in {args.selection_seed, args.confirmation_seed}
+
+
+def test_balanced_plum_tournament_covers_every_lineup_and_opponent_equally():
+    from collections import Counter
+
+    from clude_training.recalibrate_plum import balanced_plum_lineups
+
+    lineups = balanced_plum_lineups()
+    assert len(lineups) == 26
+    assert sum(row["games"] for row in lineups) == 960
+    assert {
+        size: sum(row["games"] for row in lineups if row["n_players"] == size)
+        for size in (3, 4, 5, 6)
+    } == {3: 240, 4: 240, 5: 240, 6: 240}
+    exposure = Counter()
+    for row in lineups:
+        for character in row["roster"]:
+            if character != "Plum":
+                exposure[character] += row["games"]
+    assert set(exposure.values()) == {672}
+
+
+def test_phase14_balanced_tournament_has_fresh_confirmation_seed():
+    from scripts import phase14_plum
+
+    args = phase14_plum.parser().parse_args(["balanced-tournament"])
+    assert args.selection_seed != args.confirmation_seed
+    assert args.benchmark_seed not in {args.selection_seed, args.confirmation_seed}
+
+
+def test_green_selection_prefers_candidate_that_clears_both_gates():
+    from clude_training.recalibrate_methods import _select_green_candidate
+
+    candidates = [
+        {
+            "score": [0.1],
+            "heldout_gate": {"passes": True},
+            "arena_gate": {"passes": False},
+            "name": "lower loss but arena regression",
+        },
+        {
+            "score": [0.2],
+            "heldout_gate": {"passes": True},
+            "arena_gate": {"passes": True},
+            "name": "accepted",
+        },
+    ]
+    assert _select_green_candidate(candidates)["name"] == "accepted"
+
+
 def test_narrative_memory_snapshot_excludes_method_documents(tmp_path):
     source = LocalStore(tmp_path / "source")
     source.put_doc("logbooks/White/head.json", {"version": 1, "identity": "White"})

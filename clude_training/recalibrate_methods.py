@@ -145,6 +145,21 @@ def _score(metrics: dict) -> tuple:
     )
 
 
+def _select_green_candidate(candidates: list[dict]) -> dict:
+    """Prefer Green candidates that clear both held-out and arena gates."""
+    fully_eligible = [
+        candidate for candidate in candidates
+        if candidate["heldout_gate"]["passes"] and candidate["arena_gate"]["passes"]
+    ]
+    heldout_eligible = [
+        candidate for candidate in candidates if candidate["heldout_gate"]["passes"]
+    ]
+    return min(
+        fully_eligible or heldout_eligible or candidates,
+        key=lambda candidate: tuple(candidate["score"]),
+    )
+
+
 def _method_document(corpus: FrozenCorpus, kind: str) -> dict:
     document = method_memory.empty_memory(kind)
     for row, record in corpus.records("train"):
@@ -390,8 +405,7 @@ def search_green(
             "arena_gate": arena_gate,
         })
         _atomic_json(output, report)
-    eligible = [candidate for candidate in report["candidates"] if candidate["heldout_gate"]["passes"]]
-    best = min(eligible or report["candidates"], key=lambda candidate: tuple(candidate["score"]))
+    best = _select_green_candidate(report["candidates"])
     report.update({
         "complete": True,
         "shortlist": best["config"],

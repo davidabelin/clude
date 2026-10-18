@@ -12,7 +12,12 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from clude_training.recalibrate_plum import evaluate_plum_checkpoints
+from clude_agents import deep_nash
+from clude_training.recalibrate_plum import (
+    evaluate_plum_checkpoints,
+    run_balanced_plum_tournament,
+    run_plum_tournament,
+)
 from clude_training.recalibration import FrozenCorpus, experiment_context
 
 DEFAULT_ROOT = ROOT / "data" / "phase14" / "plum"
@@ -182,6 +187,60 @@ def cmd_evaluate(args) -> int:
     return 0
 
 
+def cmd_tournament(args) -> int:
+    entrants = {
+        "incumbent": deep_nash.WEIGHTS_PATH,
+        "run-1": args.output_root / "run-1" / "stage2" / "latest.npz",
+        "run-2": args.output_root / "run-2" / "stage2" / "latest.npz",
+        "run-3": args.output_root / "run-3" / "stage2" / "latest.npz",
+    }
+    report = run_plum_tournament(
+        entrants,
+        output=args.output,
+        corpus_manifest=args.manifest,
+        benchmark_games=args.benchmark_games,
+        benchmark_seed=args.benchmark_seed,
+        selection_games=args.selection_games,
+        selection_seed=args.selection_seed,
+        confirmation_games=args.confirmation_games,
+        confirmation_seed=args.confirmation_seed,
+    )
+    print(json.dumps({
+        "output": str(args.output),
+        "complete": report["complete"],
+        "ranking": report["verdict"]["ranking_by_pooled_win_rate"],
+        "clear_winner": report["verdict"]["clear_winner"],
+        "decision": report["verdict"]["decision"],
+    }, indent=2))
+    return 0
+
+
+def cmd_balanced_tournament(args) -> int:
+    entrants = {
+        "incumbent": deep_nash.WEIGHTS_PATH,
+        "run-1": args.output_root / "run-1" / "stage2" / "latest.npz",
+        "run-2": args.output_root / "run-2" / "stage2" / "latest.npz",
+        "run-3": args.output_root / "run-3" / "stage2" / "latest.npz",
+    }
+    report = run_balanced_plum_tournament(
+        entrants,
+        output=args.output,
+        corpus_manifest=args.manifest,
+        benchmark_games=args.benchmark_games,
+        benchmark_seed=args.benchmark_seed,
+        selection_seed=args.selection_seed,
+        confirmation_seed=args.confirmation_seed,
+    )
+    print(json.dumps({
+        "output": str(args.output),
+        "complete": report["complete"],
+        "ranking": report["verdict"]["ranking_by_pooled_win_rate"],
+        "clear_winner": report["verdict"]["clear_winner"],
+        "decision": report["verdict"]["decision"],
+    }, indent=2))
+    return 0
+
+
 def parser() -> argparse.ArgumentParser:
     top = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = top.add_subparsers(dest="command", required=True)
@@ -217,6 +276,28 @@ def parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--benchmark-seed", type=int, default=141700)
     evaluate.add_argument("--arena-seed", type=int, default=241700)
     evaluate.set_defaults(fn=cmd_evaluate)
+    tournament = sub.add_parser("tournament")
+    tournament.add_argument("--manifest", type=Path, default=DEFAULT_CORPUS)
+    tournament.add_argument("--output-root", type=Path, default=DEFAULT_ROOT)
+    tournament.add_argument("--output", type=Path, default=DEFAULT_ROOT / "tournament.json")
+    tournament.add_argument("--benchmark-games", type=int, default=120)
+    tournament.add_argument("--benchmark-seed", type=int, default=341700)
+    tournament.add_argument("--selection-games", type=int, default=384)
+    tournament.add_argument("--selection-seed", type=int, default=441700)
+    tournament.add_argument("--confirmation-games", type=int, default=768)
+    tournament.add_argument("--confirmation-seed", type=int, default=541700)
+    tournament.set_defaults(fn=cmd_tournament)
+    balanced = sub.add_parser("balanced-tournament")
+    balanced.add_argument("--manifest", type=Path, default=DEFAULT_CORPUS)
+    balanced.add_argument("--output-root", type=Path, default=DEFAULT_ROOT)
+    balanced.add_argument(
+        "--output", type=Path, default=DEFAULT_ROOT / "balanced-tournament.json",
+    )
+    balanced.add_argument("--benchmark-games", type=int, default=120)
+    balanced.add_argument("--benchmark-seed", type=int, default=641600)
+    balanced.add_argument("--selection-seed", type=int, default=641700)
+    balanced.add_argument("--confirmation-seed", type=int, default=741700)
+    balanced.set_defaults(fn=cmd_balanced_tournament)
     return top
 
 

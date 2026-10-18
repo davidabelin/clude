@@ -95,7 +95,7 @@ class BanditAgent(SeededAgentMixin):
 
     name = "Green"
 
-    def __init__(self, step_size: float = 2.0, decay_rate: float = 1.05) -> None:
+    def __init__(self, step_size: float = 4.0, decay_rate: float = 1.05) -> None:
         super().__init__()
         self.step_size = step_size
         self.decay_rate = decay_rate
