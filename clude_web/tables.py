@@ -158,6 +158,30 @@ SHOW_TIMEOUT = 30.0
 time-out (David, 2026-10-01): the turn is someone else's, and they are
 the one kept waiting."""
 
+FINAL_COMMENT_TIMEOUT = 30.0
+"""Shared post-game window for one optional line per human or model seat."""
+
+
+def final_comment_seconds(document: dict) -> float:
+    """Time left on a persisted closing window, independent of page reloads."""
+    closing = document.get("final_comments") or {}
+    if closing.get("closed") or not closing.get("deadline"):
+        return 0.0
+    try:
+        deadline = datetime.fromisoformat(closing["deadline"])
+        return max(0.0, (deadline - datetime.now(timezone.utc)).total_seconds())
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def final_comments_pending(document: dict) -> list[int]:
+    """Seats still offered a comment before the shared deadline."""
+    closing = document.get("final_comments") or {}
+    if closing.get("closed") or final_comment_seconds(document) <= 0:
+        return []
+    return [int(seat) for seat in closing.get("offered", [])
+            if str(seat) not in closing.get("choices", {})]
+
 STRIKES = 3
 """Timed-out turns in a row after which the seat is handed to the
 stand-in as if its person had pressed the button (David, 2026-09-26):
@@ -722,6 +746,20 @@ def view_payload(
             "replay": replay_url,
         }
 
+    closing = document.get("final_comments")
+    final_comments = None
+    if closing:
+        choices = closing.get("choices", {})
+        final_comments = {
+            "closed": bool(closing.get("closed")),
+            "seconds": final_comment_seconds(document),
+            "pending": [names[seat] for seat in final_comments_pending(document)],
+            "mine": choices.get(str(viewer)) if viewer is not None else None,
+            "lines": [{"seat": int(seat), "name": names[int(seat)], "text": choice["text"]}
+                      for seat, choice in sorted(choices.items(), key=lambda item: int(item[0]))
+                      if choice.get("status") == "sent"],
+        }
+
     debriefs = None
     if document.get("debriefs"):
         debriefs = {
@@ -735,7 +773,8 @@ def view_payload(
                 if (state or {}).get("status") == "failed"
             ],
         }
-    wrapping_up = bool(debriefs and debriefs["pending"] and game.wrappers)
+    wrapping_up = bool((snap.finished and not document.get("record")) or
+                       (debriefs and debriefs["pending"] and game.wrappers))
 
     llm = document.get("llm")
     if llm:
@@ -796,6 +835,7 @@ def view_payload(
         ),
         "chatter": game.reactions.pending,
         "debriefs": debriefs,
+        "final_comments": final_comments,
         "wrapping_up": wrapping_up,
         "timeout": timeout,
         "me": me,
@@ -1198,12 +1238,30 @@ class TableRegistry:
         Returns a status: busy, waiting, turn, autopilot, timeout, model,
         reaction, debrief, finished or nothing.
         """
+        if game.finished:
+            if (self.document(table_id) or {}).get("status") == "abandoned":
+                return "nothing"
+            model_result = self._work_final_model(table_id, game)
+            if model_result is not None:
+                return model_result
         if not game.lock.acquire(blocking=False):
             return "busy"
         try:
             if game.finished or game.broken:
-                if game.finished and self.debrief_one(table_id, game) is not None:
-                    return "debrief"
+                if game.finished:
+                    document = self.document(table_id) or {}
+                    closing = document.get("final_comments")
+                    if not document.get("record") and (not closing or closing.get("closed")):
+                        self.finish(table_id, game)
+                        return "final_comments"
+                    if closing and not closing.get("closed"):
+                        pending = final_comments_pending(document)
+                        if not pending:
+                            self._close_final_comments(table_id, game)
+                            return "final_comments"
+                        return "waiting"
+                    if self.debrief_one(table_id, game) is not None:
+                        return "debrief"
                 return "finished" if game.finished else "nothing"
             document = self.document(table_id) or {}
             autopilot = document.get("autopilot") or {}
@@ -1289,6 +1347,50 @@ class TableRegistry:
             return did
         finally:
             game.lock.release()
+
+    def _work_final_model(self, table_id: str, game: WebGame) -> Optional[str]:
+        """Reserve one model's choice, then call it without blocking people."""
+        if not game.lock.acquire(blocking=False):
+            return "busy"
+        try:
+            document = self.document(table_id) or {}
+            closing = document.get("final_comments") or {}
+            if document.get("status") == "abandoned":
+                return "nothing"
+            if closing.get("closed") or not closing:
+                return None
+            if final_comment_seconds(document) <= 0:
+                self._close_final_comments(table_id, game)
+                return "final_comments"
+            working = closing.setdefault("working", [])
+            models = [seat for seat in final_comments_pending(document)
+                      if game.kinds[seat] == "llm" and seat not in working]
+            if not models:
+                return None
+            seat = models[0]
+            working.append(seat)
+            self._put(document)
+            seconds = final_comment_seconds(document)
+            final = game.events[-1]
+            winner = seat_names(game)[final.winner] if final.winner is not None else None
+            wrapper = game.wrappers.get(seat)
+        finally:
+            game.lock.release()
+        line = wrapper.final_comment(winner, final.solution, game.turns, seconds) if wrapper else ""
+        with game.lock:
+            document = self.document(table_id) or {}
+            closing = document.get("final_comments") or {}
+            if document.get("status") == "abandoned":
+                return "nothing"
+            if closing.get("closed"):
+                return "final_comment"
+            if final_comment_seconds(document) <= 0:
+                self._close_final_comments(table_id, game)
+            else:
+                closing["working"].remove(seat)
+                self._put(document)
+                self._choose_final_comment(table_id, game, seat, line or None)
+        return "final_comment"
 
     def say(self, table_id: str, game: WebGame, seat: int, text) -> str:
         """A seated person's line: cleaned, said at the table
@@ -1427,7 +1529,8 @@ class TableRegistry:
             raise TableError("no such table")
         if document.get("status") == "abandoned":
             return document
-        if document.get("status") == "finished" and not pending_debriefs(document):
+        if (document.get("status") == "finished" and document.get("record")
+                and not pending_debriefs(document)):
             raise TableError("that table is over already")
         if me is not None:
             setup = TableSetup.from_dict(document["setup"])
@@ -1436,6 +1539,7 @@ class TableRegistry:
         document["status"] = "abandoned"
         document["abandoned_by"] = me or "cli"
         document.pop("debriefs", None)
+        document.pop("final_comments", None)
         self._put(document)
         with self._lock:
             self._games.pop(table_id, None)
@@ -1506,7 +1610,7 @@ class TableRegistry:
             status = document.get("status")
             if status == "abandoned":
                 continue
-            if status != "finished" or pending_debriefs(document):
+            if status != "finished" or not document.get("record") or pending_debriefs(document):
                 documents.append(document)
         return sorted(documents, key=lambda d: d.get("created", ""), reverse=True)
 
@@ -1581,7 +1685,7 @@ class TableRegistry:
                     entry["audit"] for entry in game.entries
                     if entry.get("kind") == "answer" and entry.get("seat") == seat and entry.get("audit")
                 ]
-        return GameRecord.from_game(
+        record = GameRecord.from_game(
             run_id=run_id,
             game_index=game_index,
             seed=game.setup.seed,
@@ -1590,14 +1694,73 @@ class TableRegistry:
             seats=seats,
             llm_log=llm_log or None,
         )
+        record.final_comments = {
+            int(seat): choice["text"]
+            for seat, choice in (document.get("final_comments") or {}).get("choices", {}).items()
+            if choice.get("status") == "sent"
+        }
+        return record
 
-    def finish(self, table_id: str, game: WebGame) -> dict:
-        """Save a finished game into the web run, once, and let the
-        characters remember it if the table asked. Returns
-        ``{"run_id", "index"}``; a second call returns the first's."""
+    def final_comment(self, table_id: str, game: WebGame, seat: int,
+                      line: str | None = None) -> dict:
+        """Take a seat's one post-game choice; a missing line is a decline."""
+        with game.lock:
+            return self._choose_final_comment(table_id, game, seat, line)
+
+    def _choose_final_comment(self, table_id: str, game: WebGame, seat: int,
+                              line: str | None) -> dict:
         document = self.document(table_id) or {}
+        closing = document.get("final_comments") or {}
+        if (document.get("status") == "abandoned" or not game.finished or
+                closing.get("closed") or final_comment_seconds(document) <= 0):
+            raise TableError("The final comment window has closed.")
+        if seat not in closing.get("offered", []):
+            raise TableError("That seat has no final comment choice.")
+        choices = closing.setdefault("choices", {})
+        if str(seat) in choices:
+            raise TableError("This seat has already chosen its final comment.")
+        choices[str(seat)] = ({"status": "sent", "text": clean_line(line)} if line is not None
+                              else {"status": "declined"})
+        self._put(document)
+        if not final_comments_pending(document):
+            self._close_final_comments(table_id, game)
+        return choices[str(seat)]
+
+    def _close_final_comments(self, table_id: str, game: WebGame) -> None:
+        document = self.document(table_id) or {}
+        if document.get("status") == "abandoned":
+            return
+        closing = document.get("final_comments") or {}
+        if closing.get("closed"):
+            return
+        for seat in closing.get("offered", []):
+            closing.setdefault("choices", {}).setdefault(str(seat), {"status": "timed_out"})
+        closing["closed"] = True
+        document["final_comments"] = closing
+        self._put(document)
+        self.finish(table_id, game)
+
+    def finish(self, table_id: str, game: WebGame) -> Optional[dict]:
+        """Save a finished game after its comment window, once, and let
+        characters remember it. Returns the record reference once saved,
+        or None while the closing window remains open."""
+        document = self.document(table_id) or {}
+        if document.get("status") == "abandoned":
+            return None
         if document.get("record"):
             return document["record"]
+        if game.setup.external and not document.get("final_comments"):
+            offered = [seat for seat, kind in enumerate(game.kinds) if kind in ("human", "llm")]
+            if offered:
+                document["final_comments"] = {
+                    "deadline": datetime.fromtimestamp(time.time() + FINAL_COMMENT_TIMEOUT,
+                                                       timezone.utc).isoformat(),
+                    "offered": offered, "choices": {}, "closed": False,
+                }
+                self._put(document)
+                return None
+        if document.get("final_comments") and not document["final_comments"].get("closed"):
+            return None
         with _SAVE_LOCK:
             document = self.document(table_id) or {}
             if document.get("record"):

@@ -372,7 +372,7 @@ async def test_the_mcp_tools_answer_with_no_login(tmp_path):
     assert "clude_wiki_search" in mcp.INSTRUCTIONS and "no login" in mcp.INSTRUCTIONS
     async with Client(server) as client:
         names = {tool.name for tool in (await client.list_tools()).tools}
-        assert {"clude_wiki_search", "clude_wiki_read"} <= names and len(names) == 14
+        assert {"clude_wiki_search", "clude_wiki_read", "clude_final_comment"} <= names and len(names) == 15
         found = unwrap(await client.call_tool("clude_wiki_search", {"query": "secret passage"}))
         assert found["matches"] and set(found["matches"][0]) >= {"title", "short", "excerpt"}
         nothing = unwrap(await client.call_tool("clude_wiki_search", {"query": "xyzzyplugh"}))

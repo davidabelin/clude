@@ -321,6 +321,55 @@ class LLMCharacter:
         self.canon = canon
         self.canon_block = canon.index() if canon is not None else ""
 
+    def final_comment(self, winner: str | None, solution: tuple, turn: int,
+                      seconds: float) -> str:
+        """Offer one optional public closing line before the debrief begins."""
+        if (not self.settings.speak or seconds <= 0 or
+                self.game_calls >= self.settings.max_calls_per_game or
+                self.game_tokens >= self.settings.max_tokens_per_game):
+            return ""
+        outcome = f"{winner} won." if winner else "Nobody won."
+        recent = [f"{self.names[seat] if seat < len(self.names) else seat}: {line}"
+                  for seat, line in self.transcript[-8:]]
+        request = LLMRequest(
+            system=self._system,
+            user=(f"The game has ended. {outcome} "
+                  f"The envelope was {' / '.join(solution)}. Everyone has one chance to say "
+                  "a final public line before the private write-ups begin. "
+                  "Choose freely whether to speak or decline. Return a short line in 'say', "
+                  "or an empty 'say' to decline. Do not write a logbook entry here.\n"
+                  + "\n".join(recent)),
+            schema=schema_for(REMARK_KIND), kind=REMARK_KIND,
+            memory=self.memory_block, max_tokens=self.settings.remark_max_tokens,
+            timeout=max(0.1, seconds), **self._canon_kwargs(),
+        )
+        started = time.perf_counter()
+        try:
+            result = self.backend.complete(request)
+        except Exception as exc:
+            result = LLMResult(error=f"{type(exc).__name__}: {exc}")
+        if not result.seconds:
+            result.seconds = time.perf_counter() - started
+        self._account(result)
+        line = ""
+        fallback = None
+        if result.ok:
+            try:
+                line = clean_remark(parse_response(REMARK_KIND, result.text)["say"])
+            except ValueError as exc:
+                fallback = f"malformed: {exc}"
+        else:
+            fallback = "refusal" if result.stop_reason == "refusal" else (
+                f"error: {result.error or result.stop_reason or 'empty reply'}"
+            )
+        self._record(Decision(turn=turn, kind="final_comment", menu={}, called=True,
+                              chosen=None, action="", fallback=fallback,
+                              deviated=False, said=line, spoke=bool(line),
+                              input_tokens=result.input_tokens, output_tokens=result.output_tokens,
+                              cached_tokens=result.cached_tokens, seconds=result.seconds,
+                              lookups=list(result.lookups)))
+        return line
+
     def _canon_kwargs(self) -> dict:
         """The canon's share of an `LLMRequest`: nothing without one; the
         index block always; the tools, the lookup and the rounds left

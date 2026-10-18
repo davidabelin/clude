@@ -84,6 +84,14 @@
             <p class="kicker">The envelope</p>
             <p class="envelope" id="envelope"></p>
             <p class="winner" id="winner"></p>
+            {% if viewer is not none %}
+            <form class="final-comment" id="final-comment" autocomplete="off" hidden>
+              <label for="final-comment-text">Final comment <span id="final-comment-clock"></span></label>
+              <input id="final-comment-text" maxlength="240" placeholder="One last line, if you like">
+              <div class="buttons"><button type="submit">Send</button><button type="button" class="quiet" id="final-comment-decline">Decline</button></div>
+            </form>
+            {% endif %}
+            <div class="final-comment-lines" id="final-comment-lines" aria-live="polite"></div>
           </div>
         </div>
       </section>
@@ -174,6 +182,14 @@
       <p class="narration" id="narration" aria-live="polite" hidden></p>
       {{ board|safe }}
       <p class="status" id="status" aria-live="polite"></p>
+      {% if viewer is not none %}
+      <form class="panel final-comment" id="final-comment" autocomplete="off" hidden>
+        <label for="final-comment-text">Final comment <span id="final-comment-clock"></span></label>
+        <input id="final-comment-text" maxlength="240" placeholder="One last line, if you like">
+        <div class="buttons"><button type="submit">Send</button><button type="button" id="final-comment-decline">Decline</button></div>
+      </form>
+      {% endif %}
+      <div class="final-comment-lines" id="final-comment-lines" aria-live="polite"></div>
       {% if payload and payload.llm %}<p class="note spend" id="spend"></p>{% endif %}
     </section>
 

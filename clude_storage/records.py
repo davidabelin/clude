@@ -260,6 +260,8 @@ class GameRecord:
         Dollars the game's model seats spent, at list prices, their
         logbook entries included; None for a game with no
         model seat, and for one recorded before costs were.
+    final_comments : dict[int, str]
+        Optional public post-game lines by seat. Older records omit it.
     """
 
     run_id: str
@@ -278,6 +280,7 @@ class GameRecord:
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     version: int = RECORD_VERSION
     cost: Optional[float] = None
+    final_comments: dict[int, str] = field(default_factory=dict)
 
     @classmethod
     def from_game(
@@ -328,6 +331,8 @@ class GameRecord:
         }
         if self.cost is not None:
             out["cost"] = self.cost
+        if self.final_comments:
+            out["final_comments"] = {str(seat): line for seat, line in self.final_comments.items()}
         return out
 
     @classmethod
@@ -353,4 +358,5 @@ class GameRecord:
             created_at=data.get("created_at", ""),
             version=int(data.get("version", RECORD_VERSION)),
             cost=None if data.get("cost") is None else float(data["cost"]),
+            final_comments={int(seat): str(line) for seat, line in data.get("final_comments", {}).items()},
         )

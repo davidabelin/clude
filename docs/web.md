@@ -81,7 +81,7 @@ A player's hand includes marks for cards already shown, never removes them. Meth
 
 ### Request-driven lifecycle
 
-Nothing advances between requests. Browser polls call `GET /tables/<id>/poll?since=N`; due work calls `POST /tables/<id>/work`. A work request performs one paced unit: a bot turn, model decision, reaction or debrief. The first caller takes a nonblocking lock; others return. Polls read published snapshots without waiting behind model calls.
+Nothing advances between requests. Browser polls call `GET /tables/<id>/poll?since=N`; due work calls `POST /tables/<id>/work`. A work request performs one paced unit: a bot turn, model decision, reaction, final comment or debrief. The first caller takes a nonblocking lock; others return. Polls read published snapshots without waiting behind model calls.
 
 Answers POST form data with CSRF and the pending **answer sequence** `seq`, not event/entry count. Stale/doubled/invalid answers are rejected before sending into the engine generator. The browser preserves form choices until the pending kind/sequence changes, so chat/polls cannot reset dropdowns.
 
@@ -91,7 +91,7 @@ Decisions allow 90 s, speed tables 30 s, card shows at most 30 s. The next work 
 
 ### Memory, talk and cost
 
-Remembering loads Mustard/White/Green method memory and attaches narrative logbooks to LLM seats before dealing. The table snapshots the memory inputs for deterministic rebuilds. Finish folds the record into method memory; remembering LLM seats then write one debrief per work request. No browser/MCP request means no further wrap-up work. [Logbooks](logbooks.md) owns schema and depth rules.
+Remembering loads Mustard/White/Green method memory and attaches narrative logbooks to LLM seats before dealing. The table snapshots the memory inputs for deterministic rebuilds. When an external table ends, each human or MCP seat may send one public final comment of at most 240 characters or explicitly decline; each LLM character gets one optional model-generated line. Headless seats pass. The 30-second deadline is shared and persisted across reloads. The browser offers the choice with the result card; MCP seats use `clude_final_comment`. All submitted lines are visible at the table and in the replay. Once every offered seat has chosen, or the deadline passes, the record is saved and folded into method memory. Remembering LLM seats then write one debrief per work request, with the final comments in its prompt. No browser/MCP request means no further wrap-up work. [Logbooks](logbooks.md) owns schema and depth rules.
 
 Human talk is capped at 240 characters. A line/suggestion/accusation can queue model reactions, paced and bounded by participation, reply depth, per-turn/game limits and budgets. Chat claims never affect formal refutation.
 

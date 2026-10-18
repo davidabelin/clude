@@ -333,6 +333,7 @@ def seat_view(
         "me": view["me"],
         "notepad": "unchanged" if quiet else notepad,
         "over": over,
+        "final_comments": view.get("final_comments"),
     }
     if level == "none":
         # Hard mode at its hardest: the log and the hand, and no notepad
@@ -440,6 +441,7 @@ def watch_view(
         "waiting": waiting_line(game, view),
         "watching": [users.display_name(name) for name in registry.watching(table_id)],
         "over": view["over"],
+        "final_comments": view.get("final_comments"),
     }
     cost = cost_line(view) if costs else None
     if cost is not None:
@@ -898,7 +900,9 @@ def build_server(registry: tables.TableRegistry, secret_key, limiter=None) -> MC
           nothing new in it is short. Say something with clude_say
           meanwhile if you like.
         - `finished` true: the game is over; `over` holds the solution
-          and who won.
+          and who won. `final_comments` shows the shared 30-second
+          closing window, your choice and lines already sent. Use
+          `clude_final_comment` once to send a line or decline.
 
         `since`: pass the `n_events` of the last view you saw and only
         the events after it come back; leave it at 0 in a fresh
@@ -961,6 +965,13 @@ def build_server(registry: tables.TableRegistry, secret_key, limiter=None) -> MC
             return _undealt(table_id, document)
         game, seat = live(table_id, account)
         await_turn(table_id, game, seat, deadline)
+        if game.finished:
+            document = registry.document(table_id) or {}
+            closing = document.get("final_comments") or {}
+            if (not document.get("record") and
+                    (not closing or str(seat) in closing.get("choices", {}) or
+                     tables.final_comment_seconds(document) <= 0)):
+                registry.work(table_id, game)
         return seat_view(registry, table_id, game, seat, since=since, costs=shows_costs(registry.store, account))
 
     @server.tool()
@@ -1075,12 +1086,36 @@ def build_server(registry: tables.TableRegistry, secret_key, limiter=None) -> MC
         talk; the engine checks that against the hands. Returns nothing
         you need; carry on with clude_turn or clude_answer.
         """
-        game, seat = live(table_id, who(login))
+        account = who(login)
+        game, seat = live(table_id, account)
         try:
             line = registry.say(table_id, game, seat, text)
         except TableError as exc:
             return {"error": str(exc)}
         return {"said": line}
+
+    @server.tool()
+    def clude_final_comment(login: str, table_id: str,
+                            text: Optional[str] = None) -> dict:
+        """Choose the single public post-game line for your seat.
+
+        Call after `clude_turn` reports `finished` and `final_comments`
+        shows a live window. Send a line of at most 240 characters with
+        `text`, or omit `text` to decline explicitly. The shared deadline
+        is 30 seconds from the end of the game; a second choice is refused.
+        The private character write-ups begin when all seats have chosen
+        or the window closes.
+        """
+        account = who(login)
+        game, seat = live(table_id, account)
+        try:
+            choice = registry.final_comment(table_id, game, seat, line=text)
+        except TableError as exc:
+            return {"error": str(exc)}
+        view = seat_view(
+            registry, table_id, game, seat, since=game.snapshot.n_events,
+            costs=shows_costs(registry.store, account))
+        return {"choice": choice, "final_comments": view["final_comments"]}
 
     @server.tool()
     def clude_note(login: str, table_id: str, text: Optional[str] = None) -> dict:

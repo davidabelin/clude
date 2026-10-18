@@ -11,13 +11,14 @@ written and nothing pends.
 from __future__ import annotations
 
 import json
+import threading
 
 from clude_llm import LOGBOOK_KIND, LLMResult
 from clude_storage import Logbook, open_store
 from clude_web import tables
 from tests.test_debrief import DEBRIEF
 from tests.test_web_llm import make_app
-from tests.test_web_tables import ANN, login, new_table, play_out, poll, work
+from tests.test_web_tables import ANN, csrf, login, new_table, play_out, poll, work
 
 SEED = 11
 SEATS = {"Scarlett": "me", "Plum": "llm", "White": "character", "Green": "floor"}
@@ -47,15 +48,26 @@ class Remembering:
 class Factory:
     def __init__(self) -> None:
         self.backends: list = []
+        self.backend_type = Remembering
 
     def __call__(self, model, key):
-        backend = Remembering()
+        backend = self.backend_type()
         self.backends.append(backend)
         return backend
 
     @property
     def requests(self):
         return [r for b in self.backends for r in b.requests]
+
+
+class Closing(Remembering):
+    def complete(self, request):
+        if request.kind == "remark" and "final public line" in request.user:
+            self.requests.append(request)
+            return LLMResult(text=json.dumps({"say": "Well played, everyone."}),
+                             stop_reason="end_turn", model=self.model,
+                             input_tokens=100, output_tokens=12)
+        return super().complete(request)
 
 
 def _finish(app, ann, remember=None):
@@ -138,3 +150,73 @@ def test_with_remember_off_nothing_pends_and_nothing_is_written(tmp_path):
     assert not [r for r in factory.requests if r.kind == LOGBOOK_KIND]
     assert Logbook(store, "Plum").serials() == []
     assert ann.get(f"/tables/{table_id}").status_code == 302
+
+
+def test_final_comments_precede_record_and_debrief(tmp_path):
+    store = open_store(str(tmp_path))
+    factory = Factory()
+    factory.backend_type = Closing
+    app = make_app(tmp_path, store, factory)
+    ann = login(app, ANN)
+    table_id = new_table(ann, SEATS, seed=SEED, remember=True)
+    final = play_out(app, table_id, {ANN: ann}, complete_comments=False)
+    registry = app.extensions["tables"]
+    game = registry.game(table_id)
+    assert final["final_comments"]["seconds"] > 0
+    assert registry.document(table_id).get("record") is None
+    assert tables.pending_debriefs(registry.document(table_id)) == []
+    assert not any(r.kind == LOGBOOK_KIND for r in factory.requests)
+
+    model = work(ann, table_id)
+    assert model["did"] == "final_comment"
+    assert model["final_comments"]["lines"][0]["text"] == "Well played, everyone."
+    assert registry.document(table_id).get("record") is None
+
+    sent = ann.post(f"/tables/{table_id}/final-comment",
+                    data={"csrf": csrf(ann), "choice": "send", "text": "  Thanks, all.  "})
+    assert sent.status_code == 200
+    assert sent.get_json()["final_comments"]["closed"]
+    record = store.get_game("web-2", 0)
+    assert record["final_comments"] == {"0": "Thanks, all.", str(game.suspects.index("Plum")): "Well played, everyone."}
+    assert tables.pending_debriefs(registry.document(table_id))
+    refused = ann.post(f"/tables/{table_id}/final-comment",
+                       data={"csrf": csrf(ann), "choice": "decline"})
+    assert refused.status_code == 400
+    assert "closed" in refused.get_json()["error"]
+    assert "Final comments" in ann.get("/replay/web-2/0").get_data(as_text=True)
+
+    assert work(ann, table_id)["did"] == "debrief"
+    debrief = next(r for r in factory.requests if r.kind == LOGBOOK_KIND)
+    assert "Thanks, all." in debrief.user and "Well played, everyone." in debrief.user
+
+
+def test_model_final_comment_does_not_block_a_person(tmp_path):
+    store = open_store(str(tmp_path))
+    app = make_app(tmp_path, store, Factory())
+    ann = login(app, ANN)
+    table_id = new_table(ann, SEATS, seed=SEED, remember=False)
+    play_out(app, table_id, {ANN: ann}, complete_comments=False)
+    registry = app.extensions["tables"]
+    game = registry.game(table_id)
+    plum = game.suspects.index("Plum")
+    started, release = threading.Event(), threading.Event()
+
+    def slow_comment(*_args):
+        started.set()
+        assert release.wait(5)
+        return "Good game."
+
+    game.wrappers[plum].final_comment = slow_comment
+    worker = threading.Thread(target=registry.work, args=(table_id, game))
+    worker.start()
+    try:
+        assert started.wait(5)
+        response = ann.post(f"/tables/{table_id}/final-comment",
+                            data={"csrf": csrf(ann), "choice": "decline"})
+        assert response.status_code == 200
+        assert registry.document(table_id).get("record") is None
+    finally:
+        release.set()
+        worker.join(5)
+    assert not worker.is_alive()
+    assert store.get_game("web-2", 0)["final_comments"] == {str(plum): "Good game."}

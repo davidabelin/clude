@@ -17,6 +17,15 @@
     </p>
   </header>
 
+  {% if record.final_comments %}
+  <section class="panel final-comment-lines" aria-label="Final comments">
+    <h2>Final comments</h2>
+    {% for seat, line in record.final_comments|dictsort %}
+      <p><strong>{{ suspects[seat] }}:</strong> {{ line }}</p>
+    {% endfor %}
+  </section>
+  {% endif %}
+
   <div class="replay-body">
     <section class="replay-board">
       {{ board|safe }}

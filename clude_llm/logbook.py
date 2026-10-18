@@ -262,6 +262,10 @@ def debrief_prompt(
             lines.append(f'  turn {r.turn} {names[r.seat]}{you}: "{r.text}"')
     else:
         lines.append("Nobody spoke at the table.")
+    if record.final_comments:
+        lines.append("Final public comments after the result, before this write-up:")
+        for speaker, comment in sorted(record.final_comments.items()):
+            lines.append(f'  {names[speaker]}: "{comment}"')
     lines += [
         "",
         "The decisions put to you this game, by kind, with what the menu said beside "

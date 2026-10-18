@@ -219,6 +219,8 @@ def _table_listing(me: str) -> list:
                 "speed": tables.timeout_for(document) <= tables.SPEED_TIMEOUT,
                 "model": any(spec.kind == "llm" for spec in setup.seats),
                 "wrapping_up": bool(tables.pending_debriefs(document)),
+                "closing": bool(document.get("final_comments") and
+                                not document["final_comments"].get("closed")),
                 "can_end": tables.viewer_seat(setup, me) is not None
                 or (document.get("started_by") or "").lower() == me,
             }
@@ -532,7 +534,7 @@ def _table_page(table_id: str):
             board=None,
         )
     game = _live(table_id)
-    if game.finished and not tables.pending_debriefs(document):
+    if game.finished and document.get("record") and not tables.pending_debriefs(document):
         return _finished(table_id, game)
     if not setup.external:
         return _watch_page(table_id, game, document)
@@ -558,6 +560,7 @@ def _table_page(table_id: str):
                     "answer": url_for("main.table_answer", table_id=table_id),
                     "autopilot": url_for("main.table_autopilot", table_id=table_id),
                     "say": url_for("main.table_say", table_id=table_id),
+                    "final_comment": url_for("main.table_final_comment", table_id=table_id),
                     "typing": url_for("main.table_typing", table_id=table_id),
                 },
             )
@@ -723,6 +726,28 @@ def table_say(table_id):
         return jsonify({"error": "You are not sitting at this table."}), 403
     try:
         _registry().say(table_id, game, viewer, request.form.get("text", ""))
+    except TableError as exc:
+        return jsonify({"error": str(exc)}), 400
+    try:
+        since = int(request.form.get("since", 0) or 0)
+    except ValueError:
+        since = 0
+    return jsonify(_payload(table_id, game, since))
+
+
+@bp.post("/tables/<table_id>/final-comment")
+def table_final_comment(table_id):
+    """Send or explicitly decline one final line from this viewer's seat."""
+    game = _live(table_id)
+    viewer = tables.viewer_seat(game.setup, _me())
+    if viewer is None:
+        return jsonify({"error": "You are not sitting at this table."}), 403
+    choice = request.form.get("choice")
+    if choice not in ("send", "decline"):
+        return jsonify({"error": "Choose send or decline."}), 400
+    try:
+        _registry().final_comment(table_id, game, viewer,
+                                  request.form.get("text", "") if choice == "send" else None)
     except TableError as exc:
         return jsonify({"error": str(exc)}), 400
     try:

@@ -852,6 +852,11 @@ def test_a_game_walks_the_stage_through_all_five_focus_states(page):
     assert foci == set(FOCI), sorted(set(FOCI) - foci)
     assert page.locator("#end-plate").is_visible()
     assert page.inner_text("#winner").endswith(".")
+    assert page.locator("#final-comment").is_visible()
+    page.fill("#final-comment-text", "Thanks for the game.")
+    page.click("#final-comment button[type=submit]")
+    page.wait_for_function("() => document.querySelector('#final-comment-lines p')?.textContent.includes('Thanks for the game.')", timeout=20000)
+    assert page.locator("#final-comment").is_hidden()
 
 
 def test_pass_sits_in_the_status_line_above_the_board(page):

@@ -123,7 +123,8 @@ def simple_answer(pending: dict):
     return {"card": pending["candidates"][0]}
 
 
-def play_out(app, table_id, clients: dict, max_steps=4000, on_payload=None):
+def play_out(app, table_id, clients: dict, max_steps=4000, on_payload=None,
+             complete_comments=True):
     """Drive a table to its end through the JSON routes: whoever the game
     waits on answers, and anyone fires the bot work. `clients` maps an
     account key to its client.
@@ -146,7 +147,16 @@ def play_out(app, table_id, clients: dict, max_steps=4000, on_payload=None):
             if on_payload is not None:
                 on_payload(payload)
             if payload["finished"]:
-                return payload
+                if not complete_comments:
+                    return payload
+                registry = app.extensions["tables"]
+                game = registry.game(table_id)
+                for seat in tables.final_comments_pending(registry.document(table_id)):
+                    if game.kinds[seat] == "human":
+                        registry.final_comment(table_id, game, seat)
+                while tables.final_comments_pending(registry.document(table_id)):
+                    registry.work(table_id, game)
+                return poll(first, table_id)
             if payload["work"]:
                 payload = work(first, table_id)
             elif payload["waiting"] is not None:
@@ -441,6 +451,38 @@ def test_two_people_play_a_table_to_the_end(app, store, ann, bob, cat):
     assert ann.get(f"/tables/{table_id}").status_code == 302, "a finished table opens as its replay"
 
 
+def test_final_comment_decline_and_shared_timeout(app, store, ann):
+    table_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
+    final = play_out(app, table_id, {ANN: ann}, complete_comments=False)
+    registry = app.extensions["tables"]
+    assert final["finished"] and final["final_comments"]["pending"] == ["Scarlett (Ann)"]
+    assert registry.document(table_id).get("record") is None
+    page = ann.get(f"/tables/{table_id}").get_data(as_text=True)
+    assert 'id="final-comment"' in page and "Decline" in page
+
+    document = registry.document(table_id)
+    document["final_comments"]["deadline"] = "2000-01-01T00:00:00+00:00"
+    registry._put(document)
+    timed_out = work(ann, table_id)
+    assert timed_out["final_comments"]["closed"]
+    assert registry.document(table_id)["final_comments"]["choices"]["0"] == {"status": "timed_out"}
+    assert store.list_games("web-2") == [0]
+    response = ann.post(f"/tables/{table_id}/final-comment",
+                        data={"csrf": csrf(ann), "choice": "send", "text": "Too late"})
+    assert response.status_code == 400
+
+
+def test_ending_table_during_final_comments_does_not_record_it(app, store, ann):
+    table_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
+    play_out(app, table_id, {ANN: ann}, complete_comments=False)
+    registry = app.extensions["tables"]
+    game = registry.game(table_id)
+    response = ann.post(f"/tables/{table_id}/abandon", data={"csrf": csrf(ann)})
+    assert response.status_code == 302
+    assert registry.work(table_id, game) == "nothing"
+    assert store.list_games("web-2") == []
+
+
 def test_a_bad_answer_is_a_400_and_the_game_goes_on(app, ann):
     table_id = new_table(ann, {"Scarlett": "me", "Mustard": "character", "White": "character"})
     payload = poll(ann, table_id)
@@ -509,6 +551,7 @@ def test_autopilot_plays_the_seat_and_can_be_taken_back(app, store, ann):
     assert payload["finished"]
     game = app.extensions["tables"].game(table_id)
     assert game.entries and all(e["by"] == "autopilot" for e in game.entries)
+    app.extensions["tables"].final_comment(table_id, game, 0)
     assert store.list_games("web-2") == [0]
 
 
@@ -831,6 +874,8 @@ def _finish_by_registry(registry, table_id):
         if game.pending is not None:
             registry.set_autopilot(table_id, game, game.pending.seat, True)
         registry.work(table_id, game)
+    if tables.final_comments_pending(registry.document(table_id)):
+        registry.final_comment(table_id, game, 0)
     return game
 
 

@@ -144,7 +144,8 @@ def lands_in_a_room(pending: dict, room: str) -> bool:
     return "ending at row" not in pending["toward"][room]
 
 
-async def play_out(client, table_id, max_steps=3000, on_view=None, fold_accusation=False, since=False):
+async def play_out(client, table_id, max_steps=3000, on_view=None, fold_accusation=False,
+                   since=False, complete_comments=True):
     """Drive a table to its end through the tools as a player would:
     `clude_turn` once, then `clude_answer` (which waits for the next
     decision) until the game ends, `clude_turn` again only when an
@@ -159,6 +160,9 @@ async def play_out(client, table_id, max_steps=3000, on_view=None, fold_accusati
         if since:
             cursor = view["n_events"]
         if view["finished"]:
+            if complete_comments and view.get("final_comments") and not view["final_comments"]["closed"]:
+                unwrap(await client.call_tool("clude_final_comment", {"table_id": table_id}))
+                view = unwrap(await client.call_tool("clude_turn", {"table_id": table_id, "since": cursor}))
             return view
         pending = view["pending"]
         if pending is None:
@@ -173,6 +177,23 @@ async def play_out(client, table_id, max_steps=3000, on_view=None, fold_accusati
         view = unwrap(await client.call_tool("clude_answer", args))
         assert "error" not in view, view["error"]
     raise AssertionError("the game did not end")
+
+
+async def test_chat_seat_can_send_one_final_comment(server, registry, store):
+    table_id = open_table(registry)
+    async with playing(server) as client:
+        unwrap(await client.call_tool("clude_sit", {"table_id": table_id, "token": "Scarlett"}))
+        registry.deal(table_id)
+        final = await play_out(client, table_id, complete_comments=False)
+        assert final["final_comments"]["pending"] == ["Scarlett (Claude)"]
+        assert registry.document(table_id).get("record") is None
+        chosen = unwrap(await client.call_tool("clude_final_comment", {
+            "table_id": table_id, "text": "A fine game."
+        }))
+        assert chosen["choice"] == {"status": "sent", "text": "A fine game."}
+        again = unwrap(await client.call_tool("clude_final_comment", {"table_id": table_id}))
+        assert "already" in again["error"] or "closed" in again["error"]
+    assert store.get_game("web-2", 0)["final_comments"] == {"0": "A fine game."}
 
 
 # --- listing and sitting ------------------------------------------------------

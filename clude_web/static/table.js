@@ -48,6 +48,11 @@
   var sayForm = document.getElementById("say-form");
   var sayText = document.getElementById("say-text");
   var sayCount = document.getElementById("say-count");
+  var finalForm = document.getElementById("final-comment");
+  var finalText = document.getElementById("final-comment-text");
+  var finalClock = document.getElementById("final-comment-clock");
+  var finalLines = document.getElementById("final-comment-lines");
+  var finalDecline = document.getElementById("final-comment-decline");
   var typingLine = document.getElementById("typing");
   var seatsBox = document.getElementById("seats");
   var notepad = document.getElementById("notepad");
@@ -392,6 +397,9 @@
       var who = payload.over.winner ? payload.over.winner + " wins." : "Nobody wins.";
       var e = payload.over.envelope;
       var ending = who + " It was " + e[0] + " with the " + cardName(e[1]) + " in the " + e[2] + ".";
+      if (payload.final_comments && !payload.final_comments.closed) {
+        ending += " Final comments are open for " + Math.ceil(payload.final_comments.seconds) + " s.";
+      }
       if (payload.wrapping_up && payload.debriefs) {
         ending += " " + payload.debriefs.pending[0] + " is writing up notes on the game.";
       } else if (payload.debriefs && payload.debriefs.done && payload.debriefs.done.length) {
@@ -572,6 +580,46 @@
         .catch(function (err) { showError(err.message); })
         .then(function () { busy = false; });
     });
+  }
+
+  function renderFinalClock() {
+    if (!finalClock || !current.final_comments) return;
+    var left = Math.max(0, Math.ceil(current.final_comments.seconds - (Date.now() - receivedAt) / 1000));
+    finalClock.textContent = "(" + left + " s left)";
+    if (!left && finalForm) finalForm.hidden = true;
+  }
+
+  function renderFinalComments(payload) {
+    var closing = payload.final_comments;
+    if (finalForm) {
+      finalForm.hidden = !closing || closing.closed || !!closing.mine ||
+        !payload.me || closing.seconds <= 0 ||
+        closing.pending.indexOf(seatSpec(payload.me.seat).name) < 0;
+      if (!finalForm.hidden) renderFinalClock();
+    }
+    if (finalLines) {
+      finalLines.textContent = "";
+      if (closing) closing.lines.forEach(function (line) {
+        finalLines.appendChild(el("p", null, line.name + ": “" + line.text + "”"));
+      });
+    }
+  }
+
+  function chooseFinal(choice) {
+    if (busy || !urls.final_comment) return;
+    busy = true;
+    post(urls.final_comment, { choice: choice, text: finalText ? finalText.value : "", since: since })
+      .then(function (payload) { showError(""); render(payload); schedule(300); })
+      .catch(function (err) { showError(err.message); schedule(1000); })
+      .then(function () { busy = false; });
+  }
+
+  if (finalForm) {
+    finalForm.addEventListener("submit", function (event) {
+      event.preventDefault();
+      if (finalText && finalText.value.trim()) chooseFinal("send");
+    });
+    finalDecline.addEventListener("click", function () { chooseFinal("decline"); });
   }
 
   /* One name at a time under the talk: "Ann is typing...", and with
@@ -1272,6 +1320,7 @@
     var spend = document.getElementById("spend");
     if (spend) spend.textContent = spendText(payload);
     renderDecision(payload.pending);
+    renderFinalComments(payload);
     renderAccuse(payload.pending);
     renderHand(payload.me);
     renderWatching(payload);
@@ -1359,6 +1408,7 @@
   /* The clock ticks once a second without a request. */
   window.setInterval(function () {
     if (status && current && secondsLeft(current) !== null) renderClock(current);
+    renderFinalClock();
   }, 1000);
 
   document.addEventListener("visibilitychange", function () {
