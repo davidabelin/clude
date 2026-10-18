@@ -225,21 +225,21 @@ def test_every_character_and_method_has_its_article(wiki):
     assert example["peacock"]["White"] == pytest.approx(0.75)
     # Mustard's tree sends all four open cards to one leaf, by these six questions.
     assert [step["feature"] for step in example["mustard_path"]] == [
-        "times_named_total", "times_named_unrefuted", "distinct_namers",
-        "possible_holders_frac", "possible_holders_frac", "turn_fraction",
+        "times_named_unrefuted", "times_named_total", "distinct_namers",
+        "turn_fraction", "possible_holders_frac", "possible_holders_frac",
     ]
     assert all(example["mustard"][card] == pytest.approx(0.5) for card in facts.ROPE_CARDS)
     # White reads the asking, not the answer, and goes the other way.
     assert example["white"]["White"] == pytest.approx(0.4) and example["white"]["Peacock"] == pytest.approx(0.6)
     assert set(example["green_arms"]) == {"Scarlett", "Plum", "Peacock", "Mustard", "White"}
     assert sorted(example["green_arms"], key=lambda a: -example["green_arms"][a][2])[0] == facts.code("example.green.best")
-    # Phase 12: the network reads the Rope question backwards, and the
+    # Phase 14 Run 3: the network reads the Rope question backwards, and the
     # prose (Bandit ensemble, Regularised Nash dynamics, Professor Plum)
     # says so; new weights that change this must change the prose too.
     assert example["policy"]["White"] < example["uniform"]["White"] < example["plum"]["White"]
-    assert facts.code("example.green.best") == "Peacock" and facts.code("example.green.worst") == "Plum"
+    assert facts.code("example.green.best") == "Peacock" and facts.code("example.green.worst") == "White"
     assert wiki.get("PlumOG")[0].title == "Exact posterior enumeration"
-    assert str(facts.chain_example()["stationary"]) == "9/14"
+    assert str(facts.chain_example()["stationary"]) == "25/37"
     assert facts.code("example.ds.two.conflict") == "1/4" and facts.code("example.ds.two.white") == "1/3"
     assert facts.code("certainty.triples") == "324" and facts.code("certainty.half.one_in") == "18"
     assert float(facts.code("certainty.scarlett")) < float(facts.code("certainty.plum")) < 1

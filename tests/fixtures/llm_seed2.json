@@ -269,14 +269,14 @@
    "system": "2ad045b7b668ee8583abfe4c3f4fc2cbc73e298f653249238ed1b021fcc923e2",
    "user": "You are Colonel Mustard, seat P0 Mustard. Turn 1.\nAt the table: P0 Mustard, P1 White, P2 Green, P3 Plum.\nYour hand: Green, Kitchen, Knife, Peacock, Study.\n\nWhat is certain (the shared deduction floor):\n  Proven in the envelope: nothing yet.\n  Still unlocated: 16 cards.\n\nWhat your method believes (top cards per category; * = proven):\n  S: Scarlett 0.25 Mustard 0.25 White 0.25  |  W: Candlestick 0.20 Lead_Pipe 0.20 Revolver 0.20  |  R: Ballroom 0.14 Conservatory 0.14 Billiard 0.14\n  Best accusation by your numbers: Scarlett/Candlestick/Ballroom with P(correct) 0.01; your accusation threshold is 0.80.\n\nNo suggestions have been made yet.\n\nDecision: where to move.\nOptions (best first by your method's score; choose one letter):\n  A. move to the corridor square at row 16, column 4, 3 steps from the Dining -- score 0.19; heading for the Dining; P(envelope room = Dining) 0.14\n  B. move to the corridor square at row 17, column 5, 3 steps from the Lounge -- score 0.19; heading for the Lounge; P(envelope room = Lounge) 0.14\n  C. move to the corridor square at row 18, column 4, 3 steps from the Lounge -- score 0.19; heading for the Lounge; P(envelope room = Lounge) 0.14\nFor your line, listen to the recent exchange: respond to something that interests you, or let it pass. It needn't end in a tactical point. Your decision still comes from the allowed menu.\nAnswer with JSON only: {\"choice\": \"<letter>\", \"say\": \"<one short line in your voice, or an empty string>\"}\n",
    "result": {
-    "text": "{\"choice\":\"A\",\"say\":\"Right then \u2014 off toward the Dining Room. Seen this opening a hundred times, and the kitchen end of the house never pays.\"}",
+    "text": "{\"choice\": \"A\", \"say\": \"Dining Room first \u2014 seen this a hundred times, the answer likes to hide where the food is. Off we go!\"}",
     "error": null,
     "stop_reason": "end_turn",
     "model": "claude-opus-5",
     "input_tokens": 701,
-    "output_tokens": 54,
+    "output_tokens": 50,
     "cached_tokens": 0,
-    "seconds": 5.427561799995601,
+    "seconds": 6.737115800002357,
     "lookups": []
    },
    "canon": "0798380215e63ff18decfdf948113d15f4e59fba179b2e4b6e77688ac6b7bce4",
@@ -382,6 +382,111 @@
     "output_tokens": 72,
     "cached_tokens": 0,
     "seconds": 2.2266057999804616,
+    "lookups": []
+   },
+   "canon": "0798380215e63ff18decfdf948113d15f4e59fba179b2e4b6e77688ac6b7bce4",
+   "tools": [
+    "wiki_search",
+    "wiki_read"
+   ]
+  },
+  "45e8a1007aba05f66418804daeed3e0a39cca75b30cd4990d7659beff9f85d44": {
+   "kind": "move",
+   "system": "19953375d9b2953680a7eafd60b7cfd2f89286daf013fd7fc02972984964306e",
+   "user": "You are Professor Plum, seat P3 Plum. Turn 8.\nAt the table: P0 Mustard, P1 White, P2 Green, P3 Plum.\nYour hand: Lead_Pipe, Library, Rope, Wrench.\n\nWhat is certain (the shared deduction floor):\n  Proven in the envelope: nothing yet.\n  Still unlocated: 17 cards.\n\nWhat your method believes (top cards per category; * = proven):\n  S: Green 0.27 Mustard 0.24 Scarlett 0.21  |  W: Revolver 0.42 Candlestick 0.29 Knife 0.29  |  R: Ballroom 0.15 Kitchen 0.14 Hall 0.13\n  [policy: value +0.84]\n  Best accusation by your numbers: Green/Revolver/Ballroom with P(correct) 0.02; your accusation threshold is 0.90.\n\nNo suggestions have been made yet.\n\nTable talk, most recent last:\n  P0 Mustard: \"Dining Room first \u2014 seen this a hundred times, the answer likes to hide where the food is. Off we go!\"\n\nDecision: where to move.\nOptions (best first by your method's score; choose one letter):\n  A. move to the corridor square at row 19, column 18, 3 steps from the Study -- score 0.31; heading for the Study; P(envelope room = Study) 0.13\n  B. move to the corridor square at row 20, column 19, 3 steps from the Study -- score 0.31; heading for the Study; P(envelope room = Study) 0.13\nFor your line, listen to the recent exchange: respond to something that interests you, or let it pass. It needn't end in a tactical point. Your decision still comes from the allowed menu.\nAnswer with JSON only: {\"choice\": \"<letter>\", \"say\": \"<one short line in your voice, or an empty string>\"}\n",
+   "result": {
+    "text": "{\"choice\": \"A\", \"say\": \"A hundred times, Mustard, and the food has never once confessed. I'll take the Study, where at least the evidence is filed.\"}",
+    "error": null,
+    "stop_reason": "end_turn",
+    "model": "claude-opus-5",
+    "input_tokens": 685,
+    "output_tokens": 55,
+    "cached_tokens": 0,
+    "seconds": 2.4254456000053324,
+    "lookups": []
+   },
+   "canon": "0798380215e63ff18decfdf948113d15f4e59fba179b2e4b6e77688ac6b7bce4",
+   "tools": [
+    "wiki_search",
+    "wiki_read"
+   ]
+  },
+  "1267b8784969b267a2c1f5f8f35da5ec4e84f26d10ab0d2eb26c77eb1472a8e2": {
+   "kind": "move",
+   "system": "2ad045b7b668ee8583abfe4c3f4fc2cbc73e298f653249238ed1b021fcc923e2",
+   "user": "You are Colonel Mustard, seat P0 Mustard. Turn 9.\nAt the table: P0 Mustard, P1 White, P2 Green, P3 Plum.\nYour hand: Green, Kitchen, Knife, Peacock, Study.\n\nWhat is certain (the shared deduction floor):\n  Proven in the envelope: nothing yet.\n  Still unlocated: 16 cards.\n\nWhat your method believes (top cards per category; * = proven):\n  S: Scarlett 0.25 Mustard 0.25 White 0.25  |  W: Candlestick 0.20 Lead_Pipe 0.20 Revolver 0.20  |  R: Ballroom 0.14 Conservatory 0.14 Billiard 0.14\n  Best accusation by your numbers: Scarlett/Candlestick/Ballroom with P(correct) 0.01; your accusation threshold is 0.80.\n\nNo suggestions have been made yet.\n\nTable talk, most recent last:\n  P0 Mustard: \"Dining Room first \u2014 seen this a hundred times, the answer likes to hide where the food is. Off we go!\"\n  P3 Plum: \"A hundred times, Mustard, and the food has never once confessed. I'll take the Study, where at least the evidence is filed.\"\n\nDecision: where to move.\nOptions (best first by your method's score; choose one letter):\n  A. enter the Dining -- score 0.74; a suggestion there this turn; P(envelope room = Dining) 0.14\n  B. enter the Lounge -- score 0.74; a suggestion there this turn; P(envelope room = Lounge) 0.14\nFor your line, listen to the recent exchange: respond to something that interests you, or let it pass. It needn't end in a tactical point. Your decision still comes from the allowed menu.\nAnswer with JSON only: {\"choice\": \"<letter>\", \"say\": \"<one short line in your voice, or an empty string>\"}\n",
+   "result": {
+    "text": "{\"choice\": \"A\", \"say\": \"Files never confessed either, Plum \u2014 but a cook always talks. Dining Room it is, as advertised.\"}",
+    "error": null,
+    "stop_reason": "end_turn",
+    "model": "claude-opus-5",
+    "input_tokens": 707,
+    "output_tokens": 48,
+    "cached_tokens": 4201,
+    "seconds": 1.9868628999975044,
+    "lookups": []
+   },
+   "canon": "0798380215e63ff18decfdf948113d15f4e59fba179b2e4b6e77688ac6b7bce4",
+   "tools": [
+    "wiki_search",
+    "wiki_read"
+   ]
+  },
+  "254af437b1753762d674e4090338d4f90d9a4abaecc4fde91c974dae91b602b2": {
+   "kind": "suggest",
+   "system": "2ad045b7b668ee8583abfe4c3f4fc2cbc73e298f653249238ed1b021fcc923e2",
+   "user": "You are Colonel Mustard, seat P0 Mustard. Turn 9.\nAt the table: P0 Mustard, P1 White, P2 Green, P3 Plum.\nYour hand: Green, Kitchen, Knife, Peacock, Study.\n\nWhat is certain (the shared deduction floor):\n  Proven in the envelope: nothing yet.\n  Still unlocated: 16 cards.\n\nWhat your method believes (top cards per category; * = proven):\n  S: Scarlett 0.25 Mustard 0.25 White 0.25  |  W: Candlestick 0.20 Lead_Pipe 0.20 Revolver 0.20  |  R: Ballroom 0.14 Conservatory 0.14 Billiard 0.14\n  Best accusation by your numbers: Scarlett/Candlestick/Ballroom with P(correct) 0.01; your accusation threshold is 0.80.\n\nNo suggestions have been made yet.\n\nTable talk, most recent last:\n  P0 Mustard: \"Dining Room first \u2014 seen this a hundred times, the answer likes to hide where the food is. Off we go!\"\n  P3 Plum: \"A hundred times, Mustard, and the food has never once confessed. I'll take the Study, where at least the evidence is filed.\"\n  P0 Mustard: \"Files never confessed either, Plum \u2014 but a cook always talks. Dining Room it is, as advertised.\"\n\nDecision: the suspect to name and the weapon to name.\nSuspect options (best first by your method's score; choose one letter):\n  A. name Scarlett -- score 0.25; P(envelope) 0.25\n  B. name Mustard -- score 0.25; P(envelope) 0.25\n  C. name White -- score 0.25; P(envelope) 0.25\n  D. name Plum -- score 0.25; P(envelope) 0.25\n  E. name Green -- score 0.00; in your own hand: naming it is a bluff\n  F. name Peacock -- score 0.00; in your own hand: naming it is a bluff\nWeapon options (best first; choose one letter):\n  A. name Candlestick -- score 0.20; P(envelope) 0.20\n  B. name Lead_Pipe -- score 0.20; P(envelope) 0.20\n  C. name Revolver -- score 0.20; P(envelope) 0.20\n  D. name Rope -- score 0.20; P(envelope) 0.20\n  E. name Wrench -- score 0.20; P(envelope) 0.20\n  F. name Knife -- score 0.00; in your own hand: naming it is a bluff\nYour bluff rate is 0.10: how often you name a card from your own hand.\nFor your line, listen to the recent exchange: respond to something that interests you, or let it pass. It needn't end in a tactical point. Your decision still comes from the allowed menu.\nAnswer with JSON only: {\"suspect\": \"<letter>\", \"weapon\": \"<letter>\", \"say\": \"<one short line in your voice, or an empty string>\"}\n",
+   "result": {
+    "text": "{\"suspect\":\"A\",\"weapon\":\"A\",\"say\":\"Scarlett with the candlestick in the Dining Room \u2014 opening gambit, textbook. Let's see who flinches.\"}",
+    "error": null,
+    "stop_reason": "end_turn",
+    "model": "claude-opus-5",
+    "input_tokens": 1064,
+    "output_tokens": 60,
+    "cached_tokens": 0,
+    "seconds": 4.490910799999256,
+    "lookups": []
+   },
+   "canon": "0798380215e63ff18decfdf948113d15f4e59fba179b2e4b6e77688ac6b7bce4",
+   "tools": [
+    "wiki_search",
+    "wiki_read"
+   ]
+  },
+  "a109217c7491c1f28faf33f131bdfe39643bab9f18271c9a6947fc1444526cc7": {
+   "kind": "suggest",
+   "system": "75fbc9d82c1ef512efdb28a8bdbab7d31df73ff575f4cc5d0b51ac62b40c51a1",
+   "user": "You are Mrs. White, seat P1 White. Turn 10.\nAt the table: P0 Mustard, P1 White, P2 Green, P3 Plum.\nYour hand: Billiard, Conservatory, Dining, Hall, White.\n\nWhat is certain (the shared deduction floor):\n  Proven in the envelope: nothing yet.\n  Still unlocated: 16 cards.\n\nWhat your method believes (top cards per category; * = proven):\n  S: Scarlett 0.27 Mustard 0.18 Green 0.18  |  W: Candlestick 0.23 Knife 0.15 Lead_Pipe 0.15  |  R: Kitchen 0.20 Ballroom 0.20 Library 0.20\n  Best accusation by your numbers: Scarlett/Candlestick/Kitchen with P(correct) 0.01; your accusation threshold is 0.80.\n\nSuggestions so far, as you saw them:\n  1. P0 Mustard suggests Scarlett/Candlestick/Dining -- P1 White showed Dining\n\nTable talk, most recent last:\n  P0 Mustard: \"Dining Room first \u2014 seen this a hundred times, the answer likes to hide where the food is. Off we go!\"\n  P3 Plum: \"A hundred times, Mustard, and the food has never once confessed. I'll take the Study, where at least the evidence is filed.\"\n  P0 Mustard: \"Files never confessed either, Plum \u2014 but a cook always talks. Dining Room it is, as advertised.\"\n  P0 Mustard: \"Scarlett with the candlestick in the Dining Room \u2014 opening gambit, textbook. Let's see who flinches.\"\n\nDecision: the suspect to name and the weapon to name.\nSuspect options (best first by your method's score; choose one letter):\n  A. name Scarlett -- score 0.27; P(envelope) 0.27\n  F. name White -- score 0.00; in your own hand: naming it is a bluff\nWeapon options (best first; choose one letter):\n  A. name Candlestick -- score 0.23; P(envelope) 0.23\nYour bluff rate is 0.30: how often you name a card from your own hand.\nFor your line, listen to the recent exchange: respond to something that interests you, or let it pass. It needn't end in a tactical point. Your decision still comes from the allowed menu.\nAnswer with JSON only: {\"suspect\": \"<letter>\", \"weapon\": \"<letter>\", \"say\": \"<one short line in your voice, or an empty string>\"}\n",
+   "result": {
+    "text": "{\"suspect\": \"A\", \"weapon\": \"A\", \"say\": \"Mustard's textbook opener, repeated back to him. Let's see who flinches the second time.\"}",
+    "error": null,
+    "stop_reason": "end_turn",
+    "model": "claude-opus-5",
+    "input_tokens": 899,
+    "output_tokens": 54,
+    "cached_tokens": 0,
+    "seconds": 3.2825103999930434,
+    "lookups": []
+   },
+   "canon": "0798380215e63ff18decfdf948113d15f4e59fba179b2e4b6e77688ac6b7bce4",
+   "tools": [
+    "wiki_search",
+    "wiki_read"
+   ]
+  },
+  "ebc393d9e4095f3a6f8a84ee009609a0d89ff73f33d2b5ad55150784ef56bf6b": {
+   "kind": "accuse",
+   "system": "75fbc9d82c1ef512efdb28a8bdbab7d31df73ff575f4cc5d0b51ac62b40c51a1",
+   "user": "You are Mrs. White, seat P1 White. Turn 10.\nAt the table: P0 Mustard, P1 White, P2 Green, P3 Plum.\nYour hand: Billiard, Conservatory, Dining, Hall, White.\n\nWhat is certain (the shared deduction floor):\n  Proven in the envelope: Scarlett, Candlestick, Ballroom.\n  Still unlocated: 13 cards.\n\nWhat your method believes (top cards per category; * = proven):\n  S: Scarlett*  |  W: Candlestick*  |  R: Ballroom*\n  Best accusation by your numbers: Scarlett/Candlestick/Ballroom with P(correct) 1.00; your accusation threshold is 0.80.\n\nSuggestions so far, as you saw them:\n  1. P0 Mustard suggests Scarlett/Candlestick/Dining -- P1 White showed Dining\n  2. P1 White suggests Scarlett/Candlestick/Ballroom -- nobody could refute\n\nTable talk, most recent last:\n  P0 Mustard: \"Dining Room first \u2014 seen this a hundred times, the answer likes to hide where the food is. Off we go!\"\n  P3 Plum: \"A hundred times, Mustard, and the food has never once confessed. I'll take the Study, where at least the evidence is filed.\"\n  P0 Mustard: \"Files never confessed either, Plum \u2014 but a cook always talks. Dining Room it is, as advertised.\"\n  P0 Mustard: \"Scarlett with the candlestick in the Dining Room \u2014 opening gambit, textbook. Let's see who flinches.\"\n  P1 White: \"Mustard's textbook opener, repeated back to him. Let's see who flinches the second time.\"\n\nDecision: whether to accuse.\nOptions (choose one letter):\n  A. accuse Scarlett with the Candlestick in the Ballroom -- your P(correct) 1.00 against your threshold 0.80\n  B. accuse no one this turn\nFor your line, listen to the recent exchange: respond to something that interests you, or let it pass. It needn't end in a tactical point. Your decision still comes from the allowed menu.\nAnswer with JSON only: {\"choice\": \"<letter>\", \"say\": \"<one short line in your voice, or an empty string>\"}\n",
+   "result": {
+    "text": "{\"choice\": \"A\", \"say\": \"Nobody flinched because nobody could. Scarlett, the candlestick, the Ballroom \u2014 and not a crumb from the Dining Room, Mustard.\"}",
+    "error": null,
+    "stop_reason": "end_turn",
+    "model": "claude-opus-5",
+    "input_tokens": 826,
+    "output_tokens": 66,
+    "cached_tokens": 0,
+    "seconds": 2.3773821000067983,
     "lookups": []
    },
    "canon": "0798380215e63ff18decfdf948113d15f4e59fba179b2e4b6e77688ac6b7bce4",

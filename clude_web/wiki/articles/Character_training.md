@@ -26,11 +26,18 @@ Headless and LLM seats share the numerical character. Headless play selects from
 
 A fair comparison records the starting memory, board, roster, seed schedule and code version. If one variant learns during the run while another reads fixed memory, their difference includes that learning. A confirmation run on separate deals helps distinguish a useful change from tuning to a small sample.
 
-## Recorded work and the next phase
+## Recorded work and the current phase
 
 The [[measurement record]] indexes ring-board and Classic-board experiments, including numerical training, leash ladders and Plum's logbook comparison. Many key preset measurements predate the current landing rule. They are starting evidence for the next phase, not fresh acceptance tests of today's players.
 
-Phase 12 trained Plum's network: two runs of {{fact:policy.run.games}} games each, measured on the same belief benchmark and arenas as the other characters. Its protocol and results are in [[regularised Nash dynamics]]. The [[classwork archive]] supplies wider learning concepts for that work without implying that its algorithms have already been implemented.[^wiki]
+Phase 14 trained three independent Plum networks from fresh initialisations,
+{{fact:phase14.plum.per_run}} games each, and selected Run 3 in a balanced
+tournament across every line-up containing him. Its current protocol and
+results are in [[regularised Nash dynamics]]. Mustard, White and Green were
+also rebuilt from the frozen post-landing-rule corpus; their staged method
+documents and the remaining dial sweeps still have separate release gates.
+The [[classwork archive]] supplies wider learning concepts without implying
+that every algorithm in it has been implemented.[^phase14][^wiki]
 
 
 ## See also
@@ -44,5 +51,6 @@ Phase 12 trained Plum's network: two runs of {{fact:policy.run.games}} games eac
 [^methods]: {{cite:docs/strategy-glossary.md}}
 [^memory]: {{cite:docs/logbooks.md}}
 [^wiki]: {{cite:docs/wikiclude-plan.md}}
+[^phase14]: {{cite:docs/phase14-plan.md|Plum and Green — retrained; Run 3 promoted locally}}
 
 {{navbox:clude}}

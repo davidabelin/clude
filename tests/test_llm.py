@@ -733,6 +733,10 @@ FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures"
 # every request with a canon, so a new article moves every replay key just as
 # a persona edit does: W8's Wikiclude article (2026-10-16) did, and both games
 # were re-recorded the same day with David's approval ($0.1964 together).
+# Phase 14 Run 3 changed Plum's numerical menus. Only seed 2 contains Plum,
+# so it alone was re-recorded on 2026-10-18 with David's approval: six calls,
+# no fallback or lookup, $0.0348 estimated. Its envelope, winner and shape
+# remained the same. Seed 1 still replays byte for byte and was not touched.
 RECORDED_GAMES = [
     pytest.param(
         "llm_seed1.json", "1", "3", "Scarlett,Peacock",

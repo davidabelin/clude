@@ -5,9 +5,22 @@ David's decisions are in section 7, scoring/agent implementation in
 section 10, and training/smoke-run evidence in section 11. PyTorch is
 a default developer dependency. Release readiness remains separate.
 
-## Current state (2026-10-07)
+## Phase 12 completion state (2026-10-07; superseded weights)
 
-N2-N5 are built. **The committed weights are the second long run's checkpoint 130** (section 11), exported on the evening of 2026-10-06: 49% at his own table and 22% at the six-character table on 96 games, the best belief log-loss on record from the 50% checkpoint on, no wrong accusations. N1's logbook commands and N5's headless evaluation followed on 2026-10-07 (section 12): presets kept, leash 0.35 the equal-rope candidate. N6's paid ladder the same day kept **leash 0.35** ($8.38), both LLM fixtures were re-recorded, and N7's wiki pass rewrote Plum's pages (section 13). **Deployed 2026-10-07** (revision `clude-00026-bsp`, 21:37 UTC) with the bucket's logbooks archived and relabelled: Phase 12 is complete. The detailed designs below are proposals unless the implementation records confirm them.
+N2-N5 were built. At Phase 12 completion, **the committed weights were the
+second long run's checkpoint 130** (section 11), exported on the evening of
+2026-10-06: 49% at his own table and 22% at the six-character table on 96
+games, the best belief log-loss then on record from the 50% checkpoint on,
+with no wrong accusation in those arenas. N1's logbook commands and N5's
+headless evaluation followed on 2026-10-07 (section 12): presets kept, leash
+0.35 the equal-rope candidate. N6's paid ladder the same day kept **leash
+0.35** ($8.38), both LLM fixtures were re-recorded, and N7's wiki pass rewrote
+Plum's pages (section 13). **Deployed 2026-10-07** (revision
+`clude-00026-bsp`, 21:37 UTC) with the bucket's logbooks archived and
+relabelled: Phase 12 is complete. Phase 14 Run 3 replaced checkpoint 130 in
+the local checkout on 2026-10-18; [the Phase 14 record](phase14-plan.md) owns
+the current selection and release state. The detailed designs below are
+historical proposals unless the implementation records confirm them.
 
 ## 1. Context
 
@@ -665,7 +678,7 @@ gate and N7.
 
 ### N5, the headless evaluation
 
-All on the committed weights (run 2's checkpoint 130), results in
+All on the then-committed weights (run 2's checkpoint 130), results in
 `data/plum-eval/` (gitignored) and the glossary's new section *The new
 Plum (Phase 12, 2026-10-07)*, which holds the tables.
 

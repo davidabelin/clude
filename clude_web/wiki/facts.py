@@ -75,6 +75,7 @@ _POLICY_ARENAS = "Arenas on the standard seeds"
 _POLICY_DIALS = "Dial checks"
 _POLICY_LEASH = "Leash width (the equal-rope match)"
 _POLICY_LLM = "Plum with Claude, the network (N6)"
+_PHASE14_PLUM = "Phase 14 Run 3, the current Plum (2026-10-18)"
 _RUN1 = "The first long run, `run150a` (2026-10-06)"
 _RUN2 = "The second run, `run2`, and the export (2026-10-06)"
 
@@ -439,6 +440,39 @@ TABLES.update({
             'leash 1': ('leash 1', '| leash 1 | 58.3 | 4.2 | 37.2 | 37.5 | 1.25 | 32.8 | 817 | 81 | 8.8% |'),
         },
     ),
+    # Phase 14: the current Run 3 weights, selected on 2026-10-18.
+    "plum.phase14.tournament": Table(
+        GLOSSARY, _PHASE14_PLUM,
+        ("Network", "Games", "Wins", "Win %", "Wrong accusations"),
+        ("games", "wins", "win", "wrong"),
+        {
+            "incumbent": ("Former incumbent", "| Former incumbent | 1,920 | 352 | 18.3 | 11 |"),
+            "run1": ("Run 1", "| Run 1 | 1,920 | 423 | 22.0 | 8 |"),
+            "run2": ("Run 2", "| Run 2 | 1,920 | 417 | 21.7 | 5 |"),
+            "run3": ("Run 3", "| **Run 3** | **1,920** | **440** | **22.9** | **7** |"),
+        },
+    ),
+    "plum.phase14.sizes": Table(
+        GLOSSARY, _PHASE14_PLUM,
+        ("Seats", "Games", "Run 3 wins", "Run 3 win %"),
+        ("games", "wins", "win"),
+        {
+            "3": ("3", "| 3 | 480 | 171 | 35.6 |"),
+            "4": ("4", "| 4 | 480 | 105 | 21.9 |"),
+            "5": ("5", "| 5 | 480 | 83 | 17.3 |"),
+            "6": ("6", "| 6 | 480 | 81 | 16.9 |"),
+        },
+    ),
+    "plum.phase14.benchmark": Table(
+        GLOSSARY, _PHASE14_PLUM,
+        ("Network", "25%", "50%", "75%", "100%", "Top-1 at 100%", "ms per call at 50%"),
+        ("25", "50", "75", "100", "top1", "ms"),
+        {
+            "incumbent": ("Former incumbent", "| Former incumbent | 1.442 | 1.137 | 0.761 | 0.222 | 0.928 | 0.245 |"),
+            "run3": ("Run 3", "| **Run 3** | **1.459** | **1.157** | **0.755** | **0.220** | **0.927** | **0.234** |"),
+            "uniform": ("Uniform floor baseline", "| Uniform floor baseline | 1.570 | 1.322 | 0.983 | 0.356 | 0.789 | - |"),
+        },
+    ),
     # Phase 12: the trained Plum, measured headless on 2026-10-07.
     "bench.policy": Table(
         GLOSSARY, _POLICY_BENCH,
@@ -676,6 +710,14 @@ FACTS: dict = {
     "policy.run2.entropy.to": Fact("1.35", DEEPNASH_PLAN, _RUN2, "from 1.65 to 1.35"),
     "policy.run2.turns.to": Fact("50", DEEPNASH_PLAN, _RUN2, "from 75 turns to 50"),
     "policy.smoke.memorise": Fact("3.6", DEEPNASH_PLAN, "What the smoke runs taught", "midpoint log-loss to 3.6"),
+    # Phase 14: the current Run 3 network.
+    "phase14.plum.per_run": Fact("153,600", GLOSSARY, _PHASE14_PLUM, "153,600 games per network"),
+    "phase14.plum.rollouts": Fact("460,800", GLOSSARY, _PHASE14_PLUM, "460,800 rollouts in all"),
+    "phase14.plum.setups": Fact("230,400", GLOSSARY, _PHASE14_PLUM, "230,400 distinct seeded deal and line-up"),
+    "phase14.plum.confirm.delta": Fact("4.9", GLOSSARY, _PHASE14_PLUM, "4.9 percentage points"),
+    "phase14.plum.confirm.low": Fact("1.5", GLOSSARY, _PHASE14_PLUM, "from 1.5 to 8.3"),
+    "phase14.plum.confirm.high": Fact("8.3", GLOSSARY, _PHASE14_PLUM, "from 1.5 to 8.3"),
+    "phase14.plum.fixture.cost": Fact("0.0348", GLOSSARY, _PHASE14_PLUM, "for $0.0348"),
 }
 
 

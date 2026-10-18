@@ -772,6 +772,7 @@ button.warn[disabled] { opacity: 0.45; cursor: not-allowed; }
   pointer-events: none;
   transform-box: view-box;
 }
+.board-door-leaf-line { stroke: inherit; }
 .board-door-knob {
   fill: var(--board-door-knob);
   stroke: var(--board-door-knob-edge);

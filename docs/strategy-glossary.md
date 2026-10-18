@@ -2,13 +2,13 @@
 
 This guide explains methods and preserves dated measurement evidence. Beliefs cover 21 cards and normalize separately within suspect/weapon/room categories; hard deductions always override method estimates. [Architecture](architecture.md) owns API/data-flow details.
 
-**Reading historical results:** measurements before 2026-09-15 used the ring board; earlier Phase 5/6 seating also rotated characters through tokens. Classic-grid sections supersede those baselines. Plum results before Phase 12 describe the enumeration agent now called **PlumOG**, and Green then included that arm. The trained network's own measurements are under [The new Plum](#the-new-plum-phase-12-2026-10-07). Tables, commands, dates, sample counts and limitations remain as evidence, not recommendations to spend.
+**Reading historical results:** measurements before 2026-09-15 used the ring board; earlier Phase 5/6 seating also rotated characters through tokens. Classic-grid sections supersede those baselines. Plum results before Phase 12 describe the enumeration agent now called **PlumOG**, and Green then included that arm. The current network's evidence is under [Phase 14 Run 3](#phase-14-run-3-the-current-plum-2026-10-18); [The new Plum](#the-new-plum-phase-12-2026-10-07-superseded) is the superseded checkpoint's dated record. Tables, commands, dates, sample counts and limitations remain as evidence, not recommendations to spend.
 
 ## Current Plum -- policy and belief network
 
 Module: `clude_agents/deep_nash.py`. NumPy inference supplies masked envelope beliefs, movement/honest suggestion scores and value. The trainer uses a regularised Nash-dynamics variant over mixed self-play; this is not a proved equilibrium solver for multiplayer Clue. Character retains accusation, bluffing and show logic; curiosity is inert for Plum's movement hook.
 
-Committed `weights/plum.npz` is run 2's checkpoint 130 (exported 2026-10-06; [Phase 12](deepnash-plan.md) section 11 has both training runs). Its headless evaluation, calibration and dial checks are under [The new Plum](#the-new-plum-phase-12-2026-10-07). Do not apply PlumOG's timing, menu-width, parking or win-rate claims to this agent.
+Committed `weights/plum.npz` is Phase 14 Run 3's full second-stage checkpoint, promoted locally on 2026-10-18. Its selection evidence is under [Phase 14 Run 3](#phase-14-run-3-the-current-plum-2026-10-18). Phase 12's checkpoint 130 measurements remain historical, and its dial measurements have not yet been replaced by Phase 14's full sweep. Do not apply PlumOG's timing, menu-width, parking or win-rate claims to this agent.
 
 ## Scarlett -- Naive Bayes
 
@@ -1388,9 +1388,66 @@ closes as answered. Not run: 2c and 2d, the paid ladders, which measure
 the model where the mechanism was the leash. The first form's runs stay
 in the store as the record of the overshoot.
 
-## The new Plum (Phase 12, 2026-10-07)
+## Phase 14 Run 3, the current Plum (2026-10-18)
 
-Plum's method since Phase 12 (`docs/deepnash-plan.md`): a policy and belief network trained by regularised Nash dynamics over the floor, weights `clude_agents/weights/plum.npz` (run 2's checkpoint 130). Everything here is headless, on those weights, with the presets as they stand; the results are in `data/plum-eval/` (gitignored). PlumOG's numbers are quoted from the sections above, not re-run.
+Phase 14 trained three independent networks from fresh initialisation. Each
+ran 150 x 512 current-rule games at the original learning regime, then
+150 x 512 at the lower-rate regime: **153,600 games per network, 460,800
+rollouts in all**. Because stage 2 reused stage 1's seed block with a changed
+policy, the experiment contains **230,400 distinct seeded deal and line-up
+setups**. No run began from the Phase 12 checkpoint.
+
+The selection tournament enumerated all 26 line-ups containing Plum. Each
+network and the former incumbent played 240 games at each of three, four, five
+and six seats in a selection block, then the same balanced design on 960 fresh
+confirmation seeds. Every possible opponent appeared exactly 672 times per
+entrant. Across the **1,920 games per entrant**:
+
+| Network | Games | Wins | Win % | Wrong accusations |
+|---|---:|---:|---:|---:|
+| Former incumbent | 1,920 | 352 | 18.3 | 11 |
+| Run 1 | 1,920 | 423 | 22.0 | 8 |
+| Run 2 | 1,920 | 417 | 21.7 | 5 |
+| **Run 3** | **1,920** | **440** | **22.9** | **7** |
+
+Run 3's untouched confirmation advantage over the incumbent was **4.9
+percentage points**, with a **95% paired bootstrap interval from 1.5 to 8.3
+points** over 960 paired games. It did not separate from Run 1 or Run 2, so
+the evidence identifies the best observed replacement rather than a unique
+winner among the new networks. David selected Run 3. Wrong accusations are
+evidence for its LLM head, not a rejection gate for the headless network.
+
+| Seats | Games | Run 3 wins | Run 3 win % |
+|---:|---:|---:|---:|
+| 3 | 480 | 171 | 35.6 |
+| 4 | 480 | 105 | 21.9 |
+| 5 | 480 | 83 | 17.3 |
+| 6 | 480 | 81 | 16.9 |
+
+The separate 120-game, 2,160-snapshot belief benchmark compared the same four
+weight files. Run 3 stayed within the 0.02 log-loss guardrail of the incumbent
+at every checkpoint and was slightly better at the final checkpoint:
+
+| Network | 25% | 50% | 75% | 100% | Top-1 at 100% | ms per call at 50% |
+|---|---:|---:|---:|---:|---:|---:|
+| Former incumbent | 1.442 | 1.137 | 0.761 | 0.222 | 0.928 | 0.245 |
+| **Run 3** | **1.459** | **1.157** | **0.755** | **0.220** | **0.927** | **0.234** |
+| Uniform floor baseline | 1.570 | 1.322 | 0.983 | 0.356 | 0.789 | - |
+
+The guarded local promotion replaced hash
+`7252746d294070839872ae819ac39c91a99c2676061d9a62fee5a7225efb4552`
+with `13e76570686ac8048d994cdb313364d4c3468f6f038ae3366fcb4b1ff3c63dbc`
+and retained an ignored local backup. This does not establish production
+deployment. The affected exact-game fixture was refreshed for $0.0348 with
+six successful model calls and no fallbacks or lookups.
+
+## The new Plum (Phase 12, 2026-10-07; superseded)
+
+This section preserves the dated evaluation of Phase 12 run 2 checkpoint 130,
+which was the committed file from 2026-10-06 until Run 3 replaced it locally
+on 2026-10-18. It is not a measurement of the current file. Everything here
+is headless on that former checkpoint; PlumOG's numbers are quoted from the
+sections above, not re-run.
 
 ### Belief benchmark, the network (N5)
 

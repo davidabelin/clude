@@ -38,7 +38,7 @@ Green's current belief is exactly the selected method's output, but the computat
 
     Then the game ends and the envelope is revealed: White, the Wrench, the Study. Each arm's belief is scored by [[log-loss]] on the three true cards: Peacock {{code:example.green.loss.Peacock}}, Plum {{code:example.green.loss.Plum}}, Scarlett {{code:example.green.loss.Scarlett}}, Mustard {{code:example.green.loss.Mustard}}, White {{code:example.green.loss.White}} (lower is better). The arms are ranked: the best scores a reward of 1, the worst 0, the three between at even spacing. Each arm's record is a [[w:Beta distribution|Beta distribution]] with two counts, successes and failures, both starting at 1; the reward times {{code:green.step_size}} is added to the one and its shortfall times {{code:green.step_size}} to the other. After this single lesson Peacock's arm stands at Beta({{code:example.green.alpha.Peacock}}, {{code:example.green.beta.Peacock}}) with a mean of {{code:example.green.mean.Peacock}}, Plum's at mean {{code:example.green.mean.Plum}}, Scarlett's {{code:example.green.mean.Scarlett}}, Mustard's {{code:example.green.mean.Mustard}} and White's {{code:example.green.mean.White}}.
 
-On this revealed envelope, Peacock's estimate gives the lowest loss and Plum's network the highest: the network has read Green's naming of Peacock as evidence for her, and put Mrs. White at {{code:example.policy.White}} where counting the surviving deals gives {{code:example.plum.White}}. Even the exact count would not have won this lesson outright, since a probability estimate can be right without giving the most probability to the outcome of one particular deal. The reward reflects one realised outcome; it does not establish which method is best in expectation, and on real games the network is the arm Green comes to trust most.[^policy]
+On this revealed envelope, Peacock's estimate gives the lowest loss and White's the highest; Plum's current network is second-highest. The network has read Green's naming of Peacock as evidence for her, and put Mrs. White at {{code:example.policy.White}} where counting the surviving deals gives {{code:example.plum.White}}. Even the exact count would not have won this lesson outright, since a probability estimate can be right without giving the most probability to the outcome of one particular deal. The reward reflects one realised outcome; it does not establish which method is best in expectation.[^policy]
 
 ## How it works
 
@@ -151,6 +151,6 @@ In the twin arena, adding [[Claude]] changed Green's win rate from {{fact:twin.g
 [^ring]: {{cite:docs/strategy-glossary.md|Belief benchmark, FloorBot regime (Phase 5)}}
 [^tuned]: {{cite:docs/strategy-glossary.md|Tuned presets on the grid (Stage 1e, 2026-09-15)}}
 [^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
-[^policy]: {{cite:docs/strategy-glossary.md|Belief benchmark, the network (N5)}}
+[^policy]: {{cite:clude_web/wiki/facts.py|`rope_observation` and `rope_question`}}
 
 {{navbox:clude}}

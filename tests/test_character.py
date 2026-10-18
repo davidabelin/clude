@@ -266,10 +266,10 @@ def test_movement_scores_and_accusation_test_are_pure():
 # deliberately if a method or a preset is meant to change.
 GOLDEN_CHARACTER_GAMES = {
     (23, 5, ("Scarlett", "Peacock", "Mustard", "White")): (
-        "419cdb36db41f3f7ece0649f18a0237df7e543700556b6b1523c252c583d0ab5", 86,
+        "68fa1c14d2ab1d80ecde84e56ef0083a9c2c7cd7e4ae0f7f349ae1deaafb2f7c", 95,
     ),
     (9, 3, ("Scarlett", "White", "Mustard")): (
-        "5f4ac82167a97e04a58264ee861799de1bed017a053e39520f797c4ba90b612f", 91,
+        "890ab5fe33857f29862f8909719e91b363e91340ab5a098c647b27526e1d7592", 88,
     ),
     (31, 4, ("Peacock", "Scarlett")): (
         "cbf2e6ccb9254cd6e60d5158365dc32b8bc6f57391e9f588f41e2b668df7bcc3", 62,
@@ -280,9 +280,11 @@ GOLDEN_CHARACTER_GAMES = {
 # export replaces the file and this line together). Re-captured again
 # on 2026-10-06 with the first trained weights (run 2, checkpoint 130;
 # docs/deepnash-plan.md 11): 45 events where the random Plum's game
-# wandered to 100.
+# wandered to 100. Re-captured on 2026-10-18 for Phase 14 Run 3. The
+# two goldens above also moved because Green can select his Plum arm,
+# even where Plum is not seated.
 GOLDEN_FOUR_CHARACTER_GAME = (
-    "a74003409aba9f1962d5e93343da191ce0d4a4bf8d1dc577de75127c6c056032", 45,
+    "581e24b1fb4d0cd71c4d5aa0854a2715692be2426faf9b9e8fa085a6b07657f5", 45,
 )
 
 

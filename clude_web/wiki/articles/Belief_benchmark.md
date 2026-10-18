@@ -42,7 +42,7 @@ White's method had lower loss than the uniform baseline at every checkpoint in t
 
 [[PlumOG]]'s half-way loss was {{fact:bench.grid.Plum.50}} against uniform's {{fact:bench.grid.uniform.50}}. The run reported {{fact:plum.fallback.calls}} sampled fallbacks among {{fact:bench.grid.snapshots}} calls. That is a fraction of benchmark calls, not the fraction of a typical game spent sampling. It also includes all checkpoints, not just half-way observations.
 
-This table used the earlier sample budget. Subsequent budget comparisons increased PlumOG's fallback target to {{code:plum.sample_budget}} samples while retaining {{code:plum.node_budget}} search nodes. The dated table remains a record of the earlier configuration, not an automatic rerun of today's code. Since Phase 12 Plum's seat is a trained network, which scores {{fact:bench.policy.Plum.50}} at half-way on the same positions; its table is in [[regularised Nash dynamics]].[^budgets]
+This table used the earlier sample budget. Subsequent budget comparisons increased PlumOG's fallback target to {{code:plum.sample_budget}} samples while retaining {{code:plum.node_budget}} search nodes. The dated table remains a record of the earlier configuration, not an automatic rerun of today's code. Plum's seat is now the Phase 14 Run 3 network, which scores {{fact:plum.phase14.benchmark.run3.50}} at half-way on a separate 120-game current benchmark; its table is in [[regularised Nash dynamics]].[^budgets][^phase14]
 
 ## Adaptation and interpretation
 
@@ -69,5 +69,6 @@ The [[arena]] complements this test by letting beliefs, dials and opponents inte
 [^snapshots]: {{cite:clude_training/self_play.py|`generate_snapshots` and `truncate_state`}}
 [^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
 [^budgets]: {{cite:docs/strategy-glossary.md|Tuned presets on the grid (Stage 1e, 2026-09-15)}}
+[^phase14]: {{cite:docs/strategy-glossary.md|Phase 14 Run 3, the current Plum (2026-10-18)}}
 
 {{navbox:clude}}

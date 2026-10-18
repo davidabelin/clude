@@ -4,8 +4,8 @@ short: The pedantic character who plays by a network trained in self-play
 categories: Characters
 redirects: Plum, Prof. Plum
 featured: yes
-dyk: ... that [[Professor Plum]] was rebuilt in October 2026 on a network trained in {{fact:policy.run.games}}-game runs, and now answers in under a millisecond where his old count took {{fact:bench.policy.PlumOG.ms}} ms?
-dyk: ... that Plum's network gets the Rope question backwards, giving Mrs. White {{code:example.policy.White}} where the count gives {{code:example.plum.White}}, yet has the best mid-game estimates of any method on real games?
+dyk: ... that [[Professor Plum]]'s current network was selected from three fresh {{fact:phase14.plum.per_run}}-game runs in a balanced {{fact:plum.phase14.tournament.run3.games}}-game tournament per entrant?
+dyk: ... that Plum's current network gets the Rope question backwards, giving Mrs. White {{code:example.policy.White}} where the count gives {{code:example.plum.White}}?
 dyk: ... that the old Plum, now PlumOG, once spent fifty turns riding a [[secret passages|secret passage]] back and forth, making the same [[suggestion]] twenty times?
 dyk: ... that [[Professor Plum]] has read every article of this encyclopaedia and is the first to notice when one is wrong about him?
 ---
@@ -25,16 +25,23 @@ Memory | A [[logbook]]; his network's weights are fixed between games
 [[Curiosity]] | {{code:preset.Plum.curiosity}} (inert for his network)
 [[Secrecy]] | {{code:preset.Plum.secrecy}}
 [[Temperature]] | {{code:preset.Plum.temperature}}
-= Headless, 7 October 2026
-Won at his own table | {{fact:arena.policy.own.win}}% of 24
-Wrong accusations | {{fact:arena.policy.own.wrong}}%
+= Headless, Phase 14 balanced tournament
+Won | {{fact:plum.phase14.tournament.run3.win}}% of {{fact:plum.phase14.tournament.run3.games}} games
+Wrong accusations | {{fact:plum.phase14.tournament.run3.wrong}} (reported to the LLM head)
 }}
 
 **Professor Plum** is one of the six [[Clue#The cards|suspects]] in [[Clue]] and the [[clude]] [[Category:Characters|character]] who plays by [[regularised Nash dynamics]]: a small neural network, trained by playing tens of thousands of games, that reads what the [[deduction floor]] has established and estimates which cards are in [[the envelope]], where to go and what to ask. He has played this way since 5 October 2026.[^module]
 
 Until then he played by [[exact posterior enumeration]], counting every deal consistent with the evidence. That method, and the character as he was, are kept as **PlumOG**: not seatable, but preserved in the code, in his archived [[logbook]] and in this encyclopaedia's worked examples. The count was exact when it finished, but on the [[Classic board]] it rarely could mid-game, and it was the slowest and most expensive seat at the table. The network kept everything else about him: his token, his voice, his dials and his place in [[Mr. Green]]'s ensemble.[^plan]
 
-The change made Plum the best reader of the cards from the start of a game to the halfway mark, by the [[belief benchmark]], and a thousand times quicker. It did not make him a better player than PlumOG: he wins a little less at his own table and noticeably less among all six characters. He has made no wrong accusation in any headless arena on record, before the change or since.[^bench][^arenas]
+The first network made Plum much quicker than PlumOG and improved its dated
+belief benchmark. Phase 14 replaced that checkpoint with Run 3 after a
+balanced tournament across every line-up containing Plum. Run 3 won
+{{fact:plum.phase14.tournament.run3.win}}% of its games against the former
+checkpoint's {{fact:plum.phase14.tournament.incumbent.win}}%; it also made
+{{fact:plum.phase14.tournament.run3.wrong}} wrong accusations, which the
+headless tournament reports so a model playing his seat can take account of
+them.[^phase14]
 
 ## Character
 
@@ -60,9 +67,13 @@ Told that he is a language model playing a part, he asks what the account explai
 
 On each of his turns the [[deduction floor]] settles what is certain, and Plum's network reads the result as {{code:net.state}} numbers: for every card, where it could still be and how often it has been named and by how many players; for every seat, its hand size; how far the game has run. One pass through the network gives him four answers: his [[belief]] about the envelope, scores for which suspect and which weapon to name, a score for each legal move, and an estimate of how the game is going for him.[^module]
 
-The network learnt all of this. It played {{fact:policy.run.games}} games in each of two training runs, half against copies of itself and half among the other characters, and after every batch it was corrected towards the choices that had gone better than it expected and towards the envelopes that had turned out to be true.[^runs]
+The current network learnt all of this from a fresh initialisation. Run 3
+played {{fact:phase14.plum.per_run}} current-rule games in two stages, half
+against copies of the network and half among the other characters and the
+floor player. Three independent runs produced {{fact:phase14.plum.rollouts}}
+rollouts in all; none began from the former committed weights.[^phase14]
 
-A learnt estimate has a learnt estimate's weakness. On the [[Belief#At the table|Rope question]], the small position every method article works through, the count says Mrs. White is in the envelope with probability {{code:example.plum.White}}; the network says {{code:example.policy.White}}. It has read Mr. Green's naming of Mrs. Peacock as evidence *for* her, a habit it seems to have learnt from its games, where the disproof that followed points the other way. On real positions it is the best estimator at the table; on a position that breaks its habits it can be confidently wrong in a way a count never is.
+A learnt estimate has a learnt estimate's weakness. On the [[Belief#At the table|Rope question]], the small position every method article works through, the count says Mrs. White is in the envelope with probability {{code:example.plum.White}}; the current network says {{code:example.policy.White}}. It has read Mr. Green's naming of Mrs. Peacock as evidence *for* her, a habit it seems to have learnt from its games, where the disproof that followed points the other way. On a position that breaks its habits it can be confidently wrong in a way a count never is.
 
 ## How he plays
 
@@ -76,33 +87,48 @@ A character's [[belief]] says what it thinks; five [[personality dials]] say wha
 | [[Secrecy]] | {{code:preset.Plum.secrecy}} | When he must show a card, how strongly he prefers one that player has already seen. |
 | [[Temperature]] | {{code:preset.Plum.temperature}} | How much chance enters his choices. The lowest of the six: he very nearly always takes his top option. |
 
-Two dials were measured again for the network. The threshold was kept because his estimates turned out well calibrated where it matters: whenever his best triple reached {{code:preset.Plum.accuse_threshold}}, it was right, in {{fact:policy.calibration.n}} of {{fact:policy.calibration.n}} positions. Lowering it won a few more games among six characters but brought back wrong accusations.[^dials]
-
-{{table:sweep.policy.accuse|Plum's accusation threshold moved with every other dial and character at its preset, seed 7100: 128 games with Plum seated among six characters, 96 at his own table.}}
-
-The temperature was kept for the same reason: 0.05 was the best or equal best at both tables. The [[leash]], which sets how far a model playing him may stray from his top option, had to change, because the network's scores are spread differently from the count's: at the old setting of 0.25 it would give the model less choice than PlumOG had. A leash of {{fact:policy.leash.match}} gives the same width of choice,[^leash] and a paid ladder with Claude kept it: at 0.25 the model made one wrong accusation in 24 games, at {{code:preset.Plum.leash}} none, with the same wins.[^n6]
+The current preset still carries Phase 12's high accusation threshold, low
+temperature and widened leash. Those measurements belong to the former
+checkpoint; Phase 14's complete dial sweep is still open, so they are not
+presented as a calibration of Run 3.[^dials]
 
 ## Record
 
 ### The quality of his numbers
 
-{{figure:plum-policy-logloss|Plum's network against PlumOG's count and the uniform baseline, by [[log-loss]] at four points of a game. Lower is better.}}
+The [[belief benchmark]] scores probabilities against the truth at four
+points in a game by [[log-loss]]: lower is better. On Phase 14's 120-game,
+2,160-snapshot comparison, Run 3 stayed within the acceptance margin of the
+former checkpoint at every point and finished slightly lower,
+{{fact:plum.phase14.benchmark.run3.100}} against
+{{fact:plum.phase14.benchmark.incumbent.100}}. It remained below the
+[[uniform baseline]] at every checkpoint.[^phase14]
 
-The [[belief benchmark]] scores each method's probabilities against the truth at four points in a game, by [[log-loss]]: lower is better, and the [[uniform baseline]] is what a player scores who knows what the deduction floor has proved and nothing more. Halfway through a game Plum's network scores {{fact:bench.policy.Plum.50}}, against the baseline's {{fact:bench.policy.uniform.50}} and PlumOG's {{fact:bench.policy.PlumOG.50}}: the best of any method, where PlumOG had been worse than knowing nothing.[^bench]
+{{table:plum.phase14.benchmark|Run 3, the former checkpoint and the uniform floor baseline on the same 2,160 snapshots. Lower log-loss is better.}}
 
 ### At the table
 
-{{table:arena.policy|Plum at his own table and among all six characters, 24 games each at seed 7007, beside PlumOG on the same deals in September.}}
+{{table:plum.phase14.tournament|The balanced selection and confirmation blocks together, with every entrant on the same 1,920 games.}}
 
-At his own table, against [[Colonel Mustard]] and [[Mr. Green]], he wins about half his games, a game fewer than PlumOG on the same deals. Among all six he wins less often: two of sixteen here, and {{fact:policy.six.96}}% over 96 games, against PlumOG's {{fact:arena.policy.og.six.win}}%. The estimated [[w:Standard error|standard error]] of a 24-game percentage is about ten points, so the gap at his own table is noise; the gap among six probably is not.[^arenas]
+Run 3 led the pooled result. In the untouched 960-game confirmation block it
+beat the former checkpoint by {{fact:phase14.plum.confirm.delta}} percentage
+points; the paired 95% interval ran from
+{{fact:phase14.plum.confirm.low}} to {{fact:phase14.plum.confirm.high}} points.
+It did not separate clearly from Runs 1 and 2, so this is the selected best
+observed network, not proof of a unique winner.[^phase14]
 
-{{figure:plum-checkpoints|His win rate at his own table through the late stages of both training runs.}}
+{{table:plum.phase14.sizes|Run 3's result by table size. The 480 games in each row balance all applicable line-ups.}}
 
 ### With Claude
 
-When [[Claude]] plays his seat at his own table, choosing within a leash of {{code:preset.Plum.leash}}, he wins as often as the network does alone, {{fact:ladder.policy.l35.win}}% of 24 games against the headless {{fact:ladder.policy.headless.win}}%. Paired game by game, the model lost {{fact:policy.llm.lost}} of the network's wins and won {{fact:policy.llm.lost}} others. It departs from the network's top option in {{fact:ladder.policy.l35.deviate}}% of the decisions it is asked to make, four to five times as often as it departed from PlumOG's, and talks about as much as PlumOG did, a median of six remarks a game. With PlumOG the model was worth seventeen points at this table, {{fact:plum.claude.base.win}}% to {{fact:plum.claude.llm.win}}%; the network already plays at that level.[^n6]
+The only paid Run 3 evidence so far is its refreshed exact-game fixture: six
+successful calls, no fallbacks or lookups, for about
+${{fact:phase14.plum.fixture.cost}}. The seeded game retained White as winner
+after ten turns. Phase 12's longer leash ladder belongs to the superseded
+checkpoint; Phase 14 has not yet repeated it.[^phase14]
 
-A typical game with Claude in his seat costs about \${{fact:cost.seat_game.plum}} at list prices. A long game costs more, because every call carries the game so far: one of the 24 ran {{fact:policy.llm.long.turns}} turns and stopped calling the model at the per-game cap, having spent \${{fact:policy.llm.long.cost}}.[^n6]
+A longer game can cost more because every call carries the game so far; the
+fixture is one exact acceptance game, not a general price estimate.
 
 ## PlumOG
 
@@ -158,13 +184,9 @@ Plum's network does not change between games: what it learnt, it learnt in train
 [^seats]: {{cite:CLAUDE.md|Settled decisions (David's)}} A character always plays its own suspect's token.
 [^module]: {{cite:clude_agents/deep_nash.py|the encoding, the network and `DeepNashAgent`}}
 [^plan]: {{cite:docs/deepnash-plan.md|1. Context}}
-[^runs]: {{cite:docs/deepnash-plan.md|The second run, `run2`, and the export (2026-10-06)}}
 [^presets]: {{cite:clude_agents/personality.py|`PRESETS` and `PLUM_OG`}}
 [^dials]: {{cite:docs/strategy-glossary.md|Dial checks}}
-[^leash]: {{cite:docs/strategy-glossary.md|Leash width (the equal-rope match)}}
-[^n6]: {{cite:docs/strategy-glossary.md|Plum with Claude, the network (N6)}}
-[^bench]: {{cite:docs/strategy-glossary.md|Belief benchmark, the network (N5)}}
-[^arenas]: {{cite:docs/strategy-glossary.md|Arenas on the standard seeds}}
+[^phase14]: {{cite:docs/strategy-glossary.md|Phase 14 Run 3, the current Plum (2026-10-18)}}
 [^og]: {{cite:clude_agents/exact_enum.py|the search, the sampler and the two budgets}}
 [^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
 [^budget]: {{cite:docs/strategy-glossary.md|Tuned presets on the grid (Stage 1e, 2026-09-15)}}

@@ -31,6 +31,13 @@ Phase 10 developed the table's stage and rail, the board's visual treatment, sou
 
 Phase 12 rebuilt [[Professor Plum]]. His exact enumeration, the slowest and least accurate mid-game method on the Classic board, was archived with its character as [[PlumOG]] on 5 October 2026, and a network trained by [[regularised Nash dynamics]] took his seat; the first trained weights were committed on 6 October and measured the next day.[^phase12]
 
+Phase 14 froze the post-landing-rule game corpus and rebuilt the adaptive
+methods. Plum was trained three times from fresh initialisations. A balanced
+tournament gave each candidate and the former checkpoint the same 1,920 games
+over every line-up containing Plum; Run 3 led and was promoted in the local
+checkout on 18 October. That local selection is not a production deployment,
+and the dial and release gates remain separate.[^phase14]
+
 Wikiclude began as Phase 10's explainer work. Its first articles introduced the characters and their methods, followed by rules, mathematics, personality, memory and evaluation. App and project articles and the classwork archive completed the initial collection. A final review checked prose, examples, navigation and presentation across the full collection. These are local development milestones, distinct from deployment.[^wiki]
 
 
@@ -47,5 +54,6 @@ Wikiclude began as Phase 10's explainer work. Its first articles introduced the 
 [^mcp]: {{cite:docs/web.md|A seat over MCP (Phase 9)}}
 [^wiki]: {{cite:docs/wikiclude-plan.md}}
 [^phase12]: {{cite:docs/deepnash-plan.md|12. As implemented: N1's storage half and N5 (2026-10-07)}}
+[^phase14]: {{cite:docs/phase14-plan.md|Plum and Green — retrained; Run 3 promoted locally}}
 
 {{navbox:clude}}

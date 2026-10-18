@@ -764,3 +764,26 @@ makes sense without it, and leave it only where it is needed.
 
 `tests/test_wiki.py` passes and the whole offline suite with it; no title
 changed, so the replay fixtures are unaffected.
+
+## 16. Phase 14 Run 3 update (2026-10-18)
+
+David selected Phase 14 Run 3 as the new headless Plum network. The public
+Plum, regularised-Nash, character-training, belief, benchmark and history
+pages now describe the fresh two-stage training and the balanced 26-line-up
+tournament. Current tables come from the Phase 14 evidence; Phase 12's detailed
+measurements remain in the maintainer glossary as a clearly superseded record,
+not as claims about the committed file. Article titles did not change.
+
+The live worked examples are evaluated through the new weights. The Rope
+question still demonstrates the network's learned-distribution failure, but
+the prose no longer generalises from an old benchmark to call the current
+network the best of every method. `facts.py` adds Phase 14 tournament,
+table-size and belief-benchmark facts, all checked against the current-results
+section of the strategy glossary.
+
+Run 3 moved one exact-game prompt path. With separate paid approval,
+`llm_seed2` was re-recorded on 2026-10-18: six calls, no fallbacks or lookups,
+$0.0348 estimated, with the same envelope, White winner, ten turns and two
+suggestions. `llm_seed1` contains no Plum, still replayed exactly and was not
+re-recorded. This is local documentation and test acceptance, not production
+deployment or completion of W7.

@@ -22,7 +22,7 @@ The current live-store inventory contributes 109 eligible records: 48 current-Pl
 - **White:** rebuild opponent transition counts with the Plum/PlumOG mapping above; compare prior masses 1/2/4/8/16 on held-out records and arenas. Preserve per-identity behaviour without publishing identities.
 - **Plum:** train three independent networks from fresh initialisation—never from the existing checkpoint—using the proven two-stage schedule: 150×512 current-rule games at the original learning regime, then 150×512 at the lower-rate Phase 12 regime. Evaluate checkpoints on untouched seeds using a 60-game belief benchmark plus paired 192-game Plum-table and six-character arenas.
 - **Green:** after the other three methods are fixed, start from Beta(1,1), compare step sizes 1/2/4 and decay rates 1.02/1.05/1.10, then train the chosen configuration through 200 fresh current-rule arena games and validate on a separate 200-game block. Do not claim that old live posteriors were reconstructed.
-- Promote a candidate only if it beats or remains within 0.02 log-loss of the current method at every checkpoint, introduces no new systematic calibration failure, loses no more than five win-rate points on paired validation, and preserves the character’s intended behaviour. Plum must make no wrong accusation in the validation arenas.
+- Promote a candidate only if it beats or remains within 0.02 log-loss of the current method at every checkpoint, introduces no new systematic calibration failure, loses no more than five win-rate points on paired validation, and preserves the character’s intended behaviour. Plum's headless wrong accusations are reported to the LLM head as evidence, not used as a network rejection gate.
 - If no candidate clears those gates, retain that component’s production state and record “retrained but not promoted”; do not ship a known regression merely to force a replacement.
 
 ### 3. Re-run all eight dial sweeps
@@ -71,7 +71,7 @@ The current live-store inventory contributes 109 eligible records: 48 current-Pl
 - Unit-test cutoff/version filtering, record hashing, seed-group splitting, Plum/PlumOG classification, identity privacy and manifest reproducibility.
 - Test deterministic Mustard/White rebuilds, Green’s fresh-state training, checkpoint validation and method-only promotion/rollback.
 - Test all dial grids, paired seeds, immutable memory input, N/A dials, cost/token aggregation and interruption-safe result files.
-- Re-capture character goldens and both recorded LLM games only after final acceptance; retain previous recordings in history.
+- Re-capture character goldens and each affected recorded LLM game only after final acceptance; retain previous recordings in git history.
 - Run focused agent, training, arena, memory, LLM and Wikiclude tests, then the complete offline suite and `git diff --check`.
 - Treat local tests, paid behavioural acceptance, production deployment and live-store promotion as separate evidence gates.
 
@@ -121,7 +121,7 @@ calibration check; its paired arena lost 3.1 win-rate points and did not add
 wrong accusations. It preserves the per-identity repeat/new method and is
 accepted in code. The counts document is staged locally only.
 
-### Plum and Green — retrained locally, no Plum promotion
+### Plum and Green — retrained; Run 3 promoted locally
 
 All three independent Plum runs completed on CUDA. Each run trained for
 150×512 games at the original regime and another 150×512 games at the Phase 12
@@ -158,10 +158,19 @@ bootstrap interval 1.5 to 8.3), while run 1 beat it by 3.4 points (0.1 to 6.9).
 Run 3 did not separate from run 1 (1.5 points, -2.3 to 5.1) or run 2 (2.5
 points, -1.1 to 6.0). Every candidate cleared the checkpoint log-loss guardrail.
 Wrong accusations are reported for the LLM head, not used to reject a headless
-network. Run 3 is the best observed replacement, but the paired evidence does
-not establish a unique winner among the three new networks. Plum is
-**retrained but not promoted**; `balanced-tournament.json` retains the balanced
-paired evidence and resumable configuration locally.
+network. Run 3 is the best observed replacement, though the paired evidence
+does not establish a unique winner among the three new networks. David selected
+Run 3 on 2026-10-18.
+
+The guarded promotion dry run checked the former committed hash
+`7252746d294070839872ae819ac39c91a99c2676061d9a62fee5a7225efb4552`.
+The `--apply` run copied `data/phase14/plum/run-3/stage2/latest.npz` to
+`clude_agents/weights/plum.npz`, backed the former file up under ignored local
+storage, and verified the new hash
+`13e76570686ac8048d994cdb313364d4c3468f6f038ae3366fcb4b1ff3c63dbc`.
+This is the accepted network in the checkout; it has not been deployed.
+`balanced-tournament.json` retains the balanced paired evidence and resumable
+configuration locally.
 
 Green's nine-candidate fresh-state search selected step size 4 and decay 1.05.
 It cleared every held-out loss/calibration checkpoint and the separate
@@ -170,7 +179,15 @@ accusations by 2.3 points against the fresh-state baseline. Its 200-game state
 is staged locally with Mustard and White; none of those method documents has
 been promoted live.
 
-All dial sweeps, paid confirmation, fixture refresh, production deployment and
-live method promotion remain open. The trainer cannot export committed weights;
-checkpoint and method promotion are separate hash-guarded, backed-up dry runs
-unless `--apply` is explicitly supplied.
+Run 3 changed three deterministic character fingerprints: two because Green
+can select his Plum arm and one at the four-character table containing Plum.
+Those goldens were deliberately re-captured. The affected `llm_seed2` exact
+game was re-recorded with explicit paid approval on 2026-10-18: six calls, no
+fallbacks or lookups, $0.0348 estimated. It retained the seeded envelope, White
+as winner, ten turns and two suggestions. `llm_seed1` contains no Plum, still
+replayed exactly and was not re-recorded.
+
+All dial sweeps, paid dial confirmation, production deployment and live method
+promotion remain open. The trainer cannot export committed weights; checkpoint
+and method promotion are separate hash-guarded, backed-up dry runs unless
+`--apply` is explicitly supplied.

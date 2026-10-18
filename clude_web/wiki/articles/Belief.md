@@ -112,7 +112,7 @@ The web interface follows the project's "play-is-blind" rule. Spectators and Wat
 
 {{table:bench.grid|The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games and {{fact:bench.grid.snapshots}} positions, 15 September 2026. Plum's row is at the old sample of 2,000.}}
 
-At the halfway checkpoint in this run, [[Mrs. White]] had the lowest log-loss, {{fact:bench.grid.White.50}}. [[Colonel Mustard]] scored {{fact:bench.grid.Mustard.50}}, compared with the baseline's {{fact:bench.grid.uniform.50}}. The Plum of that row is [[PlumOG]], at the smaller sampling budget that was later increased; the network that replaced him scores {{fact:bench.policy.Plum.50}} at halfway on the same positions, the best of any method.[^policy] [[Miss Scarlett]] and [[Mrs. Peacock]] scored slightly worse than the baseline at all four checkpoints. At the end, Mustard was lowest at {{fact:bench.grid.Mustard.100}}; Green, Plum and White followed within a few hundredths, ahead of the baseline at {{fact:bench.grid.uniform.100}}. Four methods took a fraction of a millisecond per call; PlumOG and Green, who consulted him, took about half a second.[^grid]
+At the halfway checkpoint in this dated run, [[Mrs. White]] had the lowest log-loss, {{fact:bench.grid.White.50}}. [[Colonel Mustard]] scored {{fact:bench.grid.Mustard.50}}, compared with the baseline's {{fact:bench.grid.uniform.50}}. The Plum of that row is [[PlumOG]], at the smaller sampling budget that was later increased. Phase 14's current Run 3 network scores {{fact:plum.phase14.benchmark.run3.50}} at halfway on its separate 120-game benchmark, below that run's uniform floor baseline of {{fact:plum.phase14.benchmark.uniform.50}}.[^policy] [[Miss Scarlett]] and [[Mrs. Peacock]] scored slightly worse than the baseline at all four checkpoints in the older common-method run. Four methods took a fraction of a millisecond per call; PlumOG and Green, who consulted him, took about half a second.[^grid]
 
 {{table:bench.ring|The same benchmark on the ring board, the first the game was played on, Phase 5.}}
 
@@ -149,6 +149,6 @@ The ring-board run produced a different ranking. These results describe the reco
 [^web]: {{cite:CLAUDE.md|Settled decisions (David's)}} "Spectators, and what the seat bars give away", 2026-09-22, and "No persona advises a chat seat", 2026-09-21.
 [^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
 [^ring]: {{cite:docs/strategy-glossary.md|Belief benchmark, FloorBot regime (Phase 5)}}
-[^policy]: {{cite:docs/strategy-glossary.md|Belief benchmark, the network (N5)}}
+[^policy]: {{cite:docs/strategy-glossary.md|Phase 14 Run 3, the current Plum (2026-10-18)}}
 
 {{navbox:clude}}

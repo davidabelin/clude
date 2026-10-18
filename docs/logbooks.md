@@ -12,7 +12,7 @@ Logbooks belong to a persistent identity (`SeatRecord.label`) in the same local/
 
 New web Play/Watch tables remember; the Developer look alone shows a checkbox to opt out. Saved settings remain, and old documents missing the field read as false. CLI games require `--logbook`; bare TableGame does no memory I/O.
 
-Both **X (headless)** and **X (LLM)** use X's numerical method and supported Tier 1 memory. Only LLM seats read/write Tier 2. Scarlett, Plum and Peacock have no persistent method memory; Plum's committed network weights are model parameters, not a per-game logbook. Planned learning from stored records is outside current Phase 12.
+Both **X (headless)** and **X (LLM)** use X's numerical method and supported Tier 1 memory. Only LLM seats read/write Tier 2. Scarlett, Plum and Peacock have no persistent method memory; Plum's committed network weights are model parameters, not a per-game logbook. Phase 14 retraining and staged method documents are governed by its frozen-corpus and release gates, not ordinary play.
 
 ## Tier 1: method memory
 

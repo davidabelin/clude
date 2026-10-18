@@ -30,7 +30,7 @@ Open <http://127.0.0.1:5000/>. The account's default password is `password`; the
 
 The engine, deduction floor, six characters, benchmarks, personality dials, logbooks, web play, Watch, replay and MCP seats are implemented. Phase 10's main visual work and sound effects are built; its help layer remains open. Phase 11 reviews documentation and docstrings.
 
-Phase 12 is replacing Plum's enumeration method with a DeepNash variant. The registry and Green's ensemble already use the new network; the committed weights are still the seeded initial weights. Training infrastructure and smoke runs exist, but trained weights have not been exported. Evaluation, dial calibration and production rollout remain separate work. Older results for Plum describe **PlumOG**, the archived enumeration agent. See [the roadmap](docs/phase-plan.md) and [Phase 12](docs/deepnash-plan.md).
+Phase 14 is recalibrating the adaptive methods and all eight personality dials on post-landing-rule evidence. The committed headless Plum weights are Run 3's full second-stage checkpoint, promoted locally on 2026-10-18 after a balanced 7,680-game four-network tournament. This checkout is not evidence of production deployment; dial confirmation and the release gate remain separate. Older pre-Phase-12 results for Plum describe **PlumOG**, the archived enumeration agent. See [the roadmap](docs/phase-plan.md), [Phase 14](docs/phase14-plan.md) and the historical [Phase 12 record](docs/deepnash-plan.md).
 
 ## The six methods
 
