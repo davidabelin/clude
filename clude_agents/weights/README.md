@@ -20,6 +20,6 @@ Phase 14 promotion uses `scripts/phase14_recalibrate.py promote-plum`
 with an explicitly selected checkpoint, the expected hash of this file
 and a local backup path. It is a dry run unless `--apply` is supplied.
 The 2026-10-18 promotion used that guard, an ignored local backup of the
-former file, and `--apply`. It did not deploy anything. Evaluate and accept
+former file, and `--apply`. That local promotion did not deploy anything; the separate Phase 14 release deployed these weights in revision `clude-00038-jws` on the same date. Evaluate and accept
 future checkpoints before promotion, record the run and checkpoint in the
 plan, then refresh the goldens and affected exact-game recordings deliberately.

@@ -123,7 +123,7 @@ The floor itself produces constraints rather than probabilities. The uniform bas
 
 In the recorded self-play comparison, floor-bot games took about {{fact:floor.suggestions}} suggestions, and {{fact:floor.solved}} of the viewers had proved the envelope by the end. The earlier random-bot games took {{fact:random.suggestions}} suggestions; their deductions plateaued, and no viewer proved the envelope at a full table.[^selfplay] Floor-bot play was therefore adopted for Mustard's training data and benchmark positions.
 
-{{table:bench.grid|The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026. The uniform row is the floor's own belief.}}
+{{table:bench.grid|Historical comparison. The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026. The uniform row is the floor's own belief.}}
 
 The uniform row gives the baseline score for this run: {{fact:bench.grid.uniform.50}} at halfway and {{fact:bench.grid.uniform.100}} at the end, with final top-choice accuracy {{fact:bench.grid.uniform.top1}}. Four methods had lower final log-loss; [[Naive Bayes]] and [[Dempster-Shafer theory]] had higher loss at every checkpoint.[^grid]
 

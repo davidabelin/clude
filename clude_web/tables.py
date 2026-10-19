@@ -1230,13 +1230,13 @@ class TableRegistry:
         """Perform one due unit under a nonblocking game lock.
 
         Advance a paced bot turn, external model decision, reaction, timeout/
-        autopilot answer or finished-game debrief. Other callers return without
-        waiting. Calls can spend API budget; no work occurs between requests.
+        autopilot answer, final comment/window closure or finished-game debrief.
+        Other callers return without waiting. Calls can spend API budget; no work occurs between requests.
         Queued reactions take priority over bot/model play, including while
         waiting to be due; human answers are never held for chatter.
 
         Returns a status: busy, waiting, turn, autopilot, timeout, model,
-        reaction, debrief, finished or nothing.
+        reaction, final_comment, final_comments, debrief, finished or nothing.
         """
         if game.finished:
             if (self.document(table_id) or {}).get("status") == "abandoned":
@@ -1600,7 +1600,7 @@ class TableRegistry:
 
     def in_progress(self) -> list:
         """Every unfinished table's document, newest first, and every
-        finished one still wrapping up (a debrief pending, Phase 8.3c).
+        finished one still wrapping up (final comments or a debrief pending).
         An abandoned table is gone from here."""
         documents = []
         for key in self.store.list_docs(TABLES_PREFIX):
@@ -1626,9 +1626,9 @@ class TableRegistry:
     def debrief_one(self, table_id: str, game: WebGame) -> Optional[int]:
         """Write one pending debrief: the seat's wrapper reads the finished
         record face up and adds a logbook entry with its dossiers on
-        everyone present, people by their account key (42 s and about
-        $0.09 with Claude). Returns the seat served, or None when nothing
-        was pending. Marks the document ``done`` with the serial, or
+        everyone present, people by their account key. This is a paid call
+        subject to the remaining table and daily budgets. Returns the seat
+        served, or None when nothing was pending. Marks the document ``done`` with the serial, or
         ``failed`` with the reason."""
         document = self.document(table_id) or {}
         pending = pending_debriefs(document)

@@ -1,6 +1,6 @@
 # Phase Plan
 
-Current roadmap as of 2026-10-18. This describes the checkout, not a live production audit. Completed plans are historical decision records; the maintainer guides describe current behaviour. The strategy glossary keeps dated measurements, including superseded ring-board, PlumOG and Phase 12 network results.
+Current roadmap as of 2026-10-19. This describes the checkout, not a live production audit. Completed plans are historical decision records; the maintainer guides describe current behaviour. The strategy glossary keeps dated measurements, including superseded ring-board, PlumOG and Phase 12 network results.
 
 ## Completed phases
 
@@ -25,11 +25,11 @@ Phase numbers changed during planning: grid re-measurement became 8.0, human sea
 
 The main visual implementation is built: typography/tokens, blind play views, separate Talk and Record panels, phone tabs, decorated board/logo, three account-selected looks, narration, doors/passages and six sound cues. Current looks are Case-file light (default), Gaslight dark and Developer; only Developer displays costs. Sound starts off; music remains out of scope.
 
-[Phase 10](phase10-plan.md) preserves the brief, decisions D1-D28 and implementation record. Earlier defaults and cost-display proposals were superseded by later rounds. Its help layer (10h) remains open. Former 10i explainers became Wikiclude, tracked separately and excluded from this round.
+[Phase 10](phase10-plan.md) preserves the brief, decisions D1-D28 and implementation record. Earlier defaults and cost-display proposals were superseded by later rounds. Its help layer (10h) remains open. Former 10i explainers became Wikiclude, tracked in its own plan and included in the current documentation review.
 
 ## Phase 11 scope
 
-This round reviews documentation for a first-time maintainer, including docstrings. It does not declare version 1.0.0 ready.
+The completed Phase 11 pass reviewed documentation for a first-time maintainer, including docstrings. It does not declare version 1.0.0 ready.
 
 - Make README the entry point and the roadmap a short status index.
 - Give each guide one responsibility; remove repeated history and obsolete proposals from current instructions.
@@ -39,7 +39,7 @@ This round reviews documentation for a first-time maintainer, including docstrin
 - Update executable persona prompts, including Plum's enumeration description. Mark stale replay fixtures; paid re-recording requires a separate estimate and approval.
 - Check Markdown targets/anchors, executable examples, Python behavior equivalence outside approved prompts, and the offline suite.
 
-Wikiclude articles, rendering and assets are outside this pass. Existing source citations and fact checks must still resolve. Release polish, missing help, production checks and trained Plum acceptance remain separate work. See [Phase 11 record](phase11-plan.md).
+Wikiclude was excluded from Phase 11; it is included in the post-Phase-14 documentation review. Phase 12 and Phase 14 subsequently completed trained-Plum acceptance and their recorded releases. Missing help and public-release polish remain separate work. See [Phase 11 record](phase11-plan.md).
 
 ## Phase 12 scope
 
@@ -49,7 +49,7 @@ Wikiclude articles, rendering and assets are outside this pass. Existing source 
 |---|---|---|
 | N1 | Enumeration agent archived and removed from seating/Green's arms; `logbook copy`, `reset-arm` and `relabel` built; local and bucket passes done | None |
 | N2 | Pure movement/suggestion scoring hooks built | Keep headless and LLM menus consistent |
-| N3 | NumPy agent built; weights were run 2's checkpoint 130 | Replaced locally by Phase 14 Run 3 after validation |
+| N3 | NumPy agent built; weights were run 2's checkpoint 130 | Superseded by Phase 14 Run 3, released 2026-10-18 |
 | N4 | Rollouts, PyTorch trainer, two long runs and the export | A further run is optional, after N7 |
 | N5 | Calibration table, arenas, dial sweeps and leash-width match measured; presets kept | None |
 | N6 | Persona wording updated in Phase 11; paid ladder kept leash 0.35 ($8.38); both LLM fixtures re-recorded and replaying | None |
@@ -59,9 +59,9 @@ The Phase 12 checkpoint had the best mid-game belief then measured and sub-milli
 
 ## Phase 13 scope
 
-[Phase 13: Character development](phase13-plan.md) is the active plan, agreed 2026-10-10. Begin with a light editorial cleanup of the existing narrative logbooks; then broaden the six characters' lives, soften their fourth-wall premise, improve listening and social continuity, make Wikiclude explicitly fallible, and address participant naming and measured conversation pacing. The `focus` dial and character-authored wiki edits remain deferred.
+[Phase 13: Character development](phase13-plan.md) is complete, deployed in revision `clude-00032-bvr` on 2026-10-16. The six broader personas, listening guidance and social debriefs are live. Wikiclude is briefed as fallible outside house rules, participant names are consistent across requests, and valid on-turn lines are published without a chattiness draw. The off-turn taper remains unchanged.
 
-Step 0's editorial pass is live (2026-10-10). Steps 1-3's six broader persona scripts, light fourth-wall premise and listening guidance are edited locally for review, using the five available current characters' history; no PlumOG history is assigned to current Plum. A live memory audit on 2026-10-14 revised the pathway: the bucket had run ahead of the edited snapshot, and the head layer proved to regenerate every game, so one of step 0's thirty-five edited standing instructions survives live while its digests survive intact. Six clauses in four characters' heads were rules against talking, and one digest theme; Mustard had none. Step 0's remaining scope is narrowed to the layers play does not rewrite, and isolating the reply taper becomes a precondition for the rehearsals that judge steps 1-5. Step 4's debrief and condensation guidance is implemented with the step 3 clause that conversation is not a tactical expense, reusing the existing narrative fields rather than extending the schema, and is deployed and accepted live (revision `clude-00029-8k8`, 2026-10-14): two games that evening show the characters remembering the company, and no live head carries a rule against talking. The generator change retired those six clauses itself, so only the digest theme needed applying by hand and the staged head pass is closed as moot. The broader entries outgrew the debrief's 4096-token cap, which covers thinking and reply together, and cost Plum his entry for one of those games; the cap is now 8192 and a truncated reply is reported as truncated rather than as bad JSON. Steps 5 and 6 then landed locally and wait on one deploy: Wikiclude is briefed as a fallible encyclopaedia in the shared rules, the canon tools, the MCP transport and two personas, with the three articles that restated the old brief corrected; a seat is given one set of participant names across its own turn, its off-turn replies and its debrief; every model line is cleaned as a person's is; and the on-turn `chattiness` gate is removed, having discarded 42 of the 81 lines those two games paid for, while the off-turn taper is left alone pending a comparison. The five-scene rehearsal is complete at $0.1373. Both exact-game replay recordings were refreshed on 2026-10-15 ($0.1524) and replay again, so the suite runs 622 tests. Step 0's remainder is prepared as `scripts/phase13_flag_hygiene.py` and awaits one `--apply`; the off-turn taper is left alone on the evidence with its baseline recorded; and Wikiclude's article pass is handed to [its own plan](wikiclude-plan.md) as W8. Steps 5-6 are live (`clude-00032-bvr`, 2026-10-16), the flag pass is applied, and W8 was written the same day ([record](wikiclude-plan.md#15-as-implemented-w8-2026-10-16)): Phase 13 is complete, and Wikiclude's W7 reread remains in its own plan. Offline checks verify prompt integrity and runtime contracts; character behavior still needs approved model rehearsals. [The implementation record](phase13-plan.md#10-implementation-record) owns the details.
+The five-scene rehearsal, live logbook flag hygiene and W8 article alignment are complete. Both exact-game fixtures were refreshed after the final Phase 13 index change; Phase 14 later refreshed only the Plum game. The implementation record preserves the memory audit, retirement of silence rules, lost-entry repair and costs. Phase 14 completed W7 on 2026-10-18. The `focus` dial and character-authored wiki edits remain deferred.
 
 ## Phase 14 scope
 
@@ -86,10 +86,11 @@ without repeating valid rows: 4,748 valid calls cost $53.3074 at list price.
 The only shortlist, Plum leash 0.60, failed its separate 24-pair confirmation;
 valid screen and confirmation cost $61.9079. No headless or paid preset
 changed. W7's corpus, live-link and representative three-look visual gates
-pass. The release deploys Run 3, the current documentation and the three
-guarded method documents together. Cloud Run revision `clude-00038-jws` serves
-100% of traffic; live table/replay acceptance passed and the bucket holds the
-three exact accepted method hashes after removal of throwaway acceptance data.
+pass. The release deployed Run 3, the documentation and the three guarded method
+documents together on 2026-10-18. Its recorded acceptance verified revision
+`clude-00038-jws` at 100% traffic, live table/replay completion and the three
+accepted method hashes after removal of throwaway acceptance data. These are
+dated release observations, not a fresh production audit.
 
 ## Post-game final comments
 

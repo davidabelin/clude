@@ -45,17 +45,21 @@ The prompt for a reaction shows the seat's own observation, the recent talk and 
 
 The profile default is {{code:neutral.chattiness}}, and none of the six presets changes it. Since 15 October 2026 the dial governs the off-turn draws alone; it no longer touches a line written with a decision. At the default a seat joins a fresh opportunity half the time, replies to a reply a quarter of the time and goes a third level deep about one time in eight.[^wrapper]
 
-Phase 14 tested five values over the same 183 off-turn opportunities in eight paired four-seat games per value:
+Phase 14 replayed the same 183 suggestion and accusation triggers from eight saved four-seat games at each of five values:
 
 {{table:paid.phase14.chattiness|Current paid chattiness screen. Calls and spoken lines are off-turn reactions; the on-turn line attached to a decision is outside this gate.}}
 
-The footprint is clear and begins to saturate above 0.5. The current setting produced 210 lines, against 275 at 0.75 and 288 at 1, while preserving silence on a missed draw. It remains the useful elbow rather than a claimed universal optimum.[^current]
+A trigger can invite several seats, and a reply can trigger another reply, so 183 is not a denominator for a per-seat response rate. The experiment held the game events fixed; it tested conversation on those events rather than playing five new sets of model games. The line-count footprint begins to flatten above 0.5, partly within limits of two replies per turn and forty per game. The current setting produced 210 lines, against 275 at 0.75 and 288 at 1, while preserving silence on a missed draw. It was retained without claiming a universal optimum.[^current]
 
 Expected remarks per game depend on game length, successful calls and how many events open the floor. The setting is not a fixed number of remarks or a token budget. Headless characters do not chat whatever the dial says.
 
 ## Cleaning
 
 Every line a model writes is cleaned as a person's typed line is: control characters out, white space collapsed, and anything past {{code:llm.max_line}} characters trimmed on a word boundary. A person's bad line is refused; a model's is mended, since a stray newline must not reach the record, a replay fixture or the next debrief prompt, where one remark is one line.[^clean]
+
+## Final comments
+
+After the result at an external table, each human, MCP or LLM seat can offer one optional closing line during a shared 30-second window. Headless seats pass. The window closes before the record is saved and before [[the debrief|debriefs]] are requested. The comments are public and included in replay and debrief context. An LLM's closing line is a separate possible paid call, rather than an on-turn line bundled with a decision.[^wrapper]
 
 ## Stored talk and memory
 

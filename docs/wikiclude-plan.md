@@ -5,7 +5,7 @@ for family and friends at every level of expertise at once, in Wikipedia's
 organisation and clude's looks. It is public, it is the house reference the
 model seats read, and its articles are Markdown files in the repo.
 
-## Where it stands (2026-10-16)
+## Where it stands (2026-10-19)
 
 **Built, live and public.** 96 articles across ten categories, zero wanted
 pages, 98 distinct Wikipedia titles all confirmed to exist, one featured
@@ -20,10 +20,11 @@ answers 200 without a login, as W-D3 decided (section 7).
 | Measurement | 9 | | Personality | 5 |
 | Methods | 9 | | Memory | 4 |
 
-**What is left:** **W7, the featured-article pass**, now mostly a
-corpus-wide reread against sections 3.1 and 3.2, plus a look at the
-screenshots. Its other gates are met: no wanted pages, the Wikipedia
-titles check passes, the navboxes and "Did you know" are filled.
+**W7 is complete.** Phase 14 finished the corpus-wide reread, live-link,
+fact/citation and responsive gates on 2026-10-18 (section 17). The post-release
+review on 2026-10-19 updates the statistics, guides and API descriptions
+against the saved run evidence and current code; section 18 records its scope
+and final checks.
 
 **W8, the Phase 13 alignment pass, is done** (2026-10-16): section 14 was
 its brief and [section 15](#15-as-implemented-w8-2026-10-16) is its
@@ -812,3 +813,43 @@ W7's final gate passed. The offline corpus, fact and citation suite reported
 fitting in Case-file, Gaslight and Developer looks. The screenshots and test
 results establish the local documentation gate. The same current pages were
 verified over HTTPS after revision `clude-00038-jws` reached 100% traffic.
+
+## 18. Post-release documentation review (2026-10-19)
+
+This review includes the entire 96-article corpus, the 136 tracked Markdown
+files and the 1,394 Python docstrings across 144 tracked Python files. The
+corpus pass checks current implementation claims, dated measurements,
+worked examples, article metadata, citations, facts, internal links and
+rendering. The secondary pass checks guide ownership, plan status, CLI
+examples, API contracts and side effects; it leaves valid historical records
+dated rather than rewriting them as current results. Executable persona/rule
+text and MCP gameplay instructions retain their existing behaviour.
+
+Corrections include White's arena delta (1.25 points lost, rather than 3.1),
+Green's frozen former live comparator (candidates themselves start fresh),
+White's remembered-prior mass reduction from 4 to 2, and the distinction
+between pooled seat-game rates and game-weighted paired intervals. New
+doc-checked validation tables show where Mustard improved, where White stayed
+close and where Green traded final-checkpoint loss for earlier improvements.
+The public summary distinguishes a selected replacement from a uniquely best
+network, candidate selection from independent confirmation, and point-estimate
+guardrails from statistical non-inferiority. Eight all-model memory games do
+not estimate individual win-rate benefit or establish equivalent depths.
+
+The final-comment lifecycle now appears in the table, MCP, talk, records,
+debrief, wrapper and cost articles, with fifteen registered MCP tools. Current
+guides no longer present completed Phase 13/W7 work or the current fixtures as
+pending. Old enumeration timings are identified as PlumOG evidence, and
+historical table captions are explicit. Article titles, redirects and index
+metadata remain stable, preserving the current recorded request keys.
+
+Validation:
+
+- Complete offline suite: **651 passed, 34 skipped** (`python -m pytest -q -n auto`), including both recorded LLM games.
+- Focused wiki suite after the final source updates: **28 passed, 1 skipped**; the separate `CLUDE_WIKI_LIVE=1` Wikipedia-title check passed (**1 passed, 28 deselected**).
+- Local Markdown audit: **170 file/anchor links**, no missing targets; wiki checks cover its separate wikilink, citation, fact and worked-example syntax, with zero wanted pages.
+- Chromium audit: **111 pages at eight layouts, 888 checks**, no status, anchor, duplicate-ID, image, unresolved-markup, maths, page-overflow or scroll-reachability failures, and no browser errors. Layouts were 390 and 1440 pixels in Case-file light, Gaslight dark and Developer light/dark. Representative screenshots and table crops were inspected.
+- Python syntax-tree comparison, with docstrings removed, finds executable changes only in wiki measurement data and the historical PlumOG figure label. Article metadata, persona/rules text, MCP gameplay instructions and stored LLM fixtures are unchanged.
+- `git diff --check` passes. Audit scripts, JSON reports and screenshots remain under ignored `data/doc-review/`.
+
+This review did not retrain, make paid calls, promote method state or deploy.

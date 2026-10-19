@@ -6,13 +6,13 @@ redirects: RL
 ---
 **Reinforcement learning** is learning how to act from interaction with an environment. An agent chooses actions, receives rewards and observations, and seeks a policy that produces a high expected return over time. It differs from being given the correct action for each training example: actions can change what the agent will encounter, and a useful action may pay off much later.[^intro]
 
-The [[classwork archive]] includes the standard textbook and several reinforcement-learning papers. In [[clude]], [[Mr. Green|Green's bandit]] provides a limited reward-based choice among estimators, while [[Colonel Mustard|Mustard's tree]] is supervised learning. Since Phase 12 one character does: [[Professor Plum]] plays by a network trained by [[regularised Nash dynamics]], a deep reinforcement-learning method adapted from [[DeepNash]], over tens of thousands of self-play games. The other five do not learn a policy.[^implementation]
+The [[classwork archive]] includes the standard textbook and several reinforcement-learning papers. In [[clude]], [[Mr. Green|Green's bandit]] provides a limited reward-based choice among estimators, while [[Colonel Mustard|Mustard's tree]] is supervised learning. Since Phase 12, [[Professor Plum]] has learnt a game policy through [[regularised Nash dynamics]], a deep reinforcement-learning method adapted from [[DeepNash]]. Phase 14's current network was trained in two self-play stages from a fresh initialisation. The other five do not train a reinforcement-learning game policy.[^implementation]
 
 ## A delayed result
 
 Consider a possible learning task for a Clue player. It can enter a nearby room and ask a useful question now, or walk towards a distant room it considers likely to be in the envelope. Neither move itself wins the game. The eventual correct accusation supplies an outcome, but the learner must determine how earlier choices contributed to it.
 
-Rewarding only a win makes that judgement difficult when many choices precede the result. Adding rewards for entering rooms or reducing uncertainty can make feedback more frequent, but may encourage collecting those rewards while losing the race to accuse. This is a task-design example, rather than clude's current training rule.
+Rewarding only a win makes that judgement difficult when many choices precede the result. Adding rewards for entering rooms or reducing uncertainty can make feedback more frequent, but may encourage collecting those rewards while losing the race to accuse. This is a task-design example. Plum's current trainer uses both terminal outcome and a small floor-certainty shaping reward; [[regularised Nash dynamics]] explains the actual rule.
 
 ## Agent, policy and value
 

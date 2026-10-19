@@ -1,39 +1,23 @@
 # Phase 13: Character development
 
 Agreed direction, 2026-10-10. This plan follows the discussion of the fourth
-wall, the ensemble, and lives beyond Clue. It is the working checklist for
-the phase; [the roadmap](phase-plan.md) owns the short status summary.
+wall, the ensemble, and lives beyond Clue. It preserves the agreed checklist and implementation record for
+the completed phase; [the roadmap](phase-plan.md) owns the short status summary.
 
-**Current state:** Step 0's editorial pass is live, and steps 1-3's six
-broader persona scripts, shared premise and listening guidance are edited
-locally for review and rehearsals. **Step 4 is deployed and accepted live**
-(revision `clude-00029-8k8`, 2026-10-14): two games played that evening show
-the characters remembering the company, and no live head carries a rule
-against talking any more. The generator change retired those rules by
-itself, so only the staged digest clause needed applying and the staged head
-pass is moot. One consequence of the broader entries is fixed in the same
-pass: Plum's debrief for `web-2/00012` was cut off by a 4096-token cap that
-covers thinking and reply together, and wrote no entry. The available local
-history covers five current characters; current Plum has no local logbook,
-though his live logbook holds seven entries, and PlumOG is retained
-unchanged and still carries the old rule, harmlessly, being unseatable.
-Game runtime is unchanged. Steps 5 and 6 then landed locally and are
-**waiting on one deploy**: the prompts now brief Wikiclude as a fallible
-encyclopaedia (the engine still settles legality, and it is still the better
-source than a model's memory of Clue on how this house plays), a seat is
-given one set of participant names for the whole evening, and the on-turn
-talk gate is gone -- it discarded 42 of the 81 lines those two games paid
-for. The five-scene rehearsal is complete ($0.1373, 73% of 30 lines free of
-game terms). Both exact-game replay recordings were
-refreshed that day ($0.1524) and replay again, so the suite runs 622
-tests. Step 0's remainder is prepared as
-`scripts/phase13_flag_hygiene.py` and awaits one `--apply`. The off-turn
-taper is deliberately left alone, with the baseline a later comparison
-would start from recorded. Wikiclude's article pass is handed to
-[its own plan](wikiclude-plan.md#14-w8-the-phase-13-alignment-pass)
-as W8. What remains of this phase is the deploy and that one command.
-Implementation evidence belongs in section 10 below, not in the proposed
-acceptance criteria.
+**Completed and deployed, 2026-10-16.** Revision `clude-00032-bvr` released
+steps 5-6 after step 4's live acceptance: all six broader personas, listening
+guidance, social debriefs, fallible Wikiclude, consistent participant names
+and publication of valid on-turn lines are in place. The five-scene rehearsal
+cost $0.1373, with 73% of 30 lines free of game terms. The off-turn taper
+remains unchanged.
+
+The flag-hygiene pass was applied, W8 aligned the articles, and the lost Plum
+entry was repaired after raising the debrief cap to 8192 tokens. Current Plum
+and PlumOG retain separate histories. Both exact-game recordings were
+refreshed after W8's final index change; Phase 14 later refreshed only seed 2
+for Run 3, completed W7, and released the recalibrated methods on 2026-10-18.
+The `focus` dial and character-authored wiki edits remain deferred. Section
+10 preserves the dated implementation evidence, audits and limitations.
 
 ## 1. Brief and settled decisions
 

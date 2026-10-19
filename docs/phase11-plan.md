@@ -1,5 +1,7 @@
 # Phase 11: maintainer documentation
 
+Completed 2026-10-06. This is the historical Phase 11 record: its Wikiclude exclusion and pending-recording statements describe that pass. Later approved refreshes restored both recordings; Phase 14 refreshed only seed 2 again on 2026-10-18. The 2026-10-19 review covers Wikiclude, maintainer Markdown and docstrings together; see [the current wiki review record](wikiclude-plan.md#18-post-release-documentation-review-2026-10-19).
+
 ## Scope and decisions
 
 Review documentation and docstrings for a maintainer seeing the project for the first time. This pass does not establish release readiness or validate a trained Plum.

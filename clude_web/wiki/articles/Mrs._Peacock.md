@@ -59,7 +59,7 @@ In the [[Dempster-Shafer theory#At the table|Rope question]], the observer knows
 
 ## How she plays
 
-A character's belief says what it thinks; five [[personality dials]] say what it does about it. Peacock's are set to make her the careful one.[^presets]
+A character's belief says what it thinks; five headless [[personality dials]] say what it does about it. Peacock's are set to make her the careful one.[^presets]
 
 | Dial | Peacock | What it does |
 |---|---|---|
@@ -69,15 +69,15 @@ A character's belief says what it thinks; five [[personality dials]] say what it
 | [[Secrecy]] | {{code:preset.Peacock.secrecy}} | When she must show a card, how strongly she prefers one that player has already seen. The highest of the six. |
 | [[Temperature]] | {{code:preset.Peacock.temperature}} | How much chance enters her choices. |
 
-The threshold is tested against her belief rather than her probability by a function supplied with her registry entry, not by a dial, so that her profile stays five plain numbers like everyone else's and her caution comes from her method rather than from "a faked-up threshold".[^rule] Phase 14 screened all five headless dials on post-landing-rule games and retained her settings: the intended footprints remained recognisable, but no candidate cleared the personality and outcome gates.[^current]
+The threshold is tested against her belief rather than her probability by a function supplied with her registry entry, not by a dial, so that this confidence rule stays separate from the eight profile dials and her caution comes from her method rather than from "a faked-up threshold".[^rule] Phase 14 screened all five headless dials on post-landing-rule games and retained her settings: the intended footprints remained recognisable, but no candidate cleared the personality and outcome gates.[^current]
 
 ## Record
 
 ### The quality of her numbers
 
-The [[belief benchmark]] scores her decision probabilities rather than the bounds used for accusation. In every recorded benchmark, her log-loss was slightly higher than the [[uniform baseline]] at every checkpoint. On the Classic board, halfway loss was {{fact:bench.grid.Peacock.50}} versus {{fact:bench.grid.uniform.50}}, and final loss {{fact:bench.grid.Peacock.100}} versus {{fact:bench.grid.uniform.100}}. Final first-choice accuracy was {{fact:bench.grid.Peacock.top1}}, the same as the baseline. These results evaluate the single-number estimates, not whether the bounds are calibrated or whether caution is always advantageous.[^grid] Computation took a fraction of a millisecond per call.
+The [[belief benchmark]] scores her decision probabilities rather than the bounds used for accusation. In the historical ring-board and 15 September Classic-board benchmarks, her log-loss was slightly higher than the [[uniform baseline]] at every checkpoint. On the Classic board, halfway loss was {{fact:bench.grid.Peacock.50}} versus {{fact:bench.grid.uniform.50}}, and final loss {{fact:bench.grid.Peacock.100}} versus {{fact:bench.grid.uniform.100}}. Final first-choice accuracy was {{fact:bench.grid.Peacock.top1}}, the same as the baseline. These results evaluate the single-number estimates, not whether the bounds are calibrated or whether caution is always advantageous.[^grid] Computation took a fraction of a millisecond per call.
 
-{{table:bench.grid|The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
+{{table:bench.grid|Historical comparison. The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
 
 ### At the table
 

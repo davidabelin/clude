@@ -34,9 +34,19 @@ Table sizes cycle through three, four, five and six unless fixed by the run. Eve
 
 Loss and Brier score are better when lower; top-1 is better when higher. Ties in top-1 follow the fixed card order. A method can rank the true card first but assign it little probability, so accuracy and log-loss need not agree.[^code]
 
+## Current Phase 14 results
+
+Phase 14 compared the former Plum checkpoint with the fresh networks on 120 floor-player games, seed 641600, and 2,160 private snapshots. There are 540 observations at each suggestion-history checkpoint, not 2,160 independent deals.[^phase14]
+
+{{table:plum.phase14.benchmark|Current Run 3 and the former checkpoint on identical observations, with the same uniform floor baseline.}}
+
+Run 3's loss was slightly higher at the first two checkpoints and slightly lower at the last two. All differences stayed inside the 0.02 acceptance margin, and both networks beat the uniform baseline at every checkpoint. This supports keeping belief quality while improving play in the separate balanced tournament; it does not show uniformly improved probability estimates.
+
+Mustard, White and Green were selected on a different 19-game held-out corpus. Their paired before/after losses appear in [[measurement record]]. Those candidate-selection scores and the older six-method table below have different evidence and starting states; they cannot be combined into a current six-method league table.
+
 ## Recorded Classic-board results
 
-{{table:bench.grid|Log-loss per category at four checkpoints, top-1 accuracy at completion, and mid-game milliseconds per call. Classic board, 60 floor-player games, seed 4004, recorded 15 September 2026.}}
+{{table:bench.grid|Historical comparison. Log-loss per category at four checkpoints, top-1 accuracy at completion, and mid-game milliseconds per call. Classic board, 60 floor-player games, seed 4004, recorded 15 September 2026.}}
 
 White's method had lower loss than the uniform baseline at every checkpoint in this run. Mustard's tree was close to the baseline at half-way and had the lowest recorded final-checkpoint loss. Scarlett and Peacock had higher loss than the baseline throughout.[^grid]
 

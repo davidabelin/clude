@@ -8,9 +8,17 @@ redirects: Dial sweep, Sweep, Leash sweep
 
 Phase 14 recalibrated all eight dials after the [[landing rule]] change and after Run 3 became [[Professor Plum]]'s network. The headless sweeps used 200 games per value at seed 142000, tables of three to six and characters interleaved with [[deduction floor|FloorBot]] seats. Each applicable character then received a 96-game isolated screen at its preset and nearby values. Plum does not use curiosity.[^record]
 
+## What the new runs establish
+
+The current-rule runs confirmed the intended directions of the five headless dials. They retained every preset after the isolated screens, then retained the paid dials after screening and the one independent leash confirmation. This supports keeping the settings under the stated behavioural and outcome gates; it does not establish a unique optimum.
+
+The tables pool counts over **seat-games**: every participating character has equal weight. Paired estimates instead average the participating characters **within each game**, subtract matching seed pairs, and bootstrap those game differences. Every game then has equal weight, including the smaller tables. Consequently the paired change can differ from subtraction of the pooled percentages: the threshold table's 38.6% to 0% is a pooled fall of 38.6 points, while the game-weighted paired estimate is -39.5 points.
+
+The 95% intervals use 2,000 bootstrap resamples. They are pointwise intervals, without correction for the many values screened. Pairing reduces variation from deals; it does not make all observations independent or prove a long-run effect at other tables.[^paired]
+
 ## Headless dials
 
-Won, Wrong and Never are percentages of character seat-games. First accusation averages only games in which that seat accused. Direct footprints matter more than small changes in wins: a bluff dial should move own-card naming, for example, whether or not bluffing happens to win a particular sample.
+Won, Wrong and Never are percentages of character seat-games. First accusation averages only games in which that seat accused. Own cards shown and named are per seat-game; re-showing divides by eligible multi-card refutations, and mean turns uses whole games. Direct footprints matter more than small changes in wins: a bluff dial should move own-card naming, for example, whether or not bluffing happens to win a particular sample.
 
 {{table:sweep.phase14.accuse_threshold|Phase 14 pooled accusation-threshold sweep. Higher values sharply reduced wrong accusations and made more seats wait through the end of the game.}}
 
@@ -46,11 +54,11 @@ Paid screens fixed `claude-opus-5`, the accepted code and weights, and a read-on
 
 {{table:paid.phase14.chattiness|Phase 14 chattiness screen. On-turn speech is not gated by this dial; calls and spoken lines here are off-turn reactions.}}
 
-The response rate increased clearly and began to saturate above 0.5. The current 0.5 setting remains the useful elbow.
+The 183 opportunities are fixed suggestion/accusation trigger events, replayed from the same eight saved games. Several seats and reply chains can respond to one trigger, so 210 lines at 0.5 is not a response probability above 100%. The line count increased and began to flatten above 0.5, with the simulation limited to two replies per turn and forty per game. The current 0.5 setting was retained; this replay screen does not test a win-rate effect or establish a natural conversational ceiling.
 
 {{table:paid.phase14.memory|Phase 14 memory-depth screen against one immutable logbook snapshot. Each row contains eight four-seat games.}}
 
-Each game necessarily contributes one win, so the eight wins per row do not distinguish depths. Deeper memory did not show a repeatable behavioural gain and could cost more; the current profile convention remains.
+Each game contributes one win across the four changing model seats, so the eight wins per row cannot distinguish depths. The screen found no basis to advance a candidate, but eight games and one snapshot cannot establish equal playing strength or measure long-term social continuity. Deeper memory could cost more; the present head-only profile default and full-depth new-lobby convention remain.
 
 The leash screen shortlisted Plum at 0.60, then a separate 24-pair confirmation rejected it:
 
@@ -70,6 +78,7 @@ Earlier ring-board and pre-landing-rule sweeps informed older presets. Their det
 
 {{references}}
 
+[^paired]: {{cite:clude_training/sweep.py|`_paired_game_differences`, `_bootstrap_interval` and `SweepResult.paired_deltas`}}
 [^runner]: {{cite:clude_training/sweep.py|`sweep_dial`, `pooled_stats` and `SweepResult.monotone`}}
 [^record]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 

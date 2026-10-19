@@ -6,29 +6,30 @@ This is a private project shared with family and friends. The name is a nod to C
 
 ## Quick start
 
-Python 3.14 in a plain virtual environment. From the repo root in PowerShell:
+Python 3.14 in a plain virtual environment. From the repo root in cmd.exe:
 
-```powershell
+```bat
 py -3.14 -m venv .venv
-& .venv\Scripts\python.exe -m pip install -r requirements.txt
-& .venv\Scripts\python.exe -m pytest -q -n auto
-& .venv\Scripts\python.exe scripts\clude_cli.py play --seed 1 --roster floor --verbose
+.venv\Scripts\activate
+python -m pip install -r requirements.txt
+python -m pytest -q -n auto
+python scripts\clude_cli.py play --seed 1 --roster floor --verbose
 ```
 
-Use the venv interpreter explicitly; shell calls do not activate it for later calls. `requirements.txt` installs the developer tools, including NumPy for Plum and PyTorch for training. `requirements-web.txt` is the smaller deployment set and excludes PyTorch, pytest and Playwright. Headless games need no credentials. GCS and real LLM calls use lazy imports.
+Use the activated venv for these commands; automation can call `.venv\Scripts\python.exe` explicitly. `requirements.txt` installs the developer tools, including NumPy for Plum and PyTorch for training. `requirements-web.txt` is the smaller deployment set and excludes PyTorch, pytest and Playwright. Headless games need no credentials. GCS and real LLM calls use lazy imports.
 
 To use the browser app, put `FLASK_SECRET_KEY` in the environment or the ignored `.env`, create an account, then start Flask:
 
-```powershell
-& .venv\Scripts\python.exe scripts\clude_cli.py users add NAME --uri data/llm
-& .venv\Scripts\python.exe -m flask --app clude_web run --debug
+```bat
+python scripts\clude_cli.py users add NAME --uri data/llm
+python -m flask --app clude_web run --debug
 ```
 
 Open <http://127.0.0.1:5000/>. The account's default password is `password`; the first login offers a change. See [the web guide](docs/web.md) for configuration, MCP serving, accounts and deployment.
 
 ## Current state
 
-The engine, deduction floor, six characters, benchmarks, personality dials, logbooks, web play, Watch, replay and MCP seats are implemented. Phase 10's main visual work and sound effects are built; its help layer remains open. Phase 11 reviews documentation and docstrings.
+The engine, deduction floor, six characters, benchmarks, personality dials, logbooks, web play, Watch, replay and MCP seats are implemented. Phase 10's main visual work and sound effects are built; its help layer remains open. The Phase 11 record describes the earlier documentation and docstring pass; the current review also covers Phase 14 and final comments.
 
 Phase 14 recalibrated the adaptive methods and all eight personality dials on post-landing-rule evidence. The current headless Plum weights are Run 3's full second-stage checkpoint, selected after a balanced 7,680-game four-network tournament. The complete headless and paid screens retained every personality preset; Plum leash 0.60 was tested separately and rejected. Mustard, White and Green use the accepted post-landing-rule method documents. Older pre-Phase-12 results for Plum describe **PlumOG**, the archived enumeration agent. See [the roadmap](docs/phase-plan.md), [Phase 14](docs/phase14-plan.md) and the historical [Phase 12 record](docs/deepnash-plan.md).
 
@@ -64,4 +65,4 @@ New Play and Watch tables remember; only the Developer look offers an opt-out. T
 
 `clude_core/` owns rules and observations; `clude_constraints/` owns the floor; `clude_agents/` owns inference and character decisions; `clude_llm/` owns model calls; `clude_training/` owns drivers and measurement; `clude_storage/` owns persistence; `clude_web/` owns the web/MCP adapters. `scripts/` contains maintainer entry points and `tests/` the checks. `legacy/` is reference code and is never imported.
 
-Wikiclude is the public encyclopaedia under `clude_web/wiki/`; its [plan](docs/wikiclude-plan.md) is maintained separately and is outside this Phase 11 pass.
+Wikiclude is the public encyclopaedia under `clude_web/wiki/`; its [plan](docs/wikiclude-plan.md) records article work and corpus checks. [The measurement record](docs/strategy-glossary.md) preserves dated results and their limitations.

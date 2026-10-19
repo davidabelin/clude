@@ -1,10 +1,10 @@
 # Maintainer CLI (`scripts/clude_cli.py`)
 
-Run from the repo root with the venv interpreter. `--help` is the complete argument reference; this guide explains workflows and output.
+Run from the repo root in cmd.exe with the venv activated. `--help` is the complete argument reference; this guide explains workflows and output.
 
-```powershell
-& .venv\Scripts\python.exe scripts\clude_cli.py --help
-& .venv\Scripts\python.exe scripts\clude_cli.py play --help
+```bat
+python scripts\clude_cli.py --help
+python scripts\clude_cli.py play --help
 ```
 
 Examples below use `python` for readability; activate the venv or substitute its explicit path. Seeded numerical games reproduce with the same code, weights, settings and memory. Real model answers, timings and timestamped run IDs do not reproduce from a seed alone.
@@ -157,7 +157,7 @@ python scripts/clude_cli.py sweep --dial accuse_threshold --values 0.3 0.6 0.9 -
 python scripts/clude_cli.py sweep --dial temperature --values 0 0.05 0.2 --characters Plum --players 3 --roster Plum,Mustard,Green
 ```
 
-Runs the arena at each value on paired seeds, reporting mean/std across seeds. `--characters` limits which profiles change. `--logbook [URI]` is always read-only, so each value reads one fixed memory state. `--llm` enables model comparisons and can spend money. Curiosity is inert for current Plum; old dial results in the glossary describe dated implementations. Small sweeps show direction/magnitude, not statistical significance.
+Runs the arena at each value on paired seeds. The text report pools seat-game counts; JSON also contains per-character rows, usage and paired game-bootstrap intervals. Paired metrics first average participating characters within each game, giving each game equal weight; their differences can therefore differ from subtraction of pooled rates at mixed table sizes. `--characters` limits which profiles change. `--logbook [URI]` is always read-only, so each value reads one fixed memory state. `--llm` enables model comparisons and can spend money. Curiosity is inert for current Plum; old dial results in the glossary describe dated implementations. Small screens show possible direction and magnitude; their pointwise intervals do not correct for testing many values. Phase 14 retained every profile preset after screening and the separate Plum leash confirmation.
 
 ## `store`
 
@@ -202,7 +202,7 @@ python scripts/clude_cli.py logbook rebuild --uri data/llm --identity Mustard
 python scripts/clude_cli.py logbook condense --uri data/llm --all --dry-run
 ```
 
-`show` prints the head/index, `--entry N` one entry, `--raw` JSON, or `--memory DEPTH` the exact read-back block. `reset --identity NAME` removes head, method memory and entries; `--keep-entries` retains the archive. `rebuild` recomputes the head and Mustard/White memory from records; `--from URI` changes source, `--min-version` defaults to 3. Green's live arm feedback cannot be reconstructed. `copy --identity Plum --to PlumOG` archives a logbook under another identity (entries, head and method memory; it refuses an existing destination). `reset-arm --arm Plum` forgets one arm of Green's stored posteriors, which then loads at Beta(1, 1); `--identity` defaults to Green. `relabel --label Plum --to PlumOG` calls an opponent by a new label in every logbook of the store (or `--identity NAME` alone): entry tables, evaluations and dossiers, the head's dossier, and White's per-opponent transition counts; `--dry-run` reports without writing. A later White `rebuild` reads labels from the game records, where PlumOG's seats say Plum, so rerun the relabel after one.
+`show` prints the head/index, `--entry N` one entry, `--raw` JSON, or `--memory DEPTH` the exact read-back block. `reset --identity NAME` removes head, method memory and entries; `--keep-entries` retains the archive. `rebuild` recomputes the head and Mustard/White memory from records; `--from URI` changes source, `--min-version` defaults to 3. Green's live arm feedback cannot be reconstructed. `copy --identity Plum --to PlumOG` archives a logbook under another identity (entries, head and method memory; it refuses an existing destination). `reset-arm --arm Plum` forgets one arm of Green's stored posteriors, which then loads at Beta(1, 1); `--identity` defaults to Green. `relabel --label Plum --to PlumOG` calls an opponent by a new label in every logbook of the store (or `--identity NAME` alone): entry tables, evaluations and dossiers, the head's dossier, and White's per-opponent transition counts; `--dry-run` reports without writing. A generic White `rebuild` reads recorded labels and can mix Plum generations. Use Phase 14's per-record generation mapping for a mixed store; a blanket relabel would also rename current Plum's counts. `--min-version 3` excludes ring records but is not the Phase 14 post-landing cutoff.
 
 `condense --identity NAME` or `--all` asks each character's own model to fold its logbook into a digest and merge its flags ([Logbooks](logbooks.md#condensing-the-digest)); **these are paid calls**. Every identity first prints its entries to fold in, prompt words, estimated input tokens and a conservative cost, with the output priced at the call's 8192-token cap. `--dry-run` stops there and writes nothing. `--all` skips logbooks that are not a character's, such as PlumOG, which has no persona; naming one with `--identity` is refused. An identity with nothing new since its digest makes no call. `--llm-backend` and `--llm-model` work as in `play`, and `null` exercises the command without a model. A failed call writes nothing. `list` and `show` report the digest, and `show --memory` renders read-back with it.
 

@@ -29,7 +29,7 @@ The name describes the training, not the play. *Nash dynamics* are learning rule
 
 ## At the table
 
-A turn of Plum's runs through the network once. The [[deduction floor]] first settles what is certain; the network then reads the floor's state as {{code:net.state}} numbers and answers everything Plum needs from one pass.
+A distinct observation is encoded once and its trunk output cached for the belief and policy hooks. A turn can produce several observations and several network calls. The [[deduction floor]] first settles what is certain; the network then reads the floor's state as {{code:net.state}} numbers and answers everything Plum needs from one pass.
 
 !!! example "Worked example: the Rope question"
     The method articles share one small position, the [[Belief#At the table|Rope question]]. Late in a three-handed game, every card is placed except four: of the suspects, **Mrs. White** or **Mrs. Peacock** is in the envelope; of the weapons, the **Rope** or the **Wrench**. [[Mr. Green]] suggests *Mrs. Peacock, with the Rope, in the Hall*, and [[Colonel Mustard]] shows him a card the viewer does not see. Mustard holds at least one of Peacock and the Rope, and counting the deals that remain gives Mrs. White {{code:example.plum.White}}.
@@ -146,7 +146,7 @@ stage-1 seed block with a changed policy, giving
 
 Phase 14 compared the four weight files on 120 untouched games and 2,160
 snapshots. Run 3 stayed within the acceptance margin of the former checkpoint
-at every checkpoint and ended slightly better. The uniform row uses the same
+at every checkpoint. Loss was slightly worse at 25% and 50%, and slightly better at 75% and 100%; the winning improvement came from the separate arena, not a uniform belief-score improvement. The uniform row uses the same
 deduction floor without method-specific estimates.
 
 {{table:plum.phase14.benchmark|Log-loss at four checkpoints on Phase 14's common snapshots. Lower is better.}}
@@ -155,7 +155,10 @@ deduction floor without method-specific estimates.
 
 The balanced tournament used all 26 possible line-ups containing Plum, with
 the same deals and dice for every entrant. Selection and confirmation were
-separate 960-game blocks.
+separate 960-game blocks, with 240 games per table size in each. Every
+opponent appeared exactly 672 times per entrant per block. The 7,680
+entrant-games share 1,920 seeded setups across the four weight files; they
+are paired replications, not 7,680 independent deals.
 
 {{table:plum.phase14.tournament|The three fresh networks and the former checkpoint over 1,920 games per entrant.}}
 
@@ -174,7 +177,7 @@ best.[^phase14]
 - **It learns the habits of its games.** The Rope question shows the risk: a position unlike the ones it trained on can draw a confident wrong answer that a count would never give. Its strength is the typical game, and it has no guarantee for the unusual one.
 - **Its inputs do not say who named what.** It knows how often a card has been named and by how many players, not which player named which card, so it cannot read one opponent's habits the way [[Mrs. White]]'s [[Markov chain]] does.
 - **No equilibrium is claimed.** The training rule converges to an equilibrium in two-player zero-sum games. In a three-to-six-player race it is a stable way to train, and the result is measured, not proved.
-- **The weights decide.** Plum's play is reproducible from the seed and the weights file; a new file is a new Plum, and the replay fixtures and the [[determinism and seeds|goldens]] are pinned to the committed one.
+- **The weights decide.** Reproduction needs the seed, weights, code, roster, profiles and relevant starting memory (including opponents'); a new file is a new Plum, and the replay fixtures and the [[determinism and seeds|goldens]] are pinned to the committed one.
 
 ## History
 

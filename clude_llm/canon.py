@@ -75,7 +75,7 @@ class Canon(Protocol):
 
 
 def index_block(titles) -> str:
-    """The cached system block naming every article, about 500 tokens."""
+    """Build the cached title index; adding or renaming a title changes replay keys."""
     return INDEX_HEAD + "; ".join(titles) + ".\n"
 
 

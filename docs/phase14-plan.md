@@ -4,7 +4,7 @@
 
 Rebuild every adaptive method using only evidence produced after the landing-rule change, then recalibrate all eight dials against the accepted candidates. Preserve character personality ahead of small win-rate gains, replace superseded public measurements with current results, finish Wikiclude W7, and release the accepted weights, presets and method memories together behind explicit paid-call and production gates.
 
-The current live-store inventory contributes 109 eligible records: 48 current-Plum ladder games and 61 later `web`/`web-2` games. Freeze the final inventory when Phase 14 begins so later games cannot change the experiment midway.
+Completed and released on 2026-10-18; the implementation record below owns acceptance. The following implementation sections preserve the agreed experimental design. The frozen inventory contains 109 eligible records: 48 current-Plum ladder games and 61 later `web`/`web-2` games. Later games are outside that snapshot.
 
 ## Implementation
 
@@ -112,14 +112,19 @@ smoothing 1. Its validation log-loss was lower than the frozen live method at
 all four checkpoints. In the paired 192-game arena it gained 3.1 win-rate
 points and added 4.7 wrong-accusation points, inside the five-point guardrail.
 It remains the same self-play regression-tree character, so the configuration
-is accepted in code. The post-ring training rows are staged locally only.
+was accepted in code and its post-landing-rule rows staged at this gate.
+The release acceptance below records the subsequent live promotion.
 
-White's post-ring counts keep `web` Plum contributions under `PlumOG` and
+White's post-landing-rule counts keep `web` Plum contributions under `PlumOG` and
 current-policy contributions under `Plum`, without publishing human labels.
 Prior mass 2 was the best candidate that cleared every held-out loss and
-calibration check; its paired arena lost 3.1 win-rate points and did not add
-wrong accusations. It preserves the per-identity repeat/new method and is
-accepted in code. The counts document is staged locally only.
+calibration check; its paired arena lost 1.25 win-rate points (55 versus 57
+wins in 160 White seat-games within each 192-game leg) and did not add wrong
+accusations. The 95% paired win interval was -11.875 to 8.75 points, so this
+was acceptance within the guardrail, not evidence of improved winning. It
+preserves the per-identity repeat/new method and was accepted in code. The
+counts document was staged locally at this gate; its production promotion is
+recorded under release acceptance.
 
 ### Plum and Green — retrained; Run 3 promoted locally
 
@@ -168,16 +173,19 @@ The `--apply` run copied `data/phase14/plum/run-3/stage2/latest.npz` to
 `clude_agents/weights/plum.npz`, backed the former file up under ignored local
 storage, and verified the new hash
 `13e76570686ac8048d994cdb313364d4c3468f6f038ae3366fcb4b1ff3c63dbc`.
-This is the accepted network in the checkout; it has not been deployed.
+This was the accepted network in the checkout at the local promotion gate;
+the release acceptance below records its subsequent deployment.
 `balanced-tournament.json` retains the balanced paired evidence and resumable
 configuration locally.
 
 Green's nine-candidate fresh-state search selected step size 4 and decay 1.05.
 It cleared every held-out loss/calibration checkpoint and the separate
 200-game validation arena, gaining 2.3 win-rate points and reducing wrong
-accusations by 2.3 points against the fresh-state baseline. Its 200-game state
-is staged locally with Mustard and White; none of those method documents has
-been promoted live.
+accusations by 2.3 points against the frozen pre-training live posterior
+(26 games), not a fresh-state comparator. Each candidate itself began at
+Beta(1,1); the old posterior was used only for evaluation. Its 200-game state
+was staged locally with Mustard and White at this gate. All three were
+subsequently promoted live at release acceptance.
 
 Run 3 changed three deterministic character fingerprints: two because Green
 can select his Plum arm and one at the four-character table containing Plum.
@@ -225,7 +233,8 @@ dial, method and character pages use the same facts. Detailed superseded
 calibration tables were removed from public articles and unused fact keys,
 leaving one short archive note while retaining the evidence in this plan, the
 strategy glossary and git. W7's corpus, link, fact, citation and representative
-390/1440-pixel review is the last local documentation gate.
+390/1440-pixel review completed the final local documentation gate, as
+recorded below.
 
 ### Release acceptance — complete
 

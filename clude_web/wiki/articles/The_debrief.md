@@ -9,11 +9,13 @@ dyk: ... that [[The debrief|the debrief]] now tells a character not to write its
 
 A debrief requires a model-piloted seat with an attached logbook and the debrief setting enabled. Failure or malformed output writes no entry. Its observations may influence later allowed choices when the logbook is read back; they are not a retraining step for the numerical method.
 
+At external tables the final-comment window closes before the record and debriefs are written. Each remembering model seat is then debriefed by a further work request; a finished game can wait for this wrap-up without invalidating its result.[^debrief]
+
 ## What is revealed
 
 During play, the model receives only its seat's observation. At debrief, it is told the envelope and the entire face-up deal, alongside the seat's original private history. A claim about what an opponent held can now be checked against the actual hand.[^prompt]
 
-The prompt also contains the outcome, the whole of the table talk with the character's own lines marked, the model's decision audit, final beliefs against truth, and earlier logbook material. Repeated decision runs are collapsed so a stall is visible as a pattern rather than a long sequence of identical descriptions. Each seat is called what the table called it all evening, the token and a person's display name after it; the prompt still names the roster labels the dossiers are keyed on, so a character is not left to guess a key from a display name.[^names]
+The prompt also contains the outcome, the whole of the table talk with the character's own lines marked, any public final comments, the model's decision audit, final beliefs against truth, and earlier logbook material. Repeated decision runs are collapsed so a stall is visible as a pattern rather than a long sequence of identical descriptions. Each seat is called what the table called it all evening, the token and a person's display name after it; the prompt still names the roster labels the dossiers are keyed on, so a character is not left to guess a key from a display name.[^names]
 
 Suppose Plum repeatedly asked a question that Mustard could answer with Hall. The debrief can distinguish whether the model chose those questions or whether a one-option menu never asked it. That distinction matters for a useful lesson: changing the model's intention cannot repair an option excluded by the leash.
 

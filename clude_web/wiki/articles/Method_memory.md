@@ -29,17 +29,23 @@ In the historical memory experiment of September 2026, {{fact:mustard.memory.gam
 
 ## White's opponent priors
 
-White pools repeat/new transition counts under an opponent's roster identity. At a later table, those frequencies shape the starting transition prior for that identity, at the same total pseudo-count mass as the default prior. A large historical count therefore does not enter the live chain as thousands of extra observations.[^white]
+White pools repeat/new transition counts under an opponent's roster identity. At a later table, those frequencies shape the starting transition prior for that identity, at a fixed total mass of {{code:white.prior_mass}} pseudo-counts, reduced from 4 to 2 in Phase 14. A large historical count therefore does not enter the live chain as thousands of extra observations.[^white]
 
 An opponent who repeatedly changed questions in earlier games can start with a different prior shape from one who often repeated cards. Current-game transitions still update that chain. The interpretation connecting repeated questions to hidden cards remains White's heuristic; remembering it does not turn it into a logical rule.
 
-Like Mustard, White can use games she did not occupy because records include the relevant histories. Version-filtered rebuilding prevents behaviour recorded on the earlier board from automatically re-entering a Classic-board reset.
+Like Mustard, White can use games she did not occupy because records include the relevant histories. Version filtering can exclude ring-board records. It does not distinguish all later rule changes: some pre-landing-rule games also have version 3. Phase 14 used an explicit cutoff and four named exclusions as well as the version, and mapped Plum's generations per record. A generic rebuild needs the same provenance controls to reproduce that corpus.
 
 ## Green's arm state
 
 Green evaluates all five methods on his own observation, draws from their Beta records and copies one arm's prediction. When the outcome is revealed, he ranks their last predictions by [[log-loss]] and updates every arm with a fractional rank reward and decay.[^green]
 
 Those live predictions are not all preserved in the ordinary game record. His arm state can therefore be saved and restored but not rebuilt from records in the same way as Mustard's rows or White's counts. His parameters are decayed preference records, not calibrated probabilities that a method is best.
+
+## Current rebuild
+
+Phase 14 replaced the three method documents using a frozen post-[[landing rule|landing-rule]] corpus: 90 training and 19 validation records, split by seed group. Mustard now adds those training rows to a 50-game fresh self-play base. White's prior mass is 2, with historical PlumOG and current Plum counts assigned separately. Green's accepted state comes from 200 fresh training games, not a reconstruction of old arm predictions. All three documents were released on 18 October without replacing narrative heads, entries or digests.[^phase14]
+
+The [[measurement record]] separates the rebuild's candidate-selection and arena results from the later final dial screens. Ordinary remembered play can continue changing the released state, so the frozen release hashes describe that acceptance point rather than an immutable live logbook.
 
 ## Comparisons and limitations
 
@@ -56,6 +62,7 @@ Empty memory preserves the prior behaviour covered by recorded tests. Populated 
 
 {{references}}
 
+[^phase14]: {{cite:docs/phase14-plan.md|Implementation record}}
 [^memory]: {{cite:docs/logbooks.md|Tier 1: method memory}}
 [^code]: {{cite:clude_training/memory.py|record contributions and rebuild}}
 [^measured]: {{cite:docs/strategy-glossary.md|Phase 7: memory (2026-09-14)}}

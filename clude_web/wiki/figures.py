@@ -671,7 +671,7 @@ def _green_arms() -> Figure:
 
 def _green_trust() -> Figure:
     """The arms' mean Beta scores after the ring board's benchmark."""
-    names = [("Plum", "plum", "exact"), ("Mustard", "mustard", "tree"), ("White", "white", "Markov"), ("Peacock", "peacock", "D-S"), ("Scarlett", "scarlett", "naive Bayes")]
+    names = [("PlumOG", "plum", "exact"), ("Mustard", "mustard", "tree"), ("White", "white", "Markov"), ("Peacock", "peacock", "D-S"), ("Scarlett", "scarlett", "naive Bayes")]
     columns = [(name, sub, float(facts.fact(f"green.arms.ring.{key}")), f"s-{key}") for name, key, sub in names]
     label = "The mean of each arm's Beta score record after sixty benchmark games on the ring board: " + ", ".join(
         f"{name} {value:.2f}" for name, _, value, _ in columns

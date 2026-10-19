@@ -120,13 +120,19 @@ The tree is only as good as the games it was grown from, and the first tree was 
 
 Mustard has persistent method memory. When it is enabled, rows from stored games are appended to the self-play training set, and his tree is rebuilt for each table. Rows include every seat's view, so he can learn from games he did not play. Phase 14 discarded the old training rows, rebuilt them from the frozen post-landing-rule training split, and compared 81 combinations of self-play base, depth, minimum leaf and smoothing. The accepted tree uses 50 fresh self-play games, depth 6, minimum leaf 40 and smoothing 1; it improved validation log-loss at every checkpoint and stayed inside the paired arena guardrails.[^phase14] Stored character games still change the training distribution from floor-bot self-play, so this is measured acceptance rather than a guarantee under every table.
 
+## Phase 14 validation
+
+{{table:methods.phase14.mustard|Mustard's former comparison state and accepted rebuild on the same 19 validation deals and 264 private snapshots. Lower log-loss is better.}}
+
+These are configuration-selection results, with the final state released on 18 October. The validation set helped choose the candidate, so it is not an independent confirmation set. The [[measurement record]] gives the separate arena outcomes and explains why passing a guardrail is not proof of improved winning.[^validation]
+
 ## Measured
 
 ### The quality of his numbers
 
 In the earlier benchmark the tree had the best belief of the six at the end of a game, {{fact:bench.ring.Mustard.100}}, and one of the worst in the middle, {{fact:bench.ring.Mustard.50}} and {{fact:bench.ring.Mustard.75}} against the baseline's {{fact:bench.ring.uniform.50}} and {{fact:bench.ring.uniform.75}}: confidently wrong, where the other methods were merely uncertain.[^ring] On the first benchmark of all, before the floor bot and the smoothing, its score at the end had been {{fact:mustard.phase4}} against the baseline's {{fact:uniform.phase4}}, two-thirds of it from the {{fact:phase4.zero_categories}} per cent of categories where a leaf put exactly nothing on the true card.[^phase4]
 
-{{table:bench.grid|The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
+{{table:bench.grid|Historical comparison. The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
 
 In the Classic-board benchmark, with the tree trained on that board, halfway loss was {{fact:bench.grid.Mustard.50}}, compared with the baseline's {{fact:bench.grid.uniform.50}}. Final loss was {{fact:bench.grid.Mustard.100}}, the lowest of the six methods, and final first-choice accuracy was {{fact:bench.grid.Mustard.top1}}, the highest. The improved results are consistent with training on a more suitable game distribution, although several aspects of the regime changed together.[^grid]
 
@@ -157,6 +163,8 @@ The current paid leash screen recorded seven wins in eight games at Mustard's 0.
 ## References
 
 {{references}}
+
+[^validation]: {{cite:docs/strategy-glossary.md|Phase 14 adaptive-method validation (2026-10-17)}}
 
 [^glossary]: {{cite:docs/strategy-glossary.md|Mustard -- Decision tree on game logs}}
 [^cart]: {{cite:breiman-1984}}

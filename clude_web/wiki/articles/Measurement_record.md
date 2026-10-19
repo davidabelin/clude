@@ -16,9 +16,20 @@ The board, roster, seats, seeds, profiles, code, weights and starting memory bel
 
 The Phase 14 manifest contains source URI, record hash, run and index, seed group, split and Plum generation for each eligible record. `web/*` records describe [[PlumOG]], while `plum-policy-ladder-*` and `web-2/*` describe the current network. The training split contains 90 records and validation 19, with no seed group crossing the boundary.[^phase14]
 
-[[Decision tree|Mustard]] was rebuilt from 50 fresh self-play games plus the post-landing training rows, at depth 6, minimum leaf 40 and smoothing 1. [[Markov chain|White]] retained prior mass 2 and rebuilt her per-opponent transition counts. [[Bandit ensemble|Green]] began again at Beta(1,1), selected step 4 and decay 1.05, then trained and validated on separate 200-game blocks. Their accepted method documents were staged without changing narrative logbooks.
+[[Decision tree|Mustard]] was rebuilt from 50 fresh self-play games plus the post-landing training rows, at depth 6, minimum leaf 40 and smoothing 1. [[Markov chain|White]] reduced remembered-prior mass from 4 to 2 and rebuilt her per-opponent transition counts. [[Bandit ensemble|Green]] began again at Beta(1,1), selected step 4 and decay 1.05, then trained and validated on separate 200-game blocks. Their accepted method documents were promoted at the 18 October release without replacing narrative logbooks.
 
-[[Regularised Nash dynamics|Plum]] was trained three times from fresh initialisation on CUDA. Each network saw 150×512 games at the original regime and 150×512 at the lower-rate regime. A balanced four-network tournament covered every line-up containing Plum and gave each entrant 1,920 games. Run 3 led at 22.9% wins and was selected as the new network; its wrong accusations remain evidence for the model head rather than a rejection gate.[^plum]
+[[Regularised Nash dynamics|Plum]] was trained three times from fresh initialisation on CUDA. Each network saw 150×512 games at the original regime and 150×512 at the lower-rate regime. A balanced four-network tournament covered every line-up containing Plum and gave each entrant 1,920 games. Run 3 led at 22.9% wins and was selected as the new network; its wrong accusations remain evidence for the model head rather than a rejection gate. Stage 2 reused stage 1's seeded setups: three runs produced 460,800 rollouts from 230,400 distinct seeded deal/line-up setups. On the untouched 960-game confirmation block, Run 3 gained 4.9 points over the incumbent (95% paired interval 1.5 to 8.3), but did not clearly separate from Runs 1 and 2.[^plum]
+
+## What changed and what held up
+
+- **Plum's policy changed.** The balanced tournament supports replacing the former checkpoint with Run 3. It does not identify a uniquely best fresh run. The original fixed-table tournament over-weighted Mustard and Green; the replacement covers every Plum line-up and balances table sizes and opponent appearances.
+- **The other adaptive methods were rebuilt.** Mustard improved all four held-out loss checkpoints. White stayed within the allowed loss margin, with small increases at three checkpoints. Green improved three and worsened the final checkpoint against the frozen former posterior; its candidate training itself began afresh. Their arena point estimates passed the guardrails, without proving a win-rate gain or statistical non-inferiority.
+- **The presets held.** The headless sweeps confirmed direct behavioural effects; no isolated candidate advanced. The sole paid shortlist, Plum leash 0.60, failed confirmation and 0.35 stayed.
+- **Memory's benefit remains unresolved.** All four model seats changed depth, making total wins uninformative. The small screen supplies costs and observed errors, rather than proof that more memory helps or is equivalent.[^methods][^plum][^dials]
+
+{{table:methods.phase14.loss|Each rebuilt method against its own comparison state on 19 validation deals and 264 private snapshots. These are candidate-selection results, not a common final ranking of the six methods.}}
+
+The validation data helped select the configurations. Mustard and White then had paired 192-game arenas; Green had a separate 200-game validation block also used in candidate selection. These gates preceded Run 3's final promotion. The final dial-control arena below is a different experiment.[^methods]
 
 ## Current dial record
 
@@ -32,7 +43,7 @@ The paid screen fixed the accepted code, weights and a read-only logbook snapsho
 
 ## Reproducibility and underlying games
 
-The ignored local Phase 14 evidence holds the corpus manifest, baseline, candidate reports, sweep JSON, confidence intervals, token use, estimated and actual costs, and interrupted-run provenance. The maintenance command can snapshot and report without mutation; staging and live method promotion require explicit hashes, backups and `--apply`.
+The ignored local Phase 14 evidence holds the corpus manifest, baseline, candidate reports, sweep JSON, confidence intervals, token use, estimated and actual costs, and interrupted-run provenance. The maintenance command can snapshot and report without mutation; staging writes local candidate documents; live method promotion additionally requires explicit source hashes, a backup and `--apply`.
 
 Signed-in readers can use [[the lobby]]'s development folders to inspect available games and open their [[replay|replays]]. A store need not contain every historical source run. A recorded event log remains evidence of that game even if current code would play it differently.
 
@@ -48,6 +59,7 @@ Ring-board, pre-landing and earlier Classic-board calibrations are superseded. T
 
 {{references}}
 
+[^methods]: {{cite:docs/strategy-glossary.md|Phase 14 adaptive-method validation (2026-10-17)}}
 [^phase14]: {{cite:docs/phase14-plan.md|Implementation record}}
 [^plum]: {{cite:docs/strategy-glossary.md|Phase 14 Run 3, the current Plum (2026-10-18)}}
 [^dials]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}

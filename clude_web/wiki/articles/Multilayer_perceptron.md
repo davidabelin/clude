@@ -27,7 +27,7 @@ with the gradients computed layer by layer from the output back, which is [[w:Ba
 
 ## Relation to clude
 
-[[Professor Plum]] plays by an MLP with a trunk of two layers of {{code:net.hidden}} units and five small heads, trained not on labelled examples alone but by [[regularised Nash dynamics]]; its belief head is fitted to the true envelope by exactly the loss above.
+[[Professor Plum]] plays by an MLP with a trunk of two layers of {{code:net.hidden}} units, four output heads and a separate legal-move scorer. It is trained by [[regularised Nash dynamics]] rather than labelled examples alone; its belief head is fitted to the true envelope by the cross-entropy loss above.
 
 ## See also
 

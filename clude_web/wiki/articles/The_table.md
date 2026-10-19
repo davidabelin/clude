@@ -31,7 +31,9 @@ These deadlines are advanced by app activity, rather than an independent timer t
 
 The registry stores the setup, accepted decisions, chat and model audits. A rebuild deals the same setup and replays saved answers; accepted model answers do not incur a second call. Remembered games also preserve their starting numerical memory snapshot.
 
-A completed game is saved in practice set two and can be opened in [[replay]]. Remembering model seats may still be writing their [[debrief|debriefs]], which the open table drives as further work. Their cost belongs to the finished game's bill. Ending an unfinished table removes it without creating a completed game record.[^finish]
+At an external table, the result opens a shared 30-second final-comment window. Each human or MCP seat may send one public line of at most 240 characters or decline; each LLM seat gets one optional model-generated line. Headless seats pass. The deadline survives a reload. Once all offered seats choose, or a work request closes an expired window, the game is saved in practice set two and its [[replay]] becomes available.[^finish]
+
+Remembering model seats then write their [[debrief|debriefs]], one per work request, with the final comments included. Final model remarks and debriefs belong to the game's bill. No further wrap-up work runs while all clients are inactive. Ending an unfinished table removes it without a completed record; ending after the result closes the comment window and saves the completed game.[^finish]
 
 
 ## See also
@@ -44,6 +46,6 @@ A completed game is saved in practice set two and can be opened in [[replay]]. R
 
 [^table]: {{cite:docs/web.md|A table}}
 [^driver]: {{cite:clude_web/tables.py|`decision_timeout`, `Registry.work` and timeout handling}}
-[^finish]: {{cite:clude_web/tables.py|`Registry._finish` and debrief work}}
+[^finish]: {{cite:clude_web/tables.py|`Registry.finish`, `_close_final_comments` and debrief work}}
 
 {{navbox:clude}}

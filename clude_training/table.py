@@ -690,7 +690,8 @@ class TableGame:
         seat : int
             Must be `pending`'s seat.
         seq : int
-            Must equal the entry count, so a stale or doubled submission
+            Must equal the answer count (`snapshot().seq`), excluding chat
+            entries, so a stale or doubled submission
             is refused rather than applied twice.
         data
             As `encode_answer` shapes it.

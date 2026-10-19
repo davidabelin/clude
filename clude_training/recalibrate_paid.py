@@ -245,6 +245,14 @@ def _wrappers_for_record(record: GameRecord, value: float, documents: dict, stor
 
 
 def _simulate_reactions(record: GameRecord, value: float, documents: dict, store, backend) -> dict:
+    """Replay fixed game triggers through off-turn reply draws and the backend.
+
+    ``opportunities`` counts suggestion/accusation events, not individual seat
+    offers. Several seats and reply chains can answer one event. Keep game
+    events fixed, cap spoken replies at two per turn and forty per game, and
+    return calls, usage and lines. A real backend spends money; this does not
+    play new games or measure how replies change their outcomes.
+    """
     labels = [seat.label for seat in sorted(record.seats, key=lambda seat: seat.seat)]
     wrappers = _wrappers_for_record(record, value, documents, store, backend)
     total = 0

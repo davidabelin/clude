@@ -9,7 +9,7 @@
 > access, tools, caps, index block and lookup limits recorded here are
 > unchanged and still describe the implementation.
 
-Status: **built, tested and accepted locally, 2026-10-09; not deployed.** David took every recommendation of section 6 the same day and approved the paid steps; section 7 records what was built, where it departs from sections 3 and 4, and what the paid runs found (7.3: the loop works, nobody looked anything up unprompted).
+Status: **built and locally accepted on 2026-10-09; deployed with Phase 13 on 2026-10-16** (`clude-00032-bvr`). The original authority brief below is historical; current trust rules are in the notice above. The fifteen-tool server now also includes the later final-comment tool. David took every recommendation of section 6 the same day and approved the paid steps; section 7 records what was built, where it departs from sections 3 and 4, and what the paid runs found (7.3: the loop works, nobody looked anything up unprompted).
 
 ## 1. The brief (David, 2026-10-09)
 

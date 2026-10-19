@@ -8,7 +8,7 @@ redirects: Game cost, Model cost
 
 ## Calls and token prices
 
-A model-piloted character can request a choice and remark during its turn, join off-turn [[table talk]], and write a narrative debrief after the game. Input, output and eligible cached input tokens have separate prices. The cost estimator uses the model price table configured in the implementation; historical dollar values belong to the model and usage recorded at the time.[^prices]
+A model-piloted character can request a choice and remark during its turn, join off-turn [[table talk]], offer a separate optional final comment, and write a narrative debrief after the game. Input, output and eligible cached input tokens have separate prices. The cost estimator uses the model price table configured in the implementation; historical dollar values belong to the model and usage recorded at the time.[^prices]
 
 A short game can therefore cost more than a longer one if it opens more menus or writes longer responses. A decision with one allowed option need not call the model, and a fallback can occur before any call. Calls, decisions and game turns are different denominators.
 
@@ -21,6 +21,10 @@ Usage is added after the response, so a completed call can take the recorded tot
 ## Debriefs belong to the game
 
 The finish can leave remembering LLM seats writing their logbook entries. These are paid calls too, and the game's cost is final only when they finish or wrapping is ended. In the recorded first {{fact:cost.web.games}} web games with model seats, debriefs accounted for {{fact:cost.web.debrief.share}}% of the model bill: {{fact:cost.web.debrief.total}} US dollars out of {{fact:cost.web.total}}. This was a small historical sample, not a fixed overhead for every game.[^sample]
+
+## Current measured costs
+
+Phase 14's accepted screens cost $53.3074 for 4,748 valid calls; Plum's separate 24-pair leash confirmation cost $8.6005. At the retained leash 0.35, his 24 seat-games cost $3.5642, about $0.149 per seat-game in that three-seat experiment. At 0.60 they cost $5.0363 and won fewer games. These figures exclude debrief writes and do not price a full remembered web table. The [[measurement record]] identifies the frozen model, weights and memory inputs, and excludes a provider-credit-contaminated memory row.[^current]
 
 ## Where spending appears
 
@@ -39,6 +43,7 @@ Characters are not told their cost in prompts or logbooks. The ledger records th
 
 {{references}}
 
+[^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^cost]: {{cite:clude_llm/metered.py|`Ledger` and `MeteredBackend`}}
 [^prices]: {{cite:clude_llm/anthropic_backend.py|`PRICES_PER_MTOK` and `estimate_cost`}}
 [^sample]: {{cite:docs/web.md|A table}}

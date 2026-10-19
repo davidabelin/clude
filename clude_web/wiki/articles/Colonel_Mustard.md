@@ -59,7 +59,7 @@ The questions are about a card's situation and never its name, and on the worked
 
 ## How he plays
 
-A character's belief says what it thinks; five [[personality dials]] say what it does about it. Mustard's are set to make him the blusterer.[^presets]
+A character's belief says what it thinks; five headless [[personality dials]] say what it does about it. Mustard's are set to make him the blusterer.[^presets]
 
 | Dial | Mustard | What it does |
 |---|---|---|
@@ -77,7 +77,7 @@ The neutral threshold is a rule the project calls "don't encode the flaw twice".
 
 On the first benchmark of all, before the tree was regrown on better games and its leaves smoothed, his score at the end of a game was {{fact:mustard.phase4}} against the baseline's {{fact:uniform.phase4}}, and {{fact:mustard.phase4.zeros}} per cent of that came from the one category in fifteen or so where a leaf put exactly nothing on the true card. A hard zero costs a [[log-loss]] of {{fact:bench.zero_cost}}, and would have read to the accusation test as certainty.[^phase4] With the smoothing and the floor-bot games he became the best method at the end of a game and stayed confidently wrong in the middle, "which is the character".[^glossary]
 
-{{table:bench.grid|The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
+{{table:bench.grid|Historical comparison. The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
 
 In the Classic-board benchmark, with a tree trained on that board, halfway loss was {{fact:bench.grid.Mustard.50}} against the baseline's {{fact:bench.grid.uniform.50}}. Final loss was {{fact:bench.grid.Mustard.100}}, the lowest of the six, and final first-choice accuracy was {{fact:bench.grid.Mustard.top1}}, the highest. His calls took a fraction of a millisecond.[^grid]
 

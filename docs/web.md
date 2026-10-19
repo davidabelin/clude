@@ -4,11 +4,11 @@
 
 ## Running it locally
 
-From the repo root, provide a stable `FLASK_SECRET_KEY` through the environment or ignored `.env`, then:
+From the repo root with the venv activated, provide a stable `FLASK_SECRET_KEY` through the environment or ignored `.env`, then:
 
-```powershell
-& .venv\Scripts\python.exe scripts\clude_cli.py users add NAME --uri data/llm
-& .venv\Scripts\python.exe -m flask --app clude_web run --debug
+```bat
+python scripts\clude_cli.py users add NAME --uri data/llm
+python -m flask --app clude_web run --debug
 ```
 
 Open <http://127.0.0.1:5000/>. Flask alone serves browser pages; use the combined ASGI app below to add MCP. Missing session secrets refuse startup. `TESTING` permits an ephemeral key only when no configured secret exists; tests should pass explicit overrides to avoid ambient credentials.
@@ -55,7 +55,7 @@ Form POSTs require the session CSRF token, regenerated at login. Rate limits cou
 | `replay_data.py` | Event frames, reconstructed beliefs and trace cache |
 | `styles.py`, `static/styles/` | Look selection, tokens and shared chrome |
 | `static/table.js`, `replay.js`, `lobby.js` | Browser polling, forms and rendering |
-| `static/sound.js`, `static/sounds/` | Opt-in sound playback and six synthesized cues |
+| `static/sound.js`, `static/sounds/` | Opt-in playback of six sound cues |
 | `wiki/` | Separately maintained encyclopaedia |
 
 ## The board and the replay data
@@ -131,8 +131,9 @@ personality, the model wrapper, memory, mathematics, measurement, the
 app and the project, and *Wikiclude* describes the encyclopaedia itself
 and how far the model seats are told to trust it. W8 (2026-10-16)
 aligned the articles with Phase 13's characters; the inventory and
-verification are in the plan's sections 12-15, and W7, the corpus-wide
-reread, remains.
+verification are in the plan's sections 12-15. W7's corpus-wide reread and
+responsive gates completed with Phase 14 on 2026-10-18; section 18 records
+the subsequent documentation review.
 
 **An article is a Markdown file** in `clude_web/wiki/articles/`, named
 for its title (`Professor_Plum.md`), with a front-matter block (title,
@@ -190,8 +191,8 @@ table. The method diagrams are the
 `DIAGRAMS` registry of `docs/ux/diagrams/build_diagrams.py`, drawn by
 the vendored Mermaid under Playwright and stripped of its colours by
 
-```powershell
-& .venv\Scripts\python.exe scripts\build_wiki_figures.py
+```bat
+python scripts\build_wiki_figures.py
 ```
 
 which writes `clude_web/wiki/figures/*.svg`, committed. Run it after a
@@ -210,29 +211,30 @@ after the first paragraph and the contents fold away.
 **Checking the Wikipedia links** needs the network, so it is skipped
 unless asked for:
 
-```powershell
-$env:CLUDE_WIKI_LIVE = "1"; & .venv\Scripts\python.exe -m pytest tests\test_wiki.py -k wikipedia
+```bat
+set "CLUDE_WIKI_LIVE=1"
+python -m pytest tests\test_wiki.py -k wikipedia
 ```
 
 
 ## Sound
 
-Six short synthesized cues: tick, turn, refute, accent, door and passage. No music. Sound starts off; the header toggle and volume persist per device. Cues fire once for new visible events/decisions, never polling, reload, talk or manual replay scrubbing. `scripts/make_sounds.py` regenerates the deterministic WAV assets.
+Six short cues: tick, turn, refute, accent, door and passage. Five are synthesised; the door processes a public-domain squeaky-door recording (LeonMire, PDSounds 505). [Source and processing notes](../scripts/assets/README.md) preserve its provenance. No music. Sound starts off; the header toggle and volume persist per device. Cues fire once for new visible events/decisions, never polling, reload, talk or manual replay scrubbing. `scripts/make_sounds.py` regenerates the deterministic WAV assets.
 
 ## Looking at it
 
 Install Chromium for Playwright, then run screenshot tooling against a throwaway store:
 
-```powershell
-& .venv\Scripts\python.exe -m playwright install chromium
-& .venv\Scripts\python.exe scripts\clude_shots.py --dark --phone
+```bat
+python -m playwright install chromium
+python scripts\clude_shots.py --dark --phone
 ```
 
 `--look KEY` narrows looks; `--out DIR`, `--store`, `--run` and `--game` select output/input. Inspect the PNGs: only a browser applies the board's CSS and scripts. Default screenshots include wiki pages; `--wiki` shoots those alone. Screenshot backends are fake and spend nothing.
 
 ## Deploying
 
-The repository config targets service `clude`, project `clude-game`, region `us-central1`, URL <https://clude-648214345192.us-central1.run.app>. This pass did not audit live configuration or deploy. `scripts/deploy.bat` is the canonical command; do not copy old revisions/timings as current acceptance.
+The repository config targets service `clude`, project `clude-game`, region `us-central1`, URL <https://clude-648214345192.us-central1.run.app>. The latest recorded release acceptance is 2026-10-18, revision `clude-00038-jws`, with Run 3 and the three accepted method documents ([Phase 14](phase14-plan.md#release-acceptance--complete)). This guide's review does not constitute a fresh production audit. `scripts/deploy.bat` is the canonical command; do not copy old revisions/timings as current acceptance.
 
 ### What is out there
 
@@ -251,7 +253,7 @@ The command sets HTTPS, store, $2/table, $10/UTC day and public URL; maps the th
 
 After separately authorizing deployment:
 
-```powershell
+```bat
 scripts\deploy.bat
 ```
 
@@ -261,7 +263,7 @@ For initial provisioning, create the named Secret Manager secrets from files con
 
 ### Checking a deploy with a game
 
-```powershell
+```bat
 scripts\live_check.bat play
 scripts\live_check.bat start
 scripts\deploy.bat
@@ -287,14 +289,14 @@ On 2026-09-18, cold startup was 8-10 s, warm lobby 0.6 s and cached replay 0.4 s
 
 `combined_app()` mounts Flask at `/` and Streamable HTTP MCP at `/mcp/<secret>`, sharing **one registry**. Separate processes would race cached table state. Locally:
 
-```powershell
-$env:CLUDE_MCP_SECRET = 'a-local-secret-0123456789'
-& .venv\Scripts\python.exe -m uvicorn 'clude_web.mcp:combined_app' --factory --port 5000
+```bat
+set "CLUDE_MCP_SECRET=a-local-secret-0123456789"
+python -m uvicorn clude_web.mcp:combined_app --factory --port 5000
 ```
 
 The endpoint is `http://127.0.0.1:5000/mcp/a-local-secret-0123456789`. Hosted clients need the deployed URL/secret, configured with no transport OAuth; game account login follows through the tools. Protect the URL as a credential. Wrong/invalid paths are refused; with MCP enabled, unsupported OAuth/OpenID discovery gets JSON 404 rather than Flask's login redirect. With no secret there is no mount and Flask routing remains unchanged.
 
-Fourteen tools are registered:
+Fifteen tools are registered:
 
 | Tools | Purpose |
 |---|---|
@@ -303,6 +305,7 @@ Fourteen tools are registered:
 | `clude_turn`, `clude_answer` | Wait for a decision and submit it using its sequence |
 | `clude_say`, `clude_note`, `clude_autopilot` | Talk, persist private notes, hand over/reclaim the seat |
 | `clude_watch`, `clude_games`, `clude_replay` | Spectate or inspect finished games |
+| `clude_final_comment` | Send one public closing line or decline within the post-result window |
 | `clude_wiki_search`, `clude_wiki_read` | Search and read Wikiclude, the canon, with no login ([the plan](canon-plan.md)) |
 
 Every game operation takes the login; the two wiki tools take none, since the wiki is public, and the server's instructions make Wikiclude the better source on this house's rules and an encyclopaedia open to doubt on everything else (Phase 13 step 5). Browser users deal after open seats fill; a chatbot cannot create/deal a table. MCP occupies an ordinary human seat, reasoning without any character persona/agent. `notepad` is `full`, `shown` or `none`, adjustable only before the deal; reduced modes omit the seat's own certainty as well.
@@ -313,10 +316,10 @@ MCP tool docstrings are model-facing instructions. Keep required arguments, wait
 
 ## Tests
 
-```powershell
-& .venv\Scripts\python.exe -m pytest -q -n auto
-$env:CLUDE_WEB_BROWSER = '1'
-& .venv\Scripts\python.exe -m pytest tests\test_browser.py -q
+```bat
+python -m pytest -q -n auto
+set "CLUDE_WEB_BROWSER=1"
+python -m pytest tests\test_browser.py -q
 ```
 
 The default suite uses temporary stores, fake model backends and the MCP SDK's in-memory client. Web checks cover privacy, invalid/stale answers, rebuilds, memory, timeout/autopilot, chat/cost and account routing. Wiki tests also validate doc headings and measured facts, so documentation edits must preserve their evidence.

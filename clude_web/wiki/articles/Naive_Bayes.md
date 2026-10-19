@@ -124,7 +124,7 @@ Her [[personality dials]] turn the belief into play. She [[accusation|accuses]] 
 
 The [[belief benchmark]] scores each method's probabilities against the truth at four points in a game, by [[log-loss]]: lower is better. The [[uniform baseline]] is the score of a player who believes exactly what the deduction floor has proved and spreads the rest evenly.
 
-{{table:bench.grid|The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026. Plum's row was measured before his sample was enlarged.}}
+{{table:bench.grid|Historical comparison. The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026. Plum's row was measured before his sample was enlarged.}}
 
 Scarlett's log-loss was slightly worse than the baseline at every checkpoint in this benchmark. Her score adjustments therefore reduced accuracy on average, compared with spreading probability evenly over the floor's remaining candidates. The earlier benchmark showed the same pattern. The project notes attribute it to repeated, overlapping disproofs, which are more common than undisproved suggestions until late in a game.[^ring]
 

@@ -29,6 +29,14 @@ $|C|$ means the number of permitted cards. A proved card instead receives probab
 
 The implementation obtains this result by calling `mask_and_normalize` with no raw method scores. Its ordinary zero-total fallback divides equally over permitted candidates. Every method uses the same final masking mechanism, but can supply non-uniform scores before it.[^code]
 
+## Current comparison
+
+In the Phase 14 120-game benchmark, the same floor baseline was compared with the former Plum checkpoint and current Run 3:
+
+{{table:plum.phase14.benchmark|Phase 14 prediction losses on common observations. Both networks improve on the uniform reference at every checkpoint.}}
+
+Run 3's halfway loss is {{fact:plum.phase14.benchmark.run3.50}}, against uniform's {{fact:plum.phase14.benchmark.uniform.50}}. Its improved balanced-tournament win rate did not require lower loss at every checkpoint than its predecessor. The [[belief benchmark]] explains the distinction and the separate adaptive-method validation.[^current]
+
 ## Recorded comparison
 
 At the half-way checkpoint of the 15 September 2026 Classic-board benchmark, uniform loss was {{fact:bench.grid.uniform.50}}. White scored {{fact:bench.grid.White.50}}, Mustard {{fact:bench.grid.Mustard.50}}, Scarlett {{fact:bench.grid.Scarlett.50}} and Peacock {{fact:bench.grid.Peacock.50}}. Lower is better. The run used {{fact:bench.grid.games}} floor-player games and {{fact:bench.grid.snapshots}} private observations across four checkpoints.[^grid]
@@ -52,6 +60,7 @@ Equal remaining probabilities are a reference assumption rather than a proof of 
 
 [^code]: {{cite:clude_training/benchmark.py|`_uniform_probabilities`}} and {{cite:clude_agents/base.py|`mask_and_normalize`}}
 [^example]: {{cite:clude_web/wiki/facts.py|`rope_observation` and `rope_question`}}
+[^current]: {{cite:docs/strategy-glossary.md|Phase 14 Run 3, the current Plum (2026-10-18)}}
 [^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
 
 {{navbox:clude}}

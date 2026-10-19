@@ -233,7 +233,14 @@ class SweepResult:
         return {"values": rows, "total": totals}
 
     def paired_deltas(self, bootstrap_samples: int = 2000) -> list:
-        """Paired-seed bootstrap intervals versus the first completed value."""
+        """Pointwise game-bootstrap intervals versus the first completed value.
+
+        Average swept characters within each paired game before taking the
+        difference, so games have equal weight. Pooled table rates instead
+        weight seat-games equally and can give a different mixed-roster delta.
+        Resample games, not individual seats; no multiple-comparison correction
+        is applied. ``bootstrap_samples`` controls the resample count.
+        """
         if not self.results:
             return []
         baseline = self.results[0]

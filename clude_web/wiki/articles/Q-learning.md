@@ -7,7 +7,7 @@ dyk: ... that [[Q-learning]] estimates future rewards, rather than the probabili
 ---
 **Q-learning** is a reinforcement-learning method that estimates the value of taking each action in a state. After an observed transition, it updates the chosen state–action pair towards the received reward plus the best estimated value at the next state. It is an **off-policy** method: its target follows a greedy policy even when the actions gathering experience are exploratory.[^q]
 
-Q-learning is part of the [[classwork archive]], rather than the current action-selection algorithm of clude's six characters. Their common scorer ranks immediate legal options from card beliefs and personality settings; it does not maintain a learned table of long-term action returns.[^code]
+Q-learning is part of the [[classwork archive]], rather than the current action-selection algorithm of clude's six characters. Five characters score immediate legal options from card beliefs and personality settings. Plum's [[regularised Nash dynamics|trained neural policy]] instead supplies learned move and honest-suggestion scores, alongside a value estimate. None uses a tabular Q-learning update during ordinary play.[^code]
 
 ## An update by example
 

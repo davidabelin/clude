@@ -43,6 +43,10 @@ Menu construction draws no random numbers. A backend that never supplies an acce
 
 Each decision records its menu, selected letter, whether a call occurred, the reason for fallback, any departure from the top option, supplied speech, usage and latency. The [[arena]] aggregates these fields. A single-option decision is not an API call, and a call ending in fallback is not a successful model choice.
 
+## Closing remarks
+
+At an external table the wrapper can request one optional final comment after the result, subject to the shared 30-second window and the remaining model budget. This is a separate call, not a legal-move decision or a debrief. An empty or failed reply supplies no line; accepted lines are public and enter the saved record and the later debrief. [[The table]] describes the closing sequence.[^wrapper]
+
 ## Backends and reproduction
 
 The backend interface supports the live provider, an always-failing null control, recorded exchanges and replayed exchanges. Replay keys depend on the request contents. A missing request raises a replay miss rather than silently supplying a plausible response.[^backends]

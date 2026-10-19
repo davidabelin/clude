@@ -73,7 +73,13 @@ def evaluate_frozen_agent(
     seed: int = 14014,
     initial_state: Optional[dict] = None,
 ) -> dict:
-    """Score one candidate on untouched copied records, never source data."""
+    """Score one fixed agent on copied records from a corpus split.
+
+    Reset once, optionally load frozen state, and evaluate masked snapshots
+    without outcome feedback. The source store is not modified. Reusing the
+    validation split for candidate selection makes it selection evidence,
+    rather than an independent final confirmation set.
+    """
     agent.reset(seed)
     if initial_state is not None:
         loader = getattr(agent, "load_state", None)
@@ -336,7 +342,14 @@ def search_green(
     training_seed: int = 141600,
     validation_seed: int = 241600,
 ) -> dict:
-    """Fresh-state Green grid: separate training state and validation block."""
+    """Train each Green candidate afresh and evaluate on separate seed blocks.
+
+    Candidates start at Beta(1,1). The comparison agent loads the corpus's
+    frozen former method state when present; it is not a fresh-state baseline.
+    Rank candidates using both held-out snapshot and validation-arena gates,
+    so neither selection input is an independent final confirmation set.
+    Write resumable local reports when ``output`` is supplied; do not promote.
+    """
     baseline_document = corpus.baseline_method("Green") or {
         "version": 1, "kind": "state", "games": 0, "arms": {},
     }

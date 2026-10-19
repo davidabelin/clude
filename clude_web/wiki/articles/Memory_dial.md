@@ -54,7 +54,7 @@ Phase 14 used exactly that control: one immutable snapshot, no debrief writes an
 
 {{table:paid.phase14.memory|Current paid memory-depth screen. Wins total one per game across the four model-piloted seats, so they cannot distinguish depths.}}
 
-Greater depth can preserve useful details but also increases prompt length and carries more stale or repetitive narrative. The screen found no repeatable behavioural gain; 0.75 used 386 calls and cost $6.7857, against 297 calls and $3.4689 at zero, while also recording two wrong accusations. Those small counts are not a universal ranking, but they do not justify changing the present profile convention.
+Greater depth can preserve useful details but also increases prompt length and carries more stale or repetitive narrative. The screen did not identify a candidate worth confirming; 0.75 used 386 calls and cost $6.7857, against 297 calls and $3.4689 at zero, while also recording two wrong accusations. All four seats changed depth together, so total wins cannot estimate an individual benefit. Eight games per depth and one fixed snapshot do not establish equivalence or test whether remembered relationships improve over many evenings. No candidate advanced to independent confirmation, and the present profile and lobby conventions were retained.
 
 
 ## See also

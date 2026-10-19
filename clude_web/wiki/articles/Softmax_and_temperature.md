@@ -46,7 +46,7 @@ The [[LLM wrapper]] uses the same scored menus but delegates accepted choices to
 
 ## Evaluation and limits
 
-[[Dial sweeps]] found that high temperatures could weaken play in the recorded regimes by flattening otherwise useful preferences. Their outcome depended on the roster, board and other settings, so the formula alone does not identify an optimal temperature.
+Phase 14's current-rule [[dial sweeps]] confirmed that high temperature flattened useful preferences: from 0 to 2, games lengthened by a paired 19.47 turns and wins fell by 21.25 percentage points. The isolated screens retained the present low settings.[^current] Their outcome depended on the roster, board and other settings, so the formula alone does not identify an optimal temperature.
 
 Softmax is also distinct from [[Thompson sampling]]. Green draws a possible arm quality from each Beta record and chooses the largest draw; the character later uses softmax for game actions. One randomises method selection through uncertainty about quality, the other samples a fixed list of action scores.
 
@@ -59,6 +59,7 @@ Softmax is also distinct from [[Thompson sampling]]. Green draws a possible arm 
 
 {{references}}
 
+[^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^sampler]: {{cite:clude_agents/features.py|`sample_softmax`}}
 [^character]: {{cite:clude_agents/character.py|decision sampling}}
 

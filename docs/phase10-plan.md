@@ -467,7 +467,7 @@ Browser/screenshot tooling covers selectable looks. Stylesheet test IDs use look
 
 Talk and Record split by server event-panel metadata. Phone rails became tabs; the stage/focus layouts, balloons, end plate and impact/panel transitions were built. Board ornament uses dressed SVG geometry; logo E supplies the cellar/header/favicon. Motion remains token-controlled.
 
-Sound uses synthesized, committed WAVs and shared sound.js, opt-in, once for new visible events. Manual replay scrubbing/reloads remain silent. No music. Doors/passages expanded the four original cues to six on 2026-10-01.
+Sound uses committed WAVs and shared sound.js, opt-in, once for new visible events. The original six were synthesized; the 2026-10-17 door refinement replaced that cue with a processed public-domain recording ([source](../scripts/assets/README.md)). Manual replay scrubbing/reloads remain silent. No music. Doors/passages expanded the four original cues to six on 2026-10-01.
 
 ### Fourth round (2026-09-29): current looks and stored games
 

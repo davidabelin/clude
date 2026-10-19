@@ -74,6 +74,7 @@ _POLICY_BENCH = "Belief benchmark, the network (N5)"
 _POLICY_ARENAS = "Arenas on the standard seeds"
 _PHASE14_PLUM = "Phase 14 Run 3, the current Plum (2026-10-18)"
 _PHASE14_DIALS = "Phase 14 dial recalibration (2026-10-18)"
+_PHASE14_METHODS = "Phase 14 adaptive-method validation (2026-10-17)"
 _RUN1 = "The first long run, `run150a` (2026-10-06)"
 _RUN2 = "The second run, `run2`, and the export (2026-10-06)"
 
@@ -197,6 +198,26 @@ TABLES: dict = {
         },
     ),
 }
+
+# Candidate-selection losses use each method's own comparison state, not a
+# common final six-method benchmark. Green's candidate starts fresh; its
+# comparator is the frozen pre-training live posterior.
+_METHOD_LOSS_ROWS = {
+    "mustard.former": (_SUSPECT_LABELS["Mustard"], "| Mustard | Former | 1.3385 | 1.0747 | 0.7932 | 0.2308 |"),
+    "mustard.rebuilt": (_SUSPECT_LABELS["Mustard"], "| Mustard | Rebuilt | 1.3073 | 1.0638 | 0.7283 | 0.2152 |"),
+    "white.former": (_SUSPECT_LABELS["White"], "| White | Former | 1.3801 | 1.1464 | 0.7569 | 0.3233 |"),
+    "white.rebuilt": (_SUSPECT_LABELS["White"], "| White | Rebuilt | 1.3792 | 1.1487 | 0.7598 | 0.3246 |"),
+    "green.former": (_SUSPECT_LABELS["Green"], "| Green | Former | 1.3243 | 1.2190 | 0.7963 | 0.2985 |"),
+    "green.rebuilt": (_SUSPECT_LABELS["Green"], "| Green | Rebuilt | 1.2262 | 1.0500 | 0.6790 | 0.3114 |"),
+}
+for _method in ("loss", "mustard", "white", "green"):
+    TABLES[f"methods.phase14.{_method}"] = Table(
+        GLOSSARY, _PHASE14_METHODS,
+        ("Method", "State", "25%", "50%", "75%", "100%"),
+        ("state", "25", "50", "75", "100"),
+        {key: row for key, row in _METHOD_LOSS_ROWS.items()
+         if _method == "loss" or key.startswith(f"{_method}.")},
+    )
 
 # Current Phase 14 measurements and retained method evidence.
 TABLES.update({
@@ -463,8 +484,6 @@ FACTS: dict = {
     "landing.turns.after": Fact("45.9", GLOSSARY, _LANDING, "| `arena-grid-prox2-24` (kept) | **45.9** | 18.4 | 127 | 390 / 660 |"),
     "landing.suggestions.before": Fact("29.0", GLOSSARY, _LANDING, "| `arena-grid-tuned-24` (3-6 seats, baseline) | 53.9 | 29.0 | 229 | 600 / 597 |"),
     "landing.suggestions.after": Fact("18.4", GLOSSARY, _LANDING, "| `arena-grid-prox2-24` (kept) | **45.9** | 18.4 | 127 | 390 / 660 |"),
-    "cost.seat_game.plum": Fact("0.09", "docs/llm-wrapper.md", "Cost", "a median of $0.09"),
-    "cost.seat_game.others": Fact("0.07-0.11", "docs/llm-wrapper.md", "Cost", "$0.07-0.11 per LLM seat-game"),
     # The benchmarks' sizes, and the historical one.
     "bench.ring.snapshots": Fact("1,080", GLOSSARY, _BENCH_RING, "1080 snapshots"),
     "bench.ring.seconds": Fact("573", GLOSSARY, _BENCH_RING, "573 s"),

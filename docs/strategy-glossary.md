@@ -8,7 +8,7 @@ This guide explains methods and preserves dated measurement evidence. Beliefs co
 
 Module: `clude_agents/deep_nash.py`. NumPy inference supplies masked envelope beliefs, movement/honest suggestion scores and value. The trainer uses a regularised Nash-dynamics variant over mixed self-play; this is not a proved equilibrium solver for multiplayer Clue. Character retains accusation, bluffing and show logic; curiosity is inert for Plum's movement hook.
 
-Committed `weights/plum.npz` is Phase 14 Run 3's full second-stage checkpoint, promoted locally on 2026-10-18. Its selection evidence is under [Phase 14 Run 3](#phase-14-run-3-the-current-plum-2026-10-18). Phase 12's checkpoint 130 measurements remain historical, and its dial measurements have not yet been replaced by Phase 14's full sweep. Do not apply PlumOG's timing, menu-width, parking or win-rate claims to this agent.
+Committed `weights/plum.npz` is Phase 14 Run 3's full second-stage checkpoint, promoted locally on 2026-10-18. Its selection evidence is under [Phase 14 Run 3](#phase-14-run-3-the-current-plum-2026-10-18). Phase 12's checkpoint 130 measurements remain historical, and Phase 14's full headless and paid screens now own the current dial evidence. Do not apply PlumOG's timing, menu-width, parking or win-rate claims to this agent.
 
 ## Scarlett -- Naive Bayes
 
@@ -30,7 +30,7 @@ Module: `clude_agents/decision_tree.py`. Gini-guided regression splits on eight 
 
 ## Green -- Bandit ensemble over the other five
 
-Module: `clude_agents/bandit.py`, shaped after rps's bandit. Decaying Beta posteriors are Thompson-sampled; the selected arm supplies its belief without blending. Revealed-envelope feedback ranks arm log-loss rather than rewarding an absolute score dominated by the floor. He receives feedback per snapshot in benchmarks, per game in arenas, and can persist posteriors. Historical arm shares used PlumOG; the current ensemble uses the network and needs new measurement.
+Module: `clude_agents/bandit.py`, shaped after rps's bandit. Decaying Beta posteriors are Thompson-sampled; the selected arm supplies its belief without blending. Revealed-envelope feedback ranks arm log-loss rather than rewarding an absolute score dominated by the floor. He receives feedback per snapshot in benchmarks, per game in arenas, and can persist posteriors. Historical arm shares used PlumOG; the current ensemble uses the network. Phase 14 rebuilt its state from fresh training and validated it against the frozen former state; the older arm shares remain historical.
 
 In the Phase 5 ring-board benchmark, his arms separate by about 0.4 in posterior mean over 60 games: Plum and Mustard (0.71, 0.69) over White (0.46), Peacock (0.35) and Scarlett (0.29). These are the historical arms, not a ranking of the current ensemble.
 
@@ -1547,6 +1547,61 @@ Against PlumOG on the same seeds (`grid-plum-llm-24`, above): PlumOG went from 3
 
 The fixtures were re-recorded the same day with the leash at 0.35: `llm_seed1` ($0.11; the floor seat, Mustard, wins after 35 turns) and `llm_seed2` ($0.03; White wins on turn 10, as in the old recording). Both replay offline.
 
+## Phase 14 adaptive-method validation (2026-10-17)
+
+The frozen corpus supplied 90 training records and 19 validation records,
+grouped by seed before splitting. Each candidate was scored on the same 264
+private validation snapshots, at fractions of suggestion history, not elapsed
+turns. These snapshots share only 19 deals. The 81 Mustard configurations,
+five White priors and nine Green configurations were selected using this
+validation set; it is not an untouched final confirmation set. Green's
+candidates start from Beta(1,1), but their comparison state is the frozen
+pre-training live posterior, containing 26 games. The live state was used
+only as a comparator; it was not reconstructed or carried into candidate
+training.
+
+| Method | State | 25% log-loss | 50% log-loss | 75% log-loss | 100% log-loss |
+|---|---|---:|---:|---:|---:|
+| Mustard | Former | 1.3385 | 1.0747 | 0.7932 | 0.2308 |
+| Mustard | Rebuilt | 1.3073 | 1.0638 | 0.7283 | 0.2152 |
+| White | Former | 1.3801 | 1.1464 | 0.7569 | 0.3233 |
+| White | Rebuilt | 1.3792 | 1.1487 | 0.7598 | 0.3246 |
+| Green | Former | 1.3243 | 1.2190 | 0.7963 | 0.2985 |
+| Green | Rebuilt | 1.2262 | 1.0500 | 0.6790 | 0.3114 |
+
+Mustard improved at every checkpoint. White's rebuild kept loss close to the
+former state, with small increases at three checkpoints; it did not improve
+every number. Green improved at the first three checkpoints and worsened at
+the last. All cleared the allowed 0.02 loss margin and the recorded calibration
+checks. Passing those gates does not establish universal calibration.
+
+The following arena comparisons isolate each rebuilt method; they precede
+Run 3's promotion and differ from the final 96-game dial-control block.
+Each row uses the participating character's seat-games, not all games in its
+arena. Wins and wrong accusations are counts, not percentages.
+
+| Method | Arena games per leg | Seat-games per leg | Wins before | Wins rebuilt | Wrong before | Wrong rebuilt |
+|---|---:|---:|---:|---:|---:|---:|
+| Mustard | 192 | 128 | 27 | 31 | 3 | 9 |
+| White | 192 | 160 | 57 | 55 | 1 | 1 |
+| Green | 200 | 133 | 17 | 20 | 5 | 2 |
+
+Mustard gained 3.125 win-rate points, with a 95% paired bootstrap interval
+from -7.03125 to 13.28125, and added 4.6875 wrong-accusation points (0 to
+10.15625). White lost 1.25 win-rate points (-11.875 to 8.75) and had one
+wrong accusation in both legs. Green gained 2.26 win-rate points and reduced
+wrong accusations by 2.26 points in its separate 200-game validation block.
+The gate used observed changes: five points for wins and wrong accusations.
+These results allowed rebuilding the methods; they do not prove a win-rate
+gain or statistical non-inferiority. In particular, Mustard's interval allows
+a larger wrong-accusation increase than the point-estimate guardrail.
+
+Sources: ignored `data/phase14/methods/{mustard,white,green}.json`, generated
+by `scripts/phase14_recalibrate.py retrain-methods`. Accepted configurations
+were Mustard 50 self-play games/depth 6/minimum leaf 40/smoothing 1, White
+prior mass 2, and Green step 4/decay 1.05. The released method hashes and
+method-only promotion are recorded in [Phase 14](phase14-plan.md#release-acceptance--complete).
+
 ## Phase 14 dial recalibration (2026-10-18)
 
 These are the current post-landing-rule measurements. The frozen corpus hash is
@@ -1588,6 +1643,16 @@ character; the 96 common games averaged 40.33 turns:
 | 0.6 | 500 | 22.8 | 4.4 | 38.79 | 72.8 | 39.28 |
 | 0.8 | 500 | 19.6 | 1.0 | 39.50 | 79.4 | 39.82 |
 | 1.0 | 500 | 19.8 | 0.0 | 38.56 | 80.2 | 40.06 |
+
+The pooled table weights every character seat-game equally. Paired intervals
+instead average the participating characters within each game, subtract the
+two values for that seed, and bootstrap those game differences (2,000 draws).
+Thus each game has equal weight even when table sizes differ. A paired delta
+need not equal the difference between the displayed pooled percentages; for
+example, 38.6% to 0% in the first table differs from the -39.5-point paired
+estimate. The intervals are pointwise, without adjustment for the many
+screened values. They describe uncertainty within this roster and seed block,
+not the chance that a preset is universally optimal.
 
 The paired change in wrong accusations from 0.2 to 1.0 was -39.5 points
 (95% bootstrap interval -44.4 to -34.7). The zero observed errors at 1.0 are
@@ -1688,6 +1753,15 @@ did not supply an equally clear, personality-preserving case.
 | 0.75 | 8 | 183 | 275 | 275 | $2.1923 |
 | 1 | 8 | 183 | 288 | 288 | $2.2687 |
 
+Here opportunities counts suggestion/accusation trigger events replayed from
+the same eight saved games. A trigger can invite several seats and replies
+can invite further replies, so calls or lines divided by 183 is not a response
+probability. This is a controlled replay of conversation opportunities, not
+five independently played model tables and not a test of winning. The
+simulation also caps speech at two replies per turn and forty per game;
+flattening at high chattiness is partly bounded by those limits, rather than
+evidence of a natural conversational maximum.
+
 The dial moved off-turn speech as intended and began to saturate above the
 current 0.5. On-turn speech is no longer gated by this dial. The 0.5 preset was
 retained as the useful elbow.
@@ -1701,8 +1775,11 @@ retained as the useful elbow.
 | 1 | 8 | 32 | 8 | 1 | 303 | $5.0502 |
 
 Each four-seat game has one winner, so the eight wins per value are structural,
-not evidence that depth is equal. Deeper memory did not show a replicable
-behavioural gain and could cost more; the current profile convention remained.
+not evidence that depth is equal. With all four seats changing depth, this
+screen cannot identify an individual win-rate benefit; eight games per value
+and one snapshot also cannot establish equivalence or long-term social value.
+No candidate was advanced to independent confirmation. Deeper memory could
+cost more; the current profile convention remained.
 
 The separate 24-pair confirmation used seed 143200 at Plum's three-seat table:
 

@@ -11,7 +11,7 @@ dyk: ... that [[Watch]] keeps hands hidden until the finish and makes no languag
 
 The Watch form in [[the lobby]] chooses the characters, table size and optional seed. Next turn advances one game turn; Play to the end completes the game. The board shows positions and the record names suggestions and refuters. It does not identify a privately shown card.
 
-Remembering is checked by default, and can be turned off. With it enabled, supported characters load [[method memory]] and save experience at the finish. Watch has no LLM seats, so it does not write model debriefs or provide the conversational personality of a model-piloted table.
+Remembering is enabled by default; the Developer look alone exposes its opt-out. With it enabled, supported characters load [[method memory]] and save experience at the finish. Watch has no LLM seats, so it does not write model debriefs or provide the conversational personality of a model-piloted table.
 
 ## Reading the bars
 

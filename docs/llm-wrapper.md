@@ -12,7 +12,7 @@ An LLMCharacter wraps the same numerical Character shown as **X (headless)** in 
 
 The accusation menu allows the best triple once `P(correct) >= (1 - leash) * accuse_threshold`; passing is allowed below threshold or whenever leash is nonzero. At zero leash it matches Character's threshold test. Peacock uses her lower belief bound rather than pignistic probabilities.
 
-An on-turn remark becomes a RemarkEvent as written: it arrives in the same reply as the decision, so there is nothing to save by dropping it, and a character that prefers silence answers with an empty string (Phase 13 step 6). Off-turn `react` requests use a `say`-only schema and fail silently; the web reaction queue decides participation/pacing, drawing each seat at `chattiness ** (depth + 1)` before it pays for a call. Every line a model writes is cleaned like a person's -- control characters out, whitespace collapsed, 240 characters at most -- so one remark is one line in the record, a fixture and the next debrief prompt. Budget usage includes reactions and debriefs. Web LLM seats are driven externally and their answers/audits/remarks stored, so cold rebuild never repeats a call.
+An on-turn remark becomes a RemarkEvent as written: it arrives in the same reply as the decision, so there is nothing to save by dropping it, and a character that prefers silence answers with an empty string (Phase 13 step 6). Off-turn `react` requests use a `say`-only schema and fail silently; the web reaction queue decides participation/pacing, drawing each seat at `chattiness ** (depth + 1)` before it pays for a call. Every line a model writes is cleaned like a person's -- control characters out, whitespace collapsed, 240 characters at most -- so one remark is one line in the record, a fixture and the next debrief prompt. Budget usage includes reactions and debriefs. After the result, an external web table can request one optional final comment per LLM seat within its shared 30-second window, before saving the record and starting remembered debriefs. This is a separate paid request subject to the remaining time and budget. Web LLM seats are driven externally and their answers/audits/remarks stored, so cold rebuild never repeats a call.
 
 ## What the model is shown, and what it is not
 
@@ -30,7 +30,7 @@ Exact system text participates in LLMRequest replay keys, so any persona, rules 
 
 ## The two Phase 6 dials
 
-`leash` governs allowable choices; `chattiness` draws the off-turn replies (it no longer gates an on-turn line, which is published as written). Both are Profile dials, ignored by numerical Character. Current defaults are 0.25/0.5, except Plum's leash of 0.35: his policy spreads its scores wider than PlumOG's enumeration did, so the same leash value gave him narrower menus. 0.35 matches PlumOG's menu width and was kept by the paid ladder of 2026-10-07 ([glossary](strategy-glossary.md), "Plum with Claude, the network (N6)").
+`leash` governs allowable choices; `chattiness` draws the off-turn replies (it no longer gates an on-turn line, which is published as written). Both are Profile dials, ignored by numerical Character. Current defaults are 0.25/0.5, except Plum's leash of 0.35: his policy spreads its scores wider than PlumOG's enumeration did, so the same leash value gave him narrower menus. 0.35 matched PlumOG's menu width in Phase 12 and was kept by the paid ladder of 2026-10-07 ([glossary](strategy-glossary.md), "Plum with Claude, the network (N6)"). Phase 14 retained 0.35 again after its 0.60 candidate failed the separate 24-pair confirmation.
 
 ## Memory (Phase 7)
 
@@ -57,44 +57,14 @@ MeteredBackend wraps web calls, pricing model IDs from the repository table. It 
 
 ## Cost
 
-These are historical ring-board measurements of PlumOG and the old presets,
-not a current quote for the network or hosted provider prices.
+Use the dated [Phase 14 record](strategy-glossary.md#phase-14-dial-recalibration-2026-10-18) for the latest measured usage. The valid screen made 4,748 calls for $53.3074 at the repository's list prices; the separate 24-pair Plum leash confirmation cost $8.6005. At retained leash 0.35, Plum's 24 seat-games cost $3.5642 (about $0.149 per seat-game), against $5.0363 at 0.60. The screen fixed code, model, weights, methods and read-only narrative memory; it excluded debrief writes and discarded a provider-credit-contaminated row. It is not a quote for a remembered web table or a current provider invoice.
 
-Most menus have one allowed option at the default leash (refutations
-especially), so a game asks the model far less often than it decides:
-at seed 1 Scarlett made 7 calls across 17 decisions, Peacock 11 across
-18. `play --llm` prints an estimate at list prices per game.
+Menus with only one allowed choice skip the model. Off-turn reactions, an optional final-comment call and remembered debriefs add usage. Long games can grow prompts and reach caps; the older Phase 12 ladder included a 172-turn game that cost $2.78 and exhausted its token budget. The glossary preserves ring-board, PlumOG and Phase 12 costs as historical evidence.
 
-Measured on Opus 5 (2026-09-13), at list prices:
-
-| Game | Seats | Turns | Cost | Cached |
-|---|---|---|---|---|
-| seed 1, 3 players, 2 LLM seats | 2 | 16 | $0.14 | 52% |
-| seed 2, 4 players, 4 LLM seats | 4 | 39 | $0.43 | 46% |
-
-That is roughly **$0.07-0.11 per LLM seat-game**, which is the number to
-budget an arena with: a 24-game, 4-seat run is order $10. The network
-Plum's seat-game has a median of $0.09 and a mean of $0.11, at leash
-0.35 on his three-seat table (2026-10-07); one game in 24 ran 172 turns
-and reached the 500K-token cap at $2.78. PlumOG's games ran long and
-asked the model often, about $0.20-0.25 a seat-game. A
-logbook (Phase 7) adds a debrief per seat-game, measured on six Plum
-games (2026-09-14) at $0.06-0.11, mean $0.09: 2.5-7K fresh input
-tokens, 2K cached, 1.8-3.1K output including thinking, 33-48 s at
-medium effort; over the 24-game run of 7d, 24 debriefs cost $2.24,
-$0.093 and 42 s each. At the default `memory` of 0 the read-back is a
-few hundred cached tokens per call.
-
-Read the usage fields carefully: `input_tokens` counts only the *fresh*
-tokens and `cache_read_input_tokens` the cached ones, disjointly -- so
-the cache share is `cached / (input + cached)`, not `cached / input`,
-and `estimate_cost` bills them separately at $5 and $0.50 per MTok. On
-seed 2 that is 57.6K cached against 68.9K fresh: 46%, and about $0.26
-saved on a $0.43 game. Expect the share to fall as a game lengthens,
-since the cached system block is fixed while the per-turn state grows.
+Usage separates fresh `input_tokens` and `cache_read_input_tokens`: cache share is `cached / (input + cached)`. The repository prices fresh, cached and output tokens separately. Cache share need not remain constant as a game grows. The ledger includes closing remarks and debriefs and settles the game's final bill after wrap-up.
 
 ## Measuring it
 
 Compare numerical/model twins on the same seeds and fixed memory state. Arena reports calls, fallback/deviation rates, remarks, usage and latency; sweep varies one dial. Real backend choices are not deterministic. Record model, dates, seeds, board version, weights and memory alongside measurements. Old Plum costs/results refer to enumeration; they do not price or validate the new network. [The glossary](strategy-glossary.md) owns the dated evidence.
 
-Fixture refresh after approval uses `play --llm --llm-backend record:PATH --verbose` with each fixture's seed, players and roster; update RECORDED_GAMES from its transcript. Commands and pending status are in [Phase 11](phase11-plan.md). Restore current-prompt replay tests only after fresh recordings exist.
+Fixture refresh after approval uses `play --llm --llm-backend record:PATH --verbose` with each fixture's seed, players and roster; update RECORDED_GAMES from its transcript. The old commands in [Phase 11](phase11-plan.md) are historical; confirm the current fixture settings and status in `tests/test_llm.py`. Both current games already replay. Preserve old recordings and obtain separate spend approval before any future refresh.

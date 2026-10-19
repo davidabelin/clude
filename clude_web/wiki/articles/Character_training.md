@@ -30,9 +30,12 @@ A fair comparison records the starting memory, board, roster, seed schedule and 
 
 Phase 14 froze 109 post-landing-rule records and rebuilt all four adaptive
 methods. Mustard selected a 50-game fresh self-play base, depth 6, minimum leaf
-40 and smoothing 1. White rebuilt per-opponent counts with prior mass 2. Green
+40 and smoothing 1. White rebuilt per-opponent counts and reduced remembered-prior mass from 4 to 2. Green
 began from Beta(1,1), selected step 4 and decay 1.05, and trained and validated
-on separate 200-game blocks.[^phase14]
+on separate 200-game blocks, comparing against the frozen former live
+posterior. The validation inputs helped select configurations; the
+[[measurement record]] distinguishes these screens from independent
+confirmation and from the later final dial-control arena.[^phase14]
 
 Three independent Plum networks trained from fresh initialisations on CUDA,
 {{fact:phase14.plum.per_run}} games each. Run 3 was selected in a balanced

@@ -1,4 +1,4 @@
-"""Build the Phase 10a artboards: docs/ux/table/ and docs/ux/logo/.
+r"""Build the Phase 10a artboards: docs/ux/table/ and docs/ux/logo/.
 
     .venv\\Scripts\\python.exe docs\\ux\\build_sketches.py
 

@@ -20,7 +20,7 @@ LLMCharacter, menus, response schemas, personas, requests/results, null/scripted
 
 AnthropicBackend added cached persona/rules, structured output, effort/timeouts and one SDK retry. SDK failures become error results rather than breaking play. Live checks verified calls/cache usage at the time, not future provider behavior. Organization-scoped keys failed without a workspace header.
 
-Persona tuning addressed repeated talk and Plum reciting decimals; his voice stayed pedantic. Mustard, Green and White needed no edits. Replay recordings are coupled to exact system prompts, menus and state. They were refreshed after later board/preset changes; **both are stale again after Phase 11's rules/persona edits**, pending separately approved paid refresh.
+Persona tuning addressed repeated talk and Plum reciting decimals; his voice stayed pedantic. Mustard, Green and White needed no edits. Replay recordings are coupled to exact system prompts, menus and state. They were refreshed after later board/preset changes; Phase 11 made both stale at that checkpoint. Later separately approved refreshes restored them; both pass after Phase 13, with only seed 2 refreshed again for Phase 14 Run 3.
 
 `prompt --decision move` renders from reconstructed positions with a supplied plausible roll; it is inspection, not a saved real turn's decision.
 

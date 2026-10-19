@@ -63,7 +63,7 @@ The name "naive Bayes" refers to [[w:Conditional independence|conditional indepe
 
 ## How she plays
 
-A character's belief says what it thinks; five [[personality dials]] say what it does about it. Scarlett's are set to make her the hasty one.[^presets]
+A character's belief says what it thinks; five headless [[personality dials]] say what it does about it. Scarlett's are set to make her the hasty one.[^presets]
 
 | Dial | Scarlett | What it does |
 |---|---|---|
@@ -85,7 +85,7 @@ Phase 14 repeated the threshold and curiosity checks on post-landing-rule games.
 
 The [[belief benchmark]] scores each method's probabilities against the truth at four points in a game by [[log-loss]], against the [[uniform baseline]], the score of a player who believes what the deduction floor has proved and spreads the rest evenly.
 
-{{table:bench.grid|The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
+{{table:bench.grid|Historical comparison. The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
 
 In every recorded benchmark, Scarlett's log-loss was slightly higher than the baseline at every checkpoint.[^grid] The repeated adjustments reduced probability accuracy on average. In the Classic-board run, final first-choice accuracy was {{fact:bench.grid.Scarlett.top1}}, compared with {{fact:bench.grid.uniform.top1}} for the baseline. Her card ranking was slightly better while her probability estimates were worse.[^grid] This is consistent with the distinction between classification accuracy and [[w:Calibration (statistics)|calibration]] discussed in the naive Bayes literature.[^domingos]
 

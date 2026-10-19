@@ -110,11 +110,17 @@ The module is `clude_agents/markov.py`. It descends from a heuristic in the proj
 
 ### Memory
 
-White is one of the three characters whose method remembers from game to game, and hers remembers *people*. For each opponent she has met, the four transition counts from every stored game they played are summed and kept under that opponent's identity. At a new table the Laplace prior for a known opponent is replaced by their own frequencies, spread over the same {{code:white.prior_mass}} phantom observations the prior had, so that the live sequence weighs exactly as before and only the starting shape of the chain is informed by the past. Phase 14 rebuilt the counts from the frozen post-landing-rule training split, kept PlumOG separate from Plum, and tested prior masses 1, 2, 4, 8 and 16. Prior mass 2 cleared every held-out loss and calibration checkpoint and the paired arena guardrails.[^phase14] Public reports aggregate identities; they do not publish human account names.
+White is one of the three characters whose method remembers from game to game, and hers remembers *people*. For each opponent she has met, the four transition counts from every stored game they played are summed and kept under that opponent's identity. At a new table the Laplace prior for a known opponent is replaced by their own frequencies, spread over {{code:white.prior_mass}} pseudo-observations. Phase 14 reduced remembered-prior mass from 4 to 2, so current-game transitions now outweigh that history sooner. An opponent without a usable remembered prior still starts with one Laplace count in each of four cells. Phase 14 rebuilt the counts from the frozen post-landing-rule training split, kept PlumOG separate from Plum, and tested prior masses 1, 2, 4, 8 and 16. Prior mass 2 cleared every held-out loss and calibration checkpoint and the paired arena guardrails.[^phase14] Public reports aggregate identities; they do not publish human account names.
 
 ### What the model sees
 
 When [[Claude]] plays her seat it is shown each opponent's repeat probability beside her belief, and the method was audible in the voice from the first recorded games: "Mustard's stopped fishing for the Candlestick and started asking about rooms".[^phase6] Her [[persona]] encourages this observant voice.[^persona]
+
+## Phase 14 validation
+
+{{table:methods.phase14.white|White's former comparison state and accepted rebuild on the same 19 validation deals and 264 private snapshots. Lower log-loss is better.}}
+
+These are configuration-selection results, with the final state released on 18 October. The validation set helped choose the candidate, so it is not an independent confirmation set. The [[measurement record]] gives the separate arena outcomes and explains why passing a guardrail is not proof of improved winning.[^validation]
 
 ## Measured
 
@@ -122,7 +128,7 @@ When [[Claude]] plays her seat it is shown each opponent's repeat probability be
 
 In the earlier benchmark the chain had the best belief of the six at the halfway checkpoint, {{fact:bench.ring.White.50}} against the baseline's {{fact:bench.ring.uniform.50}}, and beat the baseline at every checkpoint; at the end it fell behind the three methods that read the floor's facts more closely, {{fact:bench.ring.White.100}} against Plum's {{fact:bench.ring.Plum.100}}. On the first benchmark of all, before the flat prior, it had been the worst belief of the six by a distance, {{fact:white.phase4}}, nearly all of it from unnamed cards read as impossible.[^ring][^phase4]
 
-{{table:bench.grid|The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
+{{table:bench.grid|Historical comparison. The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
 
 In the Classic-board benchmark, White had the lowest log-loss at the first three checkpoints: {{fact:bench.grid.White.25}}, {{fact:bench.grid.White.50}} and {{fact:bench.grid.White.75}}. At the end she was second to Mustard. The project relates her mid-game performance to the floor-bot regime, in which players repeatedly name unresolved cards. That explanation is plausible, but the comparison does not isolate opponent behaviour from all other features of the games.[^grid][^glossary]
 
@@ -153,6 +159,8 @@ With [[Claude]] in her seat at a four-seat table she won {{fact:twin.grid.White.
 ## References
 
 {{references}}
+
+[^validation]: {{cite:docs/strategy-glossary.md|Phase 14 adaptive-method validation (2026-10-17)}}
 
 [^glossary]: {{cite:docs/strategy-glossary.md|White -- Markov model over suggestion sequences}}
 [^norris]: {{cite:norris-1997|Chapter 1, discrete-time Markov chains and stationary distributions}}

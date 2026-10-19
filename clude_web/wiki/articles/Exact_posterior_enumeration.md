@@ -129,11 +129,11 @@ While it was Plum's method, [[Mr. Green]]'s [[bandit ensemble]], which queries a
 
 The [[belief benchmark]] scores each method's probabilities against the truth at four points in a game, by [[log-loss]] (lower is better), against the [[uniform baseline]]: the score of a player who believes what the deduction floor has proved and spreads the rest evenly.
 
-{{table:bench.ring|The six methods on the ring board, the first the game was played on: log-loss at four checkpoints, {{fact:bench.ring.snapshots}} positions from 60 games. Each column is the share of the game's suggestions already made.}}
+{{table:bench.ring|Historical comparison. The six methods on the ring board, the first the game was played on: log-loss at four checkpoints, {{fact:bench.ring.snapshots}} positions from 60 games. Each column is the share of the game's suggestions already made.}}
 
 On the ring board the method was the best or joint-best of the six from three-quarters of the way through a game, and at the end its first choice in each category was right {{fact:bench.ring.Plum.top1}} of the time against the baseline's {{fact:bench.ring.uniform.top1}}. Already there the budget held only part of the time: on early positions the search fell back to sampling in nearly half of its calls, at about {{fact:plum.ring.ms}} ms a call.[^ring]
 
-{{table:bench.grid|The same benchmark on the Classic board, {{fact:bench.grid.games}} games and {{fact:bench.grid.snapshots}} positions, 15 September 2026. Plum's row was measured at the old sample of 2,000.}}
+{{table:bench.grid|Historical comparison. The same benchmark on the Classic board, {{fact:bench.grid.games}} games and {{fact:bench.grid.snapshots}} positions, 15 September 2026. Plum's row was measured at the old sample of 2,000.}}
 
 The [[Classic board]] run recorded more difficult searches at its checkpoints. These checkpoints count fractions of suggestions, not elapsed turns: longer corridor journeys alone do not explain the change. The search ran out of steps in {{fact:plum.fallback.calls}} of {{fact:bench.grid.snapshots}} calls. At the halfway checkpoint the exact reasoner scored {{fact:budget.grid.200k-2k.50}} against the baseline's {{fact:budget.grid.uniform.50}}, worse than the floor-only baseline, with sampling error contributing to the loss.[^grid]
 
@@ -143,7 +143,7 @@ The [[Classic board]] run recorded more difficult searches at its checkpoints. T
 
 Four budgets were then run on the same {{fact:bench.grid.games}} games.
 
-{{table:budget.grid|Log-loss at four budgets on the Classic board. "Calls that fell back" is how many of the {{fact:bench.grid.snapshots}} calls exhausted the search and sampled instead.}}
+{{table:budget.grid|Historical comparison. Log-loss at four budgets on the Classic board. "Calls that fell back" is how many of the {{fact:bench.grid.snapshots}} calls exhausted the search and sampled instead.}}
 
 In this comparison, increasing the sample budget helped more than increasing the search budget. Five times the draws improved halfway log-loss from {{fact:budget.grid.200k-2k.50}} to {{fact:budget.grid.200k-10k.50}}, at about twice the time per call. Five times the search steps reduced fallbacks from {{fact:budget.grid.200k-2k.fallback}} to {{fact:budget.grid.1M-2k.fallback}}, but improved accuracy less and cost more. Raising both budgets improved the score by no more than 0.03 over raising the sample budget alone. The larger sample was adopted with the node budget unchanged. The measured test-suite runtime rose from about {{fact:plum.suite.before}} to {{fact:plum.suite.after}} seconds.[^budget]
 

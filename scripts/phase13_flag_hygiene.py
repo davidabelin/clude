@@ -1,4 +1,4 @@
-"""Phase 13 step 0's remainder: reconcile the durable layers with the entries.
+r"""Phase 13 step 0's remainder: reconcile the durable layers with the entries.
 
 The editorial pass applied a head computed from a snapshot that several
 already-stored entries post-dated, so those entries were never folded in.

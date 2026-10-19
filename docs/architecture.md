@@ -53,7 +53,7 @@ The turn loop is written once as `game_steps`. It yields a `LiveGame` handle, `D
 
 `TableGame.answer` checks the sequence and calls `engine.check_answer` **before** sending into the generator. An exception inside a generator closes it, so invalid user answers must be rejected outside it.
 
-Cold tables restore their setup, memory snapshot and ordered entries into a fresh driver. Model answers, audits and remarks are persisted; rebuilding never calls the model. Live games are caches, not the persistence authority. See [table lifecycle](web.md#a-table).
+Cold tables restore their setup, memory snapshot and ordered entries into a fresh driver. An external table's finished result precedes a persisted 30-second final-comment window; the record is saved after closure and remembering model seats are then debriefed through work requests. Model answers, audits and remarks are persisted; rebuilding never calls the model. Live games are caches, not the persistence authority. See [table lifecycle](web.md#a-table).
 
 ## `AgentProtocol`
 
@@ -67,7 +67,7 @@ Optional pure hooks `movement_scores(obs, choices, features, profile)` and `sugg
 
 [README](../README.md#the-six-methods) lists live methods. `ExactEnumAgent` is now **PlumOG**, absent from the registry and Green's arms; it remains for historical analysis and tests.
 
-Plum uses `deep_nash.py` and committed `weights/plum.npz`, Phase 14 Run 3's full second-stage checkpoint (promoted locally 2026-10-18). Other checkpoints under ignored training storage are not the active agent. [Phase 14](phase14-plan.md) owns its selection and promotion evidence; [Phase 12](deepnash-plan.md) is the historical design and first-training record.
+Plum uses `deep_nash.py` and committed `weights/plum.npz`, Phase 14 Run 3's full second-stage checkpoint (selected and released 2026-10-18). Other checkpoints under ignored training storage are not the active agent. [Phase 14](phase14-plan.md) owns its selection and promotion evidence; [Phase 12](deepnash-plan.md) is the historical design and first-training record.
 
 ## Per-turn data flow
 
@@ -167,4 +167,4 @@ SeatSpec stores token, kind, label and LLM narrative depth. Stored kinds are `ch
 
 ## Open questions
 
-[The roadmap](phase-plan.md) and [Phase 12](deepnash-plan.md) track unfinished work. The parking question was resolved by Phase 8.0.4's landing rule.
+[The roadmap](phase-plan.md) tracks unfinished help and release scope. Phase 12 and Phase 14 are completed records. The parking question was resolved by Phase 8.0.4's landing rule.

@@ -77,7 +77,7 @@ A learnt estimate has a learnt estimate's weakness. On the [[Belief#At the table
 
 ## How he plays
 
-A character's [[belief]] says what it thinks; five [[personality dials]] say what it does about it. Plum's were set for PlumOG to make him the careful one, and kept for the network.[^presets]
+A character's [[belief]] says what it thinks; five headless [[personality dials]] say what it does about it. Plum's were set for PlumOG to make him the careful one, and kept for the network.[^presets]
 
 | Dial | Plum | What it does |
 |---|---|---|
@@ -169,7 +169,9 @@ A logbook experiment on that earlier board gave PlumOG's model seat {{fact:plum.
 
 ## Memory
 
-Plum's network does not change between games: what it learnt, it learnt in training. A model playing him can keep a [[logbook]] when memory is enabled, writing, after seeing the completed deal, an account in his voice, lessons, standing instructions and, since October 2026, the evening as an occasion: who was good company and a read of each opponent as a person as well as a player. His was the entry lost to the debrief's old token cap on 14 October 2026 and re-run the next day: it keeps a dinner wagered on a card and Peacock's 'gossip with a ledger', and its standing instructions keep the inference back while sending the wit elsewhere, since 'there is plenty else to talk about'.[^live] PlumOG's logbook is archived under his name and the current Plum's starts empty, so the lessons of the old method are not read back by the new one; other characters' notes about "Plum" are about the token, and stay.[^logbooks]
+Plum's network does not change between games: what it learnt, it learnt in training. A model playing him can keep a [[logbook]] when memory is enabled, writing, after seeing the completed deal, an account in his voice, lessons, standing instructions and, since October 2026, the evening as an occasion: who was good company and a read of each opponent as a person as well as a player. His was the entry lost to the debrief's old token cap on 14 October 2026 and re-run the next day: it keeps a dinner wagered on a card and Peacock's 'gossip with a ledger', and its standing instructions keep the inference back while sending the wit elsewhere, since 'there is plenty else to talk about'.[^live]
+
+PlumOG's logbook was archived under his own name and current Plum began with an empty one at the Phase 12 migration. He has since written his own history. The old method's lessons are not read back as his, and historical opponent notes were relabelled to PlumOG. Phase 14 likewise assigns the two generations' method contributions separately.[^logbooks]
 
 ## See also
 

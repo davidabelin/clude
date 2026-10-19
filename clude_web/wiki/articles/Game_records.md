@@ -9,7 +9,7 @@ dyk: ...that [[replay]] reveals the cards to its viewer while rebuilding each se
 
 ## What is recorded
 
-The structured log includes moves, suggestions, refutations, accusations and the outcome. Each seat has a token, occupant label and kind. The label distinguishes a person's identity from the suspect they play, so [[method memory|opponent memory]] can follow that person across tokens.
+The structured log includes moves, suggestions, refutations, accusations and the outcome. Optional public final comments are stored separately by seat, after the game events; older records omit them. They appear in replay and the model's debrief context. Each seat has a token, occupant label and kind. The label distinguishes a person's identity from the suspect they play, so [[method memory|opponent memory]] can follow that person across tokens.
 
 The completed record contains hidden information for analysis. During a live game, the table's seat view masks hands and shown cards. Being able to open a saved replay after the finish does not imply those cards were public during play.
 

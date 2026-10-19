@@ -61,7 +61,7 @@ In the [[Markov chain#At the table|Rope question]], Green names Peacock and the 
 
 ## How she plays
 
-A character's belief says what it thinks; five [[personality dials]] say what it does about it. White's are set to make her the one who tells least.[^presets]
+A character's belief says what it thinks; five headless [[personality dials]] say what it does about it. White's are set to make her the one who tells least.[^presets]
 
 | Dial | White | What it does |
 |---|---|---|
@@ -79,7 +79,7 @@ Phase 14 retained all of White's dials.[^current] In the current control she nam
 
 In the first, random-bot benchmark, White had the highest final [[log-loss]]: {{fact:white.phase4}}, compared with {{fact:uniform.phase4}} for the baseline. Unnamed cards received zero probability and accounted for {{fact:white.phase4.zeros}}% of the loss. Phase 5 added a flat initial score so unnamed cards remained possible, and changed the game regime to floor-bot self-play, after which she beat the [[uniform baseline]] at every checkpoint.[^phase4][^glossary]
 
-{{table:bench.grid|The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
+{{table:bench.grid|Historical comparison. The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
 
 In the Classic-board benchmark, her losses at the first three checkpoints were {{fact:bench.grid.White.25}}, {{fact:bench.grid.White.50}} and {{fact:bench.grid.White.75}}, each the lowest of the six. Final loss was {{fact:bench.grid.White.100}}, second to [[Colonel Mustard]]. She answered in a fraction of a millisecond per call.[^grid]
 
@@ -97,7 +97,7 @@ The model-piloted runs used fewer [[w:Bluff (poker)|held-card suggestions]]. The
 
 ## Memory
 
-White's method memory sums four transition counts per opponent over their stored games: new to new, new to repeat, repeat to new and repeat to repeat. At a new table, a known opponent's frequencies shape a prior with the same total weight, {{code:white.prior_mass}}, as the neutral prior. A long history therefore changes its shape without overwhelming the current game's evidence. Phase 14 rebuilt the counts from post-landing-rule training records, kept PlumOG separate from Plum and selected prior mass 2 from five candidates after held-out and arena checks.[^current] Human opponents are identified by account name so their records follow them between tokens; public measurements do not publish those identities.[^logbooks]
+White's method memory sums four transition counts per opponent over their stored games: new to new, new to repeat, repeat to new and repeat to repeat. At a new table, a known opponent's frequencies shape a prior with total weight {{code:white.prior_mass}}, reduced from 4 to 2 in Phase 14. An opponent without remembered counts still gets the neutral four-cell Laplace prior, with total mass 4. A long history therefore changes its shape without overwhelming the current game's evidence. Phase 14 rebuilt the counts from post-landing-rule training records, kept PlumOG separate from Plum and selected prior mass 2 from five candidates after held-out and arena checks.[^current] Human opponents are identified by account name so their records follow them between tokens; public measurements do not publish those identities.[^logbooks]
 
 Like every character she can also keep a narrative [[logbook]], written by a model after each game it played her seat, with what happened, what to do next time and, since October 2026, the evening itself: the company, and a read of each opponent as a person as well as a player. Under the earlier debrief her standing instructions had carried more than one rule against talking; they now close on 'the company is not a cost'.[^live]
 

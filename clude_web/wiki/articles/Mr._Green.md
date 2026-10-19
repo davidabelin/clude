@@ -57,7 +57,7 @@ In the [[Bandit ensemble#At the table|shared observer example]], the five arms g
 
 ## How he plays
 
-A character's belief says what it thinks; five [[personality dials]] say what it does about it. Green's are set to make him the middling one.[^presets]
+A character's belief says what it thinks; five headless [[personality dials]] say what it does about it. Green's are set to make him the middling one.[^presets]
 
 | Dial | Green | What it does |
 |---|---|---|
@@ -77,15 +77,15 @@ Phase 14 repeated the threshold screen on post-landing-rule games. Its direct ef
 
 Green's score is a borrowed score, and it tracks the arms he trusts. In the earliest benchmark, all five arms had mean rewards within a percentage point of one another, so selection barely distinguished them; the reward was changed to a rank, after which sixty games spread his records by about {{fact:green.arms.spread}}, in the order the benchmark ranks the methods at the end of a game.[^glossary]
 
-{{table:bench.grid|The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
+{{table:bench.grid|Historical comparison. The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
 
-On the Classic board he is second-best at the end, {{fact:bench.grid.Green.100}}, and ahead of the baseline throughout, including the halfway mark where Plum himself is not; the run left him leaning on Mustard ({{fact:green.arms.grid.mustard}}) and Plum ({{fact:green.arms.grid.plum}}) and away from Peacock ({{fact:green.arms.grid.peacock}}) and Scarlett ({{fact:green.arms.grid.scarlett}}). The price is time: {{fact:bench.grid.Green.ms}} ms a call at mid-game, Plum's cost plus everyone else's.[^grid]
+In the 15 September Classic-board benchmark, with PlumOG still in his ensemble, he was second-best at the end, {{fact:bench.grid.Green.100}}, and ahead of the baseline throughout, including the halfway mark where PlumOG was not; the run left him leaning on Mustard ({{fact:green.arms.grid.mustard}}) and Plum ({{fact:green.arms.grid.plum}}) and away from Peacock ({{fact:green.arms.grid.peacock}}) and Scarlett ({{fact:green.arms.grid.scarlett}}). That historical call took {{fact:bench.grid.Green.ms}} ms at mid-game because it included PlumOG's search. It is not a timing of the current network ensemble.[^grid]
 
 ### At the table
 
 {{table:arena.phase14|The current-setting rows from Phase 14's isolated headless screens, 40 seat-games per character.}}
 
-Green won {{fact:arena.phase14.Green.win}}% of the current control and made a wrong accusation in {{fact:arena.phase14.Green.wrong}}%.[^arena] The 40-seat-game result does not establish a precise competitive rank. His separate retraining began from Beta(1,1), selected step 4 and decay 1.05, and cleared its 200-game validation block before the method document was staged.[^current]
+Green won {{fact:arena.phase14.Green.win}}% of the current control and made a wrong accusation in {{fact:arena.phase14.Green.wrong}}%.[^arena] The 40-seat-game result does not establish a precise competitive rank. His separate retraining began from Beta(1,1), selected step 4 and decay 1.05, and cleared its separate 200-game validation block against the frozen former live posterior. The method document was then staged and released on 18 October. The old arm shares above do not describe its rebuilt state.[^current]
 
 ### With Claude in the seat
 

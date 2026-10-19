@@ -165,7 +165,7 @@ class LLMCharacter:
         The standing rules text; default `load_rules()`.
     canon : Canon or None
         What the character may look up (`attach_canon`); None offers no
-        tools and sends exactly the Phase 6 request.
+        tools and omits the canon index block; other prompt content is unchanged.
 
     Notes
     -----
