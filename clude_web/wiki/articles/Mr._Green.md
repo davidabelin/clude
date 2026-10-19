@@ -3,7 +3,7 @@ title: Mr. Green
 short: The adaptable character who selects among five other methods
 categories: Characters
 redirects: Green, Reverend Green, Rev. Green
-dyk: ... that [[Mr. Green]] won no games in one sixteen-game arena, then {{fact:green.confirm.win}}% on the same deals with his settings unchanged and different opposition?
+dyk: ... that [[Mr. Green]] rebuilt his method from Beta(1,1), then selected step 4 and decay 1.05 on separate training and validation blocks?
 dyk: ... that [[Mr. Green]] queries all five other methods before selecting one, even when he will not use the most expensive answer?
 dyk: ... that [[Mr. Green]] reads up in this encyclopaedia on whichever character he is borrowing from, to learn where they go wrong?
 ---
@@ -23,8 +23,8 @@ Memory | How well each of the other five methods has done
 [[Secrecy]] | {{code:preset.Green.secrecy}}
 [[Temperature]] | {{code:preset.Green.temperature}}
 = Classic-board arena, 15 September 2026
-Games won | {{fact:arena.grid.Green.win}}% of {{fact:arena.grid.Green.games}}
-Wrong accusations | {{fact:arena.grid.Green.wrong}}%
+Games won | {{fact:arena.phase14.Green.win}}% of {{fact:arena.phase14.Green.games}}
+Wrong accusations | {{fact:arena.phase14.Green.wrong}}%
 }}
 
 **Mr. Green** is one of the six [[Clue#The cards|suspects]] in [[Clue]] and a [[Category:Characters|character]] in [[clude]]. His [[bandit ensemble]] computes the other five methods' [[belief|beliefs]] and adopts one unchanged. It uses [[w:Thompson sampling|Thompson sampling]] to select among them, based on a record of their accuracy on revealed envelopes. Green therefore has an adaptive selection method of his own, but obtains the card probabilities from one of its constituent methods. He pays the computation cost of all five whether or not he selects the expensive one.[^module]
@@ -69,9 +69,7 @@ A character's belief says what it thinks; five [[personality dials]] say what it
 
 The preset's own note calls him "opportunistic: middling everything, a bit noisy", and none of his dials has moved since the first tuning.[^presets] His threshold was the one questioned, after the Classic board's first arena, in which he did not win a game and accused in only one of sixteen while his belief on the benchmark was as good as anyone's.
 
-{{table:green.threshold|Green with only his accusation threshold moved, three arenas of 24 games on the Classic board, 15 September 2026.}}
-
-Lowering Green's threshold produced one win in sixteen games; at 0.5 he also made two wrong accusations. The sweep suggested that his borrowed confidence often rose too slowly to reach the threshold before another player won. His preset remained {{code:preset.Green.accuse_threshold}}.[^grid-presets]
+Phase 14 repeated the threshold screen on post-landing-rule games. Its direct effect remained visible, but no nearby value cleared the personality and outcome guardrails, so his preset remains {{code:preset.Green.accuse_threshold}}.[^current]
 
 ## Record
 
@@ -85,9 +83,9 @@ On the Classic board he is second-best at the end, {{fact:bench.grid.Green.100}}
 
 ### At the table
 
-{{table:arena.grid|The six characters over {{fact:arena.grid.games}} games on the Classic board at their tuned presets, tables of three to six, 15 September 2026.}}
+{{table:arena.phase14|The current-setting rows from Phase 14's isolated headless screens, 40 seat-games per character.}}
 
-In the first Classic-board arena Green won none of sixteen games. Later trials showed that this was not a stable result: across nine arenas that day, with his dials changed in only two, his win rates spanned {{fact:green.swing}} per cent. A confirmation run using the same deals as the initial arena gave {{fact:green.confirm.win}}% wins with his settings unchanged. Opponents' settings had changed, so this was not an identical replay. Each character played only 16 to 20 games per arena, giving an estimated [[w:Standard error|standard error]] of {{fact:arena.noise}} percentage points. These results do not establish a precise competitive ranking.[^grid-presets][^arena]
+Green won {{fact:arena.phase14.Green.win}}% of the current control and made a wrong accusation in {{fact:arena.phase14.Green.wrong}}%.[^arena] The 40-seat-game result does not establish a precise competitive rank. His separate retraining began from Beta(1,1), selected step 4 and decay 1.05, and cleared its 200-game validation block before the method document was staged.[^current]
 
 ### With Claude in the seat
 
@@ -95,7 +93,7 @@ With a model choosing within his [[leash]], Green's win rate changed from {{fact
 
 ## Memory
 
-Green's five arm records are saved after games and restored when remembering is enabled. Since Phase 7, they persist in the same store as game records. Unlike [[Colonel Mustard]]'s training rows and [[Mrs. White]]'s transition counts, the current memory builder does not reconstruct them from stored games: the records do not preserve the predictions made by the arms at the time. His method memory is accumulated during play.[^memory]
+Green's five arm records are saved after games and restored when remembering is enabled. Since Phase 7, they persist in the same store as game records. Unlike [[Colonel Mustard]]'s training rows and [[Mrs. White]]'s transition counts, the current memory builder cannot reconstruct them from stored games: the records do not preserve the predictions made by the arms at the time. Phase 14 therefore started from Beta(1,1), selected step 4 and decay 1.05, and trained the accepted state through a fresh 200-game block before separate 200-game validation.[^current] It does not claim to reconstruct the old live posteriors.
 
 Like every character he can also keep a narrative [[logbook]], written by a model after each game it played his seat, with what happened, what to do next time and, since October 2026, the evening itself: the company, and a read of each opponent as a person as well as a player.[^logbooks] His live standing instructions keep his route and his live list to himself 'but not my company: the talk costs me nothing', where under the earlier debrief they had said to move first and speak after.[^live]
 
@@ -118,11 +116,10 @@ Like every character he can also keep a narrative [[logbook]], written by a mode
 [^module]: {{cite:clude_agents/bandit.py|`BanditAgent.select_action` and `observe`, `rank_rewards`}}
 [^bandit]: Computed by the live modules on the Rope question; see [[Bandit ensemble#At the table]].
 [^presets]: {{cite:clude_agents/personality.py|`PRESETS`, Green's entry and its note}}
-[^grid-presets]: {{cite:docs/strategy-glossary.md|Tuned presets on the grid (Stage 1e, 2026-09-15)}}
 [^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
-[^arena]: {{cite:docs/strategy-glossary.md|Arena on the grid, tuned presets (Stage 1f, re-run)}}
+[^arena]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
+[^current]: {{cite:docs/phase14-plan.md|Plum and Green — retrained; Run 3 promoted locally}}
 [^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
-[^memory]: {{cite:docs/logbooks.md|Tier 1: method memory}}
 [^logbooks]: {{cite:docs/logbooks.md|Three tiers}}
 [^lives]: {{cite:docs/phase13-plan.md|1. Brief and settled decisions}}
 [^live]: {{cite:docs/phase13-plan.md|2026-10-15: step 4 accepted live, and a debrief lost to its token cap}}

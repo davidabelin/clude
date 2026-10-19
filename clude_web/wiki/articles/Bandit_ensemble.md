@@ -95,7 +95,7 @@ For textbook Thompson sampling, let $\theta_k$ be arm $k$'s unknown expected rew
 
 The module is `clude_agents/bandit.py`, and it is a port. David's earlier project, a [[w:Rock paper scissors|rock-paper-scissors]] tournament, had a Thompson-sampling bandit over move-predicting heuristics; here the structure is the same and the arms are literal instances of the other five agents, built fresh when Green is reset. The draws come from Python's own `betavariate`, so that the package needs no numerical library the rest of clude does without.[^module][^port]
 
-The chosen arm's probabilities are returned unchanged, with its name recorded in the belief's extras. Green's record is saved after each game and restored as Tier 1 method memory. The current memory builder does not reconstruct the arm counts from stored games, because those records do not preserve the predictions made by the arms at the time.[^memory] Every call consults all five arms. In the Classic-board benchmark, [[Professor Plum]] alone took about {{fact:bench.grid.Plum.ms}} ms per call at mid-game and Green took {{fact:bench.grid.Green.ms}} ms.[^grid]
+The chosen arm's probabilities are returned unchanged, with its name recorded in the belief's extras. Green's record is saved after each game and restored as Tier 1 method memory. The current memory builder does not reconstruct the arm counts from stored games, because those records do not preserve the predictions made by the arms at the time.[^memory] Phase 14 therefore began honestly from Beta(1,1), compared step sizes 1, 2 and 4 with decay rates 1.02, 1.05 and 1.10, then trained and validated on separate 200-game blocks. Step 4 and decay 1.05 cleared the held-out gates; the accepted state is fresh training, not a reconstruction of old live posteriors.[^phase14] Every call consults all five arms. In the Classic-board benchmark, [[Professor Plum]] alone took about {{fact:bench.grid.Plum.ms}} ms per call at mid-game and Green took {{fact:bench.grid.Green.ms}} ms.[^grid]
 
 ## Measured
 
@@ -113,9 +113,9 @@ Green's benchmark loss reflects which arms were selected. In the earlier run, hi
 
 ### At the table
 
-{{table:green.threshold|Green with only his accusation threshold moved, three arenas of 24 games on the Classic board, 15 September 2026.}}
+{{table:arena.phase14|The current-setting rows from Phase 14's isolated headless screens, 40 seat-games per character.}}
 
-Green won none of sixteen games in the first Classic-board arena. Lowering the threshold produced only one win in sixteen, with two wrong accusations at 0.5, so the preset was retained. Across nine arenas that day, his win rates spanned {{fact:green.swing}} per cent. A confirmation run using the original 24 deals gave {{fact:green.confirm.win}}% wins with his settings unchanged but other characters retuned. The outcomes varied with the opposition as well as the sequence of play; a single small arena does not establish his competitive strength.[^tuned]
+Green won {{fact:arena.phase14.Green.win}}% of the current control and made a wrong accusation in {{fact:arena.phase14.Green.wrong}}%.[^current] Phase 14 also screened his threshold separately and retained 0.75 because no nearby value cleared the personality and outcome guardrails. A 40-seat-game row does not establish his competitive strength.
 
 In the twin arena, adding [[Claude]] changed Green's win rate from {{fact:twin.grid.Green.win_base}}% to {{fact:twin.grid.Green.win_llm}}%. The difference was within the reported sampling uncertainty.[^twin]
 
@@ -149,8 +149,9 @@ In the twin arena, adding [[Claude]] changed Green's win rate from {{fact:twin.g
 [^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
 [^glossary]: {{cite:docs/strategy-glossary.md|Green -- Bandit ensemble over the other five}}
 [^ring]: {{cite:docs/strategy-glossary.md|Belief benchmark, FloorBot regime (Phase 5)}}
-[^tuned]: {{cite:docs/strategy-glossary.md|Tuned presets on the grid (Stage 1e, 2026-09-15)}}
 [^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
+[^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
+[^phase14]: {{cite:docs/phase14-plan.md|Plum and Green — retrained; Run 3 promoted locally}}
 [^policy]: {{cite:clude_web/wiki/facts.py|`rope_observation` and `rope_question`}}
 
 {{navbox:clude}}

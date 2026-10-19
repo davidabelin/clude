@@ -102,7 +102,7 @@ The implementation is `clude_agents/dempster_shafer.py`. It builds a vacuous mas
 
 Peacock's caution is wired at that point. Each character's [[accusation threshold]] is compared against a *confidence* that is, for five of them, the belief's probabilities; for Peacock it is her Dempster-Shafer belief, the lower bound. A threshold of {{code:preset.Peacock.accuse_threshold}} on a lower bound that stays at 0 until evidence singles a card out is, as the preset's note says, "far stricter than 0.7 would be for anyone else".[^presets] The choice is a function supplied with her registry entry, not a dial, so that her profile stays five plain numbers like everyone else's.[^phase5]
 
-The method found one bug in the floor. Until Phase 5 an open fact that a located card had already satisfied was kept and reported as open, and Peacock read the fact's other, unlocated members as live evidence against those cards. Plum's search filtered such facts for itself; she did not, and the floor now drops them.[^phase5fix]
+The method found one bug in the floor. Until Phase 5 an open fact that a located card had already satisfied was kept and reported as open, and Peacock read the fact's other, unlocated members as live evidence against those cards. PlumOG's search filtered such facts for itself; she did not, and the floor now drops them.[^phase5fix]
 
 The two bounds are also the origin of a piece of the design: the "two-tone belief bar" of the project's early visual notes, solid for belief and pale for the unresolved gap to plausibility, is exactly this pair.[^module]
 
@@ -122,9 +122,9 @@ The accusation test uses the belief values rather than the decision probabilitie
 
 The [[arena]] measures the complete character, including her lower-bound accusation test.
 
-{{table:arena.grid|The six characters over {{fact:arena.grid.games}} games on the Classic board at their tuned presets, 15 September 2026.}}
+{{table:arena.phase14|The current-setting rows from Phase 14's isolated headless screens, 40 seat-games per character.}}
 
-Peacock made no wrong accusations in the recorded headless arenas on either board. In the tabulated Classic-board run, she won {{fact:arena.grid.Peacock.win}}% of her games, tied with [[Professor Plum]], and first accused at mean turn {{fact:arena.grid.Peacock.first}}, the latest of the six.[^arena] In the Classic-board curiosity sweep, three settings produced the same won, wrong and never-accused percentages: {{fact:curiosity.grid.preset.peacock}}.[^tuned] These small trials do not establish that the dial has no effect in other games.
+Peacock won {{fact:arena.phase14.Peacock.win}}% of her 40 current-control seat-games and made no wrong accusation, first accusing at mean turn {{fact:arena.phase14.Peacock.first}}.[^arena] The wider Phase 14 curiosity grid showed a clear pooled footprint, but Peacock's isolated screen did not justify moving her preset. Zero observed errors in this block do not establish infallibility.
 
 With a model in her seat the picture changes. At a four-seat table where all six characters played with [[Claude]], her wins went from {{fact:twin.grid.Peacock.win_base}}% to {{fact:twin.grid.Peacock.win_llm}}% and her first accusation from turn {{fact:twin.grid.Peacock.first_base}} to {{fact:twin.grid.Peacock.first_llm}}. The [[leash]] lets a model accuse a little before the character's own threshold, and the recorded model-piloted seats accused earlier.[^twin]
 
@@ -158,8 +158,7 @@ With a model in her seat the picture changes. At a four-seat table where all six
 [^phase5]: {{cite:docs/phase5-plan.md|3. Where this differs}}
 [^phase5fix]: {{cite:docs/phase5-plan.md|8. As implemented (2026-09-12)}}
 [^ring]: {{cite:docs/strategy-glossary.md|Belief benchmark, FloorBot regime (Phase 5)}}
-[^arena]: {{cite:docs/strategy-glossary.md|Arena on the grid, tuned presets (Stage 1f, re-run)}}
-[^tuned]: {{cite:docs/strategy-glossary.md|Tuned presets on the grid (Stage 1e, 2026-09-15)}}
+[^arena]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
 
 {{navbox:clude}}

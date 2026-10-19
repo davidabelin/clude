@@ -55,7 +55,7 @@ Wikiclude articles, rendering and assets are outside this pass. Existing source 
 | N6 | Persona wording updated in Phase 11; paid ladder kept leash 0.35 ($8.38); both LLM fixtures re-recorded and replaying | None |
 | N7 | Wiki rewritten for the network, with figures, diagrams, algorithm boxes and 21 Algorithms entries; lobby and Watch copy updated; engraved portraits in the character infoboxes; deployed 2026-10-07 | None |
 
-The Phase 12 checkpoint had the best mid-game belief then measured and sub-millisecond calls; its zero observed wrong accusations and win rates are historical, not claims about Run 3. Curiosity remains inert for Plum's policy hook. Phase 12 kept `accuse_threshold`, `temperature` and leash 0.35; Phase 14 has not yet finished their replacement sweeps. See [Phase 12](deepnash-plan.md) sections 11-13.
+The Phase 12 checkpoint had the best mid-game belief then measured and sub-millisecond calls; its zero observed wrong accusations and win rates are historical, not claims about Run 3. Curiosity remains inert for Plum's policy hook. Phase 14 repeated the relevant sweeps and retained `accuse_threshold`, `temperature` and leash 0.35. See [Phase 12](deepnash-plan.md) sections 11-13.
 
 ## Phase 13 scope
 
@@ -65,7 +65,7 @@ Step 0's editorial pass is live (2026-10-10). Steps 1-3's six broader persona sc
 
 ## Phase 14 scope
 
-[Phase 14: Recalibration](phase14-plan.md) is active. It froze 109 eligible
+[Phase 14: Recalibration](phase14-plan.md) is complete. It froze 109 eligible
 post-landing-rule records, rebuilt Mustard, White and Green into staged local
 method documents, and trained three Plum networks from fresh initialisations.
 The balanced four-network tournament covered all 26 line-ups containing Plum,
@@ -74,12 +74,22 @@ advantage over the former checkpoint was 4.9 points (95% paired bootstrap
 interval 1.5 to 8.3). David selected Run 3 on 2026-10-18.
 
 Run 3's full second-stage checkpoint is committed in the local checkout. Its
-guarded promotion verified the expected former hash, wrote an ignored backup
-and did not deploy. The deterministic goldens were re-captured. The one exact
-game containing Plum was re-recorded with separate paid approval ($0.0348,
-six successful calls, no fallback or lookup); the other fixture still replayed
-and was left alone. The full dial sweeps, paid dial confirmation, W7, production
-deployment and live-store method promotion remain separate open gates.
+guarded promotion verified the expected former hash and wrote an ignored
+backup. The deterministic goldens were re-captured. The one exact game
+containing Plum was re-recorded with separate paid approval ($0.0348, six
+successful calls, no fallback or lookup); the other fixture still replayed
+and was left alone.
+
+All five pooled headless sweeps and all 29 applicable isolated screens are
+complete. The paid screen was resumed after a provider-credit interruption
+without repeating valid rows: 4,748 valid calls cost $53.3074 at list price.
+The only shortlist, Plum leash 0.60, failed its separate 24-pair confirmation;
+valid screen and confirmation cost $61.9079. No headless or paid preset
+changed. W7's corpus, live-link and representative three-look visual gates
+pass. The release deploys Run 3, the current documentation and the three
+guarded method documents together. Cloud Run revision `clude-00038-jws` serves
+100% of traffic; live table/replay acceptance passed and the bucket holds the
+three exact accepted method hashes after removal of throwaway acceptance data.
 
 ## Post-game final comments
 

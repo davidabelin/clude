@@ -50,7 +50,11 @@ This arrangement allows context caching, but does not make the remembered prose 
 
 A [[dial sweeps|memory-depth sweep]] should use one fixed logbook state read-only across values. Otherwise a deeper setting might also receive later, different entries, confounding depth with accumulated experience. A normal remembered arena intentionally learns across games and answers a different question.
 
-Greater depth can preserve useful details but also increases prompt length and carries more stale or repetitive narrative. No monotonic improvement in win rate follows from the selection formula. [[Logbook#Recorded experiment|Recorded Plum results]] concern a particular accumulating-memory run, not an exhaustive test of every depth.
+Phase 14 used exactly that control: one immutable snapshot, no debrief writes and eight paired four-seat games per value. Every accepted row had zero fallbacks.[^current]
+
+{{table:paid.phase14.memory|Current paid memory-depth screen. Wins total one per game across the four model-piloted seats, so they cannot distinguish depths.}}
+
+Greater depth can preserve useful details but also increases prompt length and carries more stale or repetitive narrative. The screen found no repeatable behavioural gain; 0.75 used 386 calls and cost $6.7857, against 297 calls and $3.4689 at zero, while also recording two wrong accusations. Those small counts are not a universal ranking, but they do not justify changing the present profile convention.
 
 
 ## See also
@@ -64,5 +68,6 @@ Greater depth can preserve useful details but also increases prompt length and c
 [^depth]: {{cite:docs/logbooks.md|The `memory` dial: what a character reads back}}
 [^counts]: {{cite:clude_storage/logbooks.py|`memory_counts` and `render_memory`}}
 [^wrapper]: {{cite:docs/llm-wrapper.md|Memory (Phase 7)}}
+[^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 
 {{navbox:clude}}

@@ -108,11 +108,11 @@ Before the change, the corresponding mean was {{fact:landing.suggestions.before}
 
 ### How much to bluff
 
-The [[bluff rate]] was measured by setting it to the same value for all six characters and playing 48 games at each, on the earlier [[ring board]].
+The [[bluff rate]] was measured after the landing-rule change by setting it to the same value for all six characters and playing 200 paired games at each value.
 
-{{table:sweep.bluff|The six characters pooled, against purely logical opponents, with every character's bluff rate set to the same value. Won, accused wrongly and never accused are percentages of the games played.}}
+{{table:sweep.phase14.bluff_rate|The six characters pooled against interleaved FloorBot seats, with every character's bluff rate set to the same value.}}
 
-In this sweep, a bluff rate of 0.25 did not reduce the pooled win rate. A rate of 1 reduced it to about a third of the rate at 0.[^sweeps] At 1, characters always attempted to name held suspects and weapons, using unresolved cards only when no held card of that category was available. Even at rate 0, a suggestion may include a held room card because its room is fixed by the token's location. The presets range from {{code:preset.Plum.bluff_rate}} for [[Professor Plum]] and [[Mrs. Peacock]] to {{code:preset.White.bluff_rate}} for [[Mrs. White]].
+Own-card naming rose from 1.04 per seat-game at zero to 4.28 at one. The always-bluffing row won 5.4%, against 21.4% at zero.[^sweeps] At one, characters always attempted to name held suspects and weapons, using unresolved cards only when no held card of that category was available. Even at zero, a suggestion may include a held room card because its room is fixed by the token's location. The presets range from {{code:preset.Plum.bluff_rate}} for [[Professor Plum]] and [[Mrs. Peacock]] to {{code:preset.White.bluff_rate}} for [[Mrs. White]].
 
 ## See also
 
@@ -135,6 +135,6 @@ In this sweep, a bluff rate of 0.25 did not reduce the pooled win rate. A rate o
 [^timeout]: {{cite:clude_web/tables.py|`SHOW_TIMEOUT`}}
 [^observation]: {{cite:clude_core/state.py|`ClueObservation`}}
 [^landing]: {{cite:docs/strategy-glossary.md|The landing rule (Phase 8.0.4, 2026-09-18)}}
-[^sweeps]: {{cite:docs/strategy-glossary.md|Dial sweeps}}
+[^sweeps]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 
 {{navbox:clude}}

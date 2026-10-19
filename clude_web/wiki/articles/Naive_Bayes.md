@@ -134,9 +134,9 @@ Two other metrics help interpret the result. At the end checkpoint, Scarlett's f
 
 The [[arena]] measures how the method and its accusation threshold perform in complete games.
 
-{{table:scarlett.threshold|Scarlett over three arenas of 24 games on the Classic board, with only her accusation threshold changed. Won and accused wrongly are percentages of the games she played.}}
+{{table:arena.phase14|The current-setting rows from Phase 14's isolated headless screens, 40 seat-games per character.}}
 
-In these threshold trials, Scarlett won three times as often at 0.3 as at 0.15, her earlier setting. The longer Classic-board games gave her more evidence before she reached the threshold, and 0.3 was adopted.[^threshold] In the subsequent arena she won {{fact:arena.grid.Scarlett.win}}% of her games and accused wrongly in {{fact:arena.grid.Scarlett.wrong}}%, the highest wrong-accusation rate in that run.[^arena] Each percentage rests on about twenty games, with uncertainty of roughly ten percentage points.
+Phase 14 repeated Scarlett's threshold screen on post-landing-rule games and retained 0.3 because no nearby value cleared the personality and outcome guardrails.[^current] In the current control she won {{fact:arena.phase14.Scarlett.win}}% and accused wrongly in {{fact:arena.phase14.Scarlett.wrong}}%, the highest observed wrong-accusation rate in that block.[^arena] Forty seat-games are descriptive, not a universal error estimate.
 
 ## Why use it at all
 
@@ -166,7 +166,7 @@ In clude, those estimates also control when Scarlett stakes the game on an [[acc
 [^presets]: {{cite:clude_agents/personality.py|`PRESETS`}}
 [^tuned]: {{cite:docs/strategy-glossary.md|Tuned presets}}
 [^ring]: {{cite:docs/strategy-glossary.md|Belief benchmark, FloorBot regime (Phase 5)}}
-[^threshold]: {{cite:docs/strategy-glossary.md|Scarlett's threshold on the grid (Stage 1d)}}
-[^arena]: {{cite:docs/strategy-glossary.md|Arena on the grid, tuned presets (Stage 1f, re-run)}}
+[^arena]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
+[^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 
 {{navbox:clude}}

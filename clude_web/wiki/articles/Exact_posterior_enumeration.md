@@ -44,7 +44,7 @@ A small position makes it possible to check the count by hand.
 
 ### The search, step by step
 
-{{figure:plum-search|Plum's search on the Rope question. Each open card is tried in Mustard's hand and in the envelope; a branch is abandoned the moment it breaks a rule; every branch that reaches the bottom is one complete deal.}}
+{{figure:plum-search|PlumOG's search on the Rope question. Each open card is tried in Mustard's hand and in the envelope; a branch is abandoned the moment it breaks a rule; every branch that reaches the bottom is one complete deal.}}
 
 The example can be counted by inspection. The implementation instead [[w:Tree traversal|walks a search tree]], shown above in {{code:example.plum.nodes}} steps. It tries Mrs. White in Mustard's hand and then in the envelope, proceeding through the other open cards. A branch ends as soon as Mustard's hand is full, a category has a second envelope card, or both Peacock and the Rope are assigned to the envelope, leaving neither to explain Mustard's disproof. Three branches reach complete, valid deals.
 

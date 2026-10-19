@@ -118,7 +118,7 @@ The tree is only as good as the games it was grown from, and the first tree was 
 
 ### Memory
 
-Mustard has persistent method memory. When it is enabled, rows from stored games are appended to the self-play training set, and his tree is rebuilt for each table. Rows include every seat's view, so he can learn from games he did not play. An initial comparison added {{fact:mustard.memory.rows}} rows from {{fact:mustard.memory.games}} stored games and evaluated {{fact:mustard.memory.held_out}} held-out games. Mid-game log-loss improved from {{fact:mustard.memory.mid.before}} to {{fact:mustard.memory.mid.after}}, while final loss worsened from {{fact:mustard.memory.end.before}} to {{fact:mustard.memory.end.after}}. This small experiment gives mixed evidence of benefit and changes the training distribution from floor-bot self-play towards character games.[^memory]
+Mustard has persistent method memory. When it is enabled, rows from stored games are appended to the self-play training set, and his tree is rebuilt for each table. Rows include every seat's view, so he can learn from games he did not play. Phase 14 discarded the old training rows, rebuilt them from the frozen post-landing-rule training split, and compared 81 combinations of self-play base, depth, minimum leaf and smoothing. The accepted tree uses 50 fresh self-play games, depth 6, minimum leaf 40 and smoothing 1; it improved validation log-loss at every checkpoint and stayed inside the paired arena guardrails.[^phase14] Stored character games still change the training distribution from floor-bot self-play, so this is measured acceptance rather than a guarantee under every table.
 
 ## Measured
 
@@ -132,11 +132,11 @@ In the Classic-board benchmark, with the tree trained on that board, halfway los
 
 ### At the table
 
-{{table:arena.grid|The six characters over {{fact:arena.grid.games}} games on the Classic board at their tuned presets, 15 September 2026.}}
+{{table:arena.phase14|The current-setting rows from Phase 14's isolated headless screens, 40 seat-games per character.}}
 
-Mustard uses the neutral [[accusation threshold]] of {{code:preset.Mustard.accuse_threshold}} to keep the method's effect visible without an unusually low or high threshold. Wrong accusations still depend on both the estimates and this decision rule. He accused wrongly in {{fact:arena.grid.Mustard.wrong}}% of games in the tabulated Classic-board arena, and in {{fact:arena.ring.first.Mustard.wrong}}% in the first arena of all, before the presets were tuned.[^arena][^ringarena]
+Mustard uses the neutral [[accusation threshold]] of {{code:preset.Mustard.accuse_threshold}} to keep the method's effect visible without an unusually low or high threshold. Wrong accusations still depend on both the estimates and this decision rule. He accused wrongly in {{fact:arena.phase14.Mustard.wrong}}% of the current control's 40 seat-games; zero observed errors do not prove a zero long-run rate.[^arena]
 
-In the Classic-board twin comparison, with [[Claude]] piloting every character, Mustard's wrong-accusation rate fell from {{fact:twin.grid.Mustard.wrong_base}}% to {{fact:twin.grid.Mustard.wrong_llm}}%, and wins rose from {{fact:twin.grid.Mustard.win_base}}% to {{fact:twin.grid.Mustard.win_llm}}%.[^twin] A separate leash experiment on the earlier board, with only Mustard model-piloted, did not reproduce that reduction: at the preset [[leash]], his wrong rate was {{fact:ladder.mustard.0.25.wrong}}%, compared with {{fact:ladder.mustard.headless.wrong}}% headless.[^ladder] The project attributes much of the twin-run improvement to other model-piloted seats ending games earlier. The trials do not isolate a reliable benefit from model judgement alone.
+The current paid leash screen recorded seven wins in eight games at Mustard's 0.25 preset and no wrong accusation at any screened value. The rows are too small to isolate a reliable benefit from model judgement or to justify a preset change.[^current]
 
 ## Limitations
 
@@ -164,12 +164,10 @@ In the Classic-board twin comparison, with [[Claude]] piloting every character, 
 [^phase5]: {{cite:docs/phase5-plan.md|4.2 Mustard: calibration, then distribution}}
 [^base]: {{cite:clude_agents/base.py|`mask_and_normalize`}}
 [^phase4]: {{cite:docs/strategy-glossary.md|Phase 4 benchmark results (RandomBot regime, historical)}}
-[^memory]: {{cite:docs/strategy-glossary.md|Phase 7: memory (2026-09-14)}}
 [^ring]: {{cite:docs/strategy-glossary.md|Belief benchmark, FloorBot regime (Phase 5)}}
 [^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
-[^arena]: {{cite:docs/strategy-glossary.md|Arena on the grid, tuned presets (Stage 1f, re-run)}}
-[^ringarena]: {{cite:docs/strategy-glossary.md|Arena, tuned presets}}
-[^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
-[^ladder]: {{cite:docs/strategy-glossary.md|Mustard}} The per-character leash ladder, 2026-09-13.
+[^arena]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
+[^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
+[^phase14]: {{cite:docs/phase14-plan.md|Mustard and White — accepted locally, not released}}
 
 {{navbox:clude}}

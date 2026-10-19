@@ -820,9 +820,9 @@ def _leash_band() -> Figure:
 
 
 def _arena_rates() -> Figure:
-    """Wins and wrong accusations from the historical tuned grid arena."""
-    table = facts.TABLES["arena.grid"]
-    body = [_text(6, 18, "Tuned Classic-board arena, September 2026", "t-sm t-b")]
+    """Wins and wrong accusations from the Phase 14 current control."""
+    table = facts.TABLES["arena.phase14"]
+    body = [_text(6, 18, "Phase 14 current-setting control", "t-sm t-b")]
     body.append(_text(6, 38, "Won / accused wrongly (% of seat-games)", "t-sm"))
     for i, suspect in enumerate(SUSPECTS):
         row = table.cells(suspect)
@@ -832,7 +832,7 @@ def _arena_rates() -> Figure:
         body.append(f'<rect x="84" y="{y}" width="{win * 5}" height="12" class="bar s-green"/>')
         body.append(f'<rect x="84" y="{y + 15}" width="{wrong * 5}" height="8" class="bar s-scarlett"/>')
         body.append(_text(252, y + 18, f"{win:g} / {wrong:g}", "t-sm t-num"))
-    label = "Historical tuned grid arena: labelled win and wrong-accusation percentages for all six characters, each with sixteen or twenty seat-games."
+    label = "Phase 14 current-setting control: labelled win and wrong-accusation percentages for all six characters, each with forty seat-games."
     return Figure("arena-rates", "Wins and wrong accusations", label, _svg(360, 306, "".join(body), label, "chart"))
 
 

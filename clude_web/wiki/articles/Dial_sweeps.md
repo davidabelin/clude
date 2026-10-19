@@ -4,104 +4,73 @@ short: Paired game runs varying one setting over a series of values
 categories: Measurement
 redirects: Dial sweep, Sweep, Leash sweep
 ---
-**Dial sweeps** compare [[arena]] runs at several values of one [[personality dials|dial]], holding the seed schedule and other configured settings fixed. They test whether the dial changes its intended behaviour and how that affects outcomes. A sweep can vary all selected characters together or isolate one character.[^sweep]
+**Dial sweeps** compare [[arena]] runs at several values of one [[personality dials|dial]], while keeping the seed schedule, roster and other settings fixed. They show whether a dial changes its intended behaviour and whether the change damages play. Pairing controls the deal, dice and line-up; later choices can still make the games diverge.[^runner]
 
-The method supports comparisons rather than proving a universal optimum. Changing several players' same dial still changes their interactions, and a small set of paired deals may favour one value by chance. Remembered state and live model replies require additional controls.
+Phase 14 recalibrated all eight dials after the [[landing rule]] change and after Run 3 became [[Professor Plum]]'s network. The headless sweeps used 200 games per value at seed 142000, tables of three to six and characters interleaved with [[deduction floor|FloorBot]] seats. Each applicable character then received a 96-game isolated screen at its preset and nearby values. Plum does not use curiosity.[^record]
 
-## A behavioural question
+## Headless dials
 
-For [[bluff rate]], the intended effect is more suggestions naming held cards. The historical ring-board sweep set the dial on all six characters and measured them against interleaved floor-player seats. It used 48 paired games per value, pooled into 120 character seat-games.[^record]
+Won, Wrong and Never are percentages of character seat-games. First accusation averages only games in which that seat accused. Direct footprints matter more than small changes in wins: a bluff dial should move own-card naming, for example, whether or not bluffing happens to win a particular sample.
 
-{{table:sweep.bluff|Historical ring-board sweep over bluff rate. The characters were changed together; their pooled own-card naming rose across these values.}}
+{{table:sweep.phase14.accuse_threshold|Phase 14 pooled accusation-threshold sweep. Higher values sharply reduced wrong accusations and made more seats wait through the end of the game.}}
 
-The naming count rose while win rate did not rise throughout. That separates the implemented behaviour from its tactical value. The non-zero naming count at dial zero came from held room cards, since the room is fixed by position.
+The paired change in wrong accusations from 0.2 to 1 was -39.5 percentage points, with a 95% bootstrap interval from -44.4 to -34.7. The zero observed errors at 1 are a property of these 500 seat-games, not a universal rate.
 
-## How a sweep is run
+{{table:sweep.phase14.bluff_rate|Phase 14 pooled bluff-rate sweep. Own cards named is the dial's direct footprint.}}
 
-The runner builds an arena for each chosen dial value, using the same base seed, roster, player counts and other settings. It pools selected characters' statistics for the sweep row and retains the underlying per-character results. Non-selected opponents keep their configured profiles.[^sweep]
+Own-card naming rose by 3.335 suggestions per seat-game between the endpoints, with a 95% interval from 2.912 to 3.770. Always bluffing also lost 17.75 paired win-rate points, so the direct effect is clear without making it a performance target.
 
-With characters and private filler streams, the same seeds produce the same deals and die sequence. Different moves and suggestions still lead to different evidence. Pairing reduces variation in setup; it does not hold the entire course of play constant.
+{{table:sweep.phase14.curiosity|Phase 14 pooled curiosity sweep. Plum is excluded because curiosity is N/A for his network.}}
 
-## Monotonicity
+From zero to one, suggestions fell by 2.622 per seat-game, with a 95% interval from -2.942 to -2.303, and games lengthened by 10.36 turns. In this implementation higher curiosity is a stronger willingness to pursue a distant room; it can therefore reduce the number of suggestions completed before another player ends the game.
 
-The implementation checks whether a metric is non-decreasing, non-increasing, flat or mixed across values, allowing a small numerical tolerance. A sequence that moves consistently in one direction passes the intended directional check. Missing values make that verdict unavailable.[^sweep]
+{{table:sweep.phase14.secrecy|Phase 14 pooled secrecy sweep. Re-shown uses only refutations for which the player held several matching cards.}}
 
-For example, lower thresholds should tend to make accusations available earlier and increase risk, while higher secrecy should favour previously exposed cards when choices exist. Win rate need not move monotonically: an intermediate risk setting can balance early mistakes against waiting too long.
+Re-showing rose from 31.5% to 44.4%. The paired interval for distinct own cards exposed included zero, and the secondary outcomes did not support moving a preset.
 
-The monotonicity check is descriptive, not a statistical significance test or causal proof. A monotone sequence in a short sample can happen by chance, and a genuine effect can look non-monotone in noisy observations.
+{{table:sweep.phase14.temperature|Phase 14 pooled temperature sweep. Temperature samples among headless choices; it is not a model setting.}}
 
-## Pooled and isolated effects
+From zero to two, games lengthened by 19.47 turns, with a 95% interval from 16.99 to 22.09, while wins fell by 21.25 points. The current character temperatures remain deliberately low.
 
-Moving the dial on all characters asks about a table-wide change. Moving it only on Plum asks how Plum fares against otherwise fixed profiles. Their conclusions can differ because opponents determine the evidence and the race to accuse.
+## Isolated screens and decision
 
-A pooled result can hide opposing per-character responses. It also gives more weight to identities with more seat-games. The recorded per-character results should be consulted before adopting a preset from the pooled row.
+The isolated screens moved one character at a time: unit dials at preset minus 0.2, preset and preset plus 0.2, and temperature at zero, current and twice current. This produced 8,352 games over 29 applicable character–dial combinations. The current-setting control was identical across each character's screens:
 
-## Memory and model controls
+{{table:arena.phase14|Current-setting rows from the Phase 14 isolated screens. Each character has 40 seat-games in the shared 96-game seed block.}}
 
-A [[memory dial|memory-depth sweep]] uses a fixed logbook read-only so later values do not receive a more developed history. Method memory likewise needs a common starting state. Otherwise the dial change is confounded with additional training or experience.[^memory]
+The intended footprints remained recognisable, but no proposed headless preset change cleared the personality and outcome gates. There was consequently no separate 192-game headless confirmation block. Retaining a preset is a measured decision, not a claim that its exact number is uniquely optimal.[^record]
 
-A [[leash]] sweep opens different model menus and may make different numbers of calls. Live replies are not guaranteed identical, so it measures that configured model-piloted behaviour rather than a fully deterministic numerical intervention. Audit columns help distinguish increased opportunity from actual departures.
+## Paid dials
 
-## Recorded history and limits
+Paid screens fixed `claude-opus-5`, the accepted code and weights, and a read-only logbook snapshot. All accepted rows had zero fallbacks. [[Leash]] was screened separately for every character, [[table talk|chattiness]] at five values over common opportunities, and [[memory dial|memory depth]] at five values without debrief writes.
 
-Ring-era sweeps informed the first presets; grid-era sweeps informed later changes. The early ring sweep preceded a fix to Plum's holder ordering: within-process pairing was valid, but those absolute values do not exactly reproduce on the fixed code.[^record]
+{{table:paid.phase14.chattiness|Phase 14 chattiness screen. On-turn speech is not gated by this dial; calls and spoken lines here are off-turn reactions.}}
 
-The current [[landing rule]] also postdates the major grid tuning tables. New sweeps should name their board and implementation rather than inherit historical conclusions automatically. A confirmation arena on separate or clearly identified seeds is needed to test whether a promising setting generalises.
+The response rate increased clearly and began to saturate above 0.5. The current 0.5 setting remains the useful elbow.
 
+{{table:paid.phase14.memory|Phase 14 memory-depth screen against one immutable logbook snapshot. Each row contains eight four-seat games.}}
 
+Each game necessarily contributes one win, so the eight wins per row do not distinguish depths. Deeper memory did not show a repeatable behavioural gain and could cost more; the current profile convention remains.
 
-## All five dials on the two boards
+The leash screen shortlisted Plum at 0.60, then a separate 24-pair confirmation rejected it:
 
-The recorded ring sweeps and the Classic-grid sweeps each used 48 paired games per value, seed 7100 and an interleaved character–floor roster, pooled into 120 character seat-games. The ring sweeps preceded the holder-order fix and the seat-locking change; the grid sweeps were recorded on 15 September 2026 with seat-locked characters. The same dial names and seed do not make these different-board runs a paired board comparison.[^record][^grid]
+{{table:paid.phase14.plum_leash_confirm|Plum leash confirmation on new seeds. The candidate lost 12.5 paired win-rate points and stayed within the wrong-accusation and game-length guardrails.}}
 
-The following tables preserve the five sweeps rather than show only their selected presets. Won and Wrong are percentages of character seat-games; First accusation averages only games with an accusation, and Never accused supplies the missing part of that picture. Own cards shown counts distinct held cards exposed, Own cards named counts suggestions naming any held card, and Re-shown uses only refutations with several matching cards. Mean turns describes whole games, not turns taken by one character.
+The candidate failed the five-point win guardrail. No paid dial or preset changed. Valid screening and confirmation cost $61.9079 at list price; one memory row compromised by provider credit exhaustion was discarded rather than counted, and the valid earlier legs were not rerun.[^record]
 
-The ring bluff-rate table is above. Its other four sweeps were:
+## Archive note
 
-{{table:sweep.ring.accuse_threshold|Historical ring-board accuse threshold sweep; 48 games per value, pooled character results.}}
-
-{{table:sweep.ring.curiosity|Historical ring-board curiosity sweep; 48 games per value, pooled character results.}}
-
-{{table:sweep.ring.secrecy|Historical ring-board secrecy sweep; 48 games per value, pooled character results.}}
-
-{{table:sweep.ring.temperature|Historical ring-board temperature sweep; 48 games per value, pooled character results.}}
-
-The Classic-board results were:
-
-{{table:sweep.grid.accuse_threshold|Classic-board accuse threshold sweep, 15 September 2026; 48 games per value, pooled character results.}}
-
-{{table:sweep.grid.bluff_rate|Classic-board bluff rate sweep, 15 September 2026; 48 games per value, pooled character results.}}
-
-{{table:sweep.grid.curiosity|Classic-board curiosity sweep, 15 September 2026; 48 games per value, pooled character results.}}
-
-{{table:sweep.grid.secrecy|Classic-board secrecy sweep, 15 September 2026; 48 games per value, pooled character results.}}
-
-{{table:sweep.grid.temperature|Classic-board temperature sweep, 15 September 2026; 48 games per value, pooled character results.}}
-
-High temperature and always-bluffing settings had lower recorded win rates on both boards. Higher secrecy increased re-showing without a consistent win-rate improvement in these samples. Curiosity's low-end ranking differed between boards: the ring sample favoured 0.5 over 0, while the grid sample favoured 0 over 0.5. Those small differences do not establish a precise optimum. The grid's longer routes gave a practical reason to investigate lower curiosity for characters that pursued distant rooms.
-
-## The pooled model leash sweep
-
-The ring-board sweep of 13 September 2026 changed all model-piloted characters together at three-seat tables, with eight paired games per value, seed 7007 and 24 seat-games per value. Pooled win rate was uninformative: when all seats are swept and each game has one winner, it is one third by construction.[^leash]
-
-{{table:leash.pooled|Historical pooled leash sweep. Reported +/- is the recorded plug-in binomial standard deviation in percentage points, not a confidence interval. Departure rate divides by accepted model choices.}}
-
-The departure percentage did not rise throughout, partly motivating a different denominator in the later ladders: departures per eligible decision, alongside raw counts. More opportunities to accept a model choice can lower the percentage of accepted choices that depart from the top score. That explanation is a hypothesis about this record; it did not save the machine-readable counts needed to settle it.
-
-The later [[leash|per-character ladders]] isolate Mustard and Plum against fixed headless opponents. They answer a different question from this all-model sweep, and the [[measurement record]] links their source records and the subsequent memory comparisons.
+Earlier ring-board and pre-landing-rule sweeps informed older presets. Their detailed tables and calibration claims are superseded here; the dated evidence remains in the maintainer strategy glossary and git history.
 
 ## See also
 
-[[Personality dials]] · [[Arena]] · [[Twin comparison]] · [[Memory dial]] · [[Measurement record]]
+[[Personality dials]] · [[Arena]] · [[Leash]] · [[Memory dial]] · [[Measurement record]]
 
 ## References
 
 {{references}}
 
-[^sweep]: {{cite:clude_training/sweep.py|`sweep_dial`, `pooled_stats` and `SweepResult.monotone`}}
-[^record]: {{cite:docs/strategy-glossary.md|Dial sweeps}}
-[^grid]: {{cite:docs/strategy-glossary.md|Dial sweeps on the grid (Stage 1c)}}
-[^leash]: {{cite:docs/strategy-glossary.md|Leash sweep (2026-09-13)}}
-[^memory]: {{cite:docs/logbooks.md|Running it}}
+[^runner]: {{cite:clude_training/sweep.py|`sweep_dial`, `pooled_stats` and `SweepResult.monotone`}}
+[^record]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 
 {{navbox:clude}}

@@ -26,18 +26,23 @@ Headless and LLM seats share the numerical character. Headless play selects from
 
 A fair comparison records the starting memory, board, roster, seed schedule and code version. If one variant learns during the run while another reads fixed memory, their difference includes that learning. A confirmation run on separate deals helps distinguish a useful change from tuning to a small sample.
 
-## Recorded work and the current phase
+## Phase 14 record
 
-The [[measurement record]] indexes ring-board and Classic-board experiments, including numerical training, leash ladders and Plum's logbook comparison. Many key preset measurements predate the current landing rule. They are starting evidence for the next phase, not fresh acceptance tests of today's players.
+Phase 14 froze 109 post-landing-rule records and rebuilt all four adaptive
+methods. Mustard selected a 50-game fresh self-play base, depth 6, minimum leaf
+40 and smoothing 1. White rebuilt per-opponent counts with prior mass 2. Green
+began from Beta(1,1), selected step 4 and decay 1.05, and trained and validated
+on separate 200-game blocks.[^phase14]
 
-Phase 14 trained three independent Plum networks from fresh initialisations,
-{{fact:phase14.plum.per_run}} games each, and selected Run 3 in a balanced
-tournament across every line-up containing him. Its current protocol and
-results are in [[regularised Nash dynamics]]. Mustard, White and Green were
-also rebuilt from the frozen post-landing-rule corpus; their staged method
-documents and the remaining dial sweeps still have separate release gates.
+Three independent Plum networks trained from fresh initialisations on CUDA,
+{{fact:phase14.plum.per_run}} games each. Run 3 was selected in a balanced
+tournament across every line-up containing him. The complete headless and paid
+[[dial sweeps]] then retained every preset. The [[measurement record]] indexes
+the current evidence; superseded calibration detail remains in maintainer
+history rather than being presented as today's result.
+
 The [[classwork archive]] supplies wider learning concepts without implying
-that every algorithm in it has been implemented.[^phase14][^wiki]
+that every algorithm in it has been implemented.[^wiki]
 
 
 ## See also

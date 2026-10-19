@@ -178,7 +178,7 @@ best.[^phase14]
 
 ## History
 
-The method was chosen on 5 October 2026, when [[exact posterior enumeration]] had become the slowest and least accurate mid-game method on the Classic board and the most expensive with a model in the seat. The plan kept everything about Plum but his method: his token, his voice, his dials and his place in Mr. Green's ensemble. The first trained weights were committed on 6 October. Phase 14 promoted the freshly initialised Run 3 checkpoint locally on 18 October after the balanced tournament; production deployment remains a separate gate.[^plan][^runs][^phase14]
+The method was chosen on 5 October 2026, when [[exact posterior enumeration]] had become the slowest and least accurate mid-game method on the Classic board and the most expensive with a model in the seat. The plan kept everything about Plum but his method: his token, his voice, his dials and his place in Mr. Green's ensemble. The first trained weights were committed on 6 October. Phase 14 replaced them with the freshly initialised Run 3 checkpoint on 18 October after the balanced tournament.[^plan][^runs][^phase14]
 
 ## See also
 

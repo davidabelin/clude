@@ -282,12 +282,8 @@ def test_w3_w5_topics_are_articles_and_all_public_pages_load(wiki, app):
         assert wiki.get(alias)[0].title == title
 
 
-def test_w6_app_archive_and_measurement_coverage(wiki):
-    """The W6 catalogue resolves, and the complete sweep data stays reachable.
-
-    The existing citation/value tests independently check these stored tables
-    against their named source sections; this checks their place in the wiki.
-    """
+def test_w6_app_archive_and_phase14_measurement_coverage(wiki):
+    """The catalogue resolves and public measurements use Phase 14 evidence."""
     for title in (
         "clude", "History of clude", "The lobby", "The table", "Watch", "Replay",
         "Looks", "The certainty tag", "A seat over MCP", "What a game costs", "AIX Protodyne",
@@ -300,12 +296,18 @@ def test_w6_app_archive_and_measurement_coverage(wiki):
     # Keep the earlier Certainty tag alias, whose subject was introduced in Belief.
     assert wiki.get("Certainty tag")[0].title == "Belief"
     sweeps, _ = wiki.get("Dial sweeps")
-    for board in ("ring", "grid"):
-        for dial in ("accuse_threshold", "bluff_rate", "curiosity", "secrecy", "temperature"):
-            key = "sweep.bluff" if (board, dial) == ("ring", "bluff_rate") else f"sweep.{board}.{dial}"
-            assert key in sweeps.facts, key
+    for dial in ("accuse_threshold", "bluff_rate", "curiosity", "secrecy", "temperature"):
+        assert f"sweep.phase14.{dial}" in sweeps.facts
+    for key in (
+        "arena.phase14", "paid.phase14.chattiness", "paid.phase14.memory",
+        "paid.phase14.plum_leash_confirm",
+    ):
+        assert key in sweeps.facts
     measurements, _ = wiki.get("Measurement record")
-    assert "ladder.plum" in measurements.facts
+    assert "arena.phase14" in measurements.facts
+    public_measurements = sweeps.facts | measurements.facts
+    assert not any(key.startswith(("sweep.ring.", "sweep.grid.")) for key in public_measurements)
+    assert "ladder.plum" not in public_measurements
     for key in ("sutton-barto", "mnih-2015", "wang-2016", "schaul-2016", "perolat-2022"):
         assert 'drive.google.com/file/d/' in sources.SOURCES[key]
         assert 'Archive copy' in sources.SOURCES[key]

@@ -80,7 +80,7 @@ Because the scores use a common scale, a temperature can be applied to movement,
 
 These values are read from the current implementation. The neutral profile used as a comparison point is a separate set of defaults, not the average of the six presets. Mustard and White retain its accusation threshold deliberately: their method's mistakes should not also be programmed through an unusually reckless threshold.[^profile]
 
-[[Dial sweeps]] informed the presets, first on the earlier board and again on the Classic board. The chosen values express playing styles supported by those experiments; they are not universally optimal settings. Changed opponents can change a character's results even when its own settings stay fixed.[^tuning]
+[[Dial sweeps]] informed the presets. Phase 14 repeated every dial on post-landing-rule games and retained all current values: the direct footprints replicated, but no nearby character setting cleared the personality and outcome guardrails.[^tuning] The values express playing styles supported by those experiments; they are not universally optimal settings. Changed opponents can change a character's results even when its own settings stay fixed.
 
 ## Model and memory dials
 
@@ -108,6 +108,6 @@ The dials operate on a character's own estimates and shared scoring rules. They 
 [^profile]: {{cite:clude_agents/personality.py|`Profile`, `NEUTRAL` and `PRESETS`}}
 [^character]: {{cite:clude_agents/character.py|`best_triple`, `show_scores` and decision sampling}}
 [^features]: {{cite:clude_agents/features.py|`room_features`, `score_choices` and `sample_softmax`}}
-[^tuning]: {{cite:docs/strategy-glossary.md|Tuned presets on the grid (Stage 1e, 2026-09-15)}}
+[^tuning]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 
 {{navbox:clude}}

@@ -45,7 +45,11 @@ The prompt for a reaction shows the seat's own observation, the recent talk and 
 
 The profile default is {{code:neutral.chattiness}}, and none of the six presets changes it. Since 15 October 2026 the dial governs the off-turn draws alone; it no longer touches a line written with a decision. At the default a seat joins a fresh opportunity half the time, replies to a reply a quarter of the time and goes a third level deep about one time in eight.[^wrapper]
 
-A long exchange is nevertheless unlikely to be the taper's doing. In the two games of 14 October 2026, the three-seat table produced {{fact:talk.reactions.three}} reaction lines over {{fact:talk.reactions.three.turns}} turns and the six-seat table {{fact:talk.reactions.six}} over {{fact:talk.reactions.six.turns}}, with {{fact:talk.reactions.runs}} runs of three reaction lines inside one turn at the larger table. A run of three against a cap of {{code:chat.per_turn}} a turn means the turn advanced inside the exchange, so the per-turn cap, the queue and stale triggers bound an exchange before the taper's third draw matters. The taper was left as it is, pending a comparison that moves one of these at a time.[^taper]
+Phase 14 tested five values over the same 183 off-turn opportunities in eight paired four-seat games per value:
+
+{{table:paid.phase14.chattiness|Current paid chattiness screen. Calls and spoken lines are off-turn reactions; the on-turn line attached to a decision is outside this gate.}}
+
+The footprint is clear and begins to saturate above 0.5. The current setting produced 210 lines, against 275 at 0.75 and 288 at 1, while preserving silence on a missed draw. It remains the useful elbow rather than a claimed universal optimum.[^current]
 
 Expected remarks per game depend on game length, successful calls and how many events open the floor. The setting is not a fixed number of remarks or a token budget. Headless characters do not chat whatever the dial says.
 
@@ -76,7 +80,7 @@ The engine distinguishes speech from card shows in the record. A spectator's acc
 [^engine]: {{cite:clude_core/engine.py|`SpeakingPlayer` and `_append_remarks`}}
 [^gate]: {{cite:docs/phase13-plan.md|2026-10-15: the rehearsal completed, and step 6's naming and pacing}}
 [^chat]: {{cite:clude_web/chat.py|`Reactions.opportunity`, `due` and `serve`}}
-[^taper]: {{cite:docs/phase13-plan.md|2026-10-15: the taper left alone, the fixtures refreshed, step 0 closed out}}
+[^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^clean]: {{cite:clude_llm/player.py|`clean_remark`}}
 
 {{navbox:clude}}

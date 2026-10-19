@@ -83,6 +83,45 @@ def answer(s, base, tid, seq, data):
     return r.json()
 
 
+def decline_final_comment(s, base, tid):
+    """Decline one human seat's optional post-game line.
+
+    Finished external tables are recorded only after every human/LLM seat
+    chooses or the shared window expires.  The acceptance client has no line
+    to add, so declining is both faster and a more exact exercise of the
+    current lifecycle than assuming a replay exists as soon as play ends.
+    """
+    r = timed(
+        "final-comment",
+        lambda: s.post(
+            f"{base}/tables/{tid}/final-comment",
+            data={"csrf": csrf(s, base), "choice": "decline"},
+        ),
+    )
+    assert r.status_code == 200, r.text[:300]
+    return r.json()
+
+
+def verify_replay(base, tid, clients, payload):
+    """Close the post-game window and verify the resulting replay."""
+    closing = payload.get("final_comments") or {}
+    if not closing.get("closed"):
+        if closing.get("seconds", 0) <= 0:
+            payload = work(next(iter(clients.values())), base, tid)
+        else:
+            for owner in clients.values():
+                payload = decline_final_comment(owner, base, tid)
+                if (payload.get("final_comments") or {}).get("closed"):
+                    break
+    replay = (payload.get("over") or {}).get("replay")
+    assert replay, "the finished table was not recorded after final comments"
+    first = next(iter(clients.values()))
+    r = first.get(f"{base}{replay}")
+    assert r.status_code == 200 and "replay-data" in r.text, "the replay did not open"
+    print("replay opens")
+    return payload
+
+
 def simple(pending: dict):
     """A legal answer to any decision: the first move, a fixed
     suggestion, no accusation, the first card."""
@@ -161,9 +200,7 @@ def main(argv=None) -> int:
         t0 = time.perf_counter()
         final = play_out(base, tid, clients)
         print(f"table {tid} finished in {time.perf_counter() - t0:.1f}s: turns {final['turns']}, {final['over']}")
-        r = a.get(f"{base}{final['over']['replay']}")
-        assert r.status_code == 200 and "replay-data" in r.text, "the replay did not open"
-        print("replay opens")
+        final = verify_replay(base, tid, clients, final)
         view_b = poll(b, base, tid)
         assert view_b["me"]["seat"] == 3 and view_b["notepad"] is not None
     elif args.phase == "start":
@@ -182,6 +219,7 @@ def main(argv=None) -> int:
         )
         final = play_out(base, args.table_id, clients)
         print(f"table {args.table_id} finished: turns {final['turns']}, {final['over']}")
+        verify_replay(base, args.table_id, clients, final)
 
     for kind, values in TIMES.items():
         print(f"{kind}: n={len(values)}, median {statistics.median(values) * 1000:.0f} ms, max {max(values) * 1000:.0f} ms")

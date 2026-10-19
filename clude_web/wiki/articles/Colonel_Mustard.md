@@ -22,9 +22,9 @@ Memory | Training rows extracted from stored games when remembering is enabled
 [[Curiosity]] | {{code:preset.Mustard.curiosity}}
 [[Secrecy]] | {{code:preset.Mustard.secrecy}}
 [[Temperature]] | {{code:preset.Mustard.temperature}}
-= Classic-board arena, 15 September 2026
-Games won | {{fact:arena.grid.Mustard.win}}% of {{fact:arena.grid.Mustard.games}}
-Wrong accusations | {{fact:arena.grid.Mustard.wrong}}%
+= Phase 14 current-setting control
+Games won | {{fact:arena.phase14.Mustard.win}}% of {{fact:arena.phase14.Mustard.games}}
+Wrong accusations | {{fact:arena.phase14.Mustard.wrong}}%
 }}
 
 **Colonel Mustard** is one of the six [[Clue#The cards|suspects]] in [[Clue]] and the [[clude]] [[Category:Characters|character]] who uses a [[decision tree]]. For each unresolved card, the tree asks questions about possible holders, previous [[suggestion|suggestions]] and the stage of the game. It assigns a score from training examples with similar features. This [[w:Pattern recognition|pattern-based]] approach is fast, but can be misleading when a current position differs from the games used for training.[^module]
@@ -83,23 +83,21 @@ In the Classic-board benchmark, with a tree trained on that board, halfway loss 
 
 ### At the table
 
-{{table:arena.grid|The six characters over {{fact:arena.grid.games}} games on the Classic board at their tuned presets, 15 September 2026.}}
+{{table:arena.phase14|The current-setting rows from Phase 14's isolated headless screens, 40 seat-games per character.}}
 
-The tabulated Classic-board run recorded {{fact:arena.grid.Mustard.wrong}}% wrong accusations and {{fact:arena.grid.Mustard.win}}% wins, with a first accusation at mean turn {{fact:arena.grid.Mustard.first}}; in the first arena of all, before the presets were tuned, he had been wrong in {{fact:arena.ring.first.Mustard.wrong}}% of his games.[^first] Each character played 16 to 20 of the 24 games, giving an estimated [[w:Standard error|standard error]] of {{fact:arena.noise}} percentage points.[^arena][^grid-presets]
+The current control recorded {{fact:arena.phase14.Mustard.wrong}}% wrong accusations and {{fact:arena.phase14.Mustard.win}}% wins, with a first accusation at mean turn {{fact:arena.phase14.Mustard.first}}. Forty seat-games remain too few to treat zero observed errors as a universal rate.[^arena]
 
 ### With Claude in the seat
 
 The twin arenas initially suggested that [[Claude]] improved Mustard's decisions within the [[leash]]. With a model in every seat of a four-player table, his wrong-accusation rate fell from {{fact:twin.grid.Mustard.wrong_base}}% to {{fact:twin.grid.Mustard.wrong_llm}}%, while his win rate rose from {{fact:twin.grid.Mustard.win_base}}% to {{fact:twin.grid.Mustard.win_llm}}%. The initial interpretation was that model judgement helped him avoid the tree's confident errors.[^twin]
 
-{{table:ladder.mustard|Mustard alone with Claude at four leashes, 24 paired games each against the same two headless opponents on the earlier board, 13 September 2026. "Departures" counts the choices on which the model overrode his top option.}}
-
-The separate leash experiment did not establish that the model corrected the tree's errors. With only Mustard model-piloted, the wrong rate at the preset leash was {{fact:ladder.mustard.0.25.wrong}}%, compared with {{fact:ladder.mustard.headless.wrong}}% headless. Wins did not change beyond the run's uncertainty. Even at the widest leash, the model overrode the top option on only {{fact:ladder.mustard.1.devs}} of {{fact:ladder.mustard.1.played}} choices. The project therefore withdrew its earlier "rescue" interpretation and attributed much of the twin-run improvement to other model-piloted seats ending games sooner.[^ladder][^glossary]
+The current paid leash screen gave Mustard seven wins in eight games at his 0.25 preset, four at 0.5 and six at 1, with no wrong accusation in any row. Those eight-game rows did not justify changing the preset or claiming that model judgement reliably corrects the tree.[^current]
 
 Two other things the model did in his seat are recorded. He came to repeat himself: {{fact:mustard.loop.claude.pct}}% of his suggestions with Claude were exact repeats of his own earlier ones, against {{fact:mustard.loop.alone.pct}}% headless, with {{fact:mustard.loop.trips}} wasted trips; a loop through a room whose card he held names his own card on every pass, which is why his [[w:Bluff (poker)|bluffing]] held steady ({{fact:twin.grid.bluff.mustard.base}} to {{fact:twin.grid.bluff.mustard.llm}} own-card suggestions a game) while every character that did not loop bluffed far less. The [[landing rule]] has since taken most of the looping away: on the mixed table his repeats went from {{fact:landing.repeats.Mustard.mixed}}.[^twin][^landing]
 
 ## Memory
 
-Mustard's method memory adds training rows from stored games to the self-play base and rebuilds the tree for each table. It uses every seat's view, including games he did not play. An initial experiment added {{fact:mustard.memory.rows}} rows from {{fact:mustard.memory.games}} stored games and scored {{fact:mustard.memory.held_out}} held-out games. Mid-game [[log-loss]] improved from {{fact:mustard.memory.mid.before}} to {{fact:mustard.memory.mid.after}}, while final loss worsened from {{fact:mustard.memory.end.before}} to {{fact:mustard.memory.end.after}}. These mixed results do not establish an overall benefit. Adding character-game rows also changes the distribution relative to floor-bot training.[^memory]
+Mustard's method memory adds training rows from stored games to the self-play base and rebuilds the tree for each table. It uses every seat's view, including games he did not play. Phase 14 replaced the old rows with the frozen post-landing-rule training split and selected 50 fresh self-play games, depth 6, minimum leaf 40 and smoothing 1 from 81 candidates. The accepted candidate improved held-out log-loss at every checkpoint and stayed inside the arena guardrails.[^current] Adding character-game rows still changes the distribution relative to floor-bot training.
 
 Like every character he can also keep a narrative logbook, written by a model after each game it played his seat, with what happened, what to do next time and, since October 2026, the evening itself: the company, and a read of each opponent as a person as well as a player.[^logbooks] His was the one live logbook that had written itself no rule against talking under the earlier debrief; his standing instructions fold the discretion into enjoying the table without handing the best reader his itinerary.[^live] The training rows are kept whether or not a model was ever in the seat.
 
@@ -127,12 +125,10 @@ Like every character he can also keep a narrative logbook, written by a model af
 [^grid-presets]: {{cite:docs/strategy-glossary.md|Tuned presets on the grid (Stage 1e, 2026-09-15)}}
 [^phase4]: {{cite:docs/strategy-glossary.md|Phase 4 benchmark results (RandomBot regime, historical)}}
 [^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
-[^first]: {{cite:docs/strategy-glossary.md|Arena, first pass (untuned presets)}}
-[^arena]: {{cite:docs/strategy-glossary.md|Arena on the grid, tuned presets (Stage 1f, re-run)}}
+[^arena]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
-[^ladder]: {{cite:docs/strategy-glossary.md|Mustard}} The per-character leash ladder, 2026-09-13.
+[^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^landing]: {{cite:docs/strategy-glossary.md|The landing rule (Phase 8.0.4, 2026-09-18)}}
-[^memory]: {{cite:docs/strategy-glossary.md|Phase 7: memory (2026-09-14)}}
 [^logbooks]: {{cite:docs/logbooks.md|Three tiers}}
 [^lives]: {{cite:docs/phase13-plan.md|1. Brief and settled decisions}}
 [^live]: {{cite:docs/phase13-plan.md|2026-10-15: step 4 accepted live, and a debrief lost to its token cap}}

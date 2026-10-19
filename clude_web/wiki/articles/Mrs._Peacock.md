@@ -23,8 +23,8 @@ Memory | A [[logbook]] only; her method remembers nothing
 [[Secrecy]] | {{code:preset.Peacock.secrecy}}
 [[Temperature]] | {{code:preset.Peacock.temperature}}
 = Classic-board arena, 15 September 2026
-Games won | {{fact:arena.grid.Peacock.win}}% of {{fact:arena.grid.Peacock.games}}
-Wrong accusations | {{fact:arena.grid.Peacock.wrong}}%
+Games won | {{fact:arena.phase14.Peacock.win}}% of {{fact:arena.phase14.Peacock.games}}
+Wrong accusations | {{fact:arena.phase14.Peacock.wrong}}%
 }}
 
 **Mrs. Peacock** is one of the six [[Clue#The cards|suspects]] in [[Clue]] and the cautious [[Category:Characters|character]] in [[clude]]. Her [[Dempster-Shafer theory|Dempster–Shafer]] method assigns evidence to sets of possible cards. For each card, it calculates *belief*, the mass supporting that card alone, and *plausibility*, the mass that does not exclude it. When a single probability is needed, each set's mass is shared equally among its members. When she [[accusation|accuses]], she instead uses the product of the selected cards' [[w:Upper and lower probabilities|belief bounds]].[^module]
@@ -69,7 +69,7 @@ A character's belief says what it thinks; five [[personality dials]] say what it
 | [[Secrecy]] | {{code:preset.Peacock.secrecy}} | When she must show a card, how strongly she prefers one that player has already seen. The highest of the six. |
 | [[Temperature]] | {{code:preset.Peacock.temperature}} | How much chance enters her choices. |
 
-The threshold is tested against her belief rather than her probability by a function supplied with her registry entry, not by a dial, so that her profile stays five plain numbers like everyone else's and her caution comes from her method rather than from "a faked-up threshold".[^rule] None of her dials has moved since the first tuning. On the Classic board her curiosity was tried at 0.5 and 0.3 with everything else fixed, and her results were the same at all three settings, {{fact:curiosity.grid.preset.peacock}} for won, wrong and never accused: "its own answer", the notes say; her curiosity "does not reach her outcomes at this size".[^grid-presets]
+The threshold is tested against her belief rather than her probability by a function supplied with her registry entry, not by a dial, so that her profile stays five plain numbers like everyone else's and her caution comes from her method rather than from "a faked-up threshold".[^rule] Phase 14 screened all five headless dials on post-landing-rule games and retained her settings: the intended footprints remained recognisable, but no candidate cleared the personality and outcome gates.[^current]
 
 ## Record
 
@@ -81,9 +81,9 @@ The [[belief benchmark]] scores her decision probabilities rather than the bound
 
 ### At the table
 
-{{table:arena.grid|The six characters over {{fact:arena.grid.games}} games on the Classic board at their tuned presets, tables of three to six, 15 September 2026.}}
+{{table:arena.phase14|The current-setting rows from Phase 14's isolated headless screens, 40 seat-games per character.}}
 
-Peacock made no wrong accusations in the recorded headless arenas. In the tabulated Classic-board run she won {{fact:arena.grid.Peacock.win}}%, tied with Plum, and first accused at mean turn {{fact:arena.grid.Peacock.first}}, the latest of the six. Each character played 16 to 20 games per arena, with estimated [[w:Standard error|standard error]] {{fact:arena.noise}} percentage points.[^arena][^grid-presets] After the [[landing rule]] change, her exact repeats on the mixed table changed from {{fact:landing.repeats.Peacock.mixed}}.[^landing]
+Peacock won {{fact:arena.phase14.Peacock.win}}% of the current control and made no wrong accusation in 40 seat-games. She first accused at mean turn {{fact:arena.phase14.Peacock.first}}.[^arena] The absence of observed errors is not a guarantee. Her paid leash screen also stayed at 0.25; its eight-game rows did not support a personality-preserving change.[^current]
 
 ### With Claude in the seat
 
@@ -113,10 +113,9 @@ Peacock's method recomputes from the floor's open facts on each call and carries
 [^ds]: Computed by the live module on the Rope question; see [[Dempster-Shafer theory#At the table]].
 [^presets]: {{cite:clude_agents/personality.py|`PRESETS`, Peacock's entry and its note}}
 [^rule]: {{cite:docs/architecture.md|Personality layer (Phase 5c)}}
-[^grid-presets]: {{cite:docs/strategy-glossary.md|Tuned presets on the grid (Stage 1e, 2026-09-15)}}
 [^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
-[^arena]: {{cite:docs/strategy-glossary.md|Arena on the grid, tuned presets (Stage 1f, re-run)}}
-[^landing]: {{cite:docs/strategy-glossary.md|The landing rule (Phase 8.0.4, 2026-09-18)}}
+[^arena]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
+[^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
 [^wrapper]: {{cite:docs/llm-wrapper.md|What happens on one decision}}
 [^logbooks]: {{cite:docs/logbooks.md|Three tiers}}

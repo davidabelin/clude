@@ -110,7 +110,7 @@ The module is `clude_agents/markov.py`. It descends from a heuristic in the proj
 
 ### Memory
 
-White is one of the three characters whose method remembers from game to game, and hers remembers *people*. For each opponent she has met, the four transition counts from every stored game they played are summed and kept under that opponent's name. At a new table the Laplace prior for a known opponent is replaced by their own frequencies, spread over the same {{code:white.prior_mass}} phantom observations the prior had, so that the live sequence weighs exactly as before and only the starting shape of the chain is informed by the past. The choice is deliberate: a hundred games of history should not drown the regime she is watching now. Rebuilt from the stored games of one measurement run, her memory held {{fact:white.memory.green}} transitions for Green, {{fact:white.memory.mustard}} for Mustard and {{fact:white.memory.plum}} for Plum.[^memory][^phase7]
+White is one of the three characters whose method remembers from game to game, and hers remembers *people*. For each opponent she has met, the four transition counts from every stored game they played are summed and kept under that opponent's identity. At a new table the Laplace prior for a known opponent is replaced by their own frequencies, spread over the same {{code:white.prior_mass}} phantom observations the prior had, so that the live sequence weighs exactly as before and only the starting shape of the chain is informed by the past. Phase 14 rebuilt the counts from the frozen post-landing-rule training split, kept PlumOG separate from Plum, and tested prior masses 1, 2, 4, 8 and 16. Prior mass 2 cleared every held-out loss and calibration checkpoint and the paired arena guardrails.[^phase14] Public reports aggregate identities; they do not publish human account names.
 
 ### What the model sees
 
@@ -128,9 +128,9 @@ In the Classic-board benchmark, White had the lowest log-loss at the first three
 
 ### At the table
 
-{{table:arena.grid|The six characters over {{fact:arena.grid.games}} games on the Classic board at their tuned presets, 15 September 2026.}}
+{{table:arena.phase14|The current-setting rows from Phase 14's isolated headless screens, 40 seat-games per character.}}
 
-White made no wrong accusations in the recorded headless arenas, with [[accusation threshold]] {{code:preset.White.accuse_threshold}}. In the tabulated Classic-board run, she named her own cards in {{fact:arena.grid.White.named}} suggestions per game, consistent with her [[bluff rate]] of {{code:preset.White.bluff_rate}}, the highest preset. Her win rates were {{fact:arena.grid.first.White.win}}% then {{fact:arena.grid.White.win}}% in two Classic-board arenas with her settings unchanged. The variation cautions against inferring a stable ranking from these small runs.[^arena][^tuned]
+With [[accusation threshold]] {{code:preset.White.accuse_threshold}}, White won {{fact:arena.phase14.White.win}}% of the current control and made a wrong accusation in {{fact:arena.phase14.White.wrong}}%. She named her own cards in {{fact:arena.phase14.White.named}} suggestions per game, consistent with her [[bluff rate]] of {{code:preset.White.bluff_rate}}, the highest preset. Forty seat-games do not establish a stable competitive rank.[^arena]
 
 With [[Claude]] in her seat at a four-seat table she won {{fact:twin.grid.White.win_llm}}% of her games, the most of anyone, as she had without it; what changed was her bluffing, which fell from {{fact:twin.grid.bluff.white.base}} own-card suggestions a game to {{fact:twin.grid.bluff.white.llm}}. The recorded model-piloted games used fewer held-card suggestions; this does not establish the model's reason for each choice.[^twin]
 
@@ -162,13 +162,11 @@ With [[Claude]] in her seat at a four-seat table she won {{fact:twin.grid.White.
 [^base]: {{cite:clude_agents/base.py|`mask_and_normalize`}}
 [^phase5]: {{cite:docs/phase5-plan.md|4.3 White: the same zero, a different cause}}
 [^legacy]: {{cite:docs/architecture.md|Method-to-suspect mapping}}
-[^memory]: {{cite:docs/logbooks.md|Tier 1: method memory}}
-[^phase7]: {{cite:docs/strategy-glossary.md|Phase 7: memory (2026-09-14)}}
 [^phase6]: {{cite:docs/phase6-plan.md|6c, the real backend (2026-09-12; live checks done 2026-09-13)}}
 [^ring]: {{cite:docs/strategy-glossary.md|Belief benchmark, FloorBot regime (Phase 5)}}
 [^phase4]: {{cite:docs/strategy-glossary.md|Phase 4 benchmark results (RandomBot regime, historical)}}
-[^arena]: {{cite:docs/strategy-glossary.md|Arena on the grid, tuned presets (Stage 1f, re-run)}}
-[^tuned]: {{cite:docs/strategy-glossary.md|Tuned presets on the grid (Stage 1e, 2026-09-15)}}
+[^arena]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
+[^phase14]: {{cite:docs/phase14-plan.md|Mustard and White — accepted locally, not released}}
 [^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
 
 {{navbox:clude}}

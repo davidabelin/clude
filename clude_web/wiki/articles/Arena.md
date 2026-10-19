@@ -18,7 +18,7 @@ Changing Scarlett's threshold can also change Plum's results. If she remains act
 
 The arena rotates roster entries and can cycle table sizes or fix one. Missing seats are filled with [[floor player|floor players]]. Characters retain their own suspect tokens; floor seats take available tokens. On current code, rotation changes participation when the roster is larger than the table. Selected characters retain their tokens, and occupied seats are sorted in board order: Mustard moves before Plum whenever both participate. Earlier ring-era measurements, before 14 September 2026, rotated tokens and turn order as well.[^arena]
 
-A character can consequently play fewer seat-games than the run contains deals. In the recorded mixed-size {{fact:arena.grid.games}}-game arena, individual characters played sixteen or twenty games. Their percentages use those participation counts, not the common deal count.
+A character can consequently play fewer seat-games than the run contains deals. In the Phase 14 mixed-size isolated screen, each selected character played 40 of the 96 games. Percentages use those participation counts, not the common deal count.
 
 Private character and filler streams preserve the engine's dice sequence across changed profiles on the same seeds. [[Random bot|Random-bot]] entries are an exception because they consume the engine stream for decisions. Live model replies introduce another uncontrolled source; [[twin comparison]] explains the interpretation.
 
@@ -38,15 +38,13 @@ Wrong-accusation rate is not errors divided by accusations. A player that waits 
 
 Own cards shown counts distinct cards rather than how many recipients saw each one. Re-show can mean a card shown previously to any player, while the scoring preference prioritises one already shown to this particular suggester. These related measures are not identical.
 
-## Recorded tuned-grid arena
+## Current recorded arena
 
-{{figure:arena-rates|wide|Wins and wrong accusations in the historical tuned-grid arena. Each character's denominator was sixteen or twenty seat-games.}}
+{{figure:arena-rates|wide|Wins and wrong accusations in the current-setting control of the Phase 14 isolated screens. Each character's denominator was 40 seat-games.}}
 
-{{table:arena.grid|The recorded `arena-grid-tuned-24` run: Classic board, seed 7007, 24 games cycling three to six seats, 15 September 2026. Percentages use each row's Games count.}}
+{{table:arena.phase14|The current-setting control: Classic board, seed 242000, 96 games cycling three to six seats, 18 October 2026.}}
 
-Every game in this run ended in a correct accusation. Mean length was {{fact:arena.grid.turns}} game turns. Plum and Peacock had the highest recorded win rates, and neither made a wrong accusation in its own sample. That absence is a run observation, not a guarantee of future accuracy.[^record]
-
-This table predates the [[landing rule]] adopted on 18 September. The preserved values do not silently become a current ranking when the implementation changes.
+The 96 games averaged 40.33 turns. Mustard, Peacock and Plum made no wrong accusation in their 40 seat-games; that is an observation from this block, not a guarantee. White had the highest observed win rate at 25%, only one win ahead of Mustard and Peacock, so the table is not evidence of a durable rank order.[^record]
 
 ## Uncertainty
 
@@ -75,6 +73,6 @@ For model-piloted seats, the arena records decisions, calls, fallbacks, departur
 
 [^arena]: {{cite:clude_training/arena.py|`run_arena`, `seat_lineup` and private random streams}}
 [^metrics]: {{cite:clude_training/arena.py|`PlayerStats`, `SeatOutcome` and `binomial_std`}}
-[^record]: {{cite:docs/strategy-glossary.md|Arena on the grid, tuned presets (Stage 1f, re-run)}}
+[^record]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 
 {{navbox:clude}}

@@ -187,7 +187,73 @@ fallbacks or lookups, $0.0348 estimated. It retained the seeded envelope, White
 as winner, ten turns and two suggestions. `llm_seed1` contains no Plum, still
 replayed exactly and was not re-recorded.
 
-All dial sweeps, paid dial confirmation, production deployment and live method
-promotion remain open. The trainer cannot export committed weights; checkpoint
-and method promotion are separate hash-guarded, backed-up dry runs unless
-`--apply` is explicitly supplied.
+### Dial recalibration — complete locally
+
+The pooled headless sweeps used seed 142000, 200 paired games per value and
+the interleaved character/FloorBot roster across three- to six-player tables.
+The follow-up covered all 29 applicable character/dial combinations at three
+values and 96 games per value, or 8,352 games; Plum's curiosity was correctly
+N/A. The direct footprints replicated: raising accusation threshold sharply
+reduced wrong accusations, bluff rate raised held-card naming, curiosity
+reduced suggestions and lengthened games, secrecy raised re-showing, and high
+temperature lengthened games and reduced wins. No isolated candidate cleared
+the personality and outcome guardrails, so no headless preset changed.
+
+The paid screen froze `claude-opus-5`, code, corpus, Run 3 weights, staged
+method documents and one read-only logbook snapshot. Provider credit
+exhaustion contaminated the first memory-0.5 row: its 285 calls, 125 fallbacks
+and $2.1106 estimate remain as interruption provenance but are excluded from
+the result. After credit returned, only memory 0.5, 0.75 and 1 were resumed;
+valid leash, chattiness and earlier memory rows were not repeated. The
+reconciled screen contains 4,748 successful calls, no fallbacks and $53.3074
+of list-price cost. Chattiness showed its intended off-turn response curve and
+began to saturate above 0.5. Memory depth showed no replicable behavioural
+gain. Plum leash 0.60 was the sole shortlist from the eight-game screens.
+
+The separate 24-pair Plum confirmation retained leash 0.35. The 0.60
+candidate won 25.0% against 37.5% at the preset, a paired change of -12.5
+points (95% bootstrap interval -25.0 to 0.0), and lengthened games by 6.97%.
+It therefore failed the five-point win guardrail. Confirmation cost $8.6005;
+valid screening plus confirmation cost $61.9079, excluding balance probes and
+the separately approved $0.0348 fixture refresh. No paid dial changed.
+
+### Wikiclude and release gate
+
+The public calibration record now uses Phase 14 throughout. *Dial sweeps* and
+*Measurement record* contain the current headless and paid results; related
+dial, method and character pages use the same facts. Detailed superseded
+calibration tables were removed from public articles and unused fact keys,
+leaving one short archive note while retaining the evidence in this plan, the
+strategy glossary and git. W7's corpus, link, fact, citation and representative
+390/1440-pixel review is the last local documentation gate.
+
+### Release acceptance — complete
+
+The complete offline suite reported 651 passed and 34 skipped. W7 reported 28
+offline wiki checks plus the explicit live-network check, for 29 passed, and
+fresh representative screenshots passed at 390 and 1440 pixels in all three
+looks. `git diff --check` found no whitespace errors.
+
+Cloud Run revision `clude-00038-jws` was deployed on 2026-10-18 and serves 100%
+of traffic. The guarded GCS promotion first verified the three frozen source
+hashes and no active tables, then wrote the accepted method documents with a
+local method-only backup. Their released hashes are Green
+`06becddda9d1e03ba5f0cc01da8b64c0b2e305f549a5ae8eca8836a3a8e3a9ee`,
+Mustard `d4fe5f0a93646623b129be23a557895b2ac6fdc9761025cc0114b7d1c66fbf17`
+and White `4bdcf253913e1bd87a797a6ccce5ff986619d2fd7b74e20fbc3ae6bb268b7578`.
+
+The live acceptance table completed in 133 turns with Mustard winning, then
+opened its recorded replay. It exposed a stale assumption in the maintainer
+checker: external games now have a final-comment window, so a finished result
+does not immediately carry a replay URL. The checker now explicitly declines
+the two throwaway seats' comments (or closes an expired window) before testing
+the replay. The acceptance game briefly taught Mustard and White about the
+throwaway accounts; after the accounts were removed, a second guarded write
+restored the exact accepted staged documents. A final dry run verified all
+three released hashes and no open tables. Run 3 weights, code and Wikiclude are
+in the Cloud Run image; only the three method-memory JSON documents required a
+GCS update.
+
+The trainer cannot export committed weights; checkpoint and method promotion
+remain separate hash-guarded, backed-up operations, and method mutation still
+requires `--apply`.

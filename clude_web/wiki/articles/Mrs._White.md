@@ -23,8 +23,8 @@ Memory | How each opponent has asked their questions, game after game
 [[Secrecy]] | {{code:preset.White.secrecy}}
 [[Temperature]] | {{code:preset.White.temperature}}
 = Classic-board arena, 15 September 2026
-Games won | {{fact:arena.grid.White.win}}% of {{fact:arena.grid.White.games}}
-Wrong accusations | {{fact:arena.grid.White.wrong}}%
+Games won | {{fact:arena.phase14.White.win}}% of {{fact:arena.phase14.White.games}}
+Wrong accusations | {{fact:arena.phase14.White.wrong}}%
 }}
 
 **Mrs. White** is one of the six [[Clue#The cards|suspects]] in [[Clue]] and the observant [[clude]] [[Category:Characters|character]]. Her [[Markov chain]] method models whether each opponent's [[suggestion|suggestions]] are new or repeat earlier cards. It gives more weight to cards named often by players with high estimated repeat rates. The behavioural assumption is that unresolved cards are asked about repeatedly. This may be a useful [[w:Tell (poker)|tell]], but is not proof that a player lacks the card or that it is in [[the envelope]].[^module]
@@ -57,7 +57,7 @@ Told that she is a language model playing a part, she is inclined to ask what di
 
 White classifies each opponent's suggestions as *repeat* if any named card has appeared in that opponent's earlier questions, and *new* otherwise. A two-state [[w:Markov chain|Markov chain]] estimates the [[w:Stationary distribution|stationary repeat probability]]. Each unresolved card starts at a flat score; each opponent adds their naming count multiplied by that repeat probability. The floor then masks and normalises the scores into category probabilities. The chain summarises a habit; the scoring rule makes the separate assumption that naming a card increases its suspicion.[^module]
 
-In the [[Markov chain#At the table|Rope question]], Green names Peacock and the Rope and Mustard shows him a card hidden from the observer. The Hall is known to be Green's own card. White's method favours the named cards, giving Mrs. White {{code:example.white.White}} and Mrs. Peacock {{code:example.white.Peacock}}. Plum's count gives Mrs. White {{code:example.plum.White}} instead. Mustard's tree stays at 0.5, so not every other method moves towards the count. This position illustrates how a behavioural update can conflict with the logical constraint supplied by a disproof.[^markov]
+In the [[Markov chain#At the table|Rope question]], Green names Peacock and the Rope and Mustard shows him a card hidden from the observer. The Hall is known to be Green's own card. White's method favours the named cards, giving Mrs. White {{code:example.white.White}} and Mrs. Peacock {{code:example.white.Peacock}}. PlumOG's count gives Mrs. White {{code:example.plum.White}} instead. Mustard's tree stays at 0.5, so not every other method moves towards the count. This position illustrates how a behavioural update can conflict with the logical constraint supplied by a disproof.[^markov]
 
 ## How she plays
 
@@ -71,7 +71,7 @@ A character's belief says what it thinks; five [[personality dials]] say what it
 | [[Secrecy]] | {{code:preset.White.secrecy}} | When she must show a card, how strongly she prefers one that player has already seen. Second only to [[Mrs. Peacock]]'s: she "gives away the least". |
 | [[Temperature]] | {{code:preset.White.temperature}} | How much chance enters her choices. |
 
-White's dials have remained unchanged since the first tuning.[^grid-presets] On the Classic board she named a card from her own hand in {{fact:arena.grid.White.named}} suggestions per game, against Plum's {{fact:arena.grid.Plum.named}}. The pooled sweeps found little win-rate change at a bluff rate of one quarter, but a fall to about one third of the original rate when characters always bluffed.[^sweeps] A secrecy sweep changed the rate of showing previously seen cards without a clear effect on wins. The notes suggest that forced single-card disproofs expose small hands regardless of the choices made on rarer multi-card answers.[^sweeps]
+Phase 14 retained all of White's dials.[^current] In the current control she named a card from her own hand in {{fact:arena.phase14.White.named}} suggestions per game, against Plum's {{fact:arena.phase14.Plum.named}}. The pooled sweep moved own-card naming from 1.04 at bluff rate zero to 4.28 at one, while always bluffing had the lowest observed win rate. Secrecy increased re-showing without a clear performance gain.[^sweeps]
 
 ## Record
 
@@ -85,9 +85,9 @@ In the Classic-board benchmark, her losses at the first three checkpoints were {
 
 ### At the table
 
-{{table:arena.grid|The six characters over {{fact:arena.grid.games}} games on the Classic board at their tuned presets, tables of three to six, 15 September 2026.}}
+{{table:arena.phase14|The current-setting rows from Phase 14's isolated headless screens, 40 seat-games per character.}}
 
-White made no wrong accusations in the recorded headless arenas. Her win rates were {{fact:arena.grid.first.White.win}}% in the first Classic-board arena and {{fact:arena.grid.White.win}}% in the second. Her settings were unchanged between the last two, but the opposition was not identical. The fifteen-percentage-point swing illustrates variability, rather than defining a universal noise floor. Each character played 16 to 20 games per arena, with estimated [[w:Standard error|standard error]] {{fact:arena.noise}} percentage points.[^arena][^grid-presets] After the [[landing rule]] change, her exact repeats on the mixed table changed from {{fact:landing.repeats.White.mixed}}.[^landing]
+White won {{fact:arena.phase14.White.win}}% of the current control and made a wrong accusation in {{fact:arena.phase14.White.wrong}}% of her 40 seat-games.[^arena] Her eight-game paid leash screen showed higher wins at 0.5 and 1, but that small signal did not establish a personality-preserving improvement, so the 0.25 preset remained.[^current]
 
 ### With Claude in the seat
 
@@ -97,7 +97,7 @@ The model-piloted runs used fewer [[w:Bluff (poker)|held-card suggestions]]. The
 
 ## Memory
 
-White's method memory sums four transition counts per opponent over their stored games: new to new, new to repeat, repeat to new and repeat to repeat. At a new table, a known opponent's frequencies shape a prior with the same total weight, {{code:white.prior_mass}}, as the neutral prior. A long history therefore changes its shape without overwhelming the current game's evidence. One rebuilt memory contained {{fact:white.memory.green}} transitions for Green, {{fact:white.memory.mustard}} for Mustard and {{fact:white.memory.plum}} for Plum.[^memory][^phase7] Human opponents are identified by account name, so their records follow them between tokens.[^logbooks]
+White's method memory sums four transition counts per opponent over their stored games: new to new, new to repeat, repeat to new and repeat to repeat. At a new table, a known opponent's frequencies shape a prior with the same total weight, {{code:white.prior_mass}}, as the neutral prior. A long history therefore changes its shape without overwhelming the current game's evidence. Phase 14 rebuilt the counts from post-landing-rule training records, kept PlumOG separate from Plum and selected prior mass 2 from five candidates after held-out and arena checks.[^current] Human opponents are identified by account name so their records follow them between tokens; public measurements do not publish those identities.[^logbooks]
 
 Like every character she can also keep a narrative [[logbook]], written by a model after each game it played her seat, with what happened, what to do next time and, since October 2026, the evening itself: the company, and a read of each opponent as a person as well as a player. Under the earlier debrief her standing instructions had carried more than one rule against talking; they now close on 'the company is not a cost'.[^live]
 
@@ -120,15 +120,12 @@ Like every character she can also keep a narrative [[logbook]], written by a mod
 [^module]: {{cite:clude_agents/markov.py|`suggestion_patterns`, `_stationary_repeat_probability` and `MarkovAgent.select_action`}}
 [^markov]: Computed by the live module on the Rope question; see [[Markov chain#At the table]].
 [^presets]: {{cite:clude_agents/personality.py|`PRESETS`, White's entry and its note}}
-[^grid-presets]: {{cite:docs/strategy-glossary.md|Tuned presets on the grid (Stage 1e, 2026-09-15)}}
-[^sweeps]: {{cite:docs/strategy-glossary.md|Dial sweeps}}
+[^sweeps]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^phase4]: {{cite:docs/strategy-glossary.md|Phase 4 benchmark results (RandomBot regime, historical)}}
 [^glossary]: {{cite:docs/strategy-glossary.md|White -- Markov model over suggestion sequences}}
-[^arena]: {{cite:docs/strategy-glossary.md|Arena on the grid, tuned presets (Stage 1f, re-run)}}
-[^landing]: {{cite:docs/strategy-glossary.md|The landing rule (Phase 8.0.4, 2026-09-18)}}
+[^arena]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
+[^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
-[^memory]: {{cite:docs/logbooks.md|Tier 1: method memory}}
-[^phase7]: {{cite:docs/phase7-plan.md|7b, method memory (2026-09-14)}}
 [^logbooks]: {{cite:docs/logbooks.md|The debrief}}
 [^lives]: {{cite:docs/phase13-plan.md|1. Brief and settled decisions}}
 [^live]: {{cite:docs/phase13-plan.md|2026-10-15: step 4 accepted live, and a debrief lost to its token cap}}

@@ -56,19 +56,21 @@ Zero leash does not generally make a working model identical to the headless twi
 Historical passage loops showed another limit. When the useful move was excluded by the score cutoff, a persona or remembered instruction could not choose it. The [[landing rule]] changed the scores instead. The leash constrains discretion within the current scoring policy; it is not a proof that those scores rank actions well.
 
 
-## Per-character ladders
+## Phase 14 paid screen
 
-The recorded ring-board ladders of 13 September 2026 varied Mustard or Plum separately against headless opponents at preset. Each completed leg used 24 three-seat games and seed 7007. Those characters still rotated through tokens; seat locking was adopted the following day.[^ladders]
+Phase 14 varied each character separately with the accepted code, Run 3 weights and `claude-opus-5`. Each screen row has eight games against fixed headless opposition. All accepted rows had zero fallbacks; calls and cost are included because a wider leash can open more model choices.[^current]
 
-{{table:ladder.mustard|Mustard's ring-board ladder against Plum and Green. Won and Wrong are per-seat-game percentages; departures per decision use eligible decisions rather than accepted model choices.}}
+{{table:paid.phase14.leash|Phase 14 paid leash screen. The eight-game rows identify candidates; they are not by themselves promotion evidence.}}
 
-Mustard's observed win rates did not establish a clear preference among the positive leash values. Departures per decision rose while the wider menus also opened more model choices. Plum's corresponding table is in [[measurement record#Ring-board model and memory experiments|the measurement record]]. A pooled all-model sweep answers a different question, presented in [[dial sweeps#The pooled model leash sweep|Dial sweeps]].
+The screen retained Scarlett, Mustard, Peacock, White and Green. White and Green had higher observed wins at wider values, but the tiny rows did not provide a clear personality-preserving shortlist. Plum at 0.60 was the one candidate advanced to new seeds.
 
-These historical runs informed keeping the preset. They predate the Classic board and landing rule, so they do not settle the best leash for the present implementation. A later comparison needs the board, opponents, model and starting memory recorded afresh.
+## Plum's confirmation
 
-## Plum's network
+{{table:paid.phase14.plum_leash_confirm|Separate paired confirmation of Plum's preset 0.35 against the shortlisted 0.60, 24 games per value at seed 143200.}}
 
-When the network replaced [[PlumOG]] in October 2026, his leash was measured again. At 0.25 the network's menus were narrower than PlumOG's had been, about {{fact:leash.width.Plum.l25}} options against {{fact:leash.width.PlumOG.l25}}; {{fact:policy.leash.match}} restored the width. A paid ladder on the Classic board, 24 three-seat games at each of 0.25 and 0.35, found the same win rate at both and as headless, one wrong accusation at 0.25 and none at 0.35, so 0.35 became his preset.[^plum]
+The candidate lost 12.5 paired win-rate points, with a 95% bootstrap interval from -25.0 to 0.0. Wrong accusations did not change. Mean length increased by 2.33 turns, or 6.97%, which remained inside the ten-per-cent guardrail; the win loss exceeded the five-point limit. The candidate was rejected and Plum kept 0.35.[^current]
+
+Zero observed wrong accusations in either row do not establish that either setting is infallible. Run 3 made wrong accusations in the larger balanced headless tournament; that evidence remains available to the model head.
 
 ## See also
 
@@ -80,7 +82,7 @@ When the network replaced [[PlumOG]] in October 2026, his leash was measured aga
 
 [^menu]: {{cite:clude_llm/menu.py|`within_leash`, `suggestion_menu`, `accusation_menu` and `_build`}}
 [^wrapper]: {{cite:clude_llm/player.py|decision validation and fallback}}
-[^ladders]: {{cite:docs/strategy-glossary.md|Per-character leash ladders (2026-09-13)}}
-[^plum]: {{cite:docs/strategy-glossary.md|Plum with Claude, the network (N6)}}
+[^plum]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
+[^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 
 {{navbox:clude}}

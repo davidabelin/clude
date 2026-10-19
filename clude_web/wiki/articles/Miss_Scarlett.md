@@ -23,8 +23,8 @@ Memory | A [[logbook]] only; her method remembers nothing
 [[Secrecy]] | {{code:preset.Scarlett.secrecy}}
 [[Temperature]] | {{code:preset.Scarlett.temperature}}
 = Classic-board arena, 15 September 2026
-Games won | {{fact:arena.grid.Scarlett.win}}% of {{fact:arena.grid.Scarlett.games}}
-Wrong accusations | {{fact:arena.grid.Scarlett.wrong}}%
+Games won | {{fact:arena.phase14.Scarlett.win}}% of {{fact:arena.phase14.Scarlett.games}}
+Wrong accusations | {{fact:arena.phase14.Scarlett.wrong}}%
 }}
 
 **Miss Scarlett** is one of the six [[Clue#The cards|suspects]] in [[Clue]] and a [[Category:Characters|character]] in [[clude]]. Her [[Naive Bayes]] method estimates the cards in [[the envelope]] by multiplying their scores after each [[suggestion]]. An undisproved suggestion raises the named cards' scores; a disproof whose card she does not see lowers them. Each update treats the suggestion as independent evidence. The method is fast, but overlapping clues can make Scarlett [[w:Overconfidence effect|overconfident]].[^module]
@@ -73,11 +73,9 @@ A character's belief says what it thinks; five [[personality dials]] say what it
 | [[Secrecy]] | {{code:preset.Scarlett.secrecy}} | When she must show a card, how strongly she prefers one that player has already seen. |
 | [[Temperature]] | {{code:preset.Scarlett.temperature}} | How much chance enters her choices. |
 
-The threshold has been set three times, and its history is most of her record. The first pass gave her 0.5, meant to be low; on the earlier board, where games were short, her tally reached even that so seldom that she accused in one game of twenty and never won. In the sweeps that moved every character's threshold together she reached a bar of 0.2 in only {{fact:scarlett.ring.accused_in}} games, the others ending the game before she got there, so she was given arenas of her own with only her dial moved: 0.3 won nothing, 0.2 and 0.15 were within noise of each other, and 0.15 was adopted as the lower bar, since the flavour asked for "early".[^tuned] On the Classic board, where games run forty turns and more, the question was asked again.
+Her threshold has changed as the board and game length changed, but its current justification is the post-landing-rule screen. Phase 14 compared the preset with nearby values on common seeds and retained 0.3: it keeps her recognisably early and overconfident without a candidate clearing the outcome guardrails.[^current]
 
-{{table:scarlett.threshold|Scarlett over three arenas of 24 games on the Classic board, with only her accusation threshold changed, 15 September 2026.}}
-
-In the Classic-board sweep, a threshold of 0.3 produced three times the win rate of 0.15, with fewer wrong accusations. The longer games allowed more evidence to accumulate before she reached the higher threshold. She still accused in nearly half her games and was wrong in about half those accusations. The preset became {{code:preset.Scarlett.accuse_threshold}}.[^grid-presets] Curiosity settings of 0.5 and 0.3 gave {{fact:curiosity.grid.0.5.scarlett}} and {{fact:curiosity.grid.0.3.scarlett}} for won, wrong and never accused. The notes describe these as "noise around a losing position", and her curiosity remains {{code:preset.Scarlett.curiosity}}.[^grid-presets]
+Phase 14 repeated the threshold and curiosity checks on post-landing-rule games. Her isolated screens preserved the intended early, curious character without producing a candidate that cleared the five-point outcome guardrails, so the threshold remains {{code:preset.Scarlett.accuse_threshold}} and curiosity {{code:preset.Scarlett.curiosity}}.[^current]
 
 ## Record
 
@@ -93,9 +91,9 @@ In every recorded benchmark, Scarlett's log-loss was slightly higher than the ba
 
 ### At the table
 
-{{table:arena.grid|The six characters over {{fact:arena.grid.games}} games on the Classic board at their tuned presets, tables of three to six, 15 September 2026.}}
+{{table:arena.phase14|The current-setting rows from Phase 14's isolated headless screens, 40 seat-games per character.}}
 
-At the raised threshold she won {{fact:arena.grid.Scarlett.win}}% of her games and was wrong in {{fact:arena.grid.Scarlett.wrong}}%: still the most wrong accusations at the table, but no longer "both the least successful and the most reckless seat", which is what the notes had called her before the bar moved.[^arena] Her first accusation came at turn {{fact:arena.grid.Scarlett.first}}, later than four of the other five: the raised bar is why. A character plays 16 to 20 of the 24 games, so each percentage carries a [[w:Standard error|standard error]] of {{fact:arena.noise}} points.[^grid-presets]
+She won {{fact:arena.phase14.Scarlett.win}}% of the current control and made a wrong accusation in {{fact:arena.phase14.Scarlett.wrong}}%, still the highest observed error rate at the table.[^arena] Her first accusation came at mean turn {{fact:arena.phase14.Scarlett.first}}. The 40-seat-game sample describes this block, not a universal rate.
 
 The [[landing rule]] took her exact repeats of her own earlier suggestions on the mixed table from {{fact:landing.repeats.Scarlett.mixed}}.[^landing]
 
@@ -127,9 +125,9 @@ Scarlett's method reads the current game's suggestion history afresh on every ca
 [^module]: {{cite:clude_agents/naive_bayes.py|the two factors and `NaiveBayesAgent.select_action`}}
 [^domingos]: {{cite:domingos-pazzani}}
 [^presets]: {{cite:clude_agents/personality.py|`PRESETS`}}
-[^grid-presets]: {{cite:docs/strategy-glossary.md|Tuned presets on the grid (Stage 1e, 2026-09-15)}}
 [^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
-[^arena]: {{cite:docs/strategy-glossary.md|Arena on the grid, tuned presets (Stage 1f, re-run)}}
+[^arena]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
+[^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^landing]: {{cite:docs/strategy-glossary.md|The landing rule (Phase 8.0.4, 2026-09-18)}}
 [^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
 [^logbooks]: {{cite:docs/logbooks.md|Three tiers}}

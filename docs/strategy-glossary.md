@@ -1546,3 +1546,178 @@ One game skews the means at 0.35. Game 7 ran 172 turns (68 headless, 20 at 0.25)
 Against PlumOG on the same seeds (`grid-plum-llm-24`, above): PlumOG went from 37.5% headless to 54.2% with Claude, at about $0.20 a seat-game and 2.8% deviations. The network already wins 54.2% headless, and Claude departs from its top option four to five times as often as it departed from PlumOG's, without changing the result. A typical (median) seat-game costs about **$0.09** and the mean without game 7 is $0.11, against PlumOG's mean of $0.20; a long game still costs more.
 
 The fixtures were re-recorded the same day with the leash at 0.35: `llm_seed1` ($0.11; the floor seat, Mustard, wins after 35 turns) and `llm_seed2` ($0.03; White wins on turn 10, as in the old recording). Both replay offline.
+
+## Phase 14 dial recalibration (2026-10-18)
+
+These are the current post-landing-rule measurements. The frozen corpus hash is
+`de43af10c37148ec2e174c9c1f896a30cad05af3495aed6a8e666fc204708051`,
+the sweep code hash is
+`44a85bf13492c0024bb5778bdd90353afe1f5b6d635126f50ab12caa7612e81c`,
+and the Run 3 weights hash is
+`13e76570686ac8048d994cdb313364d4c3468f6f038ae3366fcb4b1ff3c63dbc`.
+The accepted staged method hashes were Green
+`06becddda9d1e03ba5f0cc01da8b64c0b2e305f549a5ae8eca8836a3a8e3a9ee`,
+Mustard `d4fe5f0a93646623b129be23a557895b2ac6fdc9761025cc0114b7d1c66fbf17`
+and White `4bdcf253913e1bd87a797a6ccce5ff986619d2fd7b74e20fbc3ae6bb268b7578`.
+
+The headless command was `phase14_recalibrate.py report --section sweeps`
+after the pooled and isolated `sweep` runs. Pooled values used seed 142000,
+200 games per value, player counts three to six and the interleaved
+character/FloorBot roster. Each isolated screen used seed 242000, 96 games per
+value and the same table-size cycle. Unit dials were screened at preset minus
+0.2, preset and preset plus 0.2 (clipped to their legal range); temperature was
+screened at zero, current and twice current. Plum's curiosity is N/A. The
+isolated current-setting control produced the following 40 seat-games per
+character; the 96 common games averaged 40.33 turns:
+
+| Character | Seat-games | Won % | Accused wrongly % | First accusation (turn) | Never accused % | Own cards shown | Own cards named | Re-shown % |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Scarlett | 40 | 20.0 | 35.0 | 43.0 | 45.0 | 3.23 | 1.05 | 39.1 |
+| Mustard | 40 | 22.5 | 0.0 | 46.7 | 77.5 | 3.10 | 1.68 | 34.9 |
+| White | 40 | 25.0 | 2.5 | 38.5 | 72.5 | 2.70 | 2.98 | 48.7 |
+| Green | 40 | 15.0 | 2.5 | 40.7 | 82.5 | 2.70 | 0.93 | 43.2 |
+| Peacock | 40 | 22.5 | 0.0 | 38.4 | 77.5 | 2.30 | 0.75 | 35.3 |
+| Plum | 40 | 20.0 | 0.0 | 31.8 | 80.0 | 2.62 | 1.57 | 50.0 |
+
+### Current pooled headless sweeps
+
+| Accusation threshold | Seat-games | Won % | Wrong % | First accusation | Never accused % | Mean turns |
+|---|---:|---:|---:|---:|---:|---:|
+| 0.2 | 500 | 18.6 | 38.6 | 33.14 | 42.8 | 36.00 |
+| 0.4 | 500 | 22.4 | 15.6 | 37.84 | 62.0 | 38.47 |
+| 0.6 | 500 | 22.8 | 4.4 | 38.79 | 72.8 | 39.28 |
+| 0.8 | 500 | 19.6 | 1.0 | 39.50 | 79.4 | 39.82 |
+| 1.0 | 500 | 19.8 | 0.0 | 38.56 | 80.2 | 40.06 |
+
+The paired change in wrong accusations from 0.2 to 1.0 was -39.5 points
+(95% bootstrap interval -44.4 to -34.7). The zero observed errors at 1.0 are
+an observation from these 500 seat-games, not a universal rate.
+
+| Bluff rate | Seat-games | Won % | Wrong % | Never accused % | Own cards named | Mean turns |
+|---|---:|---:|---:|---:|---:|---:|
+| 0 | 500 | 21.4 | 3.4 | 75.2 | 1.04 | 41.16 |
+| 0.25 | 500 | 18.6 | 4.8 | 76.6 | 1.82 | 38.73 |
+| 0.5 | 500 | 17.6 | 8.0 | 74.4 | 2.76 | 41.28 |
+| 1.0 | 500 | 5.4 | 10.8 | 83.8 | 4.28 | 48.74 |
+
+Own-card naming rose by 3.335 per seat-game from zero to one (95% interval
+2.912 to 3.770). Always bluffing also lost 17.75 win-rate points in the paired
+sample, so the footprint is clear without making it a performance target.
+
+| Curiosity | Seat-games | Won % | Wrong % | Never accused % | Suggestions | Mean turns |
+|---|---:|---:|---:|---:|---:|---:|
+| 0 | 418 | 24.2 | 6.5 | 69.4 | 4.25 | 38.70 |
+| 0.5 | 418 | 17.5 | 6.9 | 75.6 | 3.55 | 40.97 |
+| 1.0 | 418 | 11.0 | 4.3 | 84.7 | 1.81 | 49.06 |
+
+Plum is excluded because his network does not use curiosity. From zero to one,
+suggestions fell by 2.622 per seat-game (95% interval -2.942 to -2.303) and
+games lengthened by 10.36 turns.
+
+| Secrecy | Seat-games | Won % | Wrong % | Own cards shown | Re-shown % | Mean turns |
+|---|---:|---:|---:|---:|---:|---:|
+| 0 | 500 | 21.2 | 6.6 | 2.84 | 31.5 | 41.47 |
+| 0.5 | 500 | 22.2 | 5.2 | 2.75 | 39.5 | 39.70 |
+| 1.0 | 500 | 20.8 | 4.6 | 2.76 | 44.4 | 38.94 |
+
+Re-showing rose descriptively, while the paired interval for cards shown
+included zero. The footprint did not support changing any preset.
+
+| Temperature | Seat-games | Won % | Wrong % | Never accused % | Suggestions | Mean turns |
+|---|---:|---:|---:|---:|---:|---:|
+| 0 | 500 | 23.6 | 6.4 | 70.0 | 4.53 | 34.30 |
+| 0.05 | 500 | 24.0 | 5.8 | 70.2 | 4.37 | 35.13 |
+| 0.1 | 500 | 19.6 | 5.6 | 74.8 | 3.97 | 37.33 |
+| 0.2 | 500 | 15.8 | 4.0 | 80.2 | 3.25 | 44.52 |
+| 0.5 | 500 | 5.8 | 3.6 | 90.6 | 2.00 | 51.73 |
+| 2.0 | 500 | 3.4 | 2.4 | 94.2 | 1.43 | 53.77 |
+
+From zero to two, games lengthened by 19.47 turns (95% interval 16.99 to
+22.09) and wins fell by 21.25 points. The isolated screens confirmed the
+direct footprints without producing a preset candidate that cleared the
+personality and outcome gates. No headless preset changed.
+
+### Current paid screens
+
+Preflight fixed `claude-opus-5`, the Run 3 weights, the staged method files,
+code, corpus and a read-only memory snapshot. The quoted screen was $96.39,
+with a $91.22 confirmation ceiling. The valid screen used 4,748 calls with no
+fallbacks for $53.3074 at list price. Provider credit exhaustion contaminated
+the first memory-0.5 attempt (285 calls, 125 fallbacks, $2.1106 estimated), so
+that row was retained only as interruption provenance and discarded. The run
+resumed only the missing memory values; the already valid leash and chattiness
+legs were not repeated.
+
+| Character and leash | Games | Won % | Wrong % | Model calls | List-price cost |
+|---|---:|---:|---:|---:|---:|
+| Scarlett, 0 | 8 | 12.5 | 25.0 | 45 | $0.3643 |
+| Scarlett, 0.25 (preset) | 8 | 12.5 | 25.0 | 63 | $0.5741 |
+| Scarlett, 0.5 | 8 | 0.0 | 50.0 | 108 | $1.0493 |
+| Scarlett, 1 | 8 | 25.0 | 37.5 | 198 | $2.0394 |
+| Mustard, 0 | 8 | 62.5 | 0.0 | 42 | $0.3375 |
+| Mustard, 0.25 (preset) | 8 | 87.5 | 0.0 | 74 | $0.6860 |
+| Mustard, 0.5 | 8 | 50.0 | 0.0 | 87 | $0.8270 |
+| Mustard, 1 | 8 | 75.0 | 0.0 | 206 | $2.1955 |
+| White, 0 | 8 | 62.5 | 0.0 | 34 | $0.3021 |
+| White, 0.25 (preset) | 8 | 75.0 | 0.0 | 60 | $0.5678 |
+| White, 0.5 | 8 | 100.0 | 0.0 | 96 | $0.9789 |
+| White, 1 | 8 | 100.0 | 0.0 | 165 | $1.7100 |
+| Green, 0 | 8 | 0.0 | 0.0 | 15 | $0.1193 |
+| Green, 0.25 (preset) | 8 | 37.5 | 0.0 | 49 | $0.4471 |
+| Green, 0.5 | 8 | 50.0 | 0.0 | 92 | $0.9455 |
+| Green, 1 | 8 | 87.5 | 0.0 | 125 | $1.2635 |
+| Peacock, 0 | 8 | 25.0 | 0.0 | 38 | $0.3513 |
+| Peacock, 0.25 (preset) | 8 | 0.0 | 0.0 | 57 | $0.5531 |
+| Peacock, 0.5 | 8 | 25.0 | 0.0 | 111 | $1.2008 |
+| Peacock, 1 | 8 | 0.0 | 0.0 | 212 | $2.4147 |
+| Plum, 0 | 8 | 12.5 | 0.0 | 18 | $0.1419 |
+| Plum, 0.35 (preset) | 8 | 12.5 | 0.0 | 87 | $0.9441 |
+| Plum, 0.6 | 8 | 50.0 | 0.0 | 115 | $1.3070 |
+| Plum, 1 | 8 | 37.5 | 0.0 | 212 | $2.5089 |
+
+The eight-game rows are screens, not stand-alone promotion evidence. Plum 0.60
+was the single shortlist because it showed the clearest possible improvement;
+broader values for White and Green were not advanced because the noisy screen
+did not supply an equally clear, personality-preserving case.
+
+| Chattiness | Games | Opportunities | Off-turn calls | Spoken lines | List-price cost |
+|---|---:|---:|---:|---:|---:|
+| 0 | 8 | 183 | 0 | 0 | $0.0000 |
+| 0.25 | 8 | 183 | 90 | 90 | $0.6506 |
+| 0.5 (preset) | 8 | 183 | 210 | 210 | $1.6490 |
+| 0.75 | 8 | 183 | 275 | 275 | $2.1923 |
+| 1 | 8 | 183 | 288 | 288 | $2.2687 |
+
+The dial moved off-turn speech as intended and began to saturate above the
+current 0.5. On-turn speech is no longer gated by this dial. The 0.5 preset was
+retained as the useful elbow.
+
+| Memory depth | Games | Seat-games | Wins | Wrong accusations | Model calls | List-price cost |
+|---|---:|---:|---:|---:|---:|---:|
+| 0 | 8 | 32 | 8 | 1 | 297 | $3.4689 |
+| 0.25 | 8 | 32 | 8 | 0 | 292 | $3.6626 |
+| 0.5 | 8 | 32 | 8 | 0 | 298 | $3.7503 |
+| 0.75 | 8 | 32 | 8 | 2 | 386 | $6.7857 |
+| 1 | 8 | 32 | 8 | 1 | 303 | $5.0502 |
+
+Each four-seat game has one winner, so the eight wins per value are structural,
+not evidence that depth is equal. Deeper memory did not show a replicable
+behavioural gain and could cost more; the current profile convention remained.
+
+The separate 24-pair confirmation used seed 143200 at Plum's three-seat table:
+
+| Plum leash | Games | Wins | Won % | Wrong accusations | Mean turns | Model calls | List-price cost |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 0.35 (preset) | 24 | 9 | 37.5 | 0 | 33.46 | 327 | $3.5642 |
+| 0.60 (candidate) | 24 | 6 | 25.0 | 0 | 35.79 | 432 | $5.0363 |
+
+The candidate lost 12.5 paired win-rate points (95% interval -25.0 to 0.0),
+with no wrong-accusation change, and lengthened games by 2.33 turns (0.71 to
+4.33), or 6.97%. It failed the five-point win guardrail and was rejected. The
+confirmation cost $8.6005. Valid screening plus confirmation cost $61.9079 at
+list price, excluding balance probes and the separately approved $0.0348 exact
+fixture refresh. No paid dial or preset changed.
+
+Superseded ring-board and pre-landing-rule calibration tables remain in git
+and the dated maintainer history. They are not current recommendations and are
+not republished as the public calibration record.

@@ -103,7 +103,7 @@ The module is `clude_constraints/propagator.py`, with the floor bot beside it. I
 
 Every method ends with the same step, in `clude_agents/base.py`: whatever raw scores a method has produced, a card the floor has ruled out of the envelope is set to 0, a card it has proved is set to 1, and the scores of the cards still in question are scaled to sum to 1 within each category. A method with no opinion at all gets an even spread over what the floor permits, which is the uniform baseline.[^base]
 
-One bug of the floor's own was found by Peacock. Until Phase 5, an open fact that a placed card already satisfied was kept and reported as open; Plum's search filtered such facts for itself, but Peacock read the fact's other, unplaced members as live evidence against those cards. The floor now drops them.[^phase5]
+One bug of the floor's own was found by Peacock. Until Phase 5, an open fact that a placed card already satisfied was kept and reported as open; PlumOG's search filtered such facts for itself, but Peacock read the fact's other, unplaced members as live evidence against those cards. The floor now drops them.[^phase5]
 
 ### The floor bot
 

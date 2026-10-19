@@ -72,10 +72,8 @@ _PLUM = "[[Professor Plum|Plum]]"
 DEEPNASH_PLAN = "docs/deepnash-plan.md"
 _POLICY_BENCH = "Belief benchmark, the network (N5)"
 _POLICY_ARENAS = "Arenas on the standard seeds"
-_POLICY_DIALS = "Dial checks"
-_POLICY_LEASH = "Leash width (the equal-rope match)"
-_POLICY_LLM = "Plum with Claude, the network (N6)"
 _PHASE14_PLUM = "Phase 14 Run 3, the current Plum (2026-10-18)"
+_PHASE14_DIALS = "Phase 14 dial recalibration (2026-10-18)"
 _RUN1 = "The first long run, `run150a` (2026-10-06)"
 _RUN2 = "The second run, `run2`, and the export (2026-10-06)"
 
@@ -83,13 +81,8 @@ _RUN2 = "The second run, `run2`, and the export (2026-10-06)"
 _BENCH_RING = "Belief benchmark, FloorBot regime (Phase 5)"
 _BENCH_GRID = "Belief benchmark on the grid (Stage 1a)"
 _PHASE4 = "Phase 4 benchmark results (RandomBot regime, historical)"
-_TUNED_RING = "Tuned presets"
-_TUNED_GRID = "Tuned presets on the grid (Stage 1e, 2026-09-15)"
-_ARENA_GRID = "Arena on the grid, tuned presets (Stage 1f, re-run)"
-_ARENA_GRID_FIRST = "Arena on the grid, presets as tuned on the ring (Stage 1f)"
 _TWIN_RING = "Twin comparison (2026-09-13)"
 _TWIN_GRID = "Twin comparison on the grid (Stage 2a, 2026-09-16)"
-_LADDER_MUSTARD = "Mustard"
 _MEMORY = "Phase 7: memory (2026-09-14)"
 _LANDING = "The landing rule (Phase 8.0.4, 2026-09-18)"
 _LOGBOOK = "Plum's logbook at leash 0.5 (2026-09-14)"
@@ -140,20 +133,6 @@ TABLES: dict = {
             "uniform": (_SUSPECT_LABELS["uniform"], "| uniform (baseline) | 1.57 | 1.35 | 1.01 | 0.29 | -- | -- |"),
         },
     ),
-    # Who wins, at the presets as retuned on the Classic board.
-    "arena.grid": Table(
-        GLOSSARY, "Arena on the grid, tuned presets (Stage 1f, re-run)",
-        ("Character", "Games", "Won %", "Accused wrongly %", "First accusation (turn)", "Never accused %", "Own cards shown", "Own cards named", "Re-shown %"),
-        ("games", "win", "wrong", "first", "never", "leaked", "named", "reshow"),
-        {
-            "Scarlett": (_SUSPECT_LABELS["Scarlett"], "| Scarlett (threshold 0.3) | 20 | 25 | 20 | 60.4 | 55 | 2.50 | 1.95 | 31.2 |"),
-            "Mustard": (_SUSPECT_LABELS["Mustard"], "| Mustard (0.8) | 16 | 19 | 6 | 43.2 | 75 | 2.56 | 1.56 | 46.2 |"),
-            "White": (_SUSPECT_LABELS["White"], "| White (0.8) | 20 | 10 | 0 | 37.5 | 90 | 2.60 | 4.15 | 56.0 |"),
-            "Green": (_SUSPECT_LABELS["Green"], "| Green (0.75) | 16 | 19 | 6 | 35.8 | 75 | 2.12 | 2.00 | 72.7 |"),
-            "Peacock": (_SUSPECT_LABELS["Peacock"], "| Peacock (0.7 on Belief) | 20 | 30 | 0 | 63.8 | 70 | 2.10 | 1.45 | 50.0 |"),
-            "Plum": (_SUSPECT_LABELS["Plum"], "| Plum (0.9, curiosity 0.5) | 16 | 31 | 0 | 58.0 | 69 | 2.19 | 2.25 | 53.8 |"),
-        },
-    ),
     # Every character with and without Claude, four seats, 2026-09-16.
     "twin.grid": Table(
         GLOSSARY, "Twin comparison on the grid (Stage 2a, 2026-09-16)",
@@ -179,17 +158,6 @@ TABLES: dict = {
             "llm": ("Plum with Claude (`grid-plum-llm-24`)", "| `grid-plum-llm-24` (with Claude) | 54.2 | 10.2 | 0 | 34.8 | 45.8 | 42.6 |"),
         },
     ),
-    # Scarlett's accusation threshold on the Classic board, 2026-09-15.
-    "scarlett.threshold": Table(
-        GLOSSARY, "Scarlett's threshold on the grid (Stage 1d)",
-        ("Accusation threshold", "Won", "Accused wrongly", "Accused in", "First accusation (turn)"),
-        ("win", "wrong", "accused", "first"),
-        {
-            "0.3": ("**0.3 (adopted)**", "| 0.3 | 30 | 30 | 60% | 52.8 |"),
-            "0.2": ("0.2", "| 0.2 | 15 | 50 | 65% | 42.2 |"),
-            "0.15": ("0.15 (the ring-era preset)", "| 0.15 | 10 | 40 | 50% | 40.3 |"),
-        },
-    ),
     # Plum with Claude, with and without his own logbook, 2026-09-14 (ring).
     "plum.logbook": Table(
         GLOSSARY, "Plum's logbook at leash 0.5 (2026-09-14)",
@@ -198,82 +166,6 @@ TABLES: dict = {
         {
             "off": ("Without a logbook", "| logbook off | 54.2 | 0.0 | 20.5 | 45.8 | 25.6 | 478 | 40 | 5.2% | 6.54 | 31,689 |"),
             "on": ("With his logbook", "| logbook on | 50.0 | 8.3 | 21.7 | 41.7 | 20.6 | 353 | 52 | 8.8% | 5.67 | 28,480 |"),
-        },
-    ),
-    # How the bluff-rate dial moves a game, pooled over the six, Phase 5 (ring).
-    "sweep.bluff": Table(
-        GLOSSARY, "Dial sweeps",
-        ("Bluff rate", "Won", "Accused wrongly", "Never accused", "Own cards named per game", "Mean turns"),
-        ("win", "wrong", "never", "named", "turns"),
-        {
-            "0": ("0 (never)", "| 0.0 | 19.2 | 8.3 | 73 | 0.62 | 26.8 |"),
-            "0.25": ("0.25", "| 0.25 | 20.0 | 7.5 | 73 | 1.91 | 26.0 |"),
-            "0.5": ("0.5", "| 0.5 | 17.5 | 5.0 | 78 | 2.90 | 25.4 |"),
-            "1": ("1 (always)", "| 1.0 | 6.7 | 12.5 | 81 | 4.77 | 31.2 |"),
-        },
-    ),
-    # Green's accusation threshold moved alone, 2026-09-15.
-    "green.threshold": Table(
-        GLOSSARY, _TUNED_GRID,
-        ("Green's accusation threshold", "Won %", "Accused wrongly %", "Never accused %", "First accusation (turn)"),
-        ("win", "wrong", "never", "first"),
-        {
-            "0.75": ("**0.75 (the preset)**", "| 0.75 (preset, `arena-grid-24`) | 0 | 6 | 94 | 28.0 |"),
-            "0.6": ("0.6", "| 0.6 | 6 | 0 | 94 | 35.0 |"),
-            "0.5": ("0.5", "| 0.5 | 6 | 12 | 81 | 50.0 |"),
-        },
-    ),
-    # Curiosity moved alone for the three high-curiosity presets, 2026-09-15.
-    "curiosity.grid": Table(
-        GLOSSARY, _TUNED_GRID,
-        ("Curiosity", "Plum (preset 0.8)", "Scarlett (preset 0.7)", "Peacock (preset 0.6)"),
-        ("plum", "scarlett", "peacock"),
-        {
-            "preset": ("At the preset", "| preset | 44 / 0 / 56 | 10 / 40 / 50 | 30 / 0 / 70 |"),
-            "0.5": ("0.5", "| 0.5 | 50 / 0 / 50 | 5 / 55 / 40 | 30 / 0 / 70 |"),
-            "0.3": ("0.3", "| 0.3 | 38 / 0 / 62 | 15 / 65 / 20 | 30 / 0 / 70 |"),
-        },
-    ),
-    # The ring board's first arena, at the first-pass presets, Phase 5.
-    "arena.ring.first": Table(
-        GLOSSARY, "Arena, first pass (untuned presets)",
-        ("Character", "Games", "Won %", "Accused wrongly %", "First accusation (turn)", "Never accused %", "Own cards shown", "Own cards named"),
-        ("games", "win", "wrong", "first", "never", "leaked", "named"),
-        {
-            "Scarlett": (_SUSPECT_LABELS["Scarlett"] + " (threshold 0.5)", "| Scarlett (threshold 0.5) | 20 | 0 | 5 | 10.0 | 95 | 2.30 | 1.40 |"),
-            "Mustard": (_SUSPECT_LABELS["Mustard"] + " (0.8)", "| Mustard (0.8) | 16 | 19 | 38 | 21.6 | 44 | 2.81 | 1.38 |"),
-            "White": (_SUSPECT_LABELS["White"] + " (0.8)", "| White (0.8) | 20 | 30 | 0 | 31.8 | 70 | 2.65 | 3.50 |"),
-            "Green": (_SUSPECT_LABELS["Green"] + " (0.75)", "| Green (0.75) | 16 | 13 | 13 | 20.8 | 75 | 2.62 | 1.62 |"),
-            "Peacock": (_SUSPECT_LABELS["Peacock"] + " (0.7 on Belief)", "| Peacock (0.7 on Belief) | 20 | 40 | 0 | 32.1 | 60 | 2.65 | 1.15 |"),
-            "Plum": (_SUSPECT_LABELS["Plum"] + " (0.95)", "| Plum (0.95) | 16 | 31 | 6 | 19.8 | 63 | 2.31 | 0.31 |"),
-        },
-    ),
-    # The ring board's arena at the tuned presets, Phase 5.
-    "arena.ring": Table(
-        GLOSSARY, "Arena, tuned presets",
-        ("Character", "Games", "Won %", "Accused wrongly %", "First accusation (turn)", "Never accused %", "Own cards shown", "Own cards named", "Re-shown %"),
-        ("games", "win", "wrong", "first", "never", "leaked", "named", "reshow"),
-        {
-            "Scarlett": (_SUSPECT_LABELS["Scarlett"] + " (threshold 0.15)", "| Scarlett (threshold 0.15) | 20 | 10 | 45 | 23.8 | 45 | 2.05 | 1.25 | 37.5 |"),
-            "Mustard": (_SUSPECT_LABELS["Mustard"], "| Mustard (0.8) | 16 | 25 | 25 | 20.1 | 50 | 2.81 | 1.31 | 33.3 |"),
-            "White": (_SUSPECT_LABELS["White"], "| White (0.8) | 20 | 30 | 0 | 31.0 | 70 | 2.25 | 3.05 | 23.1 |"),
-            "Green": (_SUSPECT_LABELS["Green"], "| Green (0.75) | 16 | 19 | 13 | 36.0 | 69 | 2.38 | 1.44 | 72.7 |"),
-            "Peacock": (_SUSPECT_LABELS["Peacock"], "| Peacock (0.7 on Belief) | 20 | 15 | 0 | 21.7 | 85 | 2.40 | 1.65 | 42.9 |"),
-            "Plum": (_SUSPECT_LABELS["Plum"] + " (0.9)", "| Plum (0.9) | 16 | 38 | 0 | 26.7 | 63 | 2.44 | 0.81 | 12.5 |"),
-        },
-    ),
-    # The Classic board's first arena, before the presets were retuned, 2026-09-15.
-    "arena.grid.first": Table(
-        GLOSSARY, _ARENA_GRID_FIRST,
-        ("Character", "Games", "Won %", "Accused wrongly %", "First accusation (turn)", "Never accused %", "Own cards shown", "Own cards named", "Re-shown %"),
-        ("games", "win", "wrong", "first", "never", "leaked", "named", "reshow"),
-        {
-            "Scarlett": (_SUSPECT_LABELS["Scarlett"] + " (threshold 0.15)", "| Scarlett (threshold 0.15) | 20 | 10 | 40 | 40.3 | 50 | 2.55 | 1.40 | 66.7 |"),
-            "Mustard": (_SUSPECT_LABELS["Mustard"], "| Mustard (0.8) | 16 | 25 | 6 | 58.6 | 69 | 2.19 | 1.44 | 38.5 |"),
-            "White": (_SUSPECT_LABELS["White"], "| White (0.8) | 20 | 25 | 0 | 35.0 | 75 | 2.40 | 3.15 | 28.6 |"),
-            "Green": (_SUSPECT_LABELS["Green"], "| Green (0.75) | 16 | 0 | 6 | 28.0 | 94 | 2.00 | 0.69 | 30.0 |"),
-            "Peacock": (_SUSPECT_LABELS["Peacock"], "| Peacock (0.7 on Belief) | 20 | 30 | 0 | 32.3 | 70 | 1.80 | 0.90 | 50.0 |"),
-            "Plum": (_SUSPECT_LABELS["Plum"] + " (curiosity 0.8)", "| Plum (0.9) | 16 | 44 | 0 | 42.6 | 56 | 2.12 | 0.56 | 71.4 |"),
         },
     ),
     # The ring board's twin comparison, Phase 6, 2026-09-13.
@@ -288,19 +180,6 @@ TABLES: dict = {
             "Green": (_SUSPECT_LABELS["Green"], "| Green | 25.0 | 31.2 | 6.2 | 6.2 | 30.0 | 17.3 |"),
             "Peacock": (_SUSPECT_LABELS["Peacock"], "| Peacock | 12.5 | 12.5 | 0.0 | 0.0 | 24.0 | 18.5 |"),
             "Plum": (_SUSPECT_LABELS["Plum"], "| Plum | **75.0** | **31.2** | 0.0 | 0.0 | 27.8 | 26.2 |"),
-        },
-    ),
-    # Mustard alone with Claude at four leashes, the ring, 2026-09-13.
-    "ladder.mustard": Table(
-        GLOSSARY, _LADDER_MUSTARD,
-        ("Leash", "Won %", "Accused wrongly %", "First accusation (turn)", "Never accused %", "Own cards named", "Mean turns", "Choices played", "Departures", "Per decision"),
-        ("win", "wrong", "first", "never", "named", "turns", "played", "devs", "dev"),
-        {
-            "headless": ("By his numbers alone", "| headless | 25.0 | 25.0 | 16.9 | 50.0 | 2.08 | 24.0 | -- | -- | -- |"),
-            "0": ("Leash 0", "| leash 0 | 25.0 | 16.7 | 16.2 | 58.3 | 2.04 | 21.3 | 148 | 0 | 0.0% |"),
-            "0.25": ("**Leash 0.25 (the preset)**", "| leash 0.25 | 33.3 | 41.7 | 16.7 | 25.0 | 0.75 | 21.6 | 254 | 2 | 0.4% |"),
-            "0.5": ("Leash 0.5", "| leash 0.5 | 29.2 | 25.0 | 15.7 | 45.8 | 1.21 | 22.0 | 347 | 10 | 1.7% |"),
-            "1": ("Leash 1", "| leash 1 | 33.3 | 25.0 | 15.4 | 41.7 | 0.83 | 19.1 | 427 | 10 | 2.0% |"),
         },
     ),
     # Exact repeats of a seat's own earlier suggestion, before and after the landing rule.
@@ -319,127 +198,8 @@ TABLES: dict = {
     ),
 }
 
-# Full historical dial sweeps and the remaining leash tables (W6).
+# Current Phase 14 measurements and retained method evidence.
 TABLES.update({
-    "sweep.ring.accuse_threshold": Table(
-        GLOSSARY, 'Dial sweeps',
-        ('Accusation threshold', 'Won %', 'Wrong %', 'First accusation (turn)', 'Never accused %', 'Mean turns'),
-        ('win', 'wrong', 'first', 'never', 'turns'),
-        {
-            '0.2': ('0.2', '| 0.2 | 18.3 | 33.3 | 18.1 | 48 | 22.8 |'),
-            '0.4': ('0.4', '| 0.4 | 23.3 | 21.7 | 22.5 | 55 | 25.2 |'),
-            '0.6': ('0.6', '| 0.6 | 24.2 | 11.7 | 24.4 | 64 | 24.5 |'),
-            '0.8': ('0.8', '| 0.8 | 23.3 | 4.2 | 19.6 | 73 | 24.3 |'),
-            '1.0': ('1.0', '| 1.0 | 20.8 | 0.0 | 22.2 | 79 | 27.5 |'),
-        },
-    ),
-    "sweep.ring.curiosity": Table(
-        GLOSSARY, 'Dial sweeps',
-        ('Curiosity', 'Won %', 'Wrong %', 'First accusation (turn)', 'Never accused %', 'Own cards named', 'Mean turns'),
-        ('win', 'wrong', 'first', 'never', 'named', 'turns'),
-        {
-            '0.0': ('0.0', '| 0.0 | 23.3 | 6.7 | 22.8 | 70 | 1.86 | 24.0 |'),
-            '0.5': ('0.5', '| 0.5 | 25.8 | 4.2 | 23.5 | 70 | 1.51 | 23.9 |'),
-            '1.0': ('1.0', '| 1.0 | 18.3 | 4.2 | 26.5 | 78 | 0.88 | 28.6 |'),
-        },
-    ),
-    "sweep.ring.secrecy": Table(
-        GLOSSARY, 'Dial sweeps',
-        ('Secrecy', 'Won %', 'Wrong %', 'Never accused %', 'Own cards shown', 'Re-shown %', 'Mean turns'),
-        ('win', 'wrong', 'never', 'leaked', 'reshow', 'turns'),
-        {
-            '0.0': ('0.0', '| 0.0 | 29.2 | 6.7 | 64 | 2.64 | 30.4 | 24.1 |'),
-            '0.5': ('0.5', '| 0.5 | 20.0 | 8.3 | 72 | 2.90 | 38.1 | 26.6 |'),
-            '1.0': ('1.0', '| 1.0 | 25.0 | 6.7 | 68 | 2.68 | 40.8 | 24.4 |'),
-        },
-    ),
-    "sweep.ring.temperature": Table(
-        GLOSSARY, 'Dial sweeps',
-        ('Temperature', 'Won %', 'Wrong %', 'First accusation (turn)', 'Never accused %', 'Own cards shown', 'Own cards named', 'Re-shown %', 'Mean turns'),
-        ('win', 'wrong', 'first', 'never', 'leaked', 'named', 'reshow', 'turns'),
-        {
-            '0.0': ('0.0', '| 0.0 | 28.3 | 10.8 | 18.7 | 61 | 2.50 | 1.13 | 44.2 | 19.7 |'),
-            '0.1': ('0.1', '| 0.1 | 27.5 | 6.7 | 23.5 | 66 | 2.76 | 1.46 | 45.1 | 25.9 |'),
-            '0.5': ('0.5', '| 0.5 | 9.2 | 5.8 | 19.3 | 85 | 2.78 | 0.97 | 30.9 | 29.5 |'),
-            '2.0': ('2.0', '| 2.0 | 4.2 | 8.3 | 25.3 | 88 | 3.10 | 0.97 | 33.0 | 34.2 |'),
-        },
-    ),
-    "sweep.grid.accuse_threshold": Table(
-        GLOSSARY, 'Dial sweeps on the grid (Stage 1c)',
-        ('Accusation threshold', 'Won %', 'Wrong %', 'First accusation (turn)', 'Never accused %', 'Mean turns'),
-        ('win', 'wrong', 'first', 'never', 'turns'),
-        {
-            '0.2': ('0.2', '| 0.2 | 22.5 | 45.0 | 31.3 | 33 | 37.2 |'),
-            '0.4': ('0.4', '| 0.4 | 23.3 | 11.7 | 38.9 | 65 | 39.5 |'),
-            '0.6': ('0.6', '| 0.6 | 20.8 | 6.7 | 37.4 | 73 | 38.1 |'),
-            '0.8': ('0.8', '| 0.8 | 23.3 | 2.5 | 37.1 | 74 | 39.5 |'),
-            '1.0': ('1.0', '| 1.0 | 20.8 | 0.8 | 32.2 | 78 | 39.7 |'),
-        },
-    ),
-    "sweep.grid.bluff_rate": Table(
-        GLOSSARY, 'Dial sweeps on the grid (Stage 1c)',
-        ('Bluff rate', 'Won %', 'Wrong %', 'Never accused %', 'Own cards named', 'Mean turns'),
-        ('win', 'wrong', 'never', 'named', 'turns'),
-        {
-            '0.0': ('0.0', '| 0.0 | 25.0 | 12.5 | 63 | 0.69 | 37.5 |'),
-            '0.25': ('0.25', '| 0.25 | 22.5 | 11.7 | 66 | 1.84 | 40.8 |'),
-            '0.5': ('0.5', '| 0.5 | 20.0 | 10.0 | 70 | 3.04 | 43.5 |'),
-            '1.0': ('1.0', '| 1.0 | 5.0 | 17.5 | 78 | 4.97 | 51.9 |'),
-        },
-    ),
-    "sweep.grid.curiosity": Table(
-        GLOSSARY, 'Dial sweeps on the grid (Stage 1c)',
-        ('Curiosity', 'Won %', 'Wrong %', 'First accusation (turn)', 'Never accused %', 'Own cards named', 'Mean turns'),
-        ('win', 'wrong', 'first', 'never', 'named', 'turns'),
-        {
-            '0.0': ('0.0', '| 0.0 | 20.0 | 10.8 | 34.7 | 69 | 2.25 | 39.8 |'),
-            '0.5': ('0.5', '| 0.5 | 19.2 | 8.3 | 41.3 | 73 | 1.43 | 41.2 |'),
-            '1.0': ('1.0', '| 1.0 | 13.3 | 5.8 | 50.1 | 81 | 0.48 | 46.2 |'),
-        },
-    ),
-    "sweep.grid.secrecy": Table(
-        GLOSSARY, 'Dial sweeps on the grid (Stage 1c)',
-        ('Secrecy', 'Won %', 'Wrong %', 'Never accused %', 'Own cards shown', 'Re-shown %', 'Mean turns'),
-        ('win', 'wrong', 'never', 'leaked', 'reshow', 'turns'),
-        {
-            '0.0': ('0.0', '| 0.0 | 20.8 | 8.3 | 71 | 2.75 | 29.0 | 37.6 |'),
-            '0.5': ('0.5', '| 0.5 | 17.5 | 10.8 | 72 | 2.84 | 42.9 | 40.3 |'),
-            '1.0': ('1.0', '| 1.0 | 20.8 | 9.2 | 70 | 2.71 | 48.0 | 40.5 |'),
-        },
-    ),
-    "sweep.grid.temperature": Table(
-        GLOSSARY, 'Dial sweeps on the grid (Stage 1c)',
-        ('Temperature', 'Won %', 'Wrong %', 'First accusation (turn)', 'Never accused %', 'Own cards shown', 'Own cards named', 'Re-shown %', 'Mean turns'),
-        ('win', 'wrong', 'first', 'never', 'leaked', 'named', 'reshow', 'turns'),
-        {
-            '0.0': ('0.0', '| 0.0 | 25.0 | 11.7 | 30.7 | 63 | 2.80 | 1.88 | 51.1 | 35.0 |'),
-            '0.1': ('0.1', '| 0.1 | 20.8 | 10.8 | 36.1 | 68 | 2.75 | 1.71 | 43.5 | 39.3 |'),
-            '0.5': ('0.5', '| 0.5 | 7.5 | 8.3 | 48.4 | 84 | 2.92 | 0.79 | 31.2 | 49.8 |'),
-            '2.0': ('2.0', '| 2.0 | 1.7 | 4.2 | 63.4 | 94 | 3.24 | 0.72 | 25.2 | 58.5 |'),
-        },
-    ),
-    'leash.pooled': Table(
-        GLOSSARY, 'Leash sweep (2026-09-13)',
-        ('Leash', 'Wrong %', 'Reported +/-', 'First accusation (turn)', 'Never accused %', 'Own cards named', 'Mean turns', 'Departures per accepted choice %', 'Remarks per game'),
-        ('wrong', 'std', 'first', 'never', 'named', 'turns', 'dev', 'talk'),
-        {
-            '0': ('0', '| 0 | 25.0 | 8.8 | 41.1 | 41.7 | 6.42 | 50.4 | 0.0 | 4.92 |'),
-            '0.25': ('0.25', '| 0.25 | 16.7 | 7.6 | 24.2 | 50.0 | 1.46 | 26.9 | 1.7 | 6.21 |'),
-            '0.5': ('0.5', '| 0.5 | 0.0 | 0.0 | 19.1 | 66.7 | 0.46 | 19.1 | 11.1 | 6.08 |'),
-            '1.0': ('1.0', '| 1.0 | 8.3 | 5.6 | 20.1 | 58.3 | 0.96 | 21.4 | 4.1 | 8.88 |'),
-        },
-    ),
-    'ladder.plum': Table(
-        GLOSSARY, 'Plum',
-        ('Leash', 'Won %', 'Wrong %', 'First accusation (turn)', 'Never accused %', 'Own cards named', 'Mean turns', 'Choices played', 'Departures', 'Departures per decision'),
-        ('win', 'wrong', 'first', 'never', 'named', 'turns', 'played', 'devs', 'dev'),
-        {
-            'headless': ('headless', '| headless | 62.5 | 0.0 | 25.9 | 37.5 | 0.88 | 24.0 | -- | -- | -- |'),
-            'leash 0.25': ('leash 0.25', '| leash 0.25 | 58.3 | 0.0 | 35.1 | 41.7 | 1.33 | 30.3 | 380 | 26 | 3.0% |'),
-            'leash 0.5': ('leash 0.5', '| leash 0.5 | 45.8 | 0.0 | 40.3 | 54.2 | 0.88 | 29.8 | 515 | 44 | 5.2% |'),
-            'leash 1': ('leash 1', '| leash 1 | 58.3 | 4.2 | 37.2 | 37.5 | 1.25 | 32.8 | 817 | 81 | 8.8% |'),
-        },
-    ),
     # Phase 14: the current Run 3 weights, selected on 2026-10-18.
     "plum.phase14.tournament": Table(
         GLOSSARY, _PHASE14_PLUM,
@@ -473,6 +233,140 @@ TABLES.update({
             "uniform": ("Uniform floor baseline", "| Uniform floor baseline | 1.570 | 1.322 | 0.983 | 0.356 | 0.789 | - |"),
         },
     ),
+    "arena.phase14": Table(
+        GLOSSARY, _PHASE14_DIALS,
+        ("Character", "Seat-games", "Won %", "Accused wrongly %", "First accusation (turn)",
+         "Never accused %", "Own cards shown", "Own cards named", "Re-shown %"),
+        ("games", "win", "wrong", "first", "never", "leaked", "named", "reshow"),
+        {
+            "Scarlett": (_SUSPECT_LABELS["Scarlett"], "| Scarlett | 40 | 20.0 | 35.0 | 43.0 | 45.0 | 3.23 | 1.05 | 39.1 |"),
+            "Mustard": (_SUSPECT_LABELS["Mustard"], "| Mustard | 40 | 22.5 | 0.0 | 46.7 | 77.5 | 3.10 | 1.68 | 34.9 |"),
+            "White": (_SUSPECT_LABELS["White"], "| White | 40 | 25.0 | 2.5 | 38.5 | 72.5 | 2.70 | 2.98 | 48.7 |"),
+            "Green": (_SUSPECT_LABELS["Green"], "| Green | 40 | 15.0 | 2.5 | 40.7 | 82.5 | 2.70 | 0.93 | 43.2 |"),
+            "Peacock": (_SUSPECT_LABELS["Peacock"], "| Peacock | 40 | 22.5 | 0.0 | 38.4 | 77.5 | 2.30 | 0.75 | 35.3 |"),
+            "Plum": (_PLUM, "| Plum | 40 | 20.0 | 0.0 | 31.8 | 80.0 | 2.62 | 1.57 | 50.0 |"),
+        },
+    ),
+    "sweep.phase14.accuse_threshold": Table(
+        GLOSSARY, _PHASE14_DIALS,
+        ("Accusation threshold", "Seat-games", "Won %", "Wrong %", "First accusation", "Never accused %", "Mean turns"),
+        ("games", "win", "wrong", "first", "never", "turns"),
+        {
+            "0.2": ("0.2", "| 0.2 | 500 | 18.6 | 38.6 | 33.14 | 42.8 | 36.00 |"),
+            "0.4": ("0.4", "| 0.4 | 500 | 22.4 | 15.6 | 37.84 | 62.0 | 38.47 |"),
+            "0.6": ("0.6", "| 0.6 | 500 | 22.8 | 4.4 | 38.79 | 72.8 | 39.28 |"),
+            "0.8": ("0.8", "| 0.8 | 500 | 19.6 | 1.0 | 39.50 | 79.4 | 39.82 |"),
+            "1.0": ("1.0", "| 1.0 | 500 | 19.8 | 0.0 | 38.56 | 80.2 | 40.06 |"),
+        },
+    ),
+    "sweep.phase14.bluff_rate": Table(
+        GLOSSARY, _PHASE14_DIALS,
+        ("Bluff rate", "Seat-games", "Won %", "Wrong %", "Never accused %", "Own cards named", "Mean turns"),
+        ("games", "win", "wrong", "never", "named", "turns"),
+        {
+            "0": ("0", "| 0 | 500 | 21.4 | 3.4 | 75.2 | 1.04 | 41.16 |"),
+            "0.25": ("0.25", "| 0.25 | 500 | 18.6 | 4.8 | 76.6 | 1.82 | 38.73 |"),
+            "0.5": ("0.5", "| 0.5 | 500 | 17.6 | 8.0 | 74.4 | 2.76 | 41.28 |"),
+            "1.0": ("1.0", "| 1.0 | 500 | 5.4 | 10.8 | 83.8 | 4.28 | 48.74 |"),
+        },
+    ),
+    "sweep.phase14.curiosity": Table(
+        GLOSSARY, _PHASE14_DIALS,
+        ("Curiosity", "Seat-games", "Won %", "Wrong %", "Never accused %", "Suggestions", "Mean turns"),
+        ("games", "win", "wrong", "never", "suggestions", "turns"),
+        {
+            "0": ("0", "| 0 | 418 | 24.2 | 6.5 | 69.4 | 4.25 | 38.70 |"),
+            "0.5": ("0.5", "| 0.5 | 418 | 17.5 | 6.9 | 75.6 | 3.55 | 40.97 |"),
+            "1.0": ("1.0", "| 1.0 | 418 | 11.0 | 4.3 | 84.7 | 1.81 | 49.06 |"),
+        },
+    ),
+    "sweep.phase14.secrecy": Table(
+        GLOSSARY, _PHASE14_DIALS,
+        ("Secrecy", "Seat-games", "Won %", "Wrong %", "Own cards shown", "Re-shown %", "Mean turns"),
+        ("games", "win", "wrong", "leaked", "reshow", "turns"),
+        {
+            "0": ("0", "| 0 | 500 | 21.2 | 6.6 | 2.84 | 31.5 | 41.47 |"),
+            "0.5": ("0.5", "| 0.5 | 500 | 22.2 | 5.2 | 2.75 | 39.5 | 39.70 |"),
+            "1.0": ("1.0", "| 1.0 | 500 | 20.8 | 4.6 | 2.76 | 44.4 | 38.94 |"),
+        },
+    ),
+    "sweep.phase14.temperature": Table(
+        GLOSSARY, _PHASE14_DIALS,
+        ("Temperature", "Seat-games", "Won %", "Wrong %", "Never accused %", "Suggestions", "Mean turns"),
+        ("games", "win", "wrong", "never", "suggestions", "turns"),
+        {
+            "0": ("0", "| 0 | 500 | 23.6 | 6.4 | 70.0 | 4.53 | 34.30 |"),
+            "0.05": ("0.05", "| 0.05 | 500 | 24.0 | 5.8 | 70.2 | 4.37 | 35.13 |"),
+            "0.1": ("0.1", "| 0.1 | 500 | 19.6 | 5.6 | 74.8 | 3.97 | 37.33 |"),
+            "0.2": ("0.2", "| 0.2 | 500 | 15.8 | 4.0 | 80.2 | 3.25 | 44.52 |"),
+            "0.5": ("0.5", "| 0.5 | 500 | 5.8 | 3.6 | 90.6 | 2.00 | 51.73 |"),
+            "2.0": ("2.0", "| 2.0 | 500 | 3.4 | 2.4 | 94.2 | 1.43 | 53.77 |"),
+        },
+    ),
+    "paid.phase14.leash": Table(
+        GLOSSARY, _PHASE14_DIALS,
+        ("Character and leash", "Games", "Won %", "Wrong %", "Model calls", "List-price cost"),
+        ("games", "win", "wrong", "calls", "cost"),
+        {
+            "Scarlett 0": ("Scarlett, 0", "| Scarlett, 0 | 8 | 12.5 | 25.0 | 45 | $0.3643 |"),
+            "Scarlett 0.25": ("Scarlett, 0.25 (preset)", "| Scarlett, 0.25 (preset) | 8 | 12.5 | 25.0 | 63 | $0.5741 |"),
+            "Scarlett 0.5": ("Scarlett, 0.5", "| Scarlett, 0.5 | 8 | 0.0 | 50.0 | 108 | $1.0493 |"),
+            "Scarlett 1": ("Scarlett, 1", "| Scarlett, 1 | 8 | 25.0 | 37.5 | 198 | $2.0394 |"),
+            "Mustard 0": ("Mustard, 0", "| Mustard, 0 | 8 | 62.5 | 0.0 | 42 | $0.3375 |"),
+            "Mustard 0.25": ("Mustard, 0.25 (preset)", "| Mustard, 0.25 (preset) | 8 | 87.5 | 0.0 | 74 | $0.6860 |"),
+            "Mustard 0.5": ("Mustard, 0.5", "| Mustard, 0.5 | 8 | 50.0 | 0.0 | 87 | $0.8270 |"),
+            "Mustard 1": ("Mustard, 1", "| Mustard, 1 | 8 | 75.0 | 0.0 | 206 | $2.1955 |"),
+            "White 0": ("White, 0", "| White, 0 | 8 | 62.5 | 0.0 | 34 | $0.3021 |"),
+            "White 0.25": ("White, 0.25 (preset)", "| White, 0.25 (preset) | 8 | 75.0 | 0.0 | 60 | $0.5678 |"),
+            "White 0.5": ("White, 0.5", "| White, 0.5 | 8 | 100.0 | 0.0 | 96 | $0.9789 |"),
+            "White 1": ("White, 1", "| White, 1 | 8 | 100.0 | 0.0 | 165 | $1.7100 |"),
+            "Green 0": ("Green, 0", "| Green, 0 | 8 | 0.0 | 0.0 | 15 | $0.1193 |"),
+            "Green 0.25": ("Green, 0.25 (preset)", "| Green, 0.25 (preset) | 8 | 37.5 | 0.0 | 49 | $0.4471 |"),
+            "Green 0.5": ("Green, 0.5", "| Green, 0.5 | 8 | 50.0 | 0.0 | 92 | $0.9455 |"),
+            "Green 1": ("Green, 1", "| Green, 1 | 8 | 87.5 | 0.0 | 125 | $1.2635 |"),
+            "Peacock 0": ("Peacock, 0", "| Peacock, 0 | 8 | 25.0 | 0.0 | 38 | $0.3513 |"),
+            "Peacock 0.25": ("Peacock, 0.25 (preset)", "| Peacock, 0.25 (preset) | 8 | 0.0 | 0.0 | 57 | $0.5531 |"),
+            "Peacock 0.5": ("Peacock, 0.5", "| Peacock, 0.5 | 8 | 25.0 | 0.0 | 111 | $1.2008 |"),
+            "Peacock 1": ("Peacock, 1", "| Peacock, 1 | 8 | 0.0 | 0.0 | 212 | $2.4147 |"),
+            "Plum 0": ("Plum, 0", "| Plum, 0 | 8 | 12.5 | 0.0 | 18 | $0.1419 |"),
+            "Plum 0.35": ("Plum, 0.35 (preset)", "| Plum, 0.35 (preset) | 8 | 12.5 | 0.0 | 87 | $0.9441 |"),
+            "Plum 0.6": ("Plum, 0.6", "| Plum, 0.6 | 8 | 50.0 | 0.0 | 115 | $1.3070 |"),
+            "Plum 1": ("Plum, 1", "| Plum, 1 | 8 | 37.5 | 0.0 | 212 | $2.5089 |"),
+        },
+    ),
+    "paid.phase14.chattiness": Table(
+        GLOSSARY, _PHASE14_DIALS,
+        ("Chattiness", "Games", "Opportunities", "Off-turn calls", "Spoken lines", "List-price cost"),
+        ("games", "opportunities", "calls", "spoken", "cost"),
+        {
+            "0": ("0", "| 0 | 8 | 183 | 0 | 0 | $0.0000 |"),
+            "0.25": ("0.25", "| 0.25 | 8 | 183 | 90 | 90 | $0.6506 |"),
+            "0.5": ("0.5 (preset)", "| 0.5 (preset) | 8 | 183 | 210 | 210 | $1.6490 |"),
+            "0.75": ("0.75", "| 0.75 | 8 | 183 | 275 | 275 | $2.1923 |"),
+            "1": ("1", "| 1 | 8 | 183 | 288 | 288 | $2.2687 |"),
+        },
+    ),
+    "paid.phase14.memory": Table(
+        GLOSSARY, _PHASE14_DIALS,
+        ("Memory depth", "Games", "Seat-games", "Wins", "Wrong accusations", "Model calls", "List-price cost"),
+        ("games", "seat_games", "wins", "wrong", "calls", "cost"),
+        {
+            "0": ("0", "| 0 | 8 | 32 | 8 | 1 | 297 | $3.4689 |"),
+            "0.25": ("0.25", "| 0.25 | 8 | 32 | 8 | 0 | 292 | $3.6626 |"),
+            "0.5": ("0.5", "| 0.5 | 8 | 32 | 8 | 0 | 298 | $3.7503 |"),
+            "0.75": ("0.75", "| 0.75 | 8 | 32 | 8 | 2 | 386 | $6.7857 |"),
+            "1": ("1", "| 1 | 8 | 32 | 8 | 1 | 303 | $5.0502 |"),
+        },
+    ),
+    "paid.phase14.plum_leash_confirm": Table(
+        GLOSSARY, _PHASE14_DIALS,
+        ("Plum leash", "Games", "Wins", "Won %", "Wrong accusations", "Mean turns", "Model calls", "List-price cost"),
+        ("games", "wins", "win", "wrong", "turns", "calls", "cost"),
+        {
+            "0.35": ("0.35 (preset)", "| 0.35 (preset) | 24 | 9 | 37.5 | 0 | 33.46 | 327 | $3.5642 |"),
+            "0.6": ("0.60 (candidate)", "| 0.60 (candidate) | 24 | 6 | 25.0 | 0 | 35.79 | 432 | $5.0363 |"),
+        },
+    ),
     # Phase 12: the trained Plum, measured headless on 2026-10-07.
     "bench.policy": Table(
         GLOSSARY, _POLICY_BENCH,
@@ -498,38 +392,6 @@ TABLES.update({
             "six": ("All six characters (16 games with Plum seated)", "| `arena --games 24 --seed 7007` (six characters, 16 games with Plum seated) | 12.5 | 8.3 | 0.0 |"),
             "og.own": ("[[PlumOG]] at his own table", "| PlumOG, `grid-plum-prox2-24` (his table, landing rule kept) | 58.3 | 10.1 | 0 |"),
             "og.six": ("[[PlumOG]] with all six", "| PlumOG, `arena-grid-prox2-24` (six characters, landing rule kept) | 37.5 | 12.1 | 0 |"),
-        },
-    ),
-    "sweep.policy.accuse": Table(
-        GLOSSARY, _POLICY_DIALS,
-        ("Accusation threshold", "Six characters: won %", "Wrong %", "His table: won %", "Wrong %"),
-        ("six", "sixwrong", "own", "ownwrong"),
-        {
-            "0.6": ("0.6", "| 0.6 | 25.0 | 3.9 | 34.4 | 8.3 |"),
-            "0.7": ("0.7", "| 0.7 | 21.1 | 0.8 | 38.5 | 6.2 |"),
-            "0.8": ("0.8", "| 0.8 | 18.8 | 1.6 | 41.7 | 3.1 |"),
-            "0.9": ("0.9 (his preset)", "| 0.9 (preset) | 18.8 | 0.8 | 37.5 | 0.0 |"),
-        },
-    ),
-    "leash.width": Table(
-        GLOSSARY, _POLICY_LEASH,
-        ("Leash", "0.10", "0.20", "0.25", "0.30", "0.35", "0.40", "0.50"),
-        ("l10", "l20", "l25", "l30", "l35", "l40", "l50"),
-        {
-            "Plum": (_PLUM + ", options allowed", "| Plum, mean options allowed (1201 menus) | 1.19 | 1.36 | 1.46 | 1.58 | 1.71 | 1.86 | 2.19 |"),
-            "PlumOG": ("[[PlumOG]], options allowed", "| PlumOG, mean options allowed (755 menus) | 1.59 | 1.69 | 1.75 | 1.79 | 1.87 | 1.97 | 2.48 |"),
-        },
-    ),
-    # N6's paid leash ladder, with the headless sweep on the same seeds.
-    "ladder.policy": Table(
-        GLOSSARY, _POLICY_LLM,
-        ("Leash", "Won %", "±", "Wrong %", "First accusation, turn", "Never accused %", "Turns",
-         "Asked", "Fell back", "Departed %", "Remarks a game, median (mean)", "Cost a game, median (mean)"),
-        ("win", "sd", "wrong", "first", "never", "turns", "asked", "fallbacks", "deviate", "remarks", "cost"),
-        {
-            "l25": ("0.25", "| 0.25 | 54.2 | 10.2 | 4.2 | 35.9 | 41.7 | 38.8 | 354 | 0 | 12.7 | 6 (7.2) | $0.089 ($0.125) |"),
-            "l35": ("0.35 (his preset)", "| 0.35 | 54.2 | 10.2 | 0.0 | 46.2 | 45.8 | 39.4 | 464 | 9 | 14.9 | 6 (9.5) | $0.088 ($0.224) |"),
-            "headless": ("headless", "| headless | 54.2 | 10.2 | 0.0 | 44.2 | 45.8 | 49.5 | - | - | - | - | - |"),
         },
     ),
     # The two training runs' late checkpoints, re-measured on 96 games a table.
@@ -601,10 +463,6 @@ FACTS: dict = {
     "landing.turns.after": Fact("45.9", GLOSSARY, _LANDING, "| `arena-grid-prox2-24` (kept) | **45.9** | 18.4 | 127 | 390 / 660 |"),
     "landing.suggestions.before": Fact("29.0", GLOSSARY, _LANDING, "| `arena-grid-tuned-24` (3-6 seats, baseline) | 53.9 | 29.0 | 229 | 600 / 597 |"),
     "landing.suggestions.after": Fact("18.4", GLOSSARY, _LANDING, "| `arena-grid-prox2-24` (kept) | **45.9** | 18.4 | 127 | 390 / 660 |"),
-    "arena.grid.turns": Fact("53.9", GLOSSARY, "Arena on the grid, tuned presets (Stage 1f, re-run)", "mean 53.9 turns"),
-    "arena.grid.games": Fact("24", GLOSSARY, "Arena on the grid, tuned presets (Stage 1f, re-run)", "arena --games 24 --seed 7007"),
-    "arena.noise": Fact("8-12", GLOSSARY, "Tuned presets on the grid (Stage 1e, 2026-09-15)", "the binomial std on a win% is 8-12 points"),
-    "scarlett.ring.threshold": Fact("0.15", GLOSSARY, "Tuned presets on the grid (Stage 1e, 2026-09-15)", "**1. Scarlett's threshold: 0.15 to 0.3.**"),
     "cost.seat_game.plum": Fact("0.09", "docs/llm-wrapper.md", "Cost", "a median of $0.09"),
     "cost.seat_game.others": Fact("0.07-0.11", "docs/llm-wrapper.md", "Cost", "$0.07-0.11 per LLM seat-game"),
     # The benchmarks' sizes, and the historical one.
@@ -627,11 +485,6 @@ FACTS: dict = {
     "floor.solved": Fact("a third", "docs/architecture.md", _SELF_PLAY, "a third of viewers holding a proven envelope at the end"),
     "random.suggestions": Fact("80-180", "docs/architecture.md", _SELF_PLAY, "the old regime ran 80-180 suggestions"),
     # Arenas: how long a game ran.
-    "arena.ring.turns": Fact("27.5", GLOSSARY, "Arena, tuned presets", "mean 27.5 turns"),
-    "arena.grid.first.turns": Fact("40.4", GLOSSARY, _ARENA_GRID_FIRST, "mean 40.4 turns"),
-    "scarlett.ring.accused_in": Fact("4 of 20", GLOSSARY, _TUNED_RING, "she accused in only 4 of 20"),
-    "green.swing": Fact("0, 6, 6, 12, 25, 0, 12, 31 and 6", GLOSSARY, _TUNED_GRID, "won 0, 6, 6, 12, 25, 0, 12, 31 and 6 percent of his games"),
-    "green.confirm.win": Fact("18.8", GLOSSARY, _TUNED_GRID, "he won 18.8% of the same 24 deals in the confirmation arena"),
     # The twin comparisons.
     "twin.ring.turns.base": Fact("26.8", GLOSSARY, _TWIN_RING, "Mean game length fell from 26.8 turns to 20.3"),
     "twin.ring.turns.llm": Fact("20.3", GLOSSARY, _TWIN_RING, "Mean game length fell from 26.8 turns to 20.3"),
@@ -662,11 +515,6 @@ FACTS: dict = {
     "mustard.loop.claude.pct": Fact("34", GLOSSARY, _TWIN_GRID, "34% of his suggestions repeat (10% headless)"),
     "mustard.loop.alone.pct": Fact("10", GLOSSARY, _TWIN_GRID, "34% of his suggestions repeat (10% headless)"),
     "mustard.loop.trips": Fact("31", GLOSSARY, _TWIN_GRID, "31 wasted trips, 17 of them asked"),
-    # Mustard alone with Claude, the ring.
-    "mustard.ladder.cost": Fact("8.94", GLOSSARY, _LADDER_MUSTARD, "3013 s, $8.94, no fallbacks in 1176 calls"),
-    "mustard.ladder.calls": Fact("1,176", GLOSSARY, _LADDER_MUSTARD, "no fallbacks in 1176 calls"),
-    "mustard.ladder.talk.low": Fact("2.75", GLOSSARY, _LADDER_MUSTARD, "(2.75 to 7.62)"),
-    "mustard.ladder.talk.high": Fact("7.62", GLOSSARY, _LADDER_MUSTARD, "(2.75 to 7.62)"),
     # Method memory, Phase 7.
     "mustard.memory.games": Fact("193", GLOSSARY, _MEMORY, "193 stored ladder games (10,703 rows)"),
     "mustard.memory.rows": Fact("10,703", GLOSSARY, _MEMORY, "193 stored ladder games (10,703 rows)"),
@@ -692,19 +540,6 @@ FACTS: dict = {
     "green.arms.grid.peacock": Fact("0.31", GLOSSARY, _BENCH_GRID, "Peacock (0.31)"),
     "green.arms.grid.scarlett": Fact("0.37", GLOSSARY, _BENCH_GRID, "Scarlett (0.37)"),
     # Phase 12: the trained Plum.
-    "policy.bench.snapshots": Fact("1,080", GLOSSARY, _POLICY_BENCH, "the same 1080 snapshots"),
-    "policy.green.plum": Fact("0.75", GLOSSARY, _POLICY_BENCH, "Green's arms after the run: Plum 0.75"),
-    "policy.calibration.n": Fact("132", GLOSSARY, "Calibration of the accusation test", "right in 132 of 132 snapshots"),
-    "policy.leash.match": Fact("0.35", GLOSSARY, _POLICY_LEASH, "0.35 matches PlumOG's mean width at 0.25"),
-    "policy.llm.cost": Fact("8.38", GLOSSARY, _POLICY_LLM, "**$8.38** at list prices"),
-    "policy.llm.lost": Fact("6", GLOSSARY, _POLICY_LLM, "lost 6 and gained 6 at 0.35"),
-    "policy.llm.long.turns": Fact("172", GLOSSARY, _POLICY_LLM, "Game 7 ran 172 turns"),
-    "policy.llm.long.cost": Fact("2.78", GLOSSARY, _POLICY_LLM, "707K tokens and $2.78"),
-    "policy.menus.plum": Fact("50", GLOSSARY, _POLICY_LEASH, "50 against 31"),
-    "policy.menus.og": Fact("31", GLOSSARY, _POLICY_LEASH, "50 against 31"),
-    "policy.own.96": Fact("49.0", GLOSSARY, _POLICY_ARENAS, "49.0% at his own table and 21.9% at the six-character table"),
-    "policy.six.96": Fact("21.9", GLOSSARY, _POLICY_ARENAS, "49.0% at his own table and 21.9% at the six-character table"),
-    "policy.og.ring": Fact("62.5", GLOSSARY, _POLICY_ARENAS, "The **62.5%** often quoted"),
     "policy.run.games": Fact("76,800", DEEPNASH_PLAN, _RUN1, "76,800 games"),
     "policy.run.minutes": Fact("40", DEEPNASH_PLAN, _RUN1, "under 40 minutes"),
     "policy.run2.entropy.to": Fact("1.35", DEEPNASH_PLAN, _RUN2, "from 1.65 to 1.35"),

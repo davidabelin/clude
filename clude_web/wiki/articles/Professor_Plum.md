@@ -87,10 +87,11 @@ A character's [[belief]] says what it thinks; five [[personality dials]] say wha
 | [[Secrecy]] | {{code:preset.Plum.secrecy}} | When he must show a card, how strongly he prefers one that player has already seen. |
 | [[Temperature]] | {{code:preset.Plum.temperature}} | How much chance enters his choices. The lowest of the six: he very nearly always takes his top option. |
 
-The current preset still carries Phase 12's high accusation threshold, low
-temperature and widened leash. Those measurements belong to the former
-checkpoint; Phase 14's complete dial sweep is still open, so they are not
-presented as a calibration of Run 3.[^dials]
+Phase 14 retested these settings with Run 3. Curiosity remains N/A; the pooled
+and isolated headless screens retained the high accusation threshold and low
+temperature. A paid leash screen shortlisted 0.60, but its separate paired
+confirmation lost 12.5 win-rate points against 0.35, so the current leash was
+retained. No Plum preset changed.[^dials]
 
 ## Record
 
@@ -121,14 +122,17 @@ observed network, not proof of a unique winner.[^phase14]
 
 ### With Claude
 
-The only paid Run 3 evidence so far is its refreshed exact-game fixture: six
-successful calls, no fallbacks or lookups, for about
-${{fact:phase14.plum.fixture.cost}}. The seeded game retained White as winner
-after ten turns. Phase 12's longer leash ladder belongs to the superseded
-checkpoint; Phase 14 has not yet repeated it.[^phase14]
+{{table:paid.phase14.plum_leash_confirm|Run 3 at the current leash and the one shortlisted candidate, 24 paired games per value on new seeds.}}
 
-A longer game can cost more because every call carries the game so far; the
-fixture is one exact acceptance game, not a general price estimate.
+The 0.60 candidate lost 12.5 paired win-rate points, with a 95% bootstrap
+interval from -25.0 to 0.0, and lengthened games by 6.97%. Neither row recorded
+a wrong accusation, but the balanced headless tournament shows that Run 3 can
+make one. The candidate failed the win guardrail and 0.35 stayed.[^dials]
+
+The exact-game fixture was also refreshed after the weights were accepted: six
+successful calls, no fallbacks or lookups, for about
+${{fact:phase14.plum.fixture.cost}}. It retained White as winner after ten
+turns. A longer game can cost more because every call carries the game so far.
 
 ## PlumOG
 
@@ -185,7 +189,7 @@ Plum's network does not change between games: what it learnt, it learnt in train
 [^module]: {{cite:clude_agents/deep_nash.py|the encoding, the network and `DeepNashAgent`}}
 [^plan]: {{cite:docs/deepnash-plan.md|1. Context}}
 [^presets]: {{cite:clude_agents/personality.py|`PRESETS` and `PLUM_OG`}}
-[^dials]: {{cite:docs/strategy-glossary.md|Dial checks}}
+[^dials]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^phase14]: {{cite:docs/strategy-glossary.md|Phase 14 Run 3, the current Plum (2026-10-18)}}
 [^og]: {{cite:clude_agents/exact_enum.py|the search, the sampler and the two budgets}}
 [^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}

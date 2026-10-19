@@ -36,9 +36,9 @@ This difference is visible in [[twin comparison|twin comparisons]]. More verbal 
 
 ## Recorded sweep
 
-{{table:sweep.bluff|The historical ring-board sweep, pooled over the six characters, reported in Phase 5. Percentages concern complete seat-games; named counts are suggestions per seat-game.}}
+{{table:sweep.phase14.bluff_rate|The current post-landing-rule sweep, pooled over all six characters. Percentages concern complete seat-games; named counts are suggestions per seat-game.}}
 
-The recorded sweep increased own-card naming as the dial rose but did not produce a matching increase in wins. At the extreme, questions often stopped testing new suspect or weapon candidates. The figures describe that board, roster and sweep, not an optimal setting for every player or opponent.[^sweep]
+Own-card naming rose from 1.04 to 4.28 per seat-game as the dial moved from zero to one. The paired endpoint difference was 3.335, with a 95% bootstrap interval from 2.912 to 3.770. Always bluffing also had the lowest observed win rate, 5.4%; the figures describe this roster and sweep, not a universal optimum.[^sweep]
 
 
 ## See also
@@ -52,6 +52,6 @@ The recorded sweep increased own-card naming as the dial rose but did not produc
 [^character]: {{cite:clude_agents/character.py|`_pick_suggestion_card`}}
 [^engine]: {{cite:clude_core/engine.py|`resolve_suggestion_steps`}}
 [^menu]: {{cite:clude_llm/menu.py|`suggestion_menu`}}
-[^sweep]: {{cite:docs/strategy-glossary.md|Dial sweeps}}
+[^sweep]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 
 {{navbox:clude}}

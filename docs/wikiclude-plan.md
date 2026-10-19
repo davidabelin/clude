@@ -438,7 +438,7 @@ The live Wikipedia-title check for the new `[[w:...]]` links; W7's corpus-wide p
 > **Updated 2026-10-15.** The Wikipedia-title check has been run and passes
 > for all 98 titles. Everything here is deployed: the wiki went out with
 > the Phase 13 step 4 release (`clude-00029-8k8`, 2026-10-14) and `/wiki`
-> serves publicly. W7's corpus-wide pass is still open, and should follow
+> serves publicly. At this checkpoint W7's corpus-wide pass was pending; it followed
 > W8 so it rereads the finished text.
 
 ## 14. W8: the Phase 13 alignment pass
@@ -785,5 +785,30 @@ Run 3 moved one exact-game prompt path. With separate paid approval,
 `llm_seed2` was re-recorded on 2026-10-18: six calls, no fallbacks or lookups,
 $0.0348 estimated, with the same envelope, White winner, ten turns and two
 suggestions. `llm_seed1` contains no Plum, still replayed exactly and was not
-re-recorded. This is local documentation and test acceptance, not production
-deployment or completion of W7.
+re-recorded. This was local documentation and test acceptance, not production
+deployment.
+
+## 17. Phase 14 recalibration and W7 final gate (2026-10-18)
+
+The encyclopaedia now treats Phase 14 as the current calibration record.
+*Dial sweeps* and *Measurement record* were rewritten around the frozen
+post-landing-rule corpus, Run 3, the complete headless grids and the reconciled
+paid screen. The five dial articles, adaptive-method pages and all six
+biographies use the same current facts. Detailed superseded tables and their
+unused fact keys were removed from public articles; a short archive note keeps
+the historical boundary visible, while the evidence remains in maintainer
+plans, the strategy glossary and git.
+
+The paid run was not discarded after its provider-credit interruption. Valid
+leash, chattiness and memory rows were retained, the compromised memory-0.5
+attempt was recorded but excluded, and only the missing memory values resumed.
+The sole shortlist, Plum leash 0.60, failed a separate 24-pair confirmation,
+so no public preset changed.
+
+W7's final gate passed. The offline corpus, fact and citation suite reported
+28 passed with its network check skipped; the explicit live-link run reported
+29 passed. Fresh screenshots of *Dial sweeps*, *Measurement record*,
+*Professor Plum* and *Leash* at 390 and 1440 pixels showed the current tables
+fitting in Case-file, Gaslight and Developer looks. The screenshots and test
+results establish the local documentation gate. The same current pages were
+verified over HTTPS after revision `clude-00038-jws` reached 100% traffic.
