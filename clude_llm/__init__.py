@@ -45,6 +45,8 @@ from .schema import (
     MAX_OPTIONS,
     REMARK_KIND,
     REMARK_SCHEMA,
+    REWRITE_KIND,
+    REWRITE_SCHEMA,
     parse_response,
     schema_for,
 )
@@ -68,6 +70,8 @@ __all__ = [
     "Menu",
     "REMARK_KIND",
     "REMARK_SCHEMA",
+    "REWRITE_KIND",
+    "REWRITE_SCHEMA",
     "NullBackend",
     "Option",
     "Persona",

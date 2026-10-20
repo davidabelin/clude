@@ -778,6 +778,16 @@ def test_recorded_llm_games_replay_offline(
     path = FIXTURE_DIR / fixture
     if not path.exists():
         pytest.skip(f"missing fixture {path}")
+    from clude_llm import persona_sync
+
+    stale = persona_sync.stale_in(path)
+    if stale:
+        # The mark CLAUDE.md asks for: a changed persona or rules file
+        # leaves the recording as evidence, not as a passing test.
+        pytest.xfail(
+            f"stale recording: {', '.join(stale)} changed since {fixture} was recorded; "
+            "a paid refresh needs separate approval (`persona check NAME` prints the command)"
+        )
     spec = importlib.util.spec_from_file_location("clude_cli", CLI_SCRIPT)
     cli = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(cli)

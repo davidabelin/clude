@@ -32,6 +32,9 @@ REMARK_KIND = "remark"
 CONDENSE_KIND = "condense"
 """The request kind of the call that condenses a logbook into its digest."""
 
+REWRITE_KIND = "rewrite"
+"""The request kind of the call that revises a persona's mirrors (`persona_sync`)."""
+
 REMARK_SCHEMA: dict = {
     "type": "object",
     "properties": {"say": {"type": "string"}},
@@ -107,6 +110,14 @@ CONDENSE_SCHEMA: dict = {
 }
 """The model-written fields of a `LogbookDigest`; `flag_map` lists the merges."""
 
+REWRITE_SCHEMA: dict = {
+    "type": "object",
+    "properties": {"passages": _objects("id", "text")},
+    "required": ["passages"],
+    "additionalProperties": False,
+}
+"""Revised passages by number, for `persona_sync.rewrite_request`."""
+
 
 def schema_for(kind: str) -> dict:
     """The one schema object used for every call of decision `kind`
@@ -116,12 +127,14 @@ def schema_for(kind: str) -> dict:
     ------
     KeyError
         For a kind other than ``move``, ``suggest``, ``accuse``, ``show``,
-        ``logbook``, ``condense`` or ``remark``.
+        ``logbook``, ``condense``, ``rewrite`` or ``remark``.
     """
     if kind == LOGBOOK_KIND:
         return LOGBOOK_SCHEMA
     if kind == CONDENSE_KIND:
         return CONDENSE_SCHEMA
+    if kind == REWRITE_KIND:
+        return REWRITE_SCHEMA
     if kind == REMARK_KIND:
         return REMARK_SCHEMA
     fields = LABEL_FIELDS[kind]
@@ -143,9 +156,9 @@ def parse_response(kind: str, text: str) -> dict:
     dict
         The label fields upper-cased (``"a"`` is accepted as ``"A"``) and
         ``say`` stripped, a missing or non-string ``say`` becoming ``""``.
-        Extra keys are ignored. For `LOGBOOK_KIND` and `CONDENSE_KIND` the
-        object as parsed: `LogbookEntry.build` and `LogbookDigest.build` do
-        the normalising. For `REMARK_KIND`,
+        Extra keys are ignored. For `LOGBOOK_KIND`, `CONDENSE_KIND` and
+        `REWRITE_KIND` the object as parsed: `LogbookEntry.build`,
+        `LogbookDigest.build` and `persona_sync.guard` do the checking. For `REMARK_KIND`,
         ``say`` alone, stripped.
 
     Raises
@@ -160,7 +173,7 @@ def parse_response(kind: str, text: str) -> dict:
         raise ValueError(f"not JSON ({exc})") from None
     if not isinstance(data, dict):
         raise ValueError("not a JSON object")
-    if kind in (LOGBOOK_KIND, CONDENSE_KIND):
+    if kind in (LOGBOOK_KIND, CONDENSE_KIND, REWRITE_KIND):
         return data
     if kind == REMARK_KIND:
         say = data.get("say", "")

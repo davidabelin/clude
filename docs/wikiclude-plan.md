@@ -853,3 +853,7 @@ Validation:
 - `git diff --check` passes. Audit scripts, JSON reports and screenshots remain under ignored `data/doc-review/`.
 
 This review did not retrain, make paid calls, promote method state or deploy.
+
+## 19. The persona gate (2026-10-19)
+
+Section 14's rule, "an article describes; the persona file instructs", now has a check behind it. `clude_llm/persona_sync.py` finds every passage that cites a persona file or the rules (by footnote, by the character's own `dyk:` hooks, by its row in *Wikiclude*'s table and by the wrapper guide's Personas section), sorts each passage's quotations against the file, and says which replay recordings a change moves. `tests/test_persona_sync.py` fails when a quotation in the corpus is no longer in its file, and `scripts/clude_cli.py persona check` and `persona push` report and, with a model and approved spend, revise the passages ([CLI](cli.md#persona)). Numbers stay where they were: the gate reads prose only, and dials, leashes and measurements keep their own tables.

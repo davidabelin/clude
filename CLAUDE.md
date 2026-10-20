@@ -48,7 +48,7 @@ Phase 11 condenses maintainer docs and docstrings. Phase 12 is complete and was 
 - Give an independent assessment. Correct wrong numbers wherever they propagated; distinguish offline evidence from live acceptance.
 - David commits from VS Code. After non-trivial changes, print a paste-ready commit message as **uncompiled Markdown in a code block**: title, short rationale, bullets as needed, without hard-wrapping bullets. Do not write `commit_msg.md`, commit or push on his behalf. Do not invent a co-author identity.
 - Quote costs/run sizes and get approval before real API calls. Store measurements with `--store data/llm` and `--json PATH`.
-- Persona/rules files are executable prompts. Exact text affects replay keys: never relabel old recordings as new. The current recordings were refreshed after Phase 13 and, for seed 2 only, Phase 14; any further request-text change needs a separately approved paid refresh.
+- Persona/rules files are executable prompts. Exact text affects replay keys: never relabel old recordings as new. The current recordings were refreshed after Phase 13 and, for seed 2 only, Phase 14; any further request-text change needs a separately approved paid refresh. After editing a persona or the rules, run `persona check NAME` (and `persona push`) so the wiki, the guides, the recordings and the logbook follow ([CLI](docs/cli.md#persona)).
 - Ask about product ambiguities while continuing independent work. Use game/turn for play and episode/step for training.
 
 ## Environment and how to run

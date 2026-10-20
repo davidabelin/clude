@@ -11,15 +11,15 @@ Examples below use `python` for readability; activate the venv or substitute its
 
 ## Entry points and store defaults
 
-**clude.bat targets the live store** for `users`, `tables`, `logbook` and `store`: `gs://clude-game-data/llm`, unless `--uri` is supplied. `clude live ...` also appends that URI. Direct Python invocations use these defaults:
+**clude.bat targets the live store** for `users`, `tables`, `logbook`, `store` and `persona`: `gs://clude-game-data/llm`, unless `--uri` is supplied. `clude live ...` also appends that URI. Direct Python invocations use these defaults:
 
 | Command | Default store |
 |---|---|
 | `store`, `logbook` | `data` |
-| `users`, `tables` | `data/llm` |
+| `users`, `tables`, `persona` | `data/llm` |
 | `play`, `arena`, `sweep` | No record store unless `--store` is passed |
 
-Use an explicit URI for account changes, reset/rebuild, abandon and copying. Read-only inspection does not imply every command is read-only: account operations, logbook reset/rebuild/copy/reset-arm/relabel, `store copy`, `store merge`, `tables abandon`, `tables costs --write`, recordings and training artifacts write data.
+Use an explicit URI for account changes, reset/rebuild, abandon and copying. Read-only inspection does not imply every command is read-only: account operations, logbook reset/rebuild/copy/reset-arm/relabel, `store copy`, `store merge`, `tables abandon`, `tables costs --write`, `persona push`, recordings and training artifacts write data.
 
 | Command | Purpose |
 |---|---|
@@ -30,6 +30,7 @@ Use an explicit URI for account changes, reset/rebuild, abandon and copying. Rea
 | `arena`, `sweep` | Full-game outcomes and dial comparisons |
 | `store`, `logbook` | Records, copying and memory administration |
 | `tables`, `users` | Web table/account administration |
+| `persona` | A persona file, the passages that quote it, its recordings and its logbook |
 
 `play`, `prompt`, `trace` and `floor` share players (3-6, default 4), seed (1), turn cap (300) and roster (`random`). With identical inputs they reconstruct the same numerical game. Viewer indices refer to the resulting **seat order**, not the input roster order.
 
@@ -205,6 +206,21 @@ python scripts/clude_cli.py logbook condense --uri data/llm --all --dry-run
 `show` prints the head/index, `--entry N` one entry, `--raw` JSON, or `--memory DEPTH` the exact read-back block. `reset --identity NAME` removes head, method memory and entries; `--keep-entries` retains the archive. `rebuild` recomputes the head and Mustard/White memory from records; `--from URI` changes source, `--min-version` defaults to 3. Green's live arm feedback cannot be reconstructed. `copy --identity Plum --to PlumOG` archives a logbook under another identity (entries, head and method memory; it refuses an existing destination). `reset-arm --arm Plum` forgets one arm of Green's stored posteriors, which then loads at Beta(1, 1); `--identity` defaults to Green. `relabel --label Plum --to PlumOG` calls an opponent by a new label in every logbook of the store (or `--identity NAME` alone): entry tables, evaluations and dossiers, the head's dossier, and White's per-opponent transition counts; `--dry-run` reports without writing. A generic White `rebuild` reads recorded labels and can mix Plum generations. Use Phase 14's per-record generation mapping for a mixed store; a blanket relabel would also rename current Plum's counts. `--min-version 3` excludes ring records but is not the Phase 14 post-landing cutoff.
 
 `condense --identity NAME` or `--all` asks each character's own model to fold its logbook into a digest and merge its flags ([Logbooks](logbooks.md#condensing-the-digest)); **these are paid calls**. Every identity first prints its entries to fold in, prompt words, estimated input tokens and a conservative cost, with the output priced at the call's 8192-token cap. `--dry-run` stops there and writes nothing. `--all` skips logbooks that are not a character's, such as PlumOG, which has no persona; naming one with `--identity` is refused. An identity with nothing new since its digest makes no call. `--llm-backend` and `--llm-model` work as in `play`, and `null` exercises the command without a model. A failed call writes nothing. `list` and `show` report the digest, and `show --memory` renders read-back with it.
+
+## `persona`
+
+```text
+python scripts/clude_cli.py persona list
+python scripts/clude_cli.py persona show Mustard
+python scripts/clude_cli.py persona check Mustard --diff
+python scripts/clude_cli.py persona check Mustard --source drafts\Mustard.md
+python scripts/clude_cli.py persona push Mustard --rewrite --dry-run
+python scripts/clude_cli.py persona push Mustard --source drafts\Mustard.md --rewrite --condense-logbook
+```
+
+A persona file (`clude_llm/personas/<Suspect>.md`, or `rules` for the shared rules) is the only source of its prose, but the wiki articles and guides that cite it quote and paraphrase it by hand, and the replay fixtures hold the exact prompt it was part of. `check NAME` judges a text against them: `--source PATH` a draft, otherwise the installed file as edited, with "before" taken from git at `--since` (default `HEAD`). It validates the H1 and section headings, counts the change (`--diff` prints it), lists every mirror whose quotations have gone stale (`--all` lists them all), says which recordings no longer match and prints their re-record commands, and reports the character's logbook on `--uri`. It exits 1 when a passage is stale. Mirrors are found by their citations: a footnote that cites the file, the character's own article's `dyk:` lines, its row in *Wikiclude*'s table and the Personas section of the [wrapper guide](llm-wrapper.md#personas); `persona_sync.EXTRA_MIRRORS` registers more. A quotation found in another persona file is left alone; one found in none is listed as unsourced (a transcript line, usually).
+
+`push NAME` does the same, then installs `--source` as the file (nothing to install without it), and with `--rewrite` has a model revise every mirror for the change, one **paid call** per file: each call's size and estimated cost print first, `--dry-run` stops there and writes nothing, and a reply that drops a footnote mark or template, or comes back malformed, is refused line by line. The files are written for review with `git diff`; nothing is committed. A stale recording is reported with its command and last cost; re-recording is a separate, approved spend, and until then the replay test marks that game `xfail`. `--condense-logbook` then runs `logbook condense` for the character on `--uri`, so the digest is re-voiced (paid, with the same dry run). The live service reads personas and articles from its image: the command never deploys, and says so.
 
 ## `tables`
 

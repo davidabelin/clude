@@ -71,6 +71,7 @@ from clude_llm import (
     suggestion_menu,
     user_prompt,
 )
+from clude_llm import load_persona, load_rules, persona_sync, system_prompt
 from clude_llm.anthropic_backend import estimate_cost
 from clude_storage import (
     GameRecord,
@@ -1706,6 +1707,249 @@ def cmd_logbook_rebuild(args) -> int:
 
 
 # ---------------------------------------------------------------------
+# persona: a persona file and everything that quotes it (persona_sync)
+# ---------------------------------------------------------------------
+
+
+def _persona_name(raw: str) -> str:
+    """A persona name as `persona_sync` spells it, case-insensitively."""
+    wanted = raw.strip().lower()
+    for name in persona_sync.PERSONA_NAMES:
+        if name.lower() == wanted:
+            return name
+    raise SystemExit(f"{raw!r} is not a persona; one of {', '.join(persona_sync.PERSONA_NAMES)}")
+
+
+def _persona_check(args, name: str):
+    """The `Check` for a command's ``--source`` and ``--since``."""
+    new = None
+    if getattr(args, "source", ""):
+        try:
+            new = persona_sync.read_source(Path(args.source))
+        except (OSError, ValueError) as exc:
+            raise SystemExit(f"--source: {exc}") from exc
+    old = persona_sync.old_text(name, getattr(args, "since", "HEAD"))
+    return persona_sync.check(name, new, old)
+
+
+def _persona_logbook_line(args, name: str) -> str:
+    if name == persona_sync.RULES:
+        return "logbook: the rules have none"
+    store = open_store(args.uri)
+    status = persona_sync.logbook_status(store, name)
+    if status is None:
+        return f"logbook: none for {name} in {store.describe()}"
+    digest = "no digest" if status["digest"] is None else f"digest through #{status['digest']:04d}"
+    return (
+        f"logbook: {status['entries']} entries, {digest}, in {store.describe()}; written in the voice "
+        "of the persona at the time (`logbook condense` re-voices the digest)"
+    )
+
+
+def _quoted(phrases) -> str:
+    return "; ".join(f'"{phrase}"' for phrase in phrases)
+
+
+def _print_persona_report(report, args, name: str) -> None:
+    """What `check`, `show` and `push` print: the file, the change since
+    ``--since``, the mirrors (flagged ones, or all with ``--all``), the
+    recordings and the logbook."""
+    print(
+        f"persona: {name} ({persona_sync.repo_path(name)}; sha256 {persona_sync.sha256(report.new)[:12]}; "
+        f"{len(report.new.split())} words)"
+    )
+    for line in report.errors:
+        print(f"  error: {line}")
+    for line in report.warnings:
+        print(f"  warning: {line}")
+    if report.changed:
+        diff = report.diff().split("\n")
+        added = sum(1 for line in diff if line.startswith("+") and not line.startswith("+++"))
+        removed = sum(1 for line in diff if line.startswith("-") and not line.startswith("---"))
+        print(f"change since {args.since}: +{added}/-{removed} lines")
+        if args.diff:
+            print(report.diff())
+    else:
+        print(f"change since {args.since}: none")
+    files = persona_sync.by_file([item.mirror for item in report.mirrors])
+    print(f"mirrors: {len(report.mirrors)} passages in {len(files)} files; {len(report.stale)} stale")
+    for item in report.mirrors:
+        flags = []
+        if item.stale:
+            flags.append("STALE " + _quoted(item.stale))
+        if item.unsourced:
+            flags.append("unsourced " + _quoted(item.unsourced))
+        if flags or args.all_mirrors:
+            text = item.mirror.text
+            head = text if len(text) <= 90 else text[:87] + "..."
+            print(f"  {item.mirror.where} [{item.mirror.kind}] {head}")
+            for flag in flags:
+                print(f"    {flag}")
+    for line in persona_sync.REPORT_ONLY.get(name, ()):
+        print(f"  by hand: {line}")
+    print("fixtures:")
+    recorded = [status for status in report.fixtures if status.state != "not recorded"]
+    for status in recorded:
+        print(f"  {status.fixture.name}: {status.name} {status.state} ({status.recorded} recorded prompts)")
+        if status.state == "stale":
+            print(f"    re-record (paid; approve the spend first; last refresh {status.last_cost}):")
+            print(f"    {status.command}")
+    if not recorded:
+        print("  (no recording holds this persona's prompt)")
+    print(_persona_logbook_line(args, name))
+
+
+def cmd_persona_list(args) -> int:
+    """Every persona file: digest, size, mirrors, recordings and logbook."""
+    store = open_store(args.uri)
+    print(f"store: {store.describe()}")
+    for name in persona_sync.PERSONA_NAMES:
+        text = persona_sync.current_text(name)
+        mirrors = persona_sync.find_mirrors(name)
+        recorded = [status for status in persona_sync.fixture_status(name) if status.state != "not recorded"]
+        stale = sorted({status.fixture.name for status in recorded if status.state == "stale"})
+        if not recorded:
+            fixtures = "not recorded"
+        elif stale:
+            fixtures = "stale in " + ", ".join(stale)
+        else:
+            fixtures = "recordings fresh"
+        if name == persona_sync.RULES:
+            logbook = "no logbook"
+        else:
+            status = persona_sync.logbook_status(store, name)
+            if status is None:
+                logbook = "no logbook"
+            else:
+                digest = "" if status["digest"] is None else f", digest #{status['digest']:04d}"
+                logbook = f"logbook {status['entries']} entries{digest}"
+        print(
+            f"  {name:9} {persona_sync.sha256(text)[:12]}  {len(text.split()):4} words  "
+            f"{len(mirrors):2} mirrors  {fixtures}; {logbook}"
+        )
+    return 0
+
+
+def cmd_persona_show(args) -> int:
+    """One persona file (or with ``--prompt`` the system prefix it makes),
+    then every passage that mirrors it, its recordings and its logbook."""
+    name = _persona_name(args.name)
+    if args.prompt:
+        rules = load_rules()
+        text = rules if name == persona_sync.RULES else system_prompt(load_persona(name), rules)
+    else:
+        text = persona_sync.current_text(name)
+    print(text, end="")
+    print("===")
+    _print_persona_report(_persona_check(args, name), args, name)
+    return 0
+
+
+def cmd_persona_check(args) -> int:
+    """Judge a persona text against its mirrors and recordings without
+    writing anything; exit 1 when a passage is stale or the text invalid."""
+    name = _persona_name(args.name)
+    report = _persona_check(args, name)
+    _print_persona_report(report, args, name)
+    return 1 if report.errors or report.stale else 0
+
+
+def cmd_persona_push(args) -> int:
+    """Install a persona text and bring its mirrors into line: the check,
+    the install, with ``--rewrite`` one paid call per mirrored file, the
+    recordings it moves, and with ``--condense-logbook`` the digest."""
+    name = _persona_name(args.name)
+    report = _persona_check(args, name)
+    _print_persona_report(report, args, name)
+    if report.errors:
+        print("nothing installed: fix the errors above")
+        return 2
+    code = 0
+    target = persona_sync.repo_path(name)
+    if not args.source:
+        print(f"install: no --source; {target} is the text as edited")
+    elif args.dry_run:
+        print(f"install: would write {args.source} as {target} (dry run)")
+    elif persona_sync.install(name, report.new):
+        print(f"install: wrote {args.source} as {target}")
+    else:
+        print(f"install: {target} already had this text")
+    if args.rewrite:
+        settings = LLMSettings(model=args.llm_model)
+        backend = None if args.dry_run else _open_llm_backend(args)
+        estimated = spent = 0.0
+        calls = 0
+        for path, mirrors in persona_sync.by_file([item.mirror for item in report.mirrors]):
+            request = persona_sync.rewrite_request(
+                name, report.old, report.new, mirrors, settings.debrief_effort, settings.debrief_timeout,
+            )
+            tokens = round((len(request.system) + len(request.user)) / CHARS_PER_TOKEN)
+            out = round(1.25 * sum(len(mirror.text) for mirror in mirrors) / CHARS_PER_TOKEN)
+            cost = estimate_cost(args.llm_model, tokens, out)
+            estimated += cost or 0.0
+            relative = path.relative_to(persona_sync.ROOT).as_posix()
+            print(
+                f"  {relative}: {len(mirrors)} passages; ~{tokens:,} input tokens, ~{out:,} out; "
+                + (f"est. ${cost:.2f}" if cost is not None else f"{args.llm_model} is unpriced")
+            )
+            if backend is None:
+                continue
+            result = persona_sync.rewrite_file(
+                name, report.old, report.new, mirrors, backend, settings.debrief_effort, settings.debrief_timeout,
+            )
+            calls += 1
+            if result["fallback"] is not None:
+                print(f"    failed ({result['fallback']}); nothing written")
+                code = 1
+                continue
+            paid = estimate_cost(
+                args.llm_model, result["input_tokens"], result["output_tokens"], result["cached_tokens"],
+            )
+            spent += paid or 0.0
+            refused = "; ".join(f"[{number}] {why}" for number, why in result["refused"])
+            print(
+                f"    {result['changed']} rewritten, {result['unchanged']} unchanged"
+                + (f", refused {refused}" if refused else "")
+                + f"; tokens in/out/cached {result['input_tokens']:,}/{result['output_tokens']:,}/"
+                f"{result['cached_tokens']:,}; {result['seconds']:.1f}s"
+                + (f"; ${paid:.4f}" if paid is not None else "")
+            )
+        if backend is None:
+            print(f"rewrite: estimated ${estimated:.2f} at list prices (dry run: no call made, nothing written)")
+        else:
+            print(f"rewrite: spent ${spent:.4f} at list prices on {calls} calls; review the files with git diff")
+            after = persona_sync.check(name, report.new, report.old)
+            print(f"after rewriting: {len(after.stale)} passages still stale")
+            for item in after.stale:
+                print(f"  {item.mirror.where}: {_quoted(item.stale)}")
+    elif report.stale:
+        print(
+            f"rewrite: {len(report.stale)} stale passages left as they are "
+            "(--rewrite has the model revise them; or edit them by hand)"
+        )
+    stale_fixtures = sorted({status.fixture.name for status in report.stale_fixtures})
+    if stale_fixtures:
+        print(
+            f"fixtures: {', '.join(stale_fixtures)} would replay with fallbacks; the replay test marks "
+            "the game xfail until it is re-recorded with approved spend"
+        )
+    else:
+        print("fixtures: every recording still matches")
+    if args.condense_logbook and name != persona_sync.RULES:
+        store = open_store(args.uri)
+        if persona_sync.logbook_status(store, name) is None:
+            print(f"condense: no logbook for {name} in {store.describe()}")
+        else:
+            condense = argparse.Namespace(
+                uri=args.uri, identity=name, all=False, llm_backend=args.llm_backend,
+                llm_model=args.llm_model, dry_run=args.dry_run,
+            )
+            code = max(code, cmd_logbook_condense(condense))
+    print("deploy: the live service reads personas and articles from its image; scripts\\deploy.bat publishes them (not run here)")
+    return code
+
+
+# ---------------------------------------------------------------------
 # Parser
 # ---------------------------------------------------------------------
 
@@ -2244,6 +2488,56 @@ def build_parser() -> argparse.ArgumentParser:
     t_costs.add_argument("--uri", default=WEB_STORE, help="Store location: the one the web app reads.")
     t_costs.add_argument("--write", action="store_true", help="Record the missing costs; without it, only print.")
     t_costs.set_defaults(fn=cmd_tables_costs)
+
+    persona_p = sub.add_parser(
+        "persona",
+        help="A persona file and everything that quotes it: list, show, check, push (clude_llm.persona_sync).",
+    )
+    persona_sub = persona_p.add_subparsers(dest="action", required=True)
+    p_list = persona_sub.add_parser(
+        "list", help="Every persona file: digest, size, mirrors, recordings and logbook.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    p_list.add_argument("--uri", default=WEB_STORE, help="Store whose logbooks to report.")
+    p_list.set_defaults(fn=cmd_persona_list)
+    p_show = persona_sub.add_parser(
+        "show", help="One persona file, every passage that mirrors it, its recordings and logbook.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    p_show.add_argument("name", help="Scarlett, Mustard, White, Green, Peacock, Plum or rules.")
+    p_show.add_argument("--prompt", action="store_true", help="Print the system prefix the file makes instead of the file.")
+    p_show.add_argument("--uri", default=WEB_STORE, help="Store whose logbook to report.")
+    p_show.set_defaults(fn=cmd_persona_show, source="", since="HEAD", diff=False, all_mirrors=True)
+    for action, fn, blurb in (
+        ("check", cmd_persona_check, "Judge a text against the mirrors and recordings; write nothing (exit 1 if stale)."),
+        ("push", cmd_persona_push, "Install a text and bring its mirrors into line (--rewrite and --condense-logbook pay)."),
+    ):
+        p = persona_sub.add_parser(action, help=blurb, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        p.add_argument("name", help="Scarlett, Mustard, White, Green, Peacock, Plum or rules.")
+        p.add_argument(
+            "--source", default="",
+            help="A candidate file to judge (check) or install (push); default the installed file, as edited.",
+        )
+        p.add_argument("--since", default="HEAD", help="The git revision whose text counts as 'before'.")
+        p.add_argument("--diff", action="store_true", help="Print the unified diff of the change.")
+        p.add_argument("--all", dest="all_mirrors", action="store_true", help="List every mirror, not only the flagged ones.")
+        p.add_argument("--uri", default=WEB_STORE, help="Store whose logbook to report (push: and to condense).")
+        if action == "push":
+            p.add_argument("--rewrite", action="store_true", help="Have a model revise every mirror for the change (paid, one call per file).")
+            p.add_argument(
+                "--condense-logbook", action="store_true",
+                help="Then re-voice the character's digest on --uri with `logbook condense` (paid).",
+            )
+            p.add_argument(
+                "--llm-backend", default="anthropic",
+                help="'anthropic', 'null' (never answers), 'record:PATH' or 'replay:PATH'.",
+            )
+            p.add_argument("--llm-model", default=DEFAULT_MODEL, help="Model id for the anthropic backend.")
+            p.add_argument(
+                "--dry-run", action="store_true",
+                help="Report and estimate; install nothing, call nothing, write nothing.",
+            )
+        p.set_defaults(fn=fn)
 
     users_p = sub.add_parser(
         "users",

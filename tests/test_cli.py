@@ -410,3 +410,56 @@ def test_arena_and_sweep_take_llm_seats_on_the_null_backend(cli, capsys, tmp_pat
             "arena", "--games", "1", "--roster", "Scarlett,floor", "--players", "3",
             "--llm", "--llm-backend", "null", "--llm-characters", "Plum",
         ])
+
+
+# ---------------------------------------------------------------------
+# persona
+
+
+def test_persona_list_and_check_run_clean_on_the_current_tree(cli, capsys, tmp_path):
+    out = _run(cli, capsys, "persona", "list", "--uri", str(tmp_path))
+    for name in ("Scarlett", "Plum", "Peacock", "Mustard", "Green", "White", "rules"):
+        assert name in out
+    assert "recordings fresh" in out and "stale" not in out
+    out = _run(cli, capsys, "persona", "check", "Mustard", "--uri", str(tmp_path))
+    assert "persona: Mustard (clude_llm/personas/Mustard.md" in out
+    assert "0 stale" in out and "llm_seed2.json: Mustard fresh" in out and "logbook: none" in out
+    shown = _run(cli, capsys, "persona", "show", "mustard", "--prompt", "--uri", str(tmp_path))
+    assert shown.startswith("# Colonel Mustard") and "# The house rules" in shown and "[passage]" in shown
+    with pytest.raises(SystemExit):
+        cli.main(["persona", "check", "Nobody", "--uri", str(tmp_path)])
+
+
+def test_persona_check_names_the_passages_a_changed_sentence_leaves_stale(cli, capsys, tmp_path):
+    source = tmp_path / "Mustard.md"
+    installed = (cli.ROOT / "clude_llm" / "personas" / "Mustard.md").read_text(encoding="utf-8")
+    assert "hearty, bluff, decisive" in installed
+    source.write_text(installed.replace("hearty, bluff, decisive", "hearty, blunt, decisive"), encoding="utf-8")
+    assert cli.main(["persona", "check", "Mustard", "--source", str(source), "--uri", str(tmp_path)]) == 1
+    out = capsys.readouterr().out
+    assert "clude_web/wiki/articles/Colonel_Mustard.md:" in out and 'STALE "hearty, bluff, decisive' in out
+    assert "llm_seed2.json: Mustard stale" in out and "record:tests/fixtures/llm_seed2.json" in out
+    bad = tmp_path / "bad.md"
+    bad.write_text("# Colonel Custard\n\nNo.\n", encoding="utf-8")
+    assert cli.main(["persona", "check", "Mustard", "--source", str(bad), "--uri", str(tmp_path)]) == 1
+    assert "error: the first line must be '# Colonel Mustard'" in capsys.readouterr().out
+
+
+def test_persona_push_dry_run_and_null_backend_write_nothing(cli, capsys, tmp_path):
+    persona = cli.ROOT / "clude_llm" / "personas" / "Mustard.md"
+    article = cli.ROOT / "clude_web" / "wiki" / "articles" / "Colonel_Mustard.md"
+    before = (persona.read_bytes(), article.read_bytes())
+    source = tmp_path / "Mustard.md"
+    source.write_text(persona.read_text(encoding="utf-8").replace("hearty, bluff, decisive", "hearty, blunt, decisive"), encoding="utf-8")
+    out = _run(
+        cli, capsys, "persona", "push", "Mustard", "--source", str(source), "--rewrite", "--dry-run",
+        "--condense-logbook", "--uri", str(tmp_path),
+    )
+    assert "install: would write" in out and "dry run: no call made, nothing written" in out
+    assert "Colonel_Mustard.md: " in out and "est. $" in out and "condense: no logbook" in out
+    assert "deploy:" in out and "would replay with fallbacks" in out
+    # Without --source nothing is installed; the null backend answers nothing, so nothing is written.
+    assert cli.main(["persona", "push", "Mustard", "--rewrite", "--llm-backend", "null", "--uri", str(tmp_path)]) == 1
+    out = capsys.readouterr().out
+    assert "install: no --source" in out and "failed (null backend" in out and "spent $0.0000" in out
+    assert (persona.read_bytes(), article.read_bytes()) == before

@@ -9,7 +9,7 @@ rem   clude live tables list            store, gs://clude-game-data/llm
 rem   clude play --help                 every command has --help
 rem
 rem "live" adds --uri at the end, so use it only with commands that take
-rem --uri: users, tables, logbook and store.
+rem --uri: users, tables, logbook, store and persona.
 rem Those commands default to the live store unless --uri is supplied.
 
 setlocal EnableExtensions
@@ -34,6 +34,7 @@ if /i "%~1"=="users" goto default_store
 if /i "%~1"=="tables" goto default_store
 if /i "%~1"=="logbook" goto default_store
 if /i "%~1"=="store" goto default_store
+if /i "%~1"=="persona" goto default_store
 
 "%PYTHON%" "%CLI%" %*
 set "CODE=%ERRORLEVEL%"
