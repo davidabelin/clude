@@ -50,7 +50,7 @@ The agent sees only the private evidence its seat is entitled to, alongside publ
 
 This chat seat is recorded as human-controlled, rather than as a server-side LLM character. Any model cost incurred by the external chat client is outside clude's [[what a game costs|server ledger]]. A server-side character at the same table can still make metered calls.
 
-The app's human timeouts and autopilot apply to the chat seat too. The connector does not guarantee that a client will continue playing unattended; progress depends on the client and the table's work requests. At the table the chat seat is a person to the characters: they are told that an unfamiliar name or token does not say whether its player is human or another model, and they take it as it comes.[^rules]
+The app's human timeouts and autopilot apply to the chat seat too. The connector does not guarantee that a client will continue playing unattended; progress depends on the client and the table's work requests. At the table the chat seat is a person to the characters: they are told that an unfamiliar name or token alone does not say whether its player is human or another LLM, and they take it as it comes.[^rules]
 
 
 ## See also

@@ -28,7 +28,7 @@ A suggestion may name cards from the player's own hand. This can isolate an unkn
 
 ## In the rules
 
-A player may make one suggestion in a turn, and only from a room. The room named must be the one the player's token stands in; the suspect and the weapon are free, and may be cards the player holds.[^rules]
+A player may make one suggestion in a turn, and only from a room. The room named must be the one the player's token stands in; the suspect and the weapon are free, and may be cards the player holds, suggested as "bluffs" which can be advantageous when done with skill and attention.[^rules]
 
 **The summons.**
 :   The token of the suspect named is moved at once into the room. For an occupied suspect seat, this can undo several turns of walking. After being summoned, a player whose token has been summoned may, on their next turn only, stay where they are and suggest from that room without moving.[^board]

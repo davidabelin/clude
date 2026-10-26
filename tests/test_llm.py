@@ -123,10 +123,15 @@ def _llm_game(seed, n_players, roster, make_backend, max_turns=200, settings=Non
 def test_the_two_phase_6_dials_exist_and_old_profiles_still_load():
     assert "leash" in DIALS and "chattiness" in DIALS
     assert (Profile().leash, Profile().chattiness) == (0.25, 0.5)
+    # Off-turn talkativeness is set per character since 2026-10-26.
+    chattiness = {
+        "Scarlett": 0.5, "Peacock": 0.45, "Green": 0.4, "White": 0.35, "Plum": 0.3,
+        "Mustard": 0.25,
+    }
     for name, preset in PRESETS.items():
         # Plum's policy spreads its scores wider than a count (Phase 12 N6).
         leash = 0.35 if name == "Plum" else 0.25
-        assert (preset.leash, preset.chattiness) == (leash, 0.5), name
+        assert (preset.leash, preset.chattiness) == (leash, chattiness[name]), name
     five = {dial: 0.3 for dial in DIALS if dial not in ("leash", "chattiness")}
     assert Profile.from_dict(five).leash == 0.25
     assert Profile(leash=0.0).with_dials(chattiness=1.0).chattiness == 1.0

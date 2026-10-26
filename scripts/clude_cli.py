@@ -191,13 +191,16 @@ def _llm_canon(args):
 
 def _open_llm_backend(args):
     """`open_backend` for the CLI flags, with `LLMSettings`' defaults for
-    the Anthropic backend's knobs."""
+    the Anthropic backend's knobs. The key comes from the environment or
+    `.env`, as the web app reads it: direct scripts do not export `.env`."""
+    from clude_web.config import anthropic_key
+
     settings = LLMSettings(model=args.llm_model)
     try:
         return open_backend(
             args.llm_backend, model=settings.model, effort=settings.effort,
             max_tokens=settings.max_tokens, timeout=settings.timeout,
-            server_fallbacks=settings.server_fallbacks,
+            server_fallbacks=settings.server_fallbacks, api_key=anthropic_key(),
         )
     except (ValueError, FileNotFoundError, ImportError) as exc:
         raise SystemExit(f"--llm-backend {args.llm_backend!r}: {exc}") from exc

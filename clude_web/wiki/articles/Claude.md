@@ -14,7 +14,7 @@ In a seat labelled X (LLM), the X character supplies a [[belief]], [[personality
 
 For example, Plum's network can rate two destinations closely enough that both are allowed. Claude may select one in Plum's voice. This does not mean Claude ran the network or replaced Plum's card probabilities. It chose using the estimates and contextual information the wrapper supplied. Since October 2026 the wrapped model also carries [[Wikiclude]] as its standing reference, with two lookup tools inside each call, to be preferred to its own memory of Clue on this house's rules and doubted like any encyclopaedia on the rest; the [[LLM wrapper#The canon|wrapper article]] and [[Wikiclude#How far to trust it|the encyclopaedia's own article]] describe the arrangement.
 
-The model is also told, in the shared rules, that it is a language model playing the part, and the persona says what the character makes of that; [[Persona#The parts]] describes the arrangement. The role is a part with a life and opinions, written so that an ordinary conversation can fill a whole game, rather than a label on a seat.[^rules]
+The model is also told, in the shared rules, that it is a language model playing the part, and the persona says what the character makes of that; [[Persona#The parts]] describes the arrangement. The player faces "other LLM characters and real people", and the role is a part with a life and opinions, written so that an ordinary conversation can fill a whole game, rather than a label on a seat.[^rules]
 
 The application's backend configuration identifies the actual model used. Recorded runs preserve their model and call settings; 'with Claude' is a role description, not evidence that every historical run used an identical provider configuration.
 

@@ -5,7 +5,7 @@ categories: Personality
 redirects: Talk, Chat, Chattiness, Reaction queue
 dyk: ... that until 15 October 2026 a coin flip threw away {{fact:talk.gate.dropped}} of the {{fact:talk.gate.written}} lines of [[Table talk|table talk]] two games had paid for, and that the flip is gone?
 ---
-**Table talk** is conversation at a [[clude]] table alongside movement, suggestions, card shows and accusations. Human players type. A model-piloted character writes a line with its decision, or answers an event or another player's remark off its turn. Its [[persona]] supplies the voice and the interests, the web table's reaction queue decides when an off-turn line may be asked for, and the shared rules tell it that the conversation is part of the evening rather than a cost of playing.[^rules][^wrapper]
+**Table talk** is conversation at a [[clude]] table alongside movement, suggestions, card shows and accusations. Human players type. A model-piloted character writes a line with its decision, or answers an event or another player's remark off its turn. Its [[persona]] supplies the voice and the interests, the web table's reaction queue decides when an off-turn line may be asked for, and the shared rules tell it that the conversation is part of the evening rather than a 'strategic expense'.[^rules][^wrapper]
 
 Conversation is not checked against the hidden cards. A player can hint, bluff, joke or make a mistake, and listeners decide what to believe. Formal disproof is different: the engine requires a matching card from the first player able to answer, and a spoken refusal cannot stand in for it. Spoken claims do not become [[deduction floor|floor]] facts.
 
@@ -19,7 +19,7 @@ Speech can nevertheless affect a model's later choices, because recent talk appe
 
 ## What the characters are told
 
-The shared rules allow any subject, including past games in a logbook, films, politics, religion, news and weather, with the reservation that a reading habit is background and supplies no current headline. A line is one short remark in the character's voice, to the other players, without stage directions, narration or recited numbers. Restating a point already made is discouraged; a callback is welcome when it adds something or its meaning has changed; and silence is 'a welcome part of the company' when there is nothing to add.[^rules]
+The shared rules allow any subject, including past games in a logbook, films, politics, religion, news and weather, with the reservation that a reading habit is background and does not necessarily provide a current headline or specific story. A line is one short remark in the character's voice, to the other players, without stage directions, narration or recited numbers. Restating a point already made is discouraged; a callback is welcome when it adds something or its meaning has changed; and silence is 'a welcome part of the company' when there is nothing to add.[^rules]
 
 The rules ask for listening. An answer, a disagreement, a concession, a question or a quiet joke can develop what someone else said, and a character need not supply a parallel monologue or end every line with a question. A decision is made from the supplied evidence and the allowed menu; the conversation may pause for it and return. Each decision prompt repeats the point in one sentence and shows the last {{code:llm.recent_remarks}} remarks.[^prompt]
 
@@ -43,7 +43,7 @@ The prompt for a reaction shows the seat's own observation, the recent talk and 
 
 ## Chattiness
 
-The profile default is {{code:neutral.chattiness}}, and none of the six presets changes it. Since 15 October 2026 the dial governs the off-turn draws alone; it no longer touches a line written with a decision. At the default a seat joins a fresh opportunity half the time, replies to a reply a quarter of the time and goes a third level deep about one time in eight.[^wrapper]
+The profile default is {{code:neutral.chattiness}}. Since 15 October 2026 the dial governs the off-turn draws alone; it no longer touches a line written with a decision. At the default a seat joins a fresh opportunity half the time, replies to a reply a quarter of the time and goes a third level deep about one time in eight.[^wrapper] Since 26 October 2026 the six presets differ: [[Miss Scarlett]] keeps {{code:preset.Scarlett.chattiness}}, [[Mrs. Peacock]] has {{code:preset.Peacock.chattiness}}, [[Mr. Green]] {{code:preset.Green.chattiness}}, [[Mrs. White]] {{code:preset.White.chattiness}}, [[Professor Plum]] {{code:preset.Plum.chattiness}} and [[Colonel Mustard]] {{code:preset.Mustard.chattiness}}, so Scarlett joins twice as often as Mustard and a quiet character's second reply is rarer still. These are [[Personality dials|preset]] choices about the company, not measured settings; the screen below was run with everyone at the default.[^profile]
 
 Phase 14 replayed the same 183 suggestion and accusation triggers from eight saved four-seat games at each of five values:
 
@@ -78,6 +78,7 @@ The engine distinguishes speech from card shows in the record. A spectator's acc
 
 [^rules]: {{cite:clude_llm/personas/rules.md|The company and the parts}}
 [^wrapper]: {{cite:docs/llm-wrapper.md|What happens on one decision}}
+[^profile]: {{cite:clude_agents/personality.py|`Profile`, `NEUTRAL` and `PRESETS`}}
 [^phase13]: {{cite:docs/phase13-plan.md|1. Brief and settled decisions}}
 [^live]: {{cite:docs/phase13-plan.md|2026-10-15: step 4 accepted live, and a debrief lost to its token cap}}
 [^prompt]: {{cite:clude_llm/prompt.py|`user_prompt` and `remark_prompt`}}

@@ -1795,6 +1795,15 @@ confirmation cost $8.6005. Valid screening plus confirmation cost $61.9079 at
 list price, excluding balance probes and the separately approved $0.0348 exact
 fixture refresh. No paid dial or preset changed.
 
+## Chattiness presets (2026-10-26)
+
+David set `chattiness` per character: Scarlett 0.5, Peacock 0.45, Green 0.4,
+White 0.35, Plum 0.3, Mustard 0.25. The dial draws off-turn replies only
+(`chattiness ** (depth + 1)`), so this changes how often each seat joins the
+table talk and the reaction spend, not any decision. It is a product choice,
+not a measurement: the Phase 14 chattiness screen above was run with every
+seat at 0.5 and stands as the record of the dial's response curve.
+
 Superseded ring-board and pre-landing-rule calibration tables remain in git
 and the dated maintainer history. They are not current recommendations and are
 not republished as the public calibration record.

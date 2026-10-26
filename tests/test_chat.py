@@ -187,18 +187,28 @@ def test_an_opportunity_queues_at_most_two_who_answer_in_order_after_their_delay
 
 def test_a_reply_to_a_reply_decays_by_chattiness(clock, monkeypatch):
     draws = []
-    monkeypatch.setattr(chat, "joins", lambda rng, p: draws.append(p) or True)
     talkers = {1: Talker(), 2: Talker(), 3: Talker()}
     game = _model_table(talkers)
+
+    def joins(rng, probability):
+        seat = next(s for s, w in game.wrappers.items() if w.rng is rng)
+        draws.append((seat, probability))
+        return True
+
+    monkeypatch.setattr(chat, "joins", joins)
     game.run(1)
     game.reactions.scan()
     game.remark(0, "Hm.", "chat")
     game.reactions.scan()
     clock["t"] += 2.0
     game.reactions.serve(game.reactions.due())
-    chattiness = PRESETS["Plum"].chattiness
-    assert draws[0] == pytest.approx(chattiness)
-    assert any(p == pytest.approx(chattiness ** 2) for p in draws[2:]), draws
+    # Each seat draws at its own preset's chattiness (they differ since
+    # 2026-10-26), and a reply to a reply at its square.
+    own = {seat: w.profile.chattiness for seat, w in game.wrappers.items()}
+    assert len(set(own.values())) == 3 and own[3] == PRESETS["Plum"].chattiness
+    first, second = draws[:2]
+    assert first[1] == pytest.approx(own[first[0]]) and second[1] == pytest.approx(own[second[0]])
+    assert any(p == pytest.approx(own[seat] ** 2) for seat, p in draws[2:]), draws
 
 
 def test_a_queued_reaction_is_dropped_once_the_turn_moves_on(clock):

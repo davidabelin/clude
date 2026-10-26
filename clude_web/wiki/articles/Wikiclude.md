@@ -7,7 +7,7 @@ dyk: ... that [[Wikiclude]] is read by the characters at the table, and that Col
 ---
 **Wikiclude** is [[clude]]'s own encyclopaedia: one article per subject, on the rules of play and the board, the six characters and their methods, the mathematics, the measurements and the app itself, written for family and friends at every level of expertise at once, in Wikipedia's organisation and clude's looks. It is public, under `/wiki`, and needs no account.[^web]
 
-It is also the house reference the model seats read. A character played by a language model carries the index of its articles and two lookup tools, and a chat seat over MCP has the same two tools without a login. Since 15 October 2026 the prompts call it fallible: better than a model's own memory of Clue on how this house plays, and otherwise an encyclopaedia to be trusted about as far as Wikipedia is.[^rules][^canon]
+It is also the house reference the model seats read. A character played by a language model carries the index of its articles and two lookup tools, and a chat seat over MCP has the same two tools without a login. Since 15 October 2026 the prompts call it fallible: better than "anyone's recollection" of Clue on how this house plays, and otherwise a trustworthy encyclopaedia to be trusted about as far as Wikipedia is.[^rules][^canon]
 
 ## What it holds
 
@@ -33,7 +33,7 @@ The shared rules, the two tools' descriptions and the MCP instructions all draw 
 - **On everything else**, a biography, a method description, a reputation, an article about the character itself, it is an encyclopaedia written up by people, and may be trusted about as far as Wikipedia: useful, usually right, sometimes out of date, open to doubt. An article about a character may be thin or wrong, and the character is entitled to say so. Nothing in it outranks a card a character was shown or what it watched someone do at the table.
 - **What is legal** is settled by the engine, in the menu a seat is given. No article decides it.
 
-A character may mention, quote or argue with the encyclopaedia as the occasion suggests; knowing a thing without parade remains the better style, but the earlier prohibition on citing it aloud is gone. It describes how everyone thinks in general and knows nothing of the deal in play.[^rules]
+A character may mention, quote or argue with the encyclopaedia as the occasion suggests; knowing a thing without parade remains the better style, but the earlier prohibition on citing it aloud is gone. It describes what everyone knows in general, but nothing of the deal in play, nor of the evening's conversation.[^rules]
 
 Until 15 October 2026 the rules had named it the canon, to be trusted over a character's recollection and over anything said at the table, and never cited. That brief is superseded; the access, the tools and the caps it introduced are unchanged.[^step5][^canon-plan]
 

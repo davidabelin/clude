@@ -83,6 +83,10 @@ NEUTRAL = Profile()
 """Every dial at its default -- the reference point sweeps vary from."""
 
 PRESETS: dict = {
+    # `chattiness` is set per character since 2026-10-26 (David's
+    # adjustments): it draws the off-turn replies only, so the
+    # values order how often each joins the table talk uninvited --
+    # Scarlett most, Mustard least -- and leave the game unchanged.
     # Overconfident, accuses early: a low bar for P(correct), a little
     # bluffing, and a taste for the room she already suspects. 0.15 was
     # the ring-era value (at 0.3 she reached the bar only in games that
@@ -92,7 +96,8 @@ PRESETS: dict = {
     # accuses by turn 50 in three games of five, wrong half the time
     # (docs/strategy-glossary.md, "Tuned presets on the grid").
     "Scarlett": Profile(
-        accuse_threshold=0.3, bluff_rate=0.2, curiosity=0.7, secrecy=0.4, temperature=0.15
+        accuse_threshold=0.3, bluff_rate=0.2, curiosity=0.7, secrecy=0.4, temperature=0.15,
+        chattiness=0.5,
     ),
     # PlumOG's dials, unchanged (Phase 12, 2026-10-05: the new Plum
     # starts from exactly these; `PLUM_OG` below keeps them under his
@@ -110,30 +115,32 @@ PRESETS: dict = {
     # it over 0.25 (`docs/deepnash-plan.md` 13).
     "Plum": Profile(
         accuse_threshold=0.9, bluff_rate=0.05, curiosity=0.5, secrecy=0.7, temperature=0.05,
-        leash=0.35,
+        leash=0.35, chattiness=0.3,
     ),
     # Cautious: her threshold applies to the Dempster-Shafer *belief*
     # (a lower bound), not the pignistic probability -- see
     # `clude_agents.character.ds_belief_confidence` -- so 0.7 there is
     # far stricter than 0.7 would be for anyone else.
     "Peacock": Profile(
-        accuse_threshold=0.7, bluff_rate=0.05, curiosity=0.6, secrecy=0.9, temperature=0.1
+        accuse_threshold=0.7, bluff_rate=0.05, curiosity=0.6, secrecy=0.9, temperature=0.1,
+        chattiness=0.45,
     ),
     # Blusters into the nearest room and shows whatever; neutral on
     # accusing so his tree, not a dial, owns his wrong accusations.
     "Mustard": Profile(
         accuse_threshold=NEUTRAL.accuse_threshold,
-        bluff_rate=0.1, curiosity=0.3, secrecy=0.3, temperature=0.2,
+        bluff_rate=0.1, curiosity=0.3, secrecy=0.3, temperature=0.2, chattiness=0.25,
     ),
     # Opportunistic: middling everything, a bit noisy.
     "Green": Profile(
-        accuse_threshold=0.75, bluff_rate=0.2, curiosity=0.5, secrecy=0.5, temperature=0.2
+        accuse_threshold=0.75, bluff_rate=0.2, curiosity=0.5, secrecy=0.5, temperature=0.2,
+        chattiness=0.4,
     ),
     # Reads people and plays them: bluffs the most, gives away the
     # least; neutral on accusing for the same reason as Mustard.
     "White": Profile(
         accuse_threshold=NEUTRAL.accuse_threshold,
-        bluff_rate=0.3, curiosity=0.4, secrecy=0.8, temperature=0.1,
+        bluff_rate=0.3, curiosity=0.4, secrecy=0.8, temperature=0.1, chattiness=0.35,
     ),
 }
 
