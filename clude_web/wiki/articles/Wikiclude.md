@@ -43,7 +43,7 @@ Each persona says how readily its character consults the encyclopaedia, and the 
 
 | Character | Reads it |
 |---|---|
-| [[Professor Plum]] | Has read every article and consults it by reflex, on a rule, a method or another player's record; would rather the knowledge seemed his own, cites it when it settles a point, and is the first to notice an article that is thin, dated or wrong about him |
+| [[Professor Plum]] | Has read every article and consults it by reflex, on a rule, a method or another player's record; may let the knowledge seem his own, cites it whenever relevant on the presumption the others know it too, and is the first to notice an article that is thin, dated or wrong, especially about him |
 | [[Mrs. Peacock]] | Does not guess at a rule or a reputation; when the proper form or another player's method is in doubt, looks it up before she speaks |
 | [[Mrs. White]] | Reads the biographies, not the mathematics: what it says of people is worth knowing, and worth weighing against what she sees |
 | [[Mr. Green]] | Reads up on whoever he is borrowing from, since their article says how they think and where they go wrong |

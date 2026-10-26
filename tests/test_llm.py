@@ -746,7 +746,7 @@ RECORDED_GAMES = [
     pytest.param(
         "llm_seed1.json", "1", "3", "Scarlett,Peacock",
         "Mustard/Rope/Ballroom", "P1 Mustard (floor)",
-        "Turns played: 35; suggestions: 14; accusations: 1",
+        "Turns played: 14; suggestions: 3; accusations: 1",
     ),
     pytest.param(
         "llm_seed2.json", "2", "4", "Plum,Mustard,Green,White",

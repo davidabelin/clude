@@ -58,8 +58,8 @@ REPORT_ONLY: dict = {
 """Code that paraphrases a file and is part of replay keys: named, never rewritten."""
 
 RECORD_COMMANDS: dict = {
-    "llm_seed1.json": ("--seed 1 --players 3 --roster Scarlett,Peacock", "$0.1602 on 2026-10-16"),
-    "llm_seed2.json": ("--seed 2 --players 4 --roster Plum,Mustard,Green,White", "$0.0348 on 2026-10-18"),
+    "llm_seed1.json": ("--seed 1 --players 3 --roster Scarlett,Peacock", "$0.0322 on 2026-10-26"),
+    "llm_seed2.json": ("--seed 2 --players 4 --roster Plum,Mustard,Green,White", "$0.0360 on 2026-10-26"),
 }
 """Each fixture's `play` settings and the cost of its last refresh
 (`tests/test_llm.py` keeps the history)."""
