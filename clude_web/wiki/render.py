@@ -369,7 +369,7 @@ class _Blocks(Preprocessor):
     def _infobox(self, lines: list) -> str:
         """``key: value`` settings, then ``Label | value`` rows and
         ``= Heading`` rows."""
-        title, css, figure_key, caption, rows = "", "", "", "", []
+        title, css, figure_key, token_key, caption, rows = "", "", "", "", "", []
         for raw in lines:
             line = raw.strip()
             if not line:
@@ -377,7 +377,7 @@ class _Blocks(Preprocessor):
             if line.startswith("="):
                 rows.append(f'<tr><th colspan="2" class="infobox-head">{self.inline(line[1:].strip())}</th></tr>')
                 continue
-            if "|" in line and not re.match(r"^(title|class|figure|caption)\s*:", line):
+            if "|" in line and not re.match(r"^(title|class|figure|token|caption)\s*:", line):
                 label, _, value = line.partition("|")
                 rows.append(
                     f'<tr><th scope="row">{self.inline(label.strip())}</th>'
@@ -392,19 +392,33 @@ class _Blocks(Preprocessor):
                 css = value
             elif name == "figure":
                 figure_key = value
+            elif name == "token":
+                token_key = value
             elif name == "caption":
                 caption = value
             else:
                 raise WikiError(f"{self.ctx.title}: an infobox line I cannot read: {line!r}")
         art = ""
-        if figure_key:
+        for key, note_text, kind in ((figure_key, caption, "card"), (token_key, "Game token", "token")):
+            if not key:
+                continue
             try:
-                fig = figures.figure(figure_key)
+                fig = figures.figure(key)
             except KeyError:
-                raise WikiError(f"{self.ctx.title}: no figure named {figure_key!r}") from None
-            self.ctx.figures.append(figure_key)
-            note = f'<div class="infobox-caption">{self.inline(caption)}</div>' if caption else ""
-            art = f'<tr><td colspan="2" class="infobox-art">{fig.svg}{note}</td></tr>'
+                raise WikiError(f"{self.ctx.title}: no figure named {key!r}") from None
+            self.ctx.figures.append(key)
+            url = f"{WIKI_ROOT}Figure:{quote(key)}"
+            label = html.escape(f"Enlarge {fig.title}", quote=True)
+            note = self.inline(note_text) + " " if note_text else ""
+            anchor = f' id="fig-{html.escape(key, quote=True)}"' if key.startswith(("card-", "token-")) else ""
+            art += (
+                f'<tr><td colspan="2" class="infobox-art infobox-art-{kind}">'
+                f'<div{anchor} class="infobox-figure">'
+                f'<a href="{url}" aria-label="{label}">{fig.svg}</a>'
+                f'<div class="infobox-caption">{note}'
+                f'<a class="thumb-open" href="{url}" aria-label="{label}">[enlarge]</a>'
+                '</div></div></td></tr>'
+            )
         classes = "infobox" + (f" {html.escape(css)}" if css else "")
         return (
             f'<table class="{classes}"><caption>{self.inline(title or self.ctx.title)}</caption>'

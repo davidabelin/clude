@@ -698,3 +698,43 @@ def test_every_wikipedia_title_we_link_to_exists(wiki):
             pages = json.load(response)["query"]["pages"]
         missing += [page["title"] for page in pages.values() if "missing" in page or "invalid" in page]
     assert not missing, f"Wikipedia has no article called: {missing}"
+
+
+@pytest.mark.parametrize("suspect,slug", [
+    ("scarlett", "Miss_Scarlett"), ("mustard", "Colonel_Mustard"),
+    ("white", "Mrs._White"), ("green", "Mr._Green"),
+    ("peacock", "Mrs._Peacock"), ("plum", "Professor_Plum"),
+])
+def test_character_cards_and_wooden_tokens_are_served(app, suspect, slug):
+    """Each article and its figure pages reach the shipped raster assets."""
+    from xml.etree import ElementTree
+
+    client = app.test_client()
+    response = client.get(f"/wiki/{slug}")
+    assert response.status_code == 200
+    page = response.get_data(as_text=True)
+    assert f"portrait-{suspect}" not in page
+    assert page.count('class="thumb-open"') >= 2
+    assert f'href="/wiki/Figure:card-{suspect}"' in page
+    assert f'href="/wiki/Figure:token-{suspect}"' in page
+    assert 'class="infobox-art infobox-art-token"' in page
+    assert "Game token" in page
+    assert f'<figure class="thumb" id="fig-token-{suspect}"' not in page
+    assert page.index(f'id="fig-card-{suspect}"') < page.index(f'id="fig-token-{suspect}"') < page.index('scope="row"')
+    for kind in ("card", "token"):
+        key = f"{kind}-{suspect}"
+        figure = figures.figure(key)
+        root = ElementTree.fromstring(figure.svg)
+        assert root.attrib["aria-label"]
+        image = root.find("{http://www.w3.org/2000/svg}image")
+        path = image.attrib["href"]
+        assert path in page
+        picture = client.get(path)
+        assert picture.status_code == 200
+        assert picture.mimetype == "image/webp"
+        assert picture.data[:4] == b"RIFF" and picture.data[8:12] == b"WEBP"
+        detail = client.get(f"/wiki/Figure:{key}")
+        assert detail.status_code == 200
+        detail_html = detail.get_data(as_text=True)
+        assert path in detail_html
+        assert ('class="token-board" aria-hidden="true"' in detail_html) == (kind == "token")

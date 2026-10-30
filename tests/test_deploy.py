@@ -218,3 +218,11 @@ def test_the_lobby_reads_summaries_in_parallel_and_keeps_its_order():
     # a summary without a phase is development phase one (2026-10-07).
     assert listing[0] == {"run_id": "web", "n_games": 2, "roster": ["Plum"], "player_counts": [3], "cost": None, "phase": 1}
     assert [r["phase"] for r in listing[2:]] == [1, 2]
+
+
+@pytest.mark.parametrize("name", IGNORE_FILES)
+def test_artwork_png_masters_stay_out_of_deployment(name):
+    """Ship compressed derivatives without the duplicate PNG masters."""
+    patterns = _patterns(name)
+    assert {"clude_web/wiki/card_*.png", "clude_web/wiki/articles/piece_*.png", "clude_web/static/wiki/*.png"} <= patterns
+    assert not any("webp" in pattern for pattern in patterns)

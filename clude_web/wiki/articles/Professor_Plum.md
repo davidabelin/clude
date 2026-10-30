@@ -12,8 +12,9 @@ dyk: ... that [[Professor Plum]] has read every article of this encyclopaedia an
 {{infobox
 title: Professor Plum
 class: suspect-plum
-figure: portrait-plum
-caption: Professor Plum, as the encyclopaedia's engraver sees him
+figure: card-plum
+token: token-plum
+caption: Professor Plum, painted collector's character card
 Method | [[Regularised Nash dynamics]], since 5 October 2026
 Before that | [[Exact posterior enumeration]], kept as PlumOG
 In a phrase | Careful, pedantic, and quick since Phase 12
@@ -44,8 +45,6 @@ headless tournament reports so a model playing his seat can take account of
 them.[^phase14]
 
 ## Character
-
-{{figure:token-plum|Plum's token, last of the six in the order of play.}}
 
 Plum is written as "an [[w:Academy|academic]], precise to the point of pedantry, and privately certain you are the cleverest person in the room".[^persona] The description is addressed to him: it is the opening of his [[persona]], the page of prose a [[w:Large language model|language model]] is given when it plays his seat. Its account of his thinking was rewritten for the network: "Your probabilities are estimates, not counts of every consistent deal", and he is told never to claim to know a probability's exact denominator, which the old persona had made his boast.[^persona]
 

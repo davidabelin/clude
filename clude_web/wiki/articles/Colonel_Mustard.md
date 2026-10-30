@@ -10,8 +10,9 @@ dyk: ... that [[Colonel Mustard]] has never read this encyclopaedia and does not
 {{infobox
 title: Colonel Mustard
 class: suspect-mustard
-figure: portrait-mustard
-caption: Colonel Mustard, as the encyclopaedia's engraver sees him
+figure: card-mustard
+token: token-mustard
+caption: Colonel Mustard, painted collector's character card
 Method | [[Decision tree]]
 In a phrase | Decisive, experienced and sometimes overconfident
 Module | `decision_tree.py`
@@ -32,8 +33,6 @@ Wrong accusations | {{fact:arena.phase14.Mustard.wrong}}%
 In the recorded [[Classic board]] benchmark, Mustard had the lowest final [[log-loss]] of the six and matched the uniform baseline at halfway; the earlier benchmark had shown the same end and a worse middle. His [[accusation threshold]] is the neutral {{code:preset.Mustard.accuse_threshold}}, chosen to avoid adding an unusually hasty threshold to an already overconfident method. He is one of three characters with persistent method memory.[^glossary]
 
 ## Character
-
-{{figure:token-mustard|Mustard's token, the second in the order of play.}}
 
 Mustard's [[persona]], given to a [[w:Large language model|language model]] playing his seat, describes him as "hearty, bluff, decisive, a military man". His confidence comes from experience: "The pattern gives you the answer, and it gives it to you at once." The same confidence persists when the resemblance is misleading.[^persona] This turns the tree's reliance on familiar features into a recognisable temperament.
 

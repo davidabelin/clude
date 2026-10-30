@@ -329,7 +329,10 @@ def wiki_page(title):
             figure = wiki_figures.figure(name)
         except KeyError:
             return _wiki_missing(title)
-        return _wiki_page("wiki/figure.html", figure=figure, uses=book.figure_uses(name))
+        return _wiki_page(
+            "wiki/figure.html", figure=figure, uses=book.figure_uses(name),
+            token_board=wiki_figures.figure("classic-board") if name.startswith("token-") else None,
+        )
     if space == "Special":
         return _wiki_special(name)
     article, redirected = book.get(title)

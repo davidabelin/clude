@@ -10,8 +10,9 @@ dyk: ... that [[Mrs. Peacock]] does not guess at a rule or a reputation, and loo
 {{infobox
 title: Mrs. Peacock
 class: suspect-peacock
-figure: portrait-peacock
-caption: Mrs. Peacock, as the encyclopaedia's engraver sees her
+figure: card-peacock
+token: token-peacock
+caption: Madam Peacock, painted collector's character card
 Method | [[Dempster-Shafer theory]]
 In a phrase | Cautious; will not commit until the alternatives collapse
 Module | `dempster_shafer.py`
@@ -32,8 +33,6 @@ Wrong accusations | {{fact:arena.phase14.Peacock.wrong}}%
 Using the lower values makes her [[accusation threshold]] of {{code:preset.Peacock.accuse_threshold}} more conservative than the same threshold applied to her decision probabilities. She made no wrong accusations in the recorded headless arenas on either board, and tied with [[Professor Plum]] for wins in the tabulated [[Classic board]] arena. Her decision probabilities nevertheless had slightly worse [[log-loss]] than the [[uniform baseline]] in every recorded benchmark. The project attributes this deficit to its heuristic allocation of evidence across categories.[^glossary]
 
 ## Character
-
-{{figure:token-peacock|Peacock's token, the fifth in the order of play.}}
 
 Peacock's [[persona]], given to a [[w:Large language model|language model]] playing her seat, describes her as "grand, formal, socially exact, and easily scandalised". It stresses the distinction between possible, likely and proven: "A thing that is possible is not thereby likely, and a thing that is likely is not thereby proven". Her impatience is reserved for everyone else: "Other people find this slow. You find other people hasty."[^persona]
 

@@ -857,3 +857,46 @@ This review did not retrain, make paid calls, promote method state or deploy.
 ## 19. The persona gate (2026-10-19)
 
 Section 14's rule, "an article describes; the persona file instructs", now has a check behind it. `clude_llm/persona_sync.py` finds every passage that cites a persona file or the rules (by footnote, by the character's own `dyk:` hooks, by its row in *Wikiclude*'s table and by the wrapper guide's Personas section), sorts each passage's quotations against the file, and says which replay recordings a change moves. `tests/test_persona_sync.py` fails when a quotation in the corpus is no longer in its file, and `scripts/clude_cli.py persona check` and `persona push` report and, with a model and approved spend, revise the passages ([CLI](cli.md#persona)). Numbers stay where they were: the gate reads prose only, and dials, leashes and measurements keep their own tables.
+
+
+## 20. Collector's character cards and wooden tokens (2026-10-29)
+
+The six character infoboxes use David's approved painted collector's cards.
+The Peacock card is lettered "Madam Peacock"; the article's canonical title
+and redirects remain Mrs. Peacock. Wiki token figures use generated
+photoreal product-style images of hand-painted wooden pawns, on transparent
+backgrounds. Both kinds are served from `clude_web/static/wiki/` through
+the existing accessible SVG figure wrappers and figure-detail pages.
+The legacy engraved portraits remain available under their existing figure
+keys. Board pieces, gameplay, executable personas and measurements are
+unchanged. This is a local asset update, not a deployment.
+
+
+Validation: focused wiki/web checks passed (80 passed, 1 skipped), followed
+by the complete offline suite (679 passed, 34 skipped). A Chromium audit
+loaded all six articles at 390 and 1440 pixels in Case-file, Gaslight,
+and Developer light/dark: 48 page/layout checks, with no missing raster
+images, page overflow or browser errors. Card and token crops were inspected.
+`git diff --check` passed. Source artwork supplied by David was preserved.
+
+
+### Infobox refinement and compressed artwork (2026-10-29)
+
+Each character's Game token is now a small secondary figure beneath the
+card inside its infobox. Both figures have labelled [enlarge] links and
+stable anchors; the figure-use index tracks both. Cards open at a larger
+responsive size. Token detail pages place an enlarged wooden piece over
+a faint, decorative rendering of the existing Classic board.
+
+The twelve runtime images use full-dimension WebP exports (quality 92),
+reducing their combined bytes from 24,540,866 to 4,227,492. Original PNG
+masters remain local and are excluded by both deployment ignore lists.
+Their transparent alpha channels are preserved. Encoding details and the
+JPEG comparison are in `clude_web/static/wiki/README.md`.
+
+Validation: wiki/packaging checks 49 passed, 1 skipped; complete offline
+suite 681 passed, 34 skipped. Chromium checked 48 article layouts and
+96 actual enlargement-link navigations across all looks at phone and
+desktop widths, with no broken images, overflow or browser errors.
+Representative infobox, card-detail and token-detail crops were inspected.
+No gameplay changes or deployment.

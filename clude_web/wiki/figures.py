@@ -1,16 +1,18 @@
-"""Wikiclude's pictures: every one an uncoloured, classed SVG.
+"""Wikiclude's pictures: classed SVG drawings and illustrated character assets.
 
-Like `clude_web.board_svg` and `clude_web.logo`, nothing here names a
-colour. Each shape carries a class and `static/styles/wiki.css` dresses
-it from the look's tokens, so one figure serves Case-file light,
-Gaslight dark and Developer.
+Like `clude_web.board_svg` and `clude_web.logo`, explanatory drawings name no
+colour. Their shapes carry classes dressed by `static/styles/wiki.css`, so
+one drawing serves Case-file light, Gaslight dark and Developer. Character
+cards and wooden-token images retain their own colours.
 
-Two kinds:
+Three kinds:
 
 - **Drawn here**, by the functions below, when the wiki is built: the
-  pawns, the worked examples (computed by the real agents, through
+  worked examples (computed by the real agents, through
   `facts.rope_question`), and the charts, whose numbers come from
   `facts.TABLES` and so cannot differ from the tables the articles print.
+- **Character artwork**, raster assets in `static/wiki/`, presented through
+  accessible SVG wrappers for the cards and wooden-token figures.
 - **The method diagrams**, kept as files in ``figures/``. They are the
   `DIAGRAMS` registry of ``docs/ux/diagrams/build_diagrams.py``, drawn by
   Mermaid on a maintainer's machine and stripped of its colours by
@@ -81,11 +83,28 @@ def _pawn(suspect: str, x: float = 0, y: float = 0, scale: float = 1.0) -> str:
 
 
 def _token(suspect: str) -> Figure:
+    """A photoreal illustration of a hand-painted wooden playing piece."""
+    name = FULL_NAMES[suspect]
+    label = f"{name}'s hand-painted wooden game piece"
     return Figure(
         key=f"token-{suspect.lower()}",
-        title=f"{FULL_NAMES[suspect]}'s token",
-        caption=f"{FULL_NAMES[suspect]}'s token.",
-        svg=_svg(100, 120, _pawn(suspect), f"{FULL_NAMES[suspect]}'s token", "pawn"),
+        title=f"{name}'s token",
+        caption=f"{label}, shown in a generated product-style image.",
+        svg=_svg(100, 140, f'<image href="/static/wiki/token-{suspect.lower()}.webp" '
+                 'width="100" height="140" preserveAspectRatio="xMidYMid meet"/>', label, "pawn"),
+    )
+
+
+def _character_card(suspect: str) -> Figure:
+    """The approved painted collector's card, in the wiki's figure wrapper."""
+    name = "Madam Peacock" if suspect == "Peacock" else FULL_NAMES[suspect]
+    label = f"{name}'s painted collector's character card"
+    return Figure(
+        key=f"card-{suspect.lower()}",
+        title=f"{name}, collector's card",
+        caption=f"{label}.",
+        svg=_svg(100, 150, f'<image href="/static/wiki/card-{suspect.lower()}.webp" '
+                 'width="100" height="150" preserveAspectRatio="xMidYMid meet"/>', label, "character-card"),
     )
 
 
@@ -1057,6 +1076,7 @@ _DRAWN: dict = {
     "plum-policy-logloss": _plum_policy_logloss,
     "plum-checkpoints": _plum_checkpoints,
     **{f"token-{s.lower()}": (lambda s=s: _token(s)) for s in SUSPECTS},
+    **{f"card-{s.lower()}": (lambda s=s: _character_card(s)) for s in SUSPECTS},
     **{f"portrait-{s.lower()}": (lambda s=s: _portrait(s)) for s in SUSPECTS},
 }
 

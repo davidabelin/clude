@@ -22,3 +22,8 @@ desktop.ini
 commit_msg.md
 requirements.txt
 pytest.ini
+
+# Local PNG artwork masters; runtime serves the WebP derivatives.
+clude_web/wiki/card_*.png
+clude_web/wiki/articles/piece_*.png
+clude_web/static/wiki/*.png

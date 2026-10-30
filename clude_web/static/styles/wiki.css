@@ -662,3 +662,18 @@ html[data-style="gaslight"] .wiki-board-plain { display: none; }
   .portal-featured { grid-row: span 2; }
   .portal-browse, .portal-about { grid-column: 1 / -1; }
 }
+
+/* Approved collector's cards retain their palette in every look. */
+.infobox .infobox-art svg.fig-character-card { width: 14rem; max-width: 100%; }
+.thumb.full .thumb-art svg.fig-character-card { width: 48rem; max-width: 100%; }
+
+/* A small companion token in the infobox; its detail page supplies context. */
+.infobox .infobox-art-token svg.fig-pawn { width: 3.25rem; max-width: 100%; }
+.infobox-art a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.token-stage { position: relative; display: grid; place-items: center; min-height: 30rem; overflow: hidden; }
+.token-board { position: absolute; inset: 0; opacity: 0.12; pointer-events: none; }
+.token-board svg.fig-board { width: 100%; height: 100%; }
+.thumb.full .token-stage > svg.fig-pawn { position: relative; width: 20rem; max-width: 75%; }
+@media (max-width: 600px) {
+  .token-stage { min-height: 22rem; }
+}

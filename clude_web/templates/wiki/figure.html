@@ -6,7 +6,14 @@
   <p class="wiki-from">From Wikiclude, the encyclopaedia of clude</p>
 </header>
 <figure class="thumb full">
+  {% if token_board %}
+  <div class="thumb-art token-stage">
+    <div class="token-board" aria-hidden="true">{{ token_board.svg|safe }}</div>
+    {{ figure.svg|safe }}
+  </div>
+  {% else %}
   <div class="thumb-art">{{ figure.svg|safe }}</div>
+  {% endif %}
   <figcaption>{{ figure.caption }}</figcaption>
 </figure>
 <h2>Used in</h2>
