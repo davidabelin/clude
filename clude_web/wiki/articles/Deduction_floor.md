@@ -103,7 +103,7 @@ The module is `clude_constraints/propagator.py`, with the floor bot beside it. I
 
 Every method ends with the same step, in `clude_agents/base.py`: whatever raw scores a method has produced, a card the floor has ruled out of the envelope is set to 0, a card it has proved is set to 1, and the scores of the cards still in question are scaled to sum to 1 within each category. A method with no opinion at all gets an even spread over what the floor permits, which is the uniform baseline.[^base]
 
-One bug of the floor's own was found by Peacock. Until Phase 5, an open fact that a placed card already satisfied was kept and reported as open; PlumOG's search filtered such facts for itself, but Peacock read the fact's other, unplaced members as live evidence against those cards. The floor now drops them.[^phase5]
+One bug of the floor's own was found by Peacock. Until Phase 5, an open fact that a placed card already satisfied was kept and reported as open; the enumeration's search filtered such facts for itself, but Peacock read the fact's other, unplaced members as live evidence against those cards. The floor now drops them.[^phase5]
 
 ### The floor bot
 
@@ -123,9 +123,9 @@ The floor itself produces constraints rather than probabilities. The uniform bas
 
 In the recorded self-play comparison, floor-bot games took about {{fact:floor.suggestions}} suggestions, and {{fact:floor.solved}} of the viewers had proved the envelope by the end. The earlier random-bot games took {{fact:random.suggestions}} suggestions; their deductions plateaued, and no viewer proved the envelope at a full table.[^selfplay] Floor-bot play was therefore adopted for Mustard's training data and benchmark positions.
 
-{{table:bench.grid|Historical comparison. The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026. The uniform row is the floor's own belief.}}
+{{table:plum.phase14.benchmark|Phase 14's benchmark: the uniform row is the floor's own belief, scored beside the current network and the former checkpoint.}}
 
-The uniform row gives the baseline score for this run: {{fact:bench.grid.uniform.50}} at halfway and {{fact:bench.grid.uniform.100}} at the end, with final top-choice accuracy {{fact:bench.grid.uniform.top1}}. Four methods had lower final log-loss; [[Naive Bayes]] and [[Dempster-Shafer theory]] had higher loss at every checkpoint.[^grid]
+The uniform row gives the floor's own score for this run: {{fact:plum.phase14.benchmark.uniform.50}} at halfway and {{fact:plum.phase14.benchmark.uniform.100}} at the end, with final top-choice accuracy {{fact:plum.phase14.benchmark.uniform.top1}}. What any method adds to it is what the benchmark measures.[^current]
 
 In the arena the floor bot is the "does a character beat a purely logical player" baseline: the sweeps that set the presets seat every character between floor bots, and a win rate there is a character's rate against pure logic.[^sweeps]
 
@@ -160,7 +160,7 @@ In the arena the floor bot is the "does a character beat a purely logical player
 [^floorbot]: {{cite:clude_constraints/floor_bot.py|`FloorBot` and its four decisions}}
 [^mcp]: {{cite:CLAUDE.md|Settled decisions (David's)}} "No persona advises a chat seat", 2026-09-21.
 [^selfplay]: {{cite:docs/architecture.md|Self-play regimes: `RandomBot` and `FloorBot` (Phase 5b)}}
-[^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
+[^current]: {{cite:docs/strategy-glossary.md|Phase 14 Run 3, the current Plum (2026-10-18)}}
 [^sweeps]: {{cite:docs/strategy-glossary.md|Dial sweeps}}
 
 {{navbox:clude}}

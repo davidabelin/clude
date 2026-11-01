@@ -6,7 +6,6 @@ redirects: Plum, Prof. Plum
 featured: yes
 dyk: ... that [[Professor Plum]]'s current network was selected from three fresh {{fact:phase14.plum.per_run}}-game runs in a balanced {{fact:plum.phase14.tournament.run3.games}}-game tournament per entrant?
 dyk: ... that Plum's current network gets the Rope question backwards, giving Mrs. White {{code:example.policy.White}} where the count gives {{code:example.plum.White}}?
-dyk: ... that the old Plum, now PlumOG, once spent fifty turns riding a [[secret passages|secret passage]] back and forth, making the same [[suggestion]] twenty times?
 dyk: ... that [[Professor Plum]] has read every article of this encyclopaedia and is the first to notice when one is wrong, especially about him?
 ---
 {{infobox
@@ -16,7 +15,6 @@ figure: card-plum
 token: token-plum
 caption: Professor Plum, painted collector's character card
 Method | [[Regularised Nash dynamics]], since 5 October 2026
-Before that | [[Exact posterior enumeration]], kept as PlumOG
 In a phrase | Careful, pedantic, and quick since Phase 12
 Module | `deep_nash.py`
 Memory | A [[logbook]]; his network's weights are fixed between games
@@ -33,10 +31,10 @@ Wrong accusations | {{fact:plum.phase14.tournament.run3.wrong}} (reported to the
 
 **Professor Plum** is one of the six [[Clue#The cards|suspects]] in [[Clue]] and the [[clude]] [[Category:Characters|character]] who plays by [[regularised Nash dynamics]]: a small neural network, trained by playing tens of thousands of games, that reads what the [[deduction floor]] has established and estimates which cards are in [[the envelope]], where to go and what to ask. He has played this way since 5 October 2026.[^module]
 
-Until then he played by [[exact posterior enumeration]], counting every deal consistent with the evidence. That method, and the character as he was, are kept as **PlumOG**: not seatable, but preserved in the code, in his archived [[logbook]] and in this encyclopaedia's worked examples. The count was exact when it finished, but on the [[Classic board]] it rarely could mid-game, and it was the slowest and most expensive seat at the table. The network kept everything else about him: his token, his voice, his dials and his place in [[Mr. Green]]'s ensemble.[^plan]
+Until then he played by [[exact posterior enumeration]], counting every deal consistent with the evidence. The count was exact when it finished, but on the [[Classic board]] it rarely could mid-game, and it was the slowest seat at the table. The network kept everything else about him: his token, his voice, his dials and his place in [[Mr. Green]]'s ensemble.[^plan]
 
-The first network made Plum much quicker than PlumOG and improved its dated
-belief benchmark. Phase 14 replaced that checkpoint with Run 3 after a
+The first network made Plum much quicker, and better calibrated mid-game,
+than the count had been. Phase 14 replaced that checkpoint with Run 3 after a
 balanced tournament across every line-up containing Plum. Run 3 won
 {{fact:plum.phase14.tournament.run3.win}}% of its games against the former
 checkpoint's {{fact:plum.phase14.tournament.incumbent.win}}%; it also made
@@ -76,7 +74,7 @@ A learnt estimate has a learnt estimate's weakness. On the [[Belief#At the table
 
 ## How he plays
 
-A character's [[belief]] says what it thinks; five headless [[personality dials]] say what it does about it. Plum's were set for PlumOG to make him the careful one, and kept for the network.[^presets]
+A character's [[belief]] says what it thinks; five headless [[personality dials]] say what it does about it. Plum's were set before the network, to make him the careful one, and kept for it.[^presets]
 
 | Dial | Plum | What it does |
 |---|---|---|
@@ -133,48 +131,19 @@ successful calls, no fallbacks or lookups, for about
 ${{fact:phase14.plum.fixture.cost}}. It retained White as winner after ten
 turns. A longer game can cost more because every call carries the game so far.
 
-## PlumOG
+## Before the network
 
-The Plum who played from the first games until 5 October 2026 is kept as **PlumOG**. His method was [[exact posterior enumeration]]: he listed every deal of the cards consistent with what he knew and took each card's share of the surviving deals as its probability. Early positions were too large to list, so he searched for a limited number of steps and fell back on [[w:Monte Carlo method|random sampling]] when the search ran out.[^og]
-
-### Counting deals
-
-!!! example "Worked example: three deals"
-    {{figure:rope-deals|Four ways the open cards could lie, one of them impossible. PlumOG's probability for a card was the share of the surviving deals that had it in the envelope.}}
-
-    Late in a three-handed game every card is placed except four. Of the suspects, either **Mrs. White** or **Mrs. Peacock** is in the envelope; of the weapons, either the **Rope** or the **Wrench**. Whichever of each pair is not in the envelope is in [[Colonel Mustard]]'s hand. [[Mr. Green]] suggests *Mrs. Peacock, with the Rope, in the Hall*; Mustard shows him a card nobody else sees. The Hall is Green's own, so Mustard holds Peacock or the Rope.
-
-    That rules out exactly one deal, the one in which the envelope holds Peacock and the Rope. **{{code:example.deals}} deals survive**, and Mrs. White is in the envelope in two of them: {{code:example.plum.White}}. The network, asked the same question, says {{code:example.policy.White}}.
-
-### Why he was replaced
-
-On the board the game was first played on he was the best or joint-best reader of the cards from three-quarters of the way through a game. The move to the [[Classic board]] on 15 September 2026 left more possibilities open at each point of a game, and his search ran out of steps in {{fact:plum.fallback.calls}} of {{fact:bench.grid.snapshots}} benchmark calls. Five times as many samples improved his halfway log-loss from {{fact:budget.grid.200k-2k.50}} to {{fact:budget.grid.200k-10k.50}}, but it stayed worse than the uniform baseline's {{fact:budget.grid.uniform.50}}, and a call took {{fact:budget.grid.200k-10k.ms}} ms. Mr. Green, who consults every method before choosing one, paid that cost on every turn.[^grid][^budget]
-
-{{figure:plum-budget|PlumOG's log-loss through a game on the Classic board, before and after his sample was raised from 2,000 to 10,000, against the uniform baseline. Lower is better.}}
-
-### With Claude in the seat
-
-When a model played PlumOG, choosing among his own best options within the [[leash]], the result depended on the company. At a four-seat table where all six characters took turns to play with [[Claude]], his win rate fell from {{fact:twin.grid.Plum.win_base}}% to {{fact:twin.grid.Plum.win_llm}}%, the largest change any character showed, about {{fact:plum.twin.sigma}} [[w:Standard deviation|standard deviations]].[^twin] At a three-seat table where he alone had a model, it rose from {{fact:plum.claude.base.win}}% to {{fact:plum.claude.llm.win}}%.[^plumclaude]
-
-### The parking
-
-An early movement rule gave full marks to any room reachable that turn, whatever its card. From a corner room, a [[secret passages|secret passage]] to a room he had already ruled out could score above a walk towards an unresolved one: {{fact:plum.landing.passage}} against {{fact:plum.landing.walk}}.[^landing]
-
-In one recorded game, with [[Claude]] in his seat, he was in the Kitchen with only the room left to find, the Conservatory or the Dining Room at even odds. He took the passage to the Study, a card he held himself, suggested a pair nobody could disprove, came back through the passage and was shown the Kitchen again. From turn {{fact:plum.loop.game.from}} to turn {{fact:plum.loop.game.to}} he did nothing else, and Green won on turn {{fact:plum.loop.game.won}}.[^plumclaude] Playing alone he repeated {{fact:plum.loop.alone.pct}}% of his own suggestions; with Claude, {{fact:plum.loop.claude.pct}}%. The [[landing rule]] of 18 September 2026 cut his repeats on the mixed table from {{fact:plum.loop.before.pct}}% to {{fact:plum.loop.after.pct}}%.[^landing]
-
-### His logbook
-
-A logbook experiment on that earlier board gave PlumOG's model seat {{fact:plum.logbook.games}} paired games with the leash at 0.5. With logbooks, his stalls fell from {{fact:plum.logbook.stalls.off}} to {{fact:plum.logbook.stalls.on}}, and his entries kept naming "room-anchoring" and "slow-tempo"; he also made two wrong accusations below his threshold while trying to play faster. Win rates changed little: {{fact:plum.logbook.off.win}}% without logbooks and {{fact:plum.logbook.on.win}}% with them.[^logbook]
+Until 5 October 2026 Plum played by [[exact posterior enumeration]]: he listed every deal consistent with what he knew and took each card's share of the surviving deals as its probability, searching for a bounded number of steps and falling back on random sampling when the search ran out. The count was exact when it finished. On the [[Classic board]] it rarely could mid-game, it was the slowest and most expensive seat at the table, and with a model in his seat it was the character most given to riding a [[secret passages|secret passage]] back and forth to a room he had already ruled out, the habit the [[landing rule]] was written to remove. Phase 12 retired the method and archived the agent, with his logbook of the time, under the name PlumOG. The method article keeps the worked example; the maintainer glossary keeps the measurements, none of which describes the network.[^plan][^og]
 
 ## Memory
 
 Plum's network does not change between games: what it learnt, it learnt in training. A model playing him can keep a [[logbook]] when memory is enabled, writing, after seeing the completed deal, an account in his voice, lessons, standing instructions and, since October 2026, the evening as an occasion: who was good company and a read of each opponent as a person as well as a player. His was the entry lost to the debrief's old token cap on 14 October 2026 and re-run the next day: it keeps a dinner wagered on a card and Peacock's 'gossip with a ledger', and its standing instructions keep the inference back while sending the wit elsewhere, since 'there is plenty else to talk about'.[^live]
 
-PlumOG's logbook was archived under his own name and current Plum began with an empty one at the Phase 12 migration. He has since written his own history. The old method's lessons are not read back as his, and historical opponent notes were relabelled to PlumOG. Phase 14 likewise assigns the two generations' method contributions separately.[^logbooks]
+His logbook began empty at the Phase 12 migration, the enumeration era's entries being archived separately, so the old method's lessons are not read back as his; Phase 14 likewise kept the two generations' method contributions apart.[^logbooks]
 
 ## See also
 
-- [[Regularised Nash dynamics]], his method in full, and [[exact posterior enumeration]], PlumOG's
+- [[Regularised Nash dynamics]], his method in full, and [[exact posterior enumeration]], the method he played by before
 - [[DeepNash]], the Stratego system his training is adapted from
 - [[Naive Bayes]], [[Miss Scarlett]]'s method, which reads the Rope question differently again
 - [[Deduction floor]], the logic all six characters share
@@ -193,13 +162,7 @@ PlumOG's logbook was archived under his own name and current Plum began with an 
 [^dials]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^phase14]: {{cite:docs/strategy-glossary.md|Phase 14 Run 3, the current Plum (2026-10-18)}}
 [^og]: {{cite:clude_agents/exact_enum.py|the search, the sampler and the two budgets}}
-[^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
-[^budget]: {{cite:docs/strategy-glossary.md|Tuned presets on the grid (Stage 1e, 2026-09-15)}}
-[^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
-[^plumclaude]: {{cite:docs/strategy-glossary.md|Plum with Claude on the grid (Stage 2b, 2026-09-16)}}
-[^landing]: {{cite:docs/strategy-glossary.md|The landing rule (Phase 8.0.4, 2026-09-18)}}
 [^logbooks]: {{cite:docs/logbooks.md|Three tiers}}
-[^logbook]: {{cite:docs/strategy-glossary.md|Plum's logbook at leash 0.5 (2026-09-14)}}
 [^lives]: {{cite:docs/phase13-plan.md|1. Brief and settled decisions}}
 [^live]: {{cite:docs/phase13-plan.md|2026-10-15: step 4 accepted live, and a debrief lost to its token cap}}
 

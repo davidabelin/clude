@@ -29,7 +29,7 @@ Phase 9 added [[a seat over MCP]], letting a chat agent occupy a human seat thro
 
 Phase 10 developed the table's stage and rail, the board's visual treatment, sound effects and named [[looks]]. Case-file light became the default, beside Gaslight dark and Developer. Stored games were grouped into practice and development, and the footer added the AIX Laboratories attribution (since 2026-10-07 [[AIX Protodyne]]).
 
-Phase 12 rebuilt [[Professor Plum]]. His exact enumeration, the slowest and least accurate mid-game method on the Classic board, was archived with its character as [[PlumOG]] on 5 October 2026, and a network trained by [[regularised Nash dynamics]] took his seat; the first trained weights were committed on 6 October and measured the next day.[^phase12]
+Phase 12 rebuilt [[Professor Plum]]. His exact enumeration, the slowest and least accurate mid-game method on the Classic board, was retired on 5 October 2026, its agent archived under the name PlumOG, and a network trained by [[regularised Nash dynamics]] took his seat; the first trained weights were committed on 6 October and measured the next day.[^phase12]
 
 Phase 14 froze the post-landing-rule game corpus and rebuilt the adaptive
 methods. Plum was trained three times from fresh initialisations. A balanced

@@ -104,7 +104,7 @@ On the table screen a suggestion is narrated in a line above the board as it hap
 
 In the recorded [[Classic board]] arena after the landing-rule change, tables of three to six characters averaged {{fact:landing.turns.after}} turns and {{fact:landing.suggestions.after}} suggestions per game. Thus fewer than half the turns included a suggestion; many turns were spent travelling through corridors.[^landing]
 
-Before the change, the corresponding mean was {{fact:landing.suggestions.before}} suggestions. The old movement score rewarded reaching any room, including one whose card was already resolved. [[Professor Plum]] often shuttled through secret passages and repeated answered questions: {{fact:plum.loop.before.pct}}% of his suggestions were exact repeats. The [[landing rule]] changed that incentive. Repeated suggestions became less common, games were shorter, and all games in the comparison ended with a correct accusation.[^landing]
+Before the change, the corresponding mean was {{fact:landing.suggestions.before}} suggestions. The old movement score rewarded reaching any room, including one whose card was already resolved. Characters shuttled through secret passages and repeated answered questions, the Plum of the time most of all. The [[landing rule]] changed that incentive. Repeated suggestions became less common, games were shorter, and all games in the comparison ended with a correct accusation.[^landing]
 
 ### How much to bluff
 

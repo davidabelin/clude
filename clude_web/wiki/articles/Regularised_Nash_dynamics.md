@@ -3,7 +3,7 @@ title: Regularised Nash dynamics
 short: Professor Plum's method since Phase 12: a network trained by self-play over the deduction floor
 categories: Methods
 redirects: R-NaD, RNaD, Regularized Nash dynamics, Plum's method, Policy network, Plum's network, NeuRD
-dyk: ... that [[Professor Plum]]'s network has {{code:net.params}} weights and answers in under a millisecond, where the count it replaced took {{fact:bench.policy.PlumOG.ms}} ms?
+dyk: ... that [[Professor Plum]]'s network has {{code:net.params}} weights and answered in {{fact:plum.phase14.benchmark.run3.ms}} ms a call in the Phase 14 benchmark, where the count it replaced took hundreds?
 dyk: ... that a network trained on a few hundred games' envelopes memorised them and scored a halfway log-loss of {{fact:policy.smoke.memorise}}, far worse than knowing nothing, until it was given a replay buffer?
 ---
 {{infobox
@@ -23,7 +23,7 @@ Opponents | Half the games itself; half the other characters and the [[floor pla
 
 **Regularised Nash dynamics** (R-NaD) is the learning method behind [[Professor Plum]]'s play since Phase 12. A small [[w:Artificial neural network|neural network]] reads the position the [[deduction floor]] has established and gives three kinds of answer: a [[belief]] about which cards are in [[the envelope]], scores for where to move and what to ask, and an estimate of how the game is going. The network learnt these by playing tens of thousands of games, against itself and against the other characters, with a training rule adapted from DeepNash, the system that learnt to play [[w:Stratego|Stratego]].[^paper][^plan]
 
-It replaced [[exact posterior enumeration]], the method Plum played by until 5 October 2026, now kept as **PlumOG**. The count was exact when it could finish, but on the [[Classic board]] most mid-game positions were too large to count. The network does not count anything; it estimates. Phase 14's current Run 3 stays below the uniform floor baseline at all four measured checkpoints and answers in about a quarter of a millisecond.[^phase14]
+It replaced [[exact posterior enumeration]], the method Plum played by until 5 October 2026. The count was exact when it could finish, but on the [[Classic board]] most mid-game positions were too large to count. The network does not count anything; it estimates. Phase 14's current Run 3 stays below the uniform floor baseline at all four measured checkpoints and answers in about a quarter of a millisecond.[^phase14]
 
 The name describes the training, not the play. *Nash dynamics* are learning rules that move a policy towards a [[w:Nash equilibrium|Nash equilibrium]], the point where no player gains by changing strategy alone; *regularised* means each update is pulled gently back towards a recent copy of the policy, which keeps the learning from circling. The guarantee belongs to two-player [[w:Zero-sum game|zero-sum]] games. Clue has three to six players racing for one envelope, so here the method is a well-behaved way to train, not a proof that Plum plays an equilibrium.[^paper][^plan]
 
@@ -137,8 +137,6 @@ original regime and another 150 batches at the lower-rate regime:
 {{fact:phase14.plum.rollouts}} rollouts in all. Stage 2 reused each run's
 stage-1 seed block with a changed policy, giving
 {{fact:phase14.plum.setups}} distinct seeded deal and line-up setups.[^phase14]
-
-{{figure:plum-checkpoints|Win rate at his own table at each re-measured checkpoint of the two runs, 96 games each, against PlumOG's mark.}}
 
 ## Measured
 

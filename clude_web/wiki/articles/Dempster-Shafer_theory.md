@@ -102,7 +102,7 @@ The implementation is `clude_agents/dempster_shafer.py`. It builds a vacuous mas
 
 Peacock's caution is wired at that point. Each character's [[accusation threshold]] is compared against a *confidence* that is, for five of them, the belief's probabilities; for Peacock it is her Dempster-Shafer belief, the lower bound. A threshold of {{code:preset.Peacock.accuse_threshold}} on a lower bound that stays at 0 until evidence singles a card out is, as the preset's note says, "far stricter than 0.7 would be for anyone else".[^presets] The choice is a function supplied with her registry entry, not a dial, so that the confidence rule remains separate from the eight profile dials.[^phase5]
 
-The method found one bug in the floor. Until Phase 5 an open fact that a located card had already satisfied was kept and reported as open, and Peacock read the fact's other, unlocated members as live evidence against those cards. PlumOG's search filtered such facts for itself; she did not, and the floor now drops them.[^phase5fix]
+The method found one bug in the floor. Until Phase 5 an open fact that a located card had already satisfied was kept and reported as open, and Peacock read the fact's other, unlocated members as live evidence against those cards. the enumeration's search filtered such facts for itself; she did not, and the floor now drops them.[^phase5fix]
 
 The two bounds are also the origin of a piece of the design: the "two-tone belief bar" of the project's early visual notes, solid for belief and pale for the unresolved gap to plausibility, is exactly this pair.[^module]
 
@@ -112,9 +112,7 @@ The two bounds are also the origin of a piece of the design: the "two-tone belie
 
 The [[belief benchmark]] scores the pignistic probability, since that is the number the rest of the system uses, by [[log-loss]] against the [[uniform baseline]].
 
-{{table:bench.grid|Historical comparison. The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
-
-In the historical ring-board and 15 September Classic-board benchmarks, Peacock's log-loss was slightly worse than the baseline at every checkpoint. The Classic-board values were {{fact:bench.grid.Peacock.25}}, {{fact:bench.grid.Peacock.50}}, {{fact:bench.grid.Peacock.75}} and {{fact:bench.grid.Peacock.100}}, against {{fact:bench.grid.uniform.25}}, {{fact:bench.grid.uniform.50}}, {{fact:bench.grid.uniform.75}} and {{fact:bench.grid.uniform.100}}. Her final first-choice accuracy was {{fact:bench.grid.Peacock.top1}}, the same as the baseline's.[^glossary] In the Rope example, her {{code:example.peacock.White}} for White exceeds the equal-weight count's {{code:example.plum.White}}. The difference comes from the heuristic category split and the pignistic allocation of the remaining mass.
+In the historical ring-board and 15 September Classic-board benchmarks, Peacock's log-loss was slightly worse than the baseline at every checkpoint. The Classic-board values were {{fact:bench.grid.Peacock.25}}, {{fact:bench.grid.Peacock.50}}, {{fact:bench.grid.Peacock.75}} and {{fact:bench.grid.Peacock.100}}, against {{fact:bench.grid.uniform.25}}, {{fact:bench.grid.uniform.50}}, {{fact:bench.grid.uniform.75}} and {{fact:bench.grid.uniform.100}}. Her final first-choice accuracy was {{fact:bench.grid.Peacock.top1}}, the same as the baseline's. Her method carries no learned state, and no benchmark since Phase 14 has re-scored it.[^glossary] In the Rope example, her {{code:example.peacock.White}} for White exceeds the equal-weight count's {{code:example.plum.White}}. The difference comes from the heuristic category split and the pignistic allocation of the remaining mass.
 
 The accusation test uses the belief values rather than the decision probabilities. The benchmark does not directly evaluate those bounds, so its results alone cannot establish how well they express uncertainty.[^ring]
 
@@ -126,7 +124,7 @@ The [[arena]] measures the complete character, including her lower-bound accusat
 
 Peacock won {{fact:arena.phase14.Peacock.win}}% of her 40 current-control seat-games and made no wrong accusation, first accusing at mean turn {{fact:arena.phase14.Peacock.first}}.[^arena] The wider Phase 14 curiosity grid showed a clear pooled footprint, but Peacock's isolated screen did not justify moving her preset. Zero observed errors in this block do not establish infallibility.
 
-With a model in her seat the picture changes. At a four-seat table where all six characters played with [[Claude]], her wins went from {{fact:twin.grid.Peacock.win_base}}% to {{fact:twin.grid.Peacock.win_llm}}% and her first accusation from turn {{fact:twin.grid.Peacock.first_base}} to {{fact:twin.grid.Peacock.first_llm}}. The [[leash]] lets a model accuse a little before the character's own threshold, and the recorded model-piloted seats accused earlier.[^twin]
+With a model in her seat the picture changes a little: the [[leash]] lets a model accuse before the character's own threshold. In Phase 14's paid leash screen she won none of eight games at her 0.25 preset and two of eight at leash 0 and at 0.5, with no wrong accusation at any value. Eight-game rows are screens, and no paired headless-against-model comparison has been run since the landing rule.[^arena]
 
 ## Limitations
 
@@ -159,6 +157,5 @@ With a model in her seat the picture changes. At a four-seat table where all six
 [^phase5fix]: {{cite:docs/phase5-plan.md|8. As implemented (2026-09-12)}}
 [^ring]: {{cite:docs/strategy-glossary.md|Belief benchmark, FloorBot regime (Phase 5)}}
 [^arena]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
-[^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
 
 {{navbox:clude}}

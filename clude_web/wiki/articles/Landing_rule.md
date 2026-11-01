@@ -10,7 +10,7 @@ It changes the shared feature arithmetic, not the board's legal moves or any cha
 
 ## The passage loop
 
-Before the change, a secret passage into a resolved room could score {{fact:plum.landing.passage}} at curiosity 0.5, while a corridor move towards an unresolved room scored {{fact:plum.landing.walk}}. The [[leash]] could then exclude the corridor alternative. Plum repeatedly took a high-scoring passage and received the already known room card in reply.[^record]
+Before the change, a secret passage into a resolved room could score {{fact:plum.landing.passage}} at curiosity 0.5, while a corridor move towards an unresolved room scored {{fact:plum.landing.walk}}. The [[leash]] could then exclude the corridor alternative. In the recorded games the Plum of the time, above all, repeatedly took a high-scoring passage and received the already known room card in reply.[^record]
 
 A model's remembered instruction to leave the loop could not select an option outside the menu. The fix addressed the scoring incentive so headless as well as model-piloted characters could rank more useful movement differently.
 
@@ -34,11 +34,9 @@ Each form was compared on three paired 24-game arenas, seed 7007: a mixed three-
 
 ## Recorded results
 
-{{table:landing.repeats|Exact repeats of a seat's own earlier suggestion, baseline to retained rule, across the three recorded Classic-board table configurations. Counts and percentages use suggestions, not games.}}
+Repeats of a seat's own earlier suggestion fell for every character in all three configurations, Plum's by far the most. The denominators also changed, because the games and the questions changed: this was not the same fixed set of suggestions scored twice. The per-character counts stay in the maintainer glossary.[^record]
 
-In the mixed-size comparison, Plum's repeats fell from {{fact:plum.loop.before}} ({{fact:plum.loop.before.pct}}%) to {{fact:plum.loop.after}} ({{fact:plum.loop.after.pct}}%). The denominator also changed because the games and his questions changed. This was not the same fixed set of suggestions scored twice.[^record]
-
-Mean game length there fell from {{fact:landing.turns.before}} to {{fact:landing.turns.after}} turns, and mean suggestions from {{fact:landing.suggestions.before}} to {{fact:landing.suggestions.after}}. Repeats and game length fell in all three configurations; wins did not move consistently in one direction. Every recorded game still ended in a correct accusation.
+Mean game length there fell from {{fact:landing.turns.before}} to {{fact:landing.turns.after}} turns, and mean suggestions from {{fact:landing.suggestions.before}} to {{fact:landing.suggestions.after}}. Game length fell in all three configurations; wins did not move consistently in one direction. Every recorded game still ended in a correct accusation.
 
 ## Implementation and limits
 
@@ -49,7 +47,7 @@ The feature called information is still a room-probability proxy rather than exp
 
 ## See also
 
-[[Curiosity]] · [[Classic board]] · [[Leash]] · [[Professor Plum#The parking|Plum’s passage behaviour]] · [[Arena]]
+[[Curiosity]] · [[Classic board]] · [[Leash]] · [[Professor Plum]] · [[Arena]]
 
 ## References
 

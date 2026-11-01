@@ -25,7 +25,7 @@ The **bandit ensemble** is [[Mr. Green]]'s method for selecting a [[belief]] fro
 
 The design draws on the [[w:Multi-armed bandit|multi-armed bandit]] problem: choosing among options with uncertain rewards, named after [[w:Slot machine|slot machines]]. Green uses [[w:Thompson sampling|Thompson sampling]], drawing a score from each arm's distribution and selecting the largest. This balances *exploitation*, using a method with a good record, against *exploration*, trying one whose value is less certain.[^sutton][^thompson] Unlike a classical bandit, Green receives feedback for all five arms when the envelope is revealed, rather than only for the selected arm.
 
-Green's current belief is exactly the selected method's output, but the computation cost is that of all five methods together. Until Phase 12 that included [[PlumOG]]'s enumeration, the slowest call in the game; his Plum arm is now [[Professor Plum]]'s network, which answers in under a millisecond. His [[persona]] turns this dependence into the character's opportunistic voice.[^persona]
+Green's current belief is exactly the selected method's output, but the computation cost is that of all five methods together. His Plum arm is [[Professor Plum]]'s network, which answers in under a millisecond; until Phase 12 it was an exact enumeration, the slowest call in the game. His [[persona]] turns this dependence into the character's opportunistic voice.[^persona]
 
 ## At the table
 
@@ -95,7 +95,7 @@ For textbook Thompson sampling, let $\theta_k$ be arm $k$'s unknown expected rew
 
 The module is `clude_agents/bandit.py`, and it is a port. David's earlier project, a [[w:Rock paper scissors|rock-paper-scissors]] tournament, had a Thompson-sampling bandit over move-predicting heuristics; here the structure is the same and the arms are literal instances of the other five agents, built fresh when Green is reset. The draws come from Python's own `betavariate`, so that the package needs no numerical library the rest of clude does without.[^module][^port]
 
-The chosen arm's probabilities are returned unchanged, with its name recorded in the belief's extras. Green's record is saved after each game and restored as Tier 1 method memory. The current memory builder does not reconstruct the arm counts from stored games, because those records do not preserve the predictions made by the arms at the time.[^memory] Phase 14 therefore began honestly from Beta(1,1), compared step sizes 1, 2 and 4 with decay rates 1.02, 1.05 and 1.10, then trained and validated on separate 200-game blocks. Step 4 and decay 1.05 cleared the held-out gates; the accepted state is fresh training, not a reconstruction of old live posteriors.[^phase14] Every call consults all five arms. Historical enumeration-era timings included PlumOG's search and do not describe the present network ensemble.
+The chosen arm's probabilities are returned unchanged, with its name recorded in the belief's extras. Green's record is saved after each game and restored as Tier 1 method memory. The current memory builder does not reconstruct the arm counts from stored games, because those records do not preserve the predictions made by the arms at the time.[^memory] Phase 14 therefore began honestly from Beta(1,1), compared step sizes 1, 2 and 4 with decay rates 1.02, 1.05 and 1.10, then trained and validated on separate 200-game blocks. Step 4 and decay 1.05 cleared the held-out gates; the accepted state is fresh training, not a reconstruction of old live posteriors.[^phase14] Every call consults all five arms.
 
 ## Phase 14 validation
 
@@ -107,15 +107,11 @@ These are configuration-selection results, with the final state released on 18 O
 
 ### Whom he comes to trust
 
-{{figure:green-trust|Historical ring-board mean arm records, with PlumOG, after sixty benchmark games. The dashed line is the prior's 0.5.}}
-
-The rank reward separated the arms where the earlier reward had not. Over the earlier benchmark's sixty games the records spread by about {{fact:green.arms.spread}} in mean: Plum and Mustard at {{fact:green.arms.ring.plum}} and {{fact:green.arms.ring.mustard}}, White at {{fact:green.arms.ring.white}}, Peacock at {{fact:green.arms.ring.peacock}} and Scarlett at {{fact:green.arms.ring.scarlett}}, which is the order the benchmark itself ranks the methods at the end of a game.[^glossary] On the Classic board the same run left him leaning on Mustard ({{fact:green.arms.grid.mustard}}) and Plum ({{fact:green.arms.grid.plum}}) and away from Peacock ({{fact:green.arms.grid.peacock}}) and Scarlett ({{fact:green.arms.grid.scarlett}}).[^grid]
+The rank reward separated the arms where the earlier reward had not: on the ring board, sixty benchmark games spread the records in the order the benchmark ranked the methods at the end of a game, with the enumeration of the time and Mustard's tree most trusted. Those records belonged to the ensemble as it was before Phase 12 and Phase 14. The accepted state began again from Beta(1,1) on fresh games, and the current arm shares are not a published number.[^glossary]
 
 ### The quality of his numbers
 
-{{table:bench.grid|Historical comparison. The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
-
-Green's benchmark loss reflects which arms were selected. In the earlier run, his final loss was {{fact:bench.ring.Green.100}}, joint-lowest with Plum, and his final first-choice accuracy was {{fact:bench.ring.Green.top1}}, the highest of the six. In the Classic-board run, final loss was {{fact:bench.grid.Green.100}}, second-lowest. He beat the uniform baseline at all four checkpoints, including halfway: {{fact:bench.grid.Green.50}} versus {{fact:bench.grid.uniform.50}}. Computing all five arms made his runtime comparable to Plum's plus the other methods' costs.[^ring][^grid]
+Green's benchmark loss reflects which arms were selected. Phase 14's validation above is the current measurement; no benchmark since has scored the six methods together, and the ensemble's cost is now that of five fast methods, the network among them.[^validation]
 
 ### At the table
 
@@ -123,13 +119,13 @@ Green's benchmark loss reflects which arms were selected. In the earlier run, hi
 
 Green won {{fact:arena.phase14.Green.win}}% of the current control and made a wrong accusation in {{fact:arena.phase14.Green.wrong}}%.[^current] Phase 14 also screened his threshold separately and retained 0.75 because no nearby value cleared the personality and outcome guardrails. A 40-seat-game row does not establish his competitive strength.
 
-In the twin arena, adding [[Claude]] changed Green's win rate from {{fact:twin.grid.Green.win_base}}% to {{fact:twin.grid.Green.win_llm}}%. The difference was within the reported sampling uncertainty.[^twin]
+In Phase 14's paid leash screen, the current record of a model in his seat, he won three of eight games at his 0.25 preset, none at leash 0, four at 0.5 and seven at 1, with no wrong accusation at any value. Eight-game rows are screens, and no paired headless-against-model comparison has been run since the landing rule.[^current]
 
 ## Limitations
 
 - **Each prediction comes from one arm.** On an individual observation, Green returns one constituent belief unchanged. Adaptively selecting arms may outperform a fixed arm across a run, but selection does not improve that arm's current probabilities.
 - **Game feedback is sparse.** An arena game supplies one update from the final predictions. This does not directly teach which method is best at each earlier stage.
-- **He pays for every arm.** Selecting one estimate still requires computing all five. Replacing enumeration with the network removed the former dominant search cost; the current ensemble should not inherit PlumOG's timing.
+- **He pays for every arm.** Selecting one estimate still requires computing all five. Replacing enumeration with the network removed the former dominant search cost.
 - **The reward is a ranking, not a measure.** An arm that is a shade better than the rest scores the same 1 as one that is far better; the record knows the order of the arms and nothing of the gaps.
 
 ## See also
@@ -154,10 +150,7 @@ In the twin arena, adding [[Claude]] changed Green's win rate from {{fact:twin.g
 [^arena]: {{cite:docs/architecture.md|Arena, sweeps and game records (Phase 5d)}}
 [^port]: {{cite:CLAUDE.md|Settled decisions (David's)}} The structure mirrors David's `rps` repository.
 [^memory]: {{cite:docs/logbooks.md|Tier 1: method memory}}
-[^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
 [^glossary]: {{cite:docs/strategy-glossary.md|Green -- Bandit ensemble over the other five}}
-[^ring]: {{cite:docs/strategy-glossary.md|Belief benchmark, FloorBot regime (Phase 5)}}
-[^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
 [^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^phase14]: {{cite:docs/phase14-plan.md|Plum and Green — retrained; Run 3 promoted locally}}
 [^policy]: {{cite:clude_web/wiki/facts.py|`rope_observation` and `rope_question`}}

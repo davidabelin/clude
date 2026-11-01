@@ -39,7 +39,7 @@ Run 3's halfway loss is {{fact:plum.phase14.benchmark.run3.50}}, against uniform
 
 ## Recorded comparison
 
-At the half-way checkpoint of the 15 September 2026 Classic-board benchmark, uniform loss was {{fact:bench.grid.uniform.50}}. White scored {{fact:bench.grid.White.50}}, Mustard {{fact:bench.grid.Mustard.50}}, Scarlett {{fact:bench.grid.Scarlett.50}} and Peacock {{fact:bench.grid.Peacock.50}}. Lower is better. The run used {{fact:bench.grid.games}} floor-player games and {{fact:bench.grid.snapshots}} private observations across four checkpoints.[^grid]
+At the half-way checkpoint of the 15 September 2026 Classic-board benchmark, uniform loss was {{fact:bench.grid.uniform.50}}. White scored {{fact:bench.grid.White.50}}, Mustard {{fact:bench.grid.Mustard.50}}, Scarlett {{fact:bench.grid.Scarlett.50}} and Peacock {{fact:bench.grid.Peacock.50}}. Lower is better. The run used {{fact:bench.grid.games}} floor-player games and {{fact:bench.grid.snapshots}} private observations across four checkpoints. That run predates the [[landing rule]], the Phase 14 method rebuild and Plum's network, and the six methods have not been scored together since.[^grid]
 
 The comparison can therefore reveal that additional heuristic detail worsened average estimates in a particular regime. It does not imply that a uniform player would win more games: the baseline is a prediction row, while the [[floor player]] is an actual decision policy.
 

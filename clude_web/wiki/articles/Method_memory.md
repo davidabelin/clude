@@ -43,7 +43,7 @@ Those live predictions are not all preserved in the ordinary game record. His ar
 
 ## Current rebuild
 
-Phase 14 replaced the three method documents using a frozen post-[[landing rule|landing-rule]] corpus: 90 training and 19 validation records, split by seed group. Mustard now adds those training rows to a 50-game fresh self-play base. White's prior mass is 2, with historical PlumOG and current Plum counts assigned separately. Green's accepted state comes from 200 fresh training games, not a reconstruction of old arm predictions. All three documents were released on 18 October without replacing narrative heads, entries or digests.[^phase14]
+Phase 14 replaced the three method documents using a frozen post-[[landing rule|landing-rule]] corpus: 90 training and 19 validation records, split by seed group. Mustard now adds those training rows to a 50-game fresh self-play base. White's prior mass is 2, with the two Plum generations' counts assigned separately. Green's accepted state comes from 200 fresh training games, not a reconstruction of old arm predictions. All three documents were released on 18 October without replacing narrative heads, entries or digests.[^phase14]
 
 The [[measurement record]] separates the rebuild's candidate-selection and arena results from the later final dial screens. Ordinary remembered play can continue changing the released state, so the frozen release hashes describe that acceptance point rather than an immutable live logbook.
 

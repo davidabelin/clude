@@ -33,7 +33,7 @@ The mathematical model takes its name from [[w:Andrey Markov|Andrey Markov]].[^n
 
     Every other method reads the showing. White reads the asking. Green has named Peacock and the Rope: they are cards he is still asking about, so cards he is less likely to hold, so cards a little more likely to be the envelope's. This is Green's first suggestion in her record, so his chain has nothing to go on and sits at its prior, a repeat probability of {{code:example.white.repeat}}. Each open card starts at a score of {{code:white.base_score}}; Peacock and the Rope gain one naming times {{code:example.white.repeat}}. Within the suspects that leaves Mrs. Peacock at **{{code:example.white.Peacock}}** and Mrs. White at **{{code:example.white.White}}**; within the weapons, the Rope at {{code:example.white.Rope}} and the Wrench at {{code:example.white.Wrench}}.
 
-    The chain favours the named cards, whereas counting the surviving deals ([[exact posterior enumeration]], [[PlumOG]]'s method) favours the alternatives and gives Mrs. White {{code:example.plum.White}}. [[Professor Plum]]'s network sides with the chain, giving her {{code:example.policy.White}}. The tree and uniform baseline remain at 0.5; they do not move either way. White's soft update ignores the open fact "Mustard holds Peacock or the Rope". The floor keeps that fact, but in this position it eliminates no additional card. The naming heuristic therefore points against the implication of the disproof.
+    The chain favours the named cards, whereas counting the surviving deals ([[exact posterior enumeration]]) favours the alternatives and gives Mrs. White {{code:example.plum.White}}. [[Professor Plum]]'s network sides with the chain, giving her {{code:example.policy.White}}. The tree and uniform baseline remain at 0.5; they do not move either way. White's soft update ignores the open fact "Mustard holds Peacock or the Rope". The floor keeps that fact, but in this position it eliminates no additional card. The naming heuristic therefore points against the implication of the disproof.
 
     Repeated questions can still be useful behavioural evidence over longer games. The benchmark results below measure that usefulness under particular opponents; they do not show that the heuristic always agrees with the count.
 
@@ -110,7 +110,7 @@ The module is `clude_agents/markov.py`. It descends from a heuristic in the proj
 
 ### Memory
 
-White is one of the three characters whose method remembers from game to game, and hers remembers *people*. For each opponent she has met, the four transition counts from every stored game they played are summed and kept under that opponent's identity. At a new table the Laplace prior for a known opponent is replaced by their own frequencies, spread over {{code:white.prior_mass}} pseudo-observations. Phase 14 reduced remembered-prior mass from 4 to 2, so current-game transitions now outweigh that history sooner. An opponent without a usable remembered prior still starts with one Laplace count in each of four cells. Phase 14 rebuilt the counts from the frozen post-landing-rule training split, kept PlumOG separate from Plum, and tested prior masses 1, 2, 4, 8 and 16. Prior mass 2 cleared every held-out loss and calibration checkpoint and the paired arena guardrails.[^phase14] Public reports aggregate identities; they do not publish human account names.
+White is one of the three characters whose method remembers from game to game, and hers remembers *people*. For each opponent she has met, the four transition counts from every stored game they played are summed and kept under that opponent's identity. At a new table the Laplace prior for a known opponent is replaced by their own frequencies, spread over {{code:white.prior_mass}} pseudo-observations. Phase 14 reduced remembered-prior mass from 4 to 2, so current-game transitions now outweigh that history sooner. An opponent without a usable remembered prior still starts with one Laplace count in each of four cells. Phase 14 rebuilt the counts from the frozen post-landing-rule training split, kept the two Plum generations' counts separate, and tested prior masses 1, 2, 4, 8 and 16. Prior mass 2 cleared every held-out loss and calibration checkpoint and the paired arena guardrails.[^phase14] Public reports aggregate identities; they do not publish human account names.
 
 ### What the model sees
 
@@ -126,11 +126,10 @@ These are configuration-selection results, with the final state released on 18 O
 
 ### The quality of her numbers
 
-In the earlier benchmark the chain had the best belief of the six at the halfway checkpoint, {{fact:bench.ring.White.50}} against the baseline's {{fact:bench.ring.uniform.50}}, and beat the baseline at every checkpoint; at the end it fell behind the three methods that read the floor's facts more closely, {{fact:bench.ring.White.100}} against Plum's {{fact:bench.ring.Plum.100}}. On the first benchmark of all, before the flat prior, it had been the worst belief of the six by a distance, {{fact:white.phase4}}, nearly all of it from unnamed cards read as impossible.[^ring][^phase4]
 
-{{table:bench.grid|Historical comparison. The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
+On the first benchmark of all, before the flat prior, the chain had been the worst belief of the six by a distance, {{fact:white.phase4}}, nearly all of it from unnamed cards read as impossible.[^phase4]
 
-In the Classic-board benchmark, White had the lowest log-loss at the first three checkpoints: {{fact:bench.grid.White.25}}, {{fact:bench.grid.White.50}} and {{fact:bench.grid.White.75}}. At the end she was second to Mustard. The project relates her mid-game performance to the floor-bot regime, in which players repeatedly name unresolved cards. That explanation is plausible, but the comparison does not isolate opponent behaviour from all other features of the games.[^grid][^glossary]
+In the 15 September 2026 Classic-board benchmark, White had the lowest log-loss of any method at the first three checkpoints: {{fact:bench.grid.White.25}}, {{fact:bench.grid.White.50}} and {{fact:bench.grid.White.75}}. At the end she was second to Mustard. That run predates the landing rule and the Phase 14 rebuild, whose validation above is the current measurement. The project relates her mid-game performance to the floor-bot regime, in which players repeatedly name unresolved cards. That explanation is plausible, but the comparison does not isolate opponent behaviour from all other features of the games.[^grid][^glossary]
 
 ### At the table
 
@@ -138,7 +137,7 @@ In the Classic-board benchmark, White had the lowest log-loss at the first three
 
 With [[accusation threshold]] {{code:preset.White.accuse_threshold}}, White won {{fact:arena.phase14.White.win}}% of the current control and made a wrong accusation in {{fact:arena.phase14.White.wrong}}%. She named her own cards in {{fact:arena.phase14.White.named}} suggestions per game, consistent with her [[bluff rate]] of {{code:preset.White.bluff_rate}}, the highest preset. Forty seat-games do not establish a stable competitive rank.[^arena]
 
-With [[Claude]] in her seat at a four-seat table she won {{fact:twin.grid.White.win_llm}}% of her games, the most of anyone, as she had without it; what changed was her bluffing, which fell from {{fact:twin.grid.bluff.white.base}} own-card suggestions a game to {{fact:twin.grid.bluff.white.llm}}. The recorded model-piloted games used fewer held-card suggestions; this does not establish the model's reason for each choice.[^twin]
+In Phase 14's paid leash screen, the current record of a model in her seat, she won six of eight games at her 0.25 preset and all eight at 0.5 and at 1, with no wrong accusation at any value. Eight-game rows are screens, and no paired headless-against-model comparison has been run since the landing rule.[^arena]
 
 ## Limitations
 
@@ -171,10 +170,8 @@ With [[Claude]] in her seat at a four-seat table she won {{fact:twin.grid.White.
 [^phase5]: {{cite:docs/phase5-plan.md|4.3 White: the same zero, a different cause}}
 [^legacy]: {{cite:docs/architecture.md|Method-to-suspect mapping}}
 [^phase6]: {{cite:docs/phase6-plan.md|6c, the real backend (2026-09-12; live checks done 2026-09-13)}}
-[^ring]: {{cite:docs/strategy-glossary.md|Belief benchmark, FloorBot regime (Phase 5)}}
 [^phase4]: {{cite:docs/strategy-glossary.md|Phase 4 benchmark results (RandomBot regime, historical)}}
 [^arena]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^phase14]: {{cite:docs/phase14-plan.md|Mustard and White — accepted locally, not released}}
-[^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
 
 {{navbox:clude}}

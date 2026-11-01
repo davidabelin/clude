@@ -74,9 +74,7 @@ The threshold is tested against her belief rather than her probability by a func
 
 ### The quality of her numbers
 
-The [[belief benchmark]] scores her decision probabilities rather than the bounds used for accusation. In the historical ring-board and 15 September Classic-board benchmarks, her log-loss was slightly higher than the [[uniform baseline]] at every checkpoint. On the Classic board, halfway loss was {{fact:bench.grid.Peacock.50}} versus {{fact:bench.grid.uniform.50}}, and final loss {{fact:bench.grid.Peacock.100}} versus {{fact:bench.grid.uniform.100}}. Final first-choice accuracy was {{fact:bench.grid.Peacock.top1}}, the same as the baseline. These results evaluate the single-number estimates, not whether the bounds are calibrated or whether caution is always advantageous.[^grid] Computation took a fraction of a millisecond per call.
-
-{{table:bench.grid|Historical comparison. The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
+The [[belief benchmark]] scores her decision probabilities rather than the bounds used for accusation. In the historical ring-board and 15 September Classic-board benchmarks, her log-loss was slightly higher than the [[uniform baseline]] at every checkpoint. On the Classic board, halfway loss was {{fact:bench.grid.Peacock.50}} versus {{fact:bench.grid.uniform.50}}, and final loss {{fact:bench.grid.Peacock.100}} versus {{fact:bench.grid.uniform.100}}. Final first-choice accuracy was {{fact:bench.grid.Peacock.top1}}, the same as the baseline. These results evaluate the single-number estimates, not whether the bounds are calibrated or whether caution is always advantageous. Her method carries no learned state, and no benchmark since Phase 14 has re-scored it or the six methods together.[^grid] Computation took a fraction of a millisecond per call.
 
 ### At the table
 
@@ -86,7 +84,7 @@ Peacock won {{fact:arena.phase14.Peacock.win}}% of the current control and made 
 
 ### With Claude in the seat
 
-When a model plays her, choosing among her own best-scoring options within the [[leash]], her caution gives a little. The leash lets a model accuse once the character's confidence is within a quarter of its threshold, and the recorded model-piloted games brought earlier accusations. At a four-seat table where every character played with [[Claude]] her first accusation came at turn {{fact:twin.grid.Peacock.first_llm}} instead of {{fact:twin.grid.Peacock.first_base}}, she never accused in {{fact:twin.grid.Peacock.never_llm}}% of games rather than {{fact:twin.grid.Peacock.never_base}}%, and her wins went from {{fact:twin.grid.Peacock.win_base}}% to {{fact:twin.grid.Peacock.win_llm}}%, about {{fact:twin.grid.sigma.peacock}} [[w:Standard deviation|standard deviations]], still with no wrong accusation. Her [[w:Bluff (poker)|bluffing]] fell with the model, from {{fact:twin.grid.bluff.peacock.base}} own-card suggestions a game to {{fact:twin.grid.bluff.peacock.llm}}, as it did for every character that does not loop.[^twin][^wrapper]
+When a model plays her, choosing among her own best-scoring options within the [[leash]], her caution gives a little: the leash lets a model accuse once the character's confidence is within a quarter of its threshold. In Phase 14's paid leash screen she won none of eight games at her 0.25 preset and two of eight at leash 0 and at 0.5, with no wrong accusation at any value. Eight-game rows are screens, not promotion evidence, and no paired headless-against-model comparison has been run since the landing rule.[^current][^wrapper]
 
 ## Memory
 
@@ -115,7 +113,6 @@ Peacock's method recomputes from the floor's open facts on each call and carries
 [^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
 [^arena]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
-[^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
 [^wrapper]: {{cite:docs/llm-wrapper.md|What happens on one decision}}
 [^logbooks]: {{cite:docs/logbooks.md|Three tiers}}
 [^rules]: {{cite:clude_llm/personas/rules.md|The company and the parts}}

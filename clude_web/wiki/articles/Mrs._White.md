@@ -56,7 +56,7 @@ Told that she is a language model playing a part, she is inclined to ask what di
 
 White classifies each opponent's suggestions as *repeat* if any named card has appeared in that opponent's earlier questions, and *new* otherwise. A two-state [[w:Markov chain|Markov chain]] estimates the [[w:Stationary distribution|stationary repeat probability]]. Each unresolved card starts at a flat score; each opponent adds their naming count multiplied by that repeat probability. The floor then masks and normalises the scores into category probabilities. The chain summarises a habit; the scoring rule makes the separate assumption that naming a card increases its suspicion.[^module]
 
-In the [[Markov chain#At the table|Rope question]], Green names Peacock and the Rope and Mustard shows him a card hidden from the observer. The Hall is known to be Green's own card. White's method favours the named cards, giving Mrs. White {{code:example.white.White}} and Mrs. Peacock {{code:example.white.Peacock}}. PlumOG's count gives Mrs. White {{code:example.plum.White}} instead. Mustard's tree stays at 0.5, so not every other method moves towards the count. This position illustrates how a behavioural update can conflict with the logical constraint supplied by a disproof.[^markov]
+In the [[Markov chain#At the table|Rope question]], Green names Peacock and the Rope and Mustard shows him a card hidden from the observer. The Hall is known to be Green's own card. White's method favours the named cards, giving Mrs. White {{code:example.white.White}} and Mrs. Peacock {{code:example.white.Peacock}}. Counting the surviving deals gives Mrs. White {{code:example.plum.White}} instead. Mustard's tree stays at 0.5, so not every other method moves towards the count. This position illustrates how a behavioural update can conflict with the logical constraint supplied by a disproof.[^markov]
 
 ## How she plays
 
@@ -78,9 +78,9 @@ Phase 14 retained all of White's dials.[^current] In the current control she nam
 
 In the first, random-bot benchmark, White had the highest final [[log-loss]]: {{fact:white.phase4}}, compared with {{fact:uniform.phase4}} for the baseline. Unnamed cards received zero probability and accounted for {{fact:white.phase4.zeros}}% of the loss. Phase 5 added a flat initial score so unnamed cards remained possible, and changed the game regime to floor-bot self-play, after which she beat the [[uniform baseline]] at every checkpoint.[^phase4][^glossary]
 
-{{table:bench.grid|Historical comparison. The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
+{{table:methods.phase14.white|Phase 14's validation: her former comparison state and the accepted rebuild on the same 19 held-out deals and 264 private snapshots. Lower log-loss is better.}}
 
-In the Classic-board benchmark, her losses at the first three checkpoints were {{fact:bench.grid.White.25}}, {{fact:bench.grid.White.50}} and {{fact:bench.grid.White.75}}, each the lowest of the six. Final loss was {{fact:bench.grid.White.100}}, second to [[Colonel Mustard]]. She answered in a fraction of a millisecond per call.[^grid]
+The rebuild kept her loss close to the former state, a little higher at three checkpoints and lower at one; it cleared the allowed margin without improving every number. These are candidate-selection scores, and no benchmark since Phase 14 has scored the six methods together. She answers in a fraction of a millisecond per call.[^validation]She answered in a fraction of a millisecond per call.[^grid]
 
 ### At the table
 
@@ -90,13 +90,11 @@ White won {{fact:arena.phase14.White.win}}% of the current control and made a wr
 
 ### With Claude in the seat
 
-In the four-seat [[Claude]] twin comparison, White won {{fact:twin.grid.White.win_llm}}% of her model-piloted games, the highest rate in the run, as it had been headless. Her mean first-accusation turn changed from {{fact:twin.grid.White.first_base}} to {{fact:twin.grid.White.first_llm}}, and she recorded no wrong accusations. These are results from the paired runs, not a general guarantee that model piloting improves her play.[^twin]
-
-The model-piloted runs used fewer [[w:Bluff (poker)|held-card suggestions]]. Their mean count fell from {{fact:twin.grid.bluff.white.base}} to {{fact:twin.grid.bluff.white.llm}} per game. The number of cards shown changed little. The notes suggest that the personas give little encouragement to bluff, but the measured counts do not establish a single motive for every choice.[^twin]
+In Phase 14's paid leash screen, the current record of a model in her seat, she won six of eight games at her 0.25 preset and all eight at 0.5 and at 1, with no wrong accusation at any value. Eight-game rows are screens, not promotion evidence, and no paired headless-against-model comparison has been run since the landing rule.[^current]
 
 ## Memory
 
-White's method memory sums four transition counts per opponent over their stored games: new to new, new to repeat, repeat to new and repeat to repeat. At a new table, a known opponent's frequencies shape a prior with total weight {{code:white.prior_mass}}, reduced from 4 to 2 in Phase 14. An opponent without remembered counts still gets the neutral four-cell Laplace prior, with total mass 4. A long history therefore changes its shape without overwhelming the current game's evidence. Phase 14 rebuilt the counts from post-landing-rule training records, kept PlumOG separate from Plum and selected prior mass 2 from five candidates after held-out and arena checks.[^current] Human opponents are identified by account name so their records follow them between tokens; public measurements do not publish those identities.[^logbooks]
+White's method memory sums four transition counts per opponent over their stored games: new to new, new to repeat, repeat to new and repeat to repeat. At a new table, a known opponent's frequencies shape a prior with total weight {{code:white.prior_mass}}, reduced from 4 to 2 in Phase 14. An opponent without remembered counts still gets the neutral four-cell Laplace prior, with total mass 4. A long history therefore changes its shape without overwhelming the current game's evidence. Phase 14 rebuilt the counts from post-landing-rule training records, kept the two Plum generations' counts separate and selected prior mass 2 from five candidates after held-out and arena checks.[^current] Human opponents are identified by account name so their records follow them between tokens; public measurements do not publish those identities.[^logbooks]
 
 Like every character she can also keep a narrative [[logbook]], written by a model after each game it played her seat, with what happened, what to do next time and, since October 2026, the evening itself: the company, and a read of each opponent as a person as well as a player. Under the earlier debrief her standing instructions had carried more than one rule against talking; they now close on 'the company is not a cost'.[^live]
 
@@ -105,7 +103,7 @@ Like every character she can also keep a narrative [[logbook]], written by a mod
 - [[Markov chain]], her method in full, with the worked example and the mathematics
 - [[Colonel Mustard]] and [[Mr. Green]], the other two characters whose methods remember
 - [[Bluffing]] and [[Bluff rate]]
-- [[Exact posterior enumeration]], [[PlumOG]]'s method, which reads the answer where she reads the question, and [[Professor Plum]], whose network reads the question as she does
+- [[Exact posterior enumeration]], which reads the answer where she reads the question, and [[Professor Plum]], whose network reads the question as she does
 - [[Belief benchmark]] and [[Arena]]
 
 ## References
@@ -123,8 +121,8 @@ Like every character she can also keep a narrative [[logbook]], written by a mod
 [^phase4]: {{cite:docs/strategy-glossary.md|Phase 4 benchmark results (RandomBot regime, historical)}}
 [^glossary]: {{cite:docs/strategy-glossary.md|White -- Markov model over suggestion sequences}}
 [^arena]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
+[^validation]: {{cite:docs/strategy-glossary.md|Phase 14 adaptive-method validation (2026-10-17)}}
 [^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
-[^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
 [^logbooks]: {{cite:docs/logbooks.md|The debrief}}
 [^lives]: {{cite:docs/phase13-plan.md|1. Brief and settled decisions}}
 [^live]: {{cite:docs/phase13-plan.md|2026-10-15: step 4 accepted live, and a debrief lost to its token cap}}

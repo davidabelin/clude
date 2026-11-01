@@ -19,6 +19,14 @@ for Run 3, completed W7, and released the recalibrated methods on 2026-10-18.
 The `focus` dial and character-authored wiki edits remain deferred. Section
 10 preserves the dated implementation evidence, audits and limitations.
 
+**Later changes, outside this phase.** The six scripts were redefined again
+on 2026-10-26 (revision `clude-00040-9wl`), with per-character chattiness
+presets and a separately approved recording refresh; the collector's cards
+followed on 2026-10-29 (`clude-00041-pxh`). Where sections 1, 3 and 9 below
+record a decision or a setting those changes have overtaken, a dated
+**superseded** note says so; the rest of the checklist and the record stand
+as the history of the phase.
+
 ## 1. Brief and settled decisions
 
 The six characters should sustain a social occasion alongside a game of
@@ -47,10 +55,19 @@ David's decisions, including the corrections to the earlier proposal:
   that writes it, in step 4.
 - All six listen to NPR in the car; a recent *New Yorker* is lying around
   half-read. This is shared background, not six obligatory talking points.
+  **Superseded 2026-10-26.** The rewritten scripts give each character its
+  own habits rather than one shared background: Scarlett keeps NPR and the
+  half-read *New Yorker*; Green has NPR news in the car and a lifetime
+  *Washington Post* subscription; Plum has NPR and the *Wall Street Journal*
+  over breakfast; Mustard and Peacock watch FOX News; White follows French
+  news. The persona files are the record, summarised in
+  [the wrapper guide](llm-wrapper.md).
 - Mustard is a proud, coy Freemason: jewels, winks, and discretion. Mustard
   and Peacock watch FOX News and believe it.
 - Green is a movie buff; Scarlett shares that interest. Plum reads
-  *The Economist*. White follows French news.
+  *The Economist*. White follows French news. **Superseded 2026-10-26:**
+  Plum now reads the *Wall Street Journal*; the film interest and White's
+  French news stand.
 - These details are character background, not claims that the application
   fetches current broadcasts or articles. Do not invent a specific current
   headline and present it as retrieved news.
@@ -116,10 +133,10 @@ increments may touch several files, but should have one reviewable purpose.
 
 | Step | Deliverable | Status / dependency |
 |---|---|---|
-| 0 | Durable layers edited: entry summaries, digests and flag vocabulary | Live pass applied; the 2026-10-14 remainder is prepared as `scripts/phase13_flag_hygiene.py` and awaits one `--apply` ([record](#2026-10-15-the-taper-left-alone-the-fixtures-refreshed-step-0-closed-out)) |
-| 1 | Six broader, distinctive, playable persona scripts | Edited locally for script review; offline verification below; ensemble behavior awaits rehearsals |
-| 2 | Light shared premise and individual fourth-wall attitudes | Drafted locally with step 1; responses remain changeable; awaits script review/rehearsals |
-| 3 | Listening, reply, silence, and thread-continuity guidance | Shared/decision/reaction guidance edited within the existing window; observed continuity awaits rehearsals |
+| 0 | Durable layers edited: entry summaries, digests and flag vocabulary | Done. Live pass applied 2026-10-10; the flag-hygiene remainder (`scripts/phase13_flag_hygiene.py --apply`) had been applied by 2026-10-16, when every live tally agreed with its entry count ([prepared](#2026-10-15-the-taper-left-alone-the-fixtures-refreshed-step-0-closed-out), [observed applied](#2026-10-16-the-article-pass-and-what-the-live-store-shows)) |
+| 1 | Six broader, distinctive, playable persona scripts | Done. Written 2026-10-10, judged in the five-scene rehearsal ($0.1373) and deployed 2026-10-16; redefined again on 2026-10-26 with a separately approved recording refresh, outside this phase ([wrapper guide](llm-wrapper.md)) |
+| 2 | Light shared premise and individual fourth-wall attitudes | Done with step 1: rehearsed and deployed 2026-10-16; the individual responses were rewritten with the 2026-10-26 scripts |
+| 3 | Listening, reply, silence, and thread-continuity guidance | Done with step 1 within the existing window; rehearsed and deployed 2026-10-16. The on-turn gate was removed on 2026-10-15 so a rehearsal sees what the character wrote ([record](#2026-10-15-the-rehearsal-completed-and-step-6s-naming-and-pacing)) |
 | 4 | Debrief and condensation guidance that preserves social continuity, and one pass retiring the rules it supersedes | Deployed and accepted live 2026-10-14/15 ([record](#2026-10-15-step-4-accepted-live-and-a-debrief-lost-to-its-token-cap)); the generator retired the rules itself, so only the digest clause was applied |
 | 5 | Fallible Wikiclude guidance and aligned character/reference articles | Done: prompts 2026-10-15 ([record](#2026-10-15-step-5s-prompts-and-the-coordination-minimum-in-the-wiki)), live 2026-10-16; the article pass written 2026-10-16 as [Wikiclude's W8](wikiclude-plan.md#15-as-implemented-w8-2026-10-16) |
 | 6 | Consistent participant names and measured conversation pacing | Done 2026-10-15: names and the on-turn gate ([record](#2026-10-15-the-rehearsal-completed-and-step-6s-naming-and-pacing)); the off-turn taper is left alone on the evidence, with its baseline recorded ([record](#2026-10-15-the-taper-left-alone-the-fixtures-refreshed-step-0-closed-out)); `focus` remains deferred |
@@ -459,8 +476,12 @@ Keep a fixed starting snapshot, roster, prompts/model configuration and
 recorded transcript for comparisons. Repeat selected scenes to distinguish
 an improvement from one fortunate line; exact wording is not a golden test.
 
-Isolate the talk gate before judging any scene below. `chattiness` is 0.5
-for all six characters, none of the presets having set it. It used to apply
+Isolate the talk gate before judging any scene below. `chattiness` was 0.5
+for all six characters when these rehearsals ran, none of the presets having
+set it (**superseded 2026-10-26:** the presets now set it per character,
+Scarlett 0.5, Peacock 0.45, Green 0.4, White 0.35, Plum 0.3 and Mustard 0.25,
+David's choice about who talks rather than a measurement;
+[glossary](strategy-glossary.md#chattiness-presets-2026-10-26)). It used to apply
 twice: on turn it discarded a line the model had already written and been
 paid for, and off turn it governs joining an exchange at
 `chattiness ** (depth + 1)`, so a third consecutive reply survives about

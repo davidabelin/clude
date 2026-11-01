@@ -80,13 +80,11 @@ Phase 14 repeated the threshold and curiosity checks on post-landing-rule games.
 
 ### The quality of her numbers
 
-{{figure:scarlett-bench|Scarlett's log-loss through a game on the Classic board, against the uniform baseline. Lower is better.}}
+{{figure:scarlett-bench|Scarlett's log-loss through a game on the Classic board, against the uniform baseline, in the 15 September 2026 run. Lower is better.}}
 
 The [[belief benchmark]] scores each method's probabilities against the truth at four points in a game by [[log-loss]], against the [[uniform baseline]], the score of a player who believes what the deduction floor has proved and spreads the rest evenly.
 
-{{table:bench.grid|Historical comparison. The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
-
-In every recorded benchmark, Scarlett's log-loss was slightly higher than the baseline at every checkpoint.[^grid] The repeated adjustments reduced probability accuracy on average. In the Classic-board run, final first-choice accuracy was {{fact:bench.grid.Scarlett.top1}}, compared with {{fact:bench.grid.uniform.top1}} for the baseline. Her card ranking was slightly better while her probability estimates were worse.[^grid] This is consistent with the distinction between classification accuracy and [[w:Calibration (statistics)|calibration]] discussed in the naive Bayes literature.[^domingos]
+In every recorded benchmark, Scarlett's log-loss was slightly higher than the baseline at every checkpoint.[^grid] The repeated adjustments reduced probability accuracy on average. In the Classic-board run, final first-choice accuracy was {{fact:bench.grid.Scarlett.top1}}, compared with {{fact:bench.grid.uniform.top1}} for the baseline. Her card ranking was slightly better while her probability estimates were worse.[^grid] This is consistent with the distinction between classification accuracy and [[w:Calibration (statistics)|calibration]] discussed in the naive Bayes literature.[^domingos] Her method carries no learned state, and no benchmark since Phase 14 has re-scored it; that run is the latest.
 
 ### At the table
 
@@ -94,11 +92,9 @@ In every recorded benchmark, Scarlett's log-loss was slightly higher than the ba
 
 She won {{fact:arena.phase14.Scarlett.win}}% of the current control and made a wrong accusation in {{fact:arena.phase14.Scarlett.wrong}}%, still the highest observed error rate at the table.[^arena] Her first accusation came at mean turn {{fact:arena.phase14.Scarlett.first}}. The 40-seat-game sample describes this block, not a universal rate.
 
-The [[landing rule]] took her exact repeats of her own earlier suggestions on the mixed table from {{fact:landing.repeats.Scarlett.mixed}}.[^landing]
-
 ### With Claude in the seat
 
-In the [[Claude]] twin comparison, Scarlett's win rate was unchanged at {{fact:twin.grid.Scarlett.win_base}}%. Her wrong-accusation rate changed from {{fact:twin.grid.Scarlett.wrong_base}}% to {{fact:twin.grid.Scarlett.wrong_llm}}%, within the uncertainty of the run. The clearer behavioural change was fewer [[w:Bluff (poker)|held-card suggestions]]: {{fact:twin.grid.bluff.scarlett.base}} to {{fact:twin.grid.bluff.scarlett.llm}} per game. Those counts do not by themselves establish why the model changed its choices.[^twin]
+In Phase 14's paid leash screen, the current record of a model in her seat, she won one of eight games at her 0.25 preset and accused wrongly in two, the same as at leash 0; at 0.5 she won none and accused wrongly in four, and at 1 she won two and accused wrongly in three. Eight-game rows are screens, not promotion evidence, and no paired headless-against-model comparison has been run since the landing rule.[^current]
 
 ## Memory
 
@@ -107,7 +103,7 @@ Scarlett's method reads the current game's suggestion history afresh on every ca
 ## See also
 
 - [[Naive Bayes]], her method in full, with the worked example and the mathematics
-- [[Exact posterior enumeration]], [[PlumOG]]'s method, which gets the worked example right, and [[Professor Plum]], whose network does not
+- [[Exact posterior enumeration]], which gets the worked example right, and [[Professor Plum]], whose network does not
 - [[Mrs. Peacock]], the character at the other end of the caution scale
 - [[Accusation]] and [[Accusation threshold]]
 - [[Belief benchmark]] and [[Arena]]
@@ -127,8 +123,6 @@ Scarlett's method reads the current game's suggestion history afresh on every ca
 [^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
 [^arena]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
-[^landing]: {{cite:docs/strategy-glossary.md|The landing rule (Phase 8.0.4, 2026-09-18)}}
-[^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
 [^logbooks]: {{cite:docs/logbooks.md|Three tiers}}
 [^lives]: {{cite:docs/phase13-plan.md|1. Brief and settled decisions}}
 [^live]: {{cite:docs/phase13-plan.md|2026-10-15: step 4 accepted live, and a debrief lost to its token cap}}

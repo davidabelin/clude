@@ -22,27 +22,23 @@ Fixed-state [[logbook]] and [[method memory]] comparisons use read-only state. A
 
 An always-failing backend supplies a strong control: it reproduces headless events because every decision falls back. Zero leash alone is weaker. Ties can still request a reply, and the zero-leash menu can close held-card bluffs or lower-scoring softmax choices that headless sampling would otherwise make.
 
-## Recorded grid comparison
+## Recorded comparisons
 
-The 16 September 2026 Classic-board experiment paired 24 four-seat games, seed 7007, with the default six-character roster. Rotation gave each character sixteen seat-games. `grid-twin-base-24` was headless; `grid-twin-llm-24` piloted every seated character through Claude at the recorded presets.[^grid]
+The recorded twin comparisons, on the ring board on 13 September 2026 and on the Classic board on 16 September, paired 24 four-seat games with every seated character piloted through Claude at the presets of the time. Their tables stay in the maintainer glossary: they predate the [[landing rule]], the Phase 14 method rebuild and Plum's network, so they are not measurements of the current characters. In that sample Mustard's win rate rose and his wrong-accusation rate fell, Peacock won more and the Plum of the time won fewer, which already showed that the effect has no single direction.[^grid]
 
-{{table:twin.grid|Historical grid twin: outcome percentages per character's sixteen seat-games. Lost/gained reports paired wins exchanged between the two legs.}}
-
-Mustard's win rate rose and his wrong-accusation rate fell in this sample. Peacock also won more, while Plum won fewer. White had the same aggregate win rate but exchanged several individual wins. These results do not support a single direction of effect for every character.
-
-The model leg made {{fact:twin.grid.calls}} calls without a fallback in the recorded run. Mean game length changed from {{fact:twin.grid.turns.base}} turns headless to {{fact:twin.grid.turns.llm}} with the model. The recorded costs and timings belong to that run and its provider settings, not a current pricing guarantee.
+No twin comparison has been run since. The current paid evidence is Phase 14's leash screen, eight games per value per character, and the 24-pair confirmation of Plum's leash at his own three-seat table ([[Leash]]). Neither pairs a headless leg against a model leg on the same deals, so that measurement remains to be collected.[^leash]
 
 ## Diagnosing a result
 
 The audit separates choices played from calls made and records lower-score departures. Model choices can have a low departure rate yet change play through tied options, bluff selections or threshold decisions. Likewise, a long passage loop may mostly consist of single-option menus and be caused by the scoring policy rather than repeated model intervention.[^wrapper]
 
-Plum's separate three-seat grid experiment produced a different win-rate direction from the four-seat twin. Its narrative and audit helped identify passage repeats, and the later [[landing rule]] changed their numerical incentives. Board and roster context explain why one table's result should not be made universal.
+A separate three-seat experiment with the same character produced a different win-rate direction from the four-seat twin. Its narrative and audit helped identify passage repeats, and the later [[landing rule]] changed their numerical incentives. Board and roster context explain why one table's result should not be made universal.
 
 ## Uncertainty and scope
 
 Sixteen seat-games leave substantial uncertainty. A few exchanged wins can move a percentage sharply, and changing all model seats alters opponents as well as the character being summarised. Paired outcomes help locate differences, but are not by themselves evidence of a stable ranking.
 
-This experiment also predates the landing-rule change. A current comparison should preserve the historical table and report a new identified run rather than reinterpret it as a measurement of today's scores. Exact live-model reproduction requires recorded requests and replies in addition to the numerical seed.
+Those experiments predate the landing-rule change. A current comparison should report a new identified run rather than reinterpret them as measurements of today's scores. Exact live-model reproduction requires recorded requests and replies in addition to the numerical seed.
 
 
 ## See also
@@ -56,5 +52,6 @@ This experiment also predates the landing-rule change. A current comparison shou
 [^wrapper]: {{cite:docs/llm-wrapper.md|Measuring it}}
 [^arena]: {{cite:clude_training/arena.py|paired random streams and LLM statistics}}
 [^grid]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
+[^leash]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 
 {{navbox:clude}}

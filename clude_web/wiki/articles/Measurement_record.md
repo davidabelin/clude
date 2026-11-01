@@ -14,7 +14,7 @@ The board, roster, seats, seeds, profiles, code, weights and starting memory bel
 
 ## Frozen corpus and adaptive methods
 
-The Phase 14 manifest contains source URI, record hash, run and index, seed group, split and Plum generation for each eligible record. `web/*` records describe [[PlumOG]], while `plum-policy-ladder-*` and `web-2/*` describe the current network. The training split contains 90 records and validation 19, with no seed group crossing the boundary.[^phase14]
+The Phase 14 manifest contains source URI, record hash, run and index, seed group, split and Plum generation for each eligible record. `web/*` records describe the enumeration-era Plum, while `plum-policy-ladder-*` and `web-2/*` describe the current network. The training split contains 90 records and validation 19, with no seed group crossing the boundary.[^phase14]
 
 [[Decision tree|Mustard]] was rebuilt from 50 fresh self-play games plus the post-landing training rows, at depth 6, minimum leaf 40 and smoothing 1. [[Markov chain|White]] reduced remembered-prior mass from 4 to 2 and rebuilt her per-opponent transition counts. [[Bandit ensemble|Green]] began again at Beta(1,1), selected step 4 and decay 1.05, then trained and validated on separate 200-game blocks. Their accepted method documents were promoted at the 18 October release without replacing narrative logbooks.
 
@@ -49,7 +49,7 @@ Signed-in readers can use [[the lobby]]'s development folders to inspect availab
 
 ## Archive note
 
-Ring-board, pre-landing and earlier Classic-board calibrations are superseded. Their detailed evidence, commands and limitations remain in the maintainer strategy glossary and git history, but they are no longer presented as the public calibration of the current characters.
+Ring-board, pre-landing and earlier Classic-board calibrations are superseded. Their detailed evidence, commands and limitations remain in the maintainer strategy glossary and git history, but they are no longer presented as the public calibration of the current characters. Three measurements have not been made since Phase 14: a six-method [[belief benchmark]] on one set of current snapshots (Scarlett's and Peacock's methods were last benchmarked on 15 September 2026), a paired headless-against-model [[twin comparison]] with the current Plum weights, and a memory comparison that changes one seat's depth at a time.
 
 ## See also
 

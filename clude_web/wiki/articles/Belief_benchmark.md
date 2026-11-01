@@ -6,13 +6,13 @@ redirects: Benchmark, The benchmark
 ---
 The **belief benchmark** evaluates the six methods' probability estimates separately from their game decisions. It generates completed [[self-play]] games, constructs private observations at specified fractions of their [[suggestion|suggestion]] histories, and gives each method the same observations. Predictions are scored against the actual envelope using [[log-loss]], squared error and top-choice accuracy.[^code]
 
-The recorded [[Classic board]] run used {{fact:bench.grid.games}} floor-player games and {{fact:bench.grid.snapshots}} observations. Its checkpoints measure fractions of suggestions, not time or turns. These results describe prediction quality under that evidence-generating policy; the [[arena]] tests complete playing behaviour instead.
+The current Phase 14 run used {{fact:phase14.bench.games}} floor-player games and {{fact:phase14.bench.snapshots}} observations. Its checkpoints measure fractions of suggestions, not time or turns. These results describe prediction quality under that evidence-generating policy; the [[arena]] tests complete playing behaviour instead.
 
 ## One observation
 
 Consider a finished game containing twenty suggestions. At the half-way checkpoint, a viewer receives the first ten suggestions as that seat was entitled to see them, its own hand and the resulting floor deductions. Each method predicts the envelope cards from that same view. The scorer then compares the prediction with the actual envelope, which was withheld from the prediction input.[^snapshots]
 
-The other viewers of that game contribute their own private observations. A card shown to one is hidden from another. Those observations are related, not independent games. Reporting {{fact:bench.grid.snapshots}} observations does not imply that many independently shuffled deals.
+The other viewers of that game contribute their own private observations. A card shown to one is hidden from another. Those observations are related, not independent games. Reporting {{fact:phase14.bench.snapshots}} observations does not imply that many independently shuffled deals.
 
 ## Checkpoints and construction
 
@@ -42,17 +42,11 @@ Phase 14 compared the former Plum checkpoint with the fresh networks on 120 floo
 
 Run 3's loss was slightly higher at the first two checkpoints and slightly lower at the last two. All differences stayed inside the 0.02 acceptance margin, and both networks beat the uniform baseline at every checkpoint. This supports keeping belief quality while improving play in the separate balanced tournament; it does not show uniformly improved probability estimates.
 
-Mustard, White and Green were selected on a different 19-game held-out corpus. Their paired before/after losses appear in [[measurement record]]. Those candidate-selection scores and the older six-method table below have different evidence and starting states; they cannot be combined into a current six-method league table.
+Mustard, White and Green were selected on a different 19-game held-out corpus. Their paired before/after losses appear in [[measurement record]]. Those candidate-selection scores and Plum's benchmark have different evidence and starting states; they cannot be combined into a current six-method league table.
 
-## Recorded Classic-board results
+## What has not been measured
 
-{{table:bench.grid|Historical comparison. Log-loss per category at four checkpoints, top-1 accuracy at completion, and mid-game milliseconds per call. Classic board, 60 floor-player games, seed 4004, recorded 15 September 2026.}}
-
-White's method had lower loss than the uniform baseline at every checkpoint in this run. Mustard's tree was close to the baseline at half-way and had the lowest recorded final-checkpoint loss. Scarlett and Peacock had higher loss than the baseline throughout.[^grid]
-
-[[PlumOG]]'s half-way loss was {{fact:bench.grid.Plum.50}} against uniform's {{fact:bench.grid.uniform.50}}. The run reported {{fact:plum.fallback.calls}} sampled fallbacks among {{fact:bench.grid.snapshots}} calls. That is a fraction of benchmark calls, not the fraction of a typical game spent sampling. It also includes all checkpoints, not just half-way observations.
-
-This table used the earlier sample budget. Subsequent budget comparisons increased PlumOG's fallback target to {{code:plum.sample_budget}} samples while retaining {{code:plum.node_budget}} search nodes. The dated table remains a record of the earlier configuration, not an automatic rerun of today's code. Plum's seat is now the Phase 14 Run 3 network, which scores {{fact:plum.phase14.benchmark.run3.50}} at half-way on a separate 120-game current benchmark; its table is in [[regularised Nash dynamics]].[^budgets][^phase14]
+No benchmark since Phase 14 has scored all six methods on one set of snapshots. [[Miss Scarlett]]'s and [[Mrs. Peacock]]'s methods carry no learned state and were last benchmarked on 15 September 2026, in a Classic-board run that predates the [[landing rule]], the rebuilt methods and Plum's network; its table is kept in the maintainer glossary, not here. A fresh six-method run on current code, with the current Plum weights and the released method documents, is the measurement still to be collected before the methods can be ranked against one another again.[^grid]
 
 ## Adaptation and interpretation
 
@@ -78,7 +72,6 @@ The [[arena]] complements this test by letting beliefs, dials and opponents inte
 [^code]: {{cite:clude_training/benchmark.py|`run_benchmark` and `_Accumulator`}}
 [^snapshots]: {{cite:clude_training/self_play.py|`generate_snapshots` and `truncate_state`}}
 [^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
-[^budgets]: {{cite:docs/strategy-glossary.md|Tuned presets on the grid (Stage 1e, 2026-09-15)}}
 [^phase14]: {{cite:docs/strategy-glossary.md|Phase 14 Run 3, the current Plum (2026-10-18)}}
 
 {{navbox:clude}}

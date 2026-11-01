@@ -460,11 +460,11 @@ def test_the_three_kinds_of_link_are_told_apart():
 
 
 def test_facts_mathematics_and_a_literal_dollar():
-    out = _render(r"Plum scored {{fact:bench.grid.Plum.50}} and waits for {{code:preset.Plum.accuse_threshold}}. It cost \$0.25, and $x^2$ is mathematics.")
-    assert "Plum scored 1.75 and waits for 0.9." in out.html
+    out = _render(r"Plum scored {{fact:bench.grid.White.50}} and waits for {{code:preset.Plum.accuse_threshold}}. It cost \$0.25, and $x^2$ is mathematics.")
+    assert "Plum scored 1.28 and waits for 0.9." in out.html
     assert "It cost $0.25" in out.html
     assert "<math" in out.html and "<msup>" in out.html
-    assert out.ctx.facts == {"bench.grid.Plum.50"} and out.ctx.codes == {"preset.Plum.accuse_threshold"}
+    assert out.ctx.facts == {"bench.grid.White.50"} and out.ctx.codes == {"preset.Plum.accuse_threshold"}
     block = _render("Before.\n\n$$ \\frac{a}{b} $$\n\nAfter.")
     assert '<div class="math-block"><math' in block.html and 'display="block"' in block.html
 
@@ -493,12 +493,12 @@ def test_an_algorithm_box_keeps_its_steps_as_written():
 
 @pytest.mark.parametrize("delimiter", ("$", "$$"))
 def test_values_in_mathematics_are_resolved_and_tracked(delimiter):
-    latex = "N = {{code:certainty.triples}}, x = {{fact:bench.grid.Plum.50}}"
+    latex = "N = {{code:certainty.triples}}, x = {{fact:bench.grid.White.50}}"
     text = f"$$ {latex} $$" if delimiter == "$$" else f"${latex}$"
     out = _render(text)
-    assert "<mn>324</mn>" in out.html and "<mn>1.75</mn>" in out.html
+    assert "<mn>324</mn>" in out.html and "<mn>1.28</mn>" in out.html
     assert out.ctx.codes == {"certainty.triples"}
-    assert out.ctx.facts == {"bench.grid.Plum.50"}
+    assert out.ctx.facts == {"bench.grid.White.50"}
     assert "code:" not in out.html and "fact:" not in out.html
     for kind in ("code", "fact"):
         bad = "{{" + kind + ":no.such.value}}"

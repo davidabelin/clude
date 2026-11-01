@@ -106,7 +106,7 @@ Scarlett's heuristic differs from a textbook naive Bayes [[w:Statistical classif
 
 The textbook product requires [[w:Conditional independence|conditional independence]] and valid likelihood ratios. At a card table, repeated [[suggestion|suggestions]] can share a cause: the same card in the refuter's hand. Treating that [[w:Confounding|common cause]] as fresh evidence can push a score too far towards 0 or 1. Dependence does not always produce overconfidence, but this example shows how double-counting can do so.
 
-Scarlett also discards information in an unseen disproof. She discounts the three named cards equally, although the evidence concerns them jointly: "at least one is in that hand". An [[exact posterior enumeration]], [[PlumOG]]'s method, retains that joint constraint. She does not use the identity or hand size of the disprover; [[Mrs. Peacock]]'s [[Dempster-Shafer theory|method]] uses both when weighting an open fact.
+Scarlett also discards information in an unseen disproof. She discounts the three named cards equally, although the evidence concerns them jointly: "at least one is in that hand". An [[exact posterior enumeration]] retains that joint constraint. She does not use the identity or hand size of the disprover; [[Mrs. Peacock]]'s [[Dempster-Shafer theory|method]] uses both when weighting an open fact.
 
 ## In clude
 
@@ -120,15 +120,13 @@ Her [[personality dials]] turn the belief into play. She [[accusation|accuses]] 
 
 ### The quality of her numbers
 
-{{figure:scarlett-bench|Scarlett's [[log-loss]] through a game on the Classic board, against the [[uniform baseline]]: a little worse than knowing only what is certain, at every checkpoint. Lower is better.}}
+{{figure:scarlett-bench|Scarlett's [[log-loss]] through a game on the Classic board in the 15 September 2026 run, against the [[uniform baseline]]: a little worse than knowing only what is certain, at every checkpoint. Lower is better.}}
 
 The [[belief benchmark]] scores each method's probabilities against the truth at four points in a game, by [[log-loss]]: lower is better. The [[uniform baseline]] is the score of a player who believes exactly what the deduction floor has proved and spreads the rest evenly.
 
-{{table:bench.grid|Historical comparison. The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026. Plum's row was measured before his sample was enlarged.}}
-
 Scarlett's log-loss was slightly worse than the baseline at every checkpoint in this benchmark. Her score adjustments therefore reduced accuracy on average, compared with spreading probability evenly over the floor's remaining candidates. The earlier benchmark showed the same pattern. The project notes attribute it to repeated, overlapping disproofs, which are more common than undisproved suggestions until late in a game.[^ring]
 
-Two other metrics help interpret the result. At the end checkpoint, Scarlett's first choice in each category was correct with frequency {{fact:bench.grid.Scarlett.top1}}, compared with {{fact:bench.grid.uniform.top1}} for the baseline. Her ranking was therefore slightly better despite her worse log-loss; ranking and [[w:Calibration (statistics)|calibration]] measure different properties.[^domingos] She also answered in a fraction of a millisecond in this benchmark. [[Professor Plum]] and [[Mr. Green]], whose method consults Plum's, took about half a second per call.
+Two other metrics help interpret the result. At the end checkpoint, Scarlett's first choice in each category was correct with frequency {{fact:bench.grid.Scarlett.top1}}, compared with {{fact:bench.grid.uniform.top1}} for the baseline. Her ranking was therefore slightly better despite her worse log-loss; ranking and [[w:Calibration (statistics)|calibration]] measure different properties.[^domingos] She also answered in a fraction of a millisecond in this benchmark. Her method carries no learned state, and no benchmark since Phase 14 has re-scored it.
 
 ### At the table
 

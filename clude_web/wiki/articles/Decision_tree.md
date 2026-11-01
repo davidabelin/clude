@@ -130,11 +130,9 @@ These are configuration-selection results, with the final state released on 18 O
 
 ### The quality of his numbers
 
-In the earlier benchmark the tree had the best belief of the six at the end of a game, {{fact:bench.ring.Mustard.100}}, and one of the worst in the middle, {{fact:bench.ring.Mustard.50}} and {{fact:bench.ring.Mustard.75}} against the baseline's {{fact:bench.ring.uniform.50}} and {{fact:bench.ring.uniform.75}}: confidently wrong, where the other methods were merely uncertain.[^ring] On the first benchmark of all, before the floor bot and the smoothing, its score at the end had been {{fact:mustard.phase4}} against the baseline's {{fact:uniform.phase4}}, two-thirds of it from the {{fact:phase4.zero_categories}} per cent of categories where a leaf put exactly nothing on the true card.[^phase4]
+On the first benchmark of all, before the floor bot and the smoothing, its score at the end had been {{fact:mustard.phase4}} against the baseline's {{fact:uniform.phase4}}, two-thirds of it from the {{fact:phase4.zero_categories}} per cent of categories where a leaf put exactly nothing on the true card.[^phase4]
 
-{{table:bench.grid|Historical comparison. The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
-
-In the Classic-board benchmark, with the tree trained on that board, halfway loss was {{fact:bench.grid.Mustard.50}}, compared with the baseline's {{fact:bench.grid.uniform.50}}. Final loss was {{fact:bench.grid.Mustard.100}}, the lowest of the six methods, and final first-choice accuracy was {{fact:bench.grid.Mustard.top1}}, the highest. The improved results are consistent with training on a more suitable game distribution, although several aspects of the regime changed together.[^grid]
+In the 15 September 2026 Classic-board benchmark, with the tree trained on that board, halfway loss was {{fact:bench.grid.Mustard.50}}, compared with the baseline's {{fact:bench.grid.uniform.50}}; final loss was {{fact:bench.grid.Mustard.100}} and final first-choice accuracy {{fact:bench.grid.Mustard.top1}}, the best of any method in that run. It predates the landing rule and the Phase 14 rebuild, whose validation above is the current measurement.[^grid]
 
 ### At the table
 
@@ -172,7 +170,6 @@ The current paid leash screen recorded seven wins in eight games at Mustard's 0.
 [^phase5]: {{cite:docs/phase5-plan.md|4.2 Mustard: calibration, then distribution}}
 [^base]: {{cite:clude_agents/base.py|`mask_and_normalize`}}
 [^phase4]: {{cite:docs/strategy-glossary.md|Phase 4 benchmark results (RandomBot regime, historical)}}
-[^ring]: {{cite:docs/strategy-glossary.md|Belief benchmark, FloorBot regime (Phase 5)}}
 [^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
 [^arena]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}

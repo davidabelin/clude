@@ -61,17 +61,16 @@ class Table:
 _SUSPECT_LABELS = {
     "Scarlett": "[[Miss Scarlett|Scarlett]]", "Mustard": "[[Colonel Mustard|Mustard]]",
     "White": "[[Mrs. White|White]]", "Green": "[[Mr. Green|Green]]",
-    "Peacock": "[[Mrs. Peacock|Peacock]]", "Plum": "[[PlumOG]]",
+    "Peacock": "[[Mrs. Peacock|Peacock]]",
     "uniform": "[[Uniform baseline|uniform (baseline)]]",
 }
-"""Row labels for the measured tables. Every table before Phase 12
-measured the enumeration agent archived as PlumOG, so his rows say so;
-the network's tables label him `_PLUM`."""
+"""Row labels for the measured tables. Plum appears only in the Phase 14
+tables, whose rows name him in their literals; the pre-Phase-12
+enumeration agent's rows were removed from the public corpus on
+2026-11-01 and stay in the glossary."""
 
 _PLUM = "[[Professor Plum|Plum]]"
 DEEPNASH_PLAN = "docs/deepnash-plan.md"
-_POLICY_BENCH = "Belief benchmark, the network (N5)"
-_POLICY_ARENAS = "Arenas on the standard seeds"
 _PHASE14_PLUM = "Phase 14 Run 3, the current Plum (2026-10-18)"
 _PHASE14_DIALS = "Phase 14 dial recalibration (2026-10-18)"
 _PHASE14_METHODS = "Phase 14 adaptive-method validation (2026-10-17)"
@@ -79,15 +78,10 @@ _RUN1 = "The first long run, `run150a` (2026-10-06)"
 _RUN2 = "The second run, `run2`, and the export (2026-10-06)"
 
 # The glossary headings the facts below are found under, named once.
-_BENCH_RING = "Belief benchmark, FloorBot regime (Phase 5)"
 _BENCH_GRID = "Belief benchmark on the grid (Stage 1a)"
 _PHASE4 = "Phase 4 benchmark results (RandomBot regime, historical)"
-_TWIN_RING = "Twin comparison (2026-09-13)"
-_TWIN_GRID = "Twin comparison on the grid (Stage 2a, 2026-09-16)"
 _MEMORY = "Phase 7: memory (2026-09-14)"
 _LANDING = "The landing rule (Phase 8.0.4, 2026-09-18)"
-_LOGBOOK = "Plum's logbook at leash 0.5 (2026-09-14)"
-_PLUM_CLAUDE = "Plum with Claude on the grid (Stage 2b, 2026-09-16)"
 _SELF_PLAY = "Self-play regimes: `RandomBot` and `FloorBot` (Phase 5b)"
 
 TABLES: dict = {
@@ -100,101 +94,9 @@ TABLES: dict = {
             "White": (_SUSPECT_LABELS["White"], "| White | 1.54 | 1.28 | 0.91 | 0.23 | 0.91 | 0.1 |"),
             "Mustard": (_SUSPECT_LABELS["Mustard"], "| Mustard | 1.57 | 1.34 | 0.99 | 0.19 | 0.93 | 0.2 |"),
             "Green": (_SUSPECT_LABELS["Green"], "| Green | 1.55 | 1.38 | 0.97 | 0.20 | 0.93 | 524 |"),
-            "Plum": (_SUSPECT_LABELS["Plum"], "| Plum | 1.64 | 1.75 | 1.15 | 0.22 | 0.91 | 530 |"),
             "uniform": (_SUSPECT_LABELS["uniform"], "| uniform (baseline) | 1.57 | 1.35 | 1.01 | 0.29 | 0.83 | - |"),
             "Scarlett": (_SUSPECT_LABELS["Scarlett"], "| Scarlett | 1.62 | 1.48 | 1.18 | 0.30 | 0.87 | 0.1 |"),
             "Peacock": (_SUSPECT_LABELS["Peacock"], "| Peacock | 1.63 | 1.46 | 1.13 | 0.31 | 0.83 | 0.2 |"),
-        },
-    ),
-    # The same benchmark on the ring board, Phase 5.
-    "bench.ring": Table(
-        GLOSSARY, "Belief benchmark, FloorBot regime (Phase 5)",
-        ("Method", "25%", "50%", "75%", "100%", "Top-1 at 100%", "ms per call at 50%"),
-        ("25", "50", "75", "100", "top1", "ms"),
-        {
-            "Plum": (_SUSPECT_LABELS["Plum"], "| Plum | 1.55 | 1.49 | 0.95 | 0.23 | 0.93 | 375 |"),
-            "Green": (_SUSPECT_LABELS["Green"], "| Green | 1.54 | 1.38 | 0.99 | 0.23 | 0.94 | 380 |"),
-            "Mustard": (_SUSPECT_LABELS["Mustard"], "| Mustard | 1.52 | 1.50 | 1.19 | 0.22 | 0.93 | 0.1 |"),
-            "White": (_SUSPECT_LABELS["White"], "| White | 1.53 | 1.28 | 0.94 | 0.32 | 0.88 | 0.1 |"),
-            "uniform": (_SUSPECT_LABELS["uniform"], "| uniform (baseline) | 1.60 | 1.36 | 1.03 | 0.40 | 0.77 | - |"),
-            "Scarlett": (_SUSPECT_LABELS["Scarlett"], "| Scarlett | 1.69 | 1.49 | 1.20 | 0.41 | 0.84 | 0.0 |"),
-            "Peacock": (_SUSPECT_LABELS["Peacock"], "| Peacock | 1.68 | 1.45 | 1.10 | 0.41 | 0.78 | 0.2 |"),
-        },
-    ),
-    # Plum's enumeration at four budgets, 2026-09-15.
-    "budget.grid": Table(
-        GLOSSARY, "Tuned presets on the grid (Stage 1e, 2026-09-15)",
-        ("Search nodes / samples", "25%", "50%", "75%", "100%", "Calls that fell back", "ms per call at 50%"),
-        ("25", "50", "75", "100", "fallback", "ms"),
-        {
-            "200k-2k": ("200,000 / 2,000 (until 15 September 2026)", "| 200k / 2k (until today) | 1.64 | 1.75 | 1.15 | 0.22 | 490 | 289 |"),
-            "200k-10k": ("**200,000 / 10,000 (adopted)**", "| 200k / 10k (adopted) | 1.52 | 1.44 | 1.00 | 0.22 | 490 | 669 |"),
-            "1M-2k": ("1,000,000 / 2,000", "| 1M / 2k | 1.56 | 1.66 | 1.03 | 0.22 | 384 | 740 |"),
-            "1M-10k": ("1,000,000 / 10,000", "| 1M / 10k | 1.51 | 1.41 | 0.93 | 0.22 | 384 | 1113 |"),
-            "uniform": (_SUSPECT_LABELS["uniform"], "| uniform (baseline) | 1.57 | 1.35 | 1.01 | 0.29 | -- | -- |"),
-        },
-    ),
-    # Every character with and without Claude, four seats, 2026-09-16.
-    "twin.grid": Table(
-        GLOSSARY, "Twin comparison on the grid (Stage 2a, 2026-09-16)",
-        ("Character", "Won, alone", "Won, with Claude", "Games lost / gained", "Wrong, alone", "Wrong, with Claude",
-         "First accusation, alone", "First accusation, with Claude", "Never accused, alone", "Never accused, with Claude"),
-        ("win_base", "win_llm", "swing", "wrong_base", "wrong_llm", "first_base", "first_llm", "never_base", "never_llm"),
-        {
-            "Scarlett": (_SUSPECT_LABELS["Scarlett"], "| Scarlett | 6.2 | 6.2 | 1 / 1 | 25.0 | 31.2 | 41.0 | 38.2 | 68.8 | 62.5 |"),
-            "Mustard": (_SUSPECT_LABELS["Mustard"], "| Mustard | 12.5 | **31.2** | 1 / 4 | 31.2 | **6.2** | 39.1 | 34.2 | 56.2 | 62.5 |"),
-            "White": (_SUSPECT_LABELS["White"], "| White | 50.0 | 50.0 | 5 / 5 | 0.0 | 0.0 | 53.4 | 35.8 | 50.0 | 50.0 |"),
-            "Green": (_SUSPECT_LABELS["Green"], "| Green | 31.2 | 25.0 | 4 / 3 | 0.0 | 6.2 | 39.8 | 34.4 | 68.8 | 68.8 |"),
-            "Peacock": (_SUSPECT_LABELS["Peacock"], "| Peacock | 12.5 | 31.2 | 2 / 5 | 0.0 | 0.0 | 56.5 | 33.2 | 87.5 | 68.8 |"),
-            "Plum": (_SUSPECT_LABELS["Plum"], "| Plum | **37.5** | **6.2** | 6 / 1 | 0.0 | 0.0 | 29.0 | 40.0 | 62.5 | 93.8 |"),
-        },
-    ),
-    # Plum alone with Claude at a three-seat table, 2026-09-16.
-    "plum.claude": Table(
-        GLOSSARY, "Plum with Claude on the grid (Stage 2b, 2026-09-16)",
-        ("Run", "Won", "+/-", "Accused wrongly", "First accusation (turn)", "Never accused", "Mean turns"),
-        ("win", "std", "wrong", "first", "never", "turns"),
-        {
-            "base": ("Plum alone (`grid-plum-base-24`)", "| `grid-plum-base-24` (headless) | 37.5 | 9.9 | 0 | 31.0 | 62.5 | 31.9 |"),
-            "llm": ("Plum with Claude (`grid-plum-llm-24`)", "| `grid-plum-llm-24` (with Claude) | 54.2 | 10.2 | 0 | 34.8 | 45.8 | 42.6 |"),
-        },
-    ),
-    # Plum with Claude, with and without his own logbook, 2026-09-14 (ring).
-    "plum.logbook": Table(
-        GLOSSARY, "Plum's logbook at leash 0.5 (2026-09-14)",
-        ("", "Won", "Accused wrongly", "First accusation (turn)", "Never accused", "Mean turns"),
-        ("win", "wrong", "first", "never", "turns"),
-        {
-            "off": ("Without a logbook", "| logbook off | 54.2 | 0.0 | 20.5 | 45.8 | 25.6 | 478 | 40 | 5.2% | 6.54 | 31,689 |"),
-            "on": ("With his logbook", "| logbook on | 50.0 | 8.3 | 21.7 | 41.7 | 20.6 | 353 | 52 | 8.8% | 5.67 | 28,480 |"),
-        },
-    ),
-    # The ring board's twin comparison, Phase 6, 2026-09-13.
-    "twin.ring": Table(
-        GLOSSARY, _TWIN_RING,
-        ("Character", "Won, alone", "Won, with Claude", "Wrong, alone", "Wrong, with Claude", "First accusation, alone", "First accusation, with Claude"),
-        ("win_base", "win_llm", "wrong_base", "wrong_llm", "first_base", "first_llm"),
-        {
-            "Scarlett": (_SUSPECT_LABELS["Scarlett"], "| Scarlett | 12.5 | 12.5 | 37.5 | 31.2 | 23.4 | 19.3 |"),
-            "Mustard": (_SUSPECT_LABELS["Mustard"], "| Mustard | 12.5 | **37.5** | 37.5 | **6.2** | 22.2 | 18.1 |"),
-            "White": (_SUSPECT_LABELS["White"], "| White | 12.5 | 25.0 | 0.0 | 0.0 | 29.5 | 22.5 |"),
-            "Green": (_SUSPECT_LABELS["Green"], "| Green | 25.0 | 31.2 | 6.2 | 6.2 | 30.0 | 17.3 |"),
-            "Peacock": (_SUSPECT_LABELS["Peacock"], "| Peacock | 12.5 | 12.5 | 0.0 | 0.0 | 24.0 | 18.5 |"),
-            "Plum": (_SUSPECT_LABELS["Plum"], "| Plum | **75.0** | **31.2** | 0.0 | 0.0 | 27.8 | 26.2 |"),
-        },
-    ),
-    # Exact repeats of a seat's own earlier suggestion, before and after the landing rule.
-    "landing.repeats": Table(
-        GLOSSARY, _LANDING,
-        ("Character", "Tables of three to six", "Tables of four", "Plum's table of three"),
-        ("mixed", "four", "three"),
-        {
-            "Plum": (_SUSPECT_LABELS["Plum"], "| Plum | 66 of 154 (43%) to 5 of 84 (6%) | 15 of 104 (14%) to 8 of 70 (11%) | 47 of 187 (25%) to 6 of 138 (4%) |"),
-            "Mustard": (_SUSPECT_LABELS["Mustard"], "| Mustard | 10 (12%) to 4 (6%) | 7 (10%) to 0 | 8 (7%) to 1 (1%) |"),
-            "Peacock": (_SUSPECT_LABELS["Peacock"], "| Peacock | 37 (25%) to 3 (3%) | 15 (15%) to 5 (8%) | -- |"),
-            "White": (_SUSPECT_LABELS["White"], "| White | 26 (17%) to 11 (9%) | 13 (11%) to 3 (4%) | -- |"),
-            "Scarlett": (_SUSPECT_LABELS["Scarlett"], "| Scarlett | 14 (15%) to 0 | 0 to 1 | -- |"),
-            "Green": (_SUSPECT_LABELS["Green"], "| Green | 4 (6%) to 0 | 8 (12%) to 0 | 2 (2%) to 1 (1%) |"),
         },
     ),
 }
@@ -388,61 +290,6 @@ TABLES.update({
             "0.6": ("0.60 (candidate)", "| 0.60 (candidate) | 24 | 6 | 25.0 | 0 | 35.79 | 432 | $5.0363 |"),
         },
     ),
-    # Phase 12: the trained Plum, measured headless on 2026-10-07.
-    "bench.policy": Table(
-        GLOSSARY, _POLICY_BENCH,
-        ("Method", "25%", "50%", "75%", "100%", "Top-1 at 100%", "ms per call at 50%"),
-        ("25", "50", "75", "100", "top1", "ms"),
-        {
-            "Plum": (_PLUM + " (network)", "| Plum (network) | 1.48 | 1.21 | 0.86 | 0.21 | 0.92 | 0.7 |"),
-            "Green": ("[[Mr. Green|Green]] (Plum arm the network)", "| Green (Plum arm the network) | 1.50 | 1.21 | 0.84 | 0.19 | 0.94 | 1.6 |"),
-            "White": (_SUSPECT_LABELS["White"], "| White | 1.54 | 1.28 | 0.91 | 0.23 | 0.91 | 0.1 |"),
-            "Mustard": (_SUSPECT_LABELS["Mustard"], "| Mustard | 1.57 | 1.34 | 0.99 | 0.19 | 0.93 | 0.3 |"),
-            "uniform": (_SUSPECT_LABELS["uniform"], "| uniform (baseline) | 1.57 | 1.35 | 1.01 | 0.29 | 0.83 | - |"),
-            "PlumOG": ("[[PlumOG]], 10,000 samples", "| PlumOG, 10,000 samples (Stage 1e) | 1.52 | 1.44 | 1.00 | 0.22 | - | 669 |"),
-            "Scarlett": (_SUSPECT_LABELS["Scarlett"], "| Scarlett | 1.62 | 1.48 | 1.18 | 0.30 | 0.87 | 0.1 |"),
-            "Peacock": (_SUSPECT_LABELS["Peacock"], "| Peacock | 1.63 | 1.46 | 1.13 | 0.31 | 0.83 | 0.3 |"),
-        },
-    ),
-    "arena.policy": Table(
-        GLOSSARY, _POLICY_ARENAS,
-        ("Table, 24 games at seed 7007", "Plum won %", "+-", "Wrong %"),
-        ("win", "std", "wrong"),
-        {
-            "own": ("His own table: Plum, Mustard, Green", "| `arena --games 24 --seed 7007 --players 3 --roster Plum,Mustard,Green` | 54.2 | 10.2 | 0.0 |"),
-            "six": ("All six characters (16 games with Plum seated)", "| `arena --games 24 --seed 7007` (six characters, 16 games with Plum seated) | 12.5 | 8.3 | 0.0 |"),
-            "og.own": ("[[PlumOG]] at his own table", "| PlumOG, `grid-plum-prox2-24` (his table, landing rule kept) | 58.3 | 10.1 | 0 |"),
-            "og.six": ("[[PlumOG]] with all six", "| PlumOG, `arena-grid-prox2-24` (six characters, landing rule kept) | 37.5 | 12.1 | 0 |"),
-        },
-    ),
-    # The two training runs' late checkpoints, re-measured on 96 games a table.
-    "plum.run1": Table(
-        DEEPNASH_PLAN, _RUN1,
-        ("Checkpoint", "Log-loss 25/50/75/100%", "His table: won %", "Wrong %", "Six characters: won %"),
-        ("logloss", "win", "wrong", "six"),
-        {
-            "100": ("100", "| 100 | 1.49 / 1.23 / 0.87 / 0.22 | 24.0 | 1.0 | 15.6 |"),
-            "110": ("110", "| **110** | **1.47 / 1.22 / 0.86 / 0.21** | **32.3** | **0.0** | **12.5** |"),
-            "120": ("120", "| 120 | 1.48 / 1.23 / 0.87 / 0.22 | 28.1 | 0.0 | 15.6 |"),
-            "130": ("130", "| 130 | 1.50 / 1.26 / 0.90 / 0.23 | 20.8 | 1.0 | 10.9 |"),
-            "140": ("140", "| 140 | 1.50 / 1.27 / 0.90 / 0.25 | 18.8 | 1.0 | 12.5 |"),
-            "150": ("150", "| 150 | 1.51 / 1.27 / 0.91 / 0.24 | 12.5 | 1.0 | 4.7 |"),
-        },
-    ),
-    "plum.run2": Table(
-        DEEPNASH_PLAN, _RUN2,
-        ("Checkpoint", "Log-loss 25/50/75/100%", "His table: won %", "Wrong %", "Six characters: won %"),
-        ("logloss", "win", "wrong", "six"),
-        {
-            "60": ("60", "| 60 | 1.48 / 1.21 / 0.85 / 0.22 | 25.0 | 2.1 | 9.4 |"),
-            "80": ("80", "| 80 | 1.49 / 1.22 / 0.87 / 0.21 | 36.5 | 1.0 | 21.9 |"),
-            "100": ("100", "| 100 | 1.48 / 1.20 / 0.84 / 0.21 | 35.4 | 1.0 | 12.5 |"),
-            "120": ("120", "| 120 | 1.47 / 1.20 / 0.85 / 0.21 | 44.8 | 0.0 | 15.6 |"),
-            "130": ("130 (exported)", "| **130** | **1.48 / 1.21 / 0.86 / 0.21** | **49.0** | **0.0** | **21.9** |"),
-            "140": ("140", "| 140 | 1.48 / 1.20 / 0.86 / 0.21 | 38.5 | 0.0 | 20.3 |"),
-            "150": ("150", "| 150 | 1.48 / 1.21 / 0.87 / 0.21 | 37.5 | 1.0 | 21.9 |"),
-        },
-    ),
 })
 
 FACTS: dict = {
@@ -454,42 +301,14 @@ FACTS: dict = {
     "bench.grid.games": Fact("60", GLOSSARY, "Belief benchmark on the grid (Stage 1a)", "benchmark --games 60 --seed 4004"),
     "bench.zero_cost": Fact("20.7", GLOSSARY, "Belief benchmark, FloorBot regime (Phase 5)", "a hard 0 on the true card would cost 20.7"),
     "plum.fallback.calls": Fact("490", GLOSSARY, "Belief benchmark on the grid (Stage 1a)", "490 of 1080 calls"),
-    "plum.fallback.samples": Fact("1,485", GLOSSARY, "Belief benchmark on the grid (Stage 1a)", "1485 samples"),
-    "plum.ring.ms": Fact("450", GLOSSARY, "Plum -- Exact posterior enumeration", "about 450 ms per call"),
-    "plum.suite.before": Fact("95", GLOSSARY, "Tuned presets on the grid (Stage 1e, 2026-09-15)", "from about 95 s to about 220 s"),
-    "plum.suite.after": Fact("220", GLOSSARY, "Tuned presets on the grid (Stage 1e, 2026-09-15)", "from about 95 s to about 220 s"),
-    "plum.twin.sigma": Fact("2.3", GLOSSARY, "Twin comparison on the grid (Stage 2a, 2026-09-16)", "Plum's -31 is about 2.3 sigma"),
-    "plum.claude.lost": Fact("5", GLOSSARY, "Plum with Claude on the grid (Stage 2b, 2026-09-16)", "Plum lost 5 and gained 9"),
-    "plum.claude.gained": Fact("9", GLOSSARY, "Plum with Claude on the grid (Stage 2b, 2026-09-16)", "Plum lost 5 and gained 9"),
-    "plum.loop.before": Fact("66 of 154", GLOSSARY, _LANDING, "| Plum | 66 of 154 (43%) to 5 of 84 (6%)"),
-    "plum.loop.before.pct": Fact("43", GLOSSARY, _LANDING, "| Plum | 66 of 154 (43%) to 5 of 84 (6%)"),
-    "plum.loop.after": Fact("5 of 84", GLOSSARY, _LANDING, "| Plum | 66 of 154 (43%) to 5 of 84 (6%)"),
-    "plum.loop.after.pct": Fact("6", GLOSSARY, _LANDING, "| Plum | 66 of 154 (43%) to 5 of 84 (6%)"),
     "plum.landing.passage": Fact("0.50", GLOSSARY, _LANDING, "scored 0.50 at curiosity 0.5 against 0.29"),
     "plum.landing.walk": Fact("0.29", GLOSSARY, _LANDING, "scored 0.50 at curiosity 0.5 against 0.29"),
-    "plum.loop.claude": Fact("148 of 291", GLOSSARY, _PLUM_CLAUDE, "| grid with Claude, `grid-plum-llm-24` | 54 / 149 | 40 / 108 | 148 of 291 (51%)"),
-    "plum.loop.claude.pct": Fact("51", GLOSSARY, _PLUM_CLAUDE, "148 of 291 (51%)"),
-    "plum.loop.alone": Fact("47 of 187", GLOSSARY, _PLUM_CLAUDE, "| grid headless, `grid-plum-base-24` | -- | -- | 47 of 187 (25%)"),
-    "plum.loop.alone.pct": Fact("25", GLOSSARY, _PLUM_CLAUDE, "47 of 187 (25%)"),
-    "plum.loop.game.from": Fact("72", GLOSSARY, _PLUM_CLAUDE, "From turn 72 to 121 he did nothing else, twenty suggestions"),
-    "plum.loop.game.to": Fact("121", GLOSSARY, _PLUM_CLAUDE, "From turn 72 to 121 he did nothing else, twenty suggestions"),
-    "plum.loop.game.won": Fact("122", GLOSSARY, _PLUM_CLAUDE, "Green won on turn 122 (headless, turn 45)"),
-    "plum.loop.unasked": Fact("108 of 148", GLOSSARY, _PLUM_CLAUDE, "(108 of 148)"),
-    "plum.logbook.stalls.off": Fact("97", GLOSSARY, _LOGBOOK, "his stalls fall from 97 to 40 over the run"),
-    "plum.logbook.stalls.on": Fact("40", GLOSSARY, _LOGBOOK, "his stalls fall from 97 to 40 over the run"),
-    "plum.logbook.last.off": Fact("37", GLOSSARY, _LOGBOOK, "in the last quarter from 37 to 3"),
-    "plum.logbook.last.on": Fact("3", GLOSSARY, _LOGBOOK, "in the last quarter from 37 to 3"),
-    "plum.logbook.games": Fact("24", GLOSSARY, _LOGBOOK, "24 paired games"),
     "landing.turns.before": Fact("53.9", GLOSSARY, _LANDING, "| `arena-grid-tuned-24` (3-6 seats, baseline) | 53.9 | 29.0 | 229 | 600 / 597 |"),
     "landing.turns.after": Fact("45.9", GLOSSARY, _LANDING, "| `arena-grid-prox2-24` (kept) | **45.9** | 18.4 | 127 | 390 / 660 |"),
     "landing.suggestions.before": Fact("29.0", GLOSSARY, _LANDING, "| `arena-grid-tuned-24` (3-6 seats, baseline) | 53.9 | 29.0 | 229 | 600 / 597 |"),
     "landing.suggestions.after": Fact("18.4", GLOSSARY, _LANDING, "| `arena-grid-prox2-24` (kept) | **45.9** | 18.4 | 127 | 390 / 660 |"),
     # The benchmarks' sizes, and the historical one.
-    "bench.ring.snapshots": Fact("1,080", GLOSSARY, _BENCH_RING, "1080 snapshots"),
-    "bench.ring.seconds": Fact("573", GLOSSARY, _BENCH_RING, "573 s"),
-    "bench.grid.seconds": Fact("799", GLOSSARY, _BENCH_GRID, "799 s"),
     "phase4.games": Fact("60", GLOSSARY, _PHASE4, "60 `RandomBot` games"),
-    "plum.phase4": Fact("0.45", GLOSSARY, _PHASE4, "Plum 0.45"),
     "scarlett.phase4": Fact("0.49", GLOSSARY, _PHASE4, "Scarlett 0.49"),
     "peacock.phase4": Fact("0.53", GLOSSARY, _PHASE4, "Peacock 0.53"),
     "uniform.phase4": Fact("0.47", GLOSSARY, _PHASE4, "uniform 0.47"),
@@ -504,36 +323,6 @@ FACTS: dict = {
     "floor.solved": Fact("a third", "docs/architecture.md", _SELF_PLAY, "a third of viewers holding a proven envelope at the end"),
     "random.suggestions": Fact("80-180", "docs/architecture.md", _SELF_PLAY, "the old regime ran 80-180 suggestions"),
     # Arenas: how long a game ran.
-    # The twin comparisons.
-    "twin.ring.turns.base": Fact("26.8", GLOSSARY, _TWIN_RING, "Mean game length fell from 26.8 turns to 20.3"),
-    "twin.ring.turns.llm": Fact("20.3", GLOSSARY, _TWIN_RING, "Mean game length fell from 26.8 turns to 20.3"),
-    "twin.ring.calls": Fact("807", GLOSSARY, _TWIN_RING, "807 calls across 1801 decisions"),
-    "twin.ring.cost": Fact("6.98", GLOSSARY, _TWIN_RING, "$6.98 at list prices"),
-    "twin.ring.bluff.white.base": Fact("3.69", GLOSSARY, _TWIN_RING, "White 3.69 to 0.25"),
-    "twin.ring.bluff.white.llm": Fact("0.25", GLOSSARY, _TWIN_RING, "White 3.69 to 0.25"),
-    "twin.ring.bluff.mustard.base": Fact("2.44", GLOSSARY, _TWIN_RING, "Mustard 2.44 to 0.31"),
-    "twin.ring.bluff.mustard.llm": Fact("0.31", GLOSSARY, _TWIN_RING, "Mustard 2.44 to 0.31"),
-    "twin.ring.bluff.scarlett.base": Fact("1.50", GLOSSARY, _TWIN_RING, "Scarlett 1.50 to 0.44"),
-    "twin.ring.bluff.scarlett.llm": Fact("0.44", GLOSSARY, _TWIN_RING, "Scarlett 1.50 to 0.44"),
-    "twin.grid.turns.base": Fact("41.9", GLOSSARY, _TWIN_GRID, "Mean game length 41.9 turns headless, 37.1 with Claude"),
-    "twin.grid.turns.llm": Fact("37.1", GLOSSARY, _TWIN_GRID, "Mean game length 41.9 turns headless, 37.1 with Claude"),
-    "twin.grid.calls": Fact("1,018", GLOSSARY, _TWIN_GRID, "1018 calls across 2794 decisions"),
-    "twin.grid.cost": Fact("9.36", GLOSSARY, _TWIN_GRID, "**$9.36**"),
-    "twin.grid.sigma.mustard": Fact("1.9", GLOSSARY, _TWIN_GRID, "Mustard's wrong% -25 about 1.9"),
-    "twin.grid.sigma.peacock": Fact("1.3", GLOSSARY, _TWIN_GRID, "his win% +19 and Peacock's +19 about 1.3 each"),
-    "twin.grid.bluff.white.base": Fact("4.06", GLOSSARY, _TWIN_GRID, "White 4.06 to 0.44"),
-    "twin.grid.bluff.white.llm": Fact("0.44", GLOSSARY, _TWIN_GRID, "White 4.06 to 0.44"),
-    "twin.grid.bluff.scarlett.base": Fact("1.94", GLOSSARY, _TWIN_GRID, "Scarlett 1.94 to 0.56"),
-    "twin.grid.bluff.scarlett.llm": Fact("0.56", GLOSSARY, _TWIN_GRID, "Scarlett 1.94 to 0.56"),
-    "twin.grid.bluff.peacock.base": Fact("1.56", GLOSSARY, _TWIN_GRID, "Peacock 1.56 to 0.62"),
-    "twin.grid.bluff.peacock.llm": Fact("0.62", GLOSSARY, _TWIN_GRID, "Peacock 1.56 to 0.62"),
-    "twin.grid.bluff.green.base": Fact("1.38", GLOSSARY, _TWIN_GRID, "Green 1.38 to 0.62"),
-    "twin.grid.bluff.green.llm": Fact("0.62", GLOSSARY, _TWIN_GRID, "Green 1.38 to 0.62"),
-    "twin.grid.bluff.mustard.base": Fact("1.62", GLOSSARY, _TWIN_GRID, "Mustard (1.62 to 1.75)"),
-    "twin.grid.bluff.mustard.llm": Fact("1.75", GLOSSARY, _TWIN_GRID, "Mustard (1.62 to 1.75)"),
-    "mustard.loop.claude.pct": Fact("34", GLOSSARY, _TWIN_GRID, "34% of his suggestions repeat (10% headless)"),
-    "mustard.loop.alone.pct": Fact("10", GLOSSARY, _TWIN_GRID, "34% of his suggestions repeat (10% headless)"),
-    "mustard.loop.trips": Fact("31", GLOSSARY, _TWIN_GRID, "31 wasted trips, 17 of them asked"),
     # Method memory, Phase 7.
     "mustard.memory.games": Fact("193", GLOSSARY, _MEMORY, "193 stored ladder games (10,703 rows)"),
     "mustard.memory.rows": Fact("10,703", GLOSSARY, _MEMORY, "193 stored ladder games (10,703 rows)"),
@@ -544,25 +333,9 @@ FACTS: dict = {
     "mustard.memory.end.after": Fact("0.15", GLOSSARY, _MEMORY, "the end checkpoint 0.11 to 0.15 log-loss"),
     "mustard.memory.top1.before": Fact("0.99", GLOSSARY, _MEMORY, "0.99 to 0.94 top-1"),
     "mustard.memory.top1.after": Fact("0.94", GLOSSARY, _MEMORY, "0.99 to 0.94 top-1"),
-    "white.memory.green": Fact("902", GLOSSARY, _MEMORY, "902 / 985 / 1,211 transitions for Green / Mustard / Plum"),
-    "white.memory.mustard": Fact("985", GLOSSARY, _MEMORY, "902 / 985 / 1,211 transitions for Green / Mustard / Plum"),
-    "white.memory.plum": Fact("1,211", GLOSSARY, _MEMORY, "902 / 985 / 1,211 transitions for Green / Mustard / Plum"),
-    # Green's arms, as the two benchmarks left them.
-    "green.arms.spread": Fact("0.4", GLOSSARY, "Green -- Bandit ensemble over the other five", "his arms separate by about 0.4 in posterior mean over 60 games"),
-    "green.arms.ring.plum": Fact("0.71", GLOSSARY, "Green -- Bandit ensemble over the other five", "Plum and Mustard (0.71, 0.69) over White (0.46), Peacock (0.35) and Scarlett (0.29)"),
-    "green.arms.ring.mustard": Fact("0.69", GLOSSARY, "Green -- Bandit ensemble over the other five", "Plum and Mustard (0.71, 0.69)"),
-    "green.arms.ring.white": Fact("0.46", GLOSSARY, "Green -- Bandit ensemble over the other five", "White (0.46)"),
-    "green.arms.ring.peacock": Fact("0.35", GLOSSARY, "Green -- Bandit ensemble over the other five", "Peacock (0.35)"),
-    "green.arms.ring.scarlett": Fact("0.29", GLOSSARY, "Green -- Bandit ensemble over the other five", "Scarlett (0.29)"),
-    "green.arms.grid.mustard": Fact("0.72", GLOSSARY, _BENCH_GRID, "lean on Mustard (0.72) and Plum (0.57) and away from Peacock (0.31) and Scarlett (0.37)"),
-    "green.arms.grid.plum": Fact("0.57", GLOSSARY, _BENCH_GRID, "Plum (0.57)"),
-    "green.arms.grid.peacock": Fact("0.31", GLOSSARY, _BENCH_GRID, "Peacock (0.31)"),
-    "green.arms.grid.scarlett": Fact("0.37", GLOSSARY, _BENCH_GRID, "Scarlett (0.37)"),
     # Phase 12: the trained Plum.
     "policy.run.games": Fact("76,800", DEEPNASH_PLAN, _RUN1, "76,800 games"),
     "policy.run.minutes": Fact("40", DEEPNASH_PLAN, _RUN1, "under 40 minutes"),
-    "policy.run2.entropy.to": Fact("1.35", DEEPNASH_PLAN, _RUN2, "from 1.65 to 1.35"),
-    "policy.run2.turns.to": Fact("50", DEEPNASH_PLAN, _RUN2, "from 75 turns to 50"),
     "policy.smoke.memorise": Fact("3.6", DEEPNASH_PLAN, "What the smoke runs taught", "midpoint log-loss to 3.6"),
     # Phase 14: the current Run 3 network.
     "phase14.plum.per_run": Fact("153,600", GLOSSARY, _PHASE14_PLUM, "153,600 games per network"),
@@ -572,6 +345,8 @@ FACTS: dict = {
     "phase14.plum.confirm.low": Fact("1.5", GLOSSARY, _PHASE14_PLUM, "from 1.5 to 8.3"),
     "phase14.plum.confirm.high": Fact("8.3", GLOSSARY, _PHASE14_PLUM, "from 1.5 to 8.3"),
     "phase14.plum.fixture.cost": Fact("0.0348", GLOSSARY, _PHASE14_PLUM, "for $0.0348"),
+    "phase14.bench.games": Fact("120", GLOSSARY, _PHASE14_PLUM, "120-game, 2,160-snapshot"),
+    "phase14.bench.snapshots": Fact("2,160", GLOSSARY, _PHASE14_PLUM, "120-game, 2,160-snapshot"),
 }
 
 

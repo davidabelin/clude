@@ -5,7 +5,7 @@ for family and friends at every level of expertise at once, in Wikipedia's
 organisation and clude's looks. It is public, it is the house reference the
 model seats read, and its articles are Markdown files in the repo.
 
-## Where it stands (2026-10-19)
+## Where it stands (2026-11-01)
 
 **Built, live and public.** 96 articles across ten categories, zero wanted
 pages, 98 distinct Wikipedia titles all confirmed to exist, one featured
@@ -19,6 +19,13 @@ answers 200 without a login, as W-D3 decided (section 7).
 | The game | 10 | | Classwork | 6 |
 | Measurement | 9 | | Personality | 5 |
 | Methods | 9 | | Memory | 4 |
+
+**Live revision `clude-00041-pxh`** (2026-10-30) serves the 2026-10-26
+personas and biographies and the 2026-10-29 collector's cards and wooden
+tokens; on 2026-11-01 all 96 pages rendered from the checkout matched the
+live pages (section 21). The same pass removed every PlumOG table, figure
+and link from the public corpus, leaving the archived agent a one-line
+historical detour, and lists the Plum measurements still to be collected.
 
 **W7 is complete.** Phase 14 finished the corpus-wide reread, live-link,
 fact/citation and responsive gates on 2026-10-18 (section 17). The post-release
@@ -192,14 +199,16 @@ Titles are provisional; redirects make the short names work (`Plum`,
 | **W4** | Personality, the LLM wrapper, memory | | Done 2026-10-02 (section 12) |
 | **W5** | Measurement and the mathematics | | Done 2026-10-02 (section 12) |
 | **W6** | The app and the project; the classwork archive begun | | Done in substance: every article listed exists, the archive among them |
-| **W7** | The featured-article pass: every article reread against 3.1 and 3.2, "Did you know" filled, navboxes, zero red links, the live Wikipedia-link check | Zero wanted pages; the suite green; shots looked at | Partly done: no wanted pages, the Wikipedia check passes (2026-10-15), navboxes and 47 "Did you know" entries in place. **Left: the corpus-wide reread, and the shots** |
-| **W8** | The Phase 13 alignment pass: the six characters as people, table talk as conversation, the encyclopaedia's own fallibility, and the memory articles (section 14) | Every article agrees with the deployed prompts; a character reading its own article finds nothing that contradicts what it was told, and nothing that reinstates a retired instruction | **Next.** Brief in section 14 |
+| **W7** | The featured-article pass: every article reread against 3.1 and 3.2, "Did you know" filled, navboxes, zero red links, the live Wikipedia-link check | Zero wanted pages; the suite green; shots looked at | Done under Phase 14, 2026-10-18 (section 17): the corpus-wide reread, live-link, fact/citation and three-look responsive gates all passed, after the earlier partial state of 2026-10-15 (no wanted pages, Wikipedia check, navboxes, 47 "Did you know" entries) |
+| **W8** | The Phase 13 alignment pass: the six characters as people, table talk as conversation, the encyclopaedia's own fallibility, and the memory articles (section 14) | Every article agrees with the deployed prompts; a character reading its own article finds nothing that contradicts what it was told, and nothing that reinstates a retired instruction | Done under Phase 13, 2026-10-16 (section 15); brief in section 14. The `focus` dial and character-authored wiki edits stay deferred |
 
 W1 was the day's work that mattered; W2 to W6 were mostly writing and went
-quickly once the style was fixed. W8 arrived later, from Phase 13, and is
-writing of the same kind: the style is long settled, so the work is all in
-getting the substance to agree with the characters as they now are. Do W8
-before W7's reread, so the reread sees the finished text once.
+quickly once the style was fixed. W8 arrived later, from Phase 13, and was
+writing of the same kind: the style was long settled, so the work was all in
+getting the substance to agree with the characters as they then were. W8 was
+done before W7's reread, so the reread saw the finished text once. Both are
+closed; what remains deferred is the `focus` dial and character-authored
+wiki edits, neither of which is a sub-phase here.
 
 ## 6. Files
 
@@ -869,7 +878,8 @@ backgrounds. Both kinds are served from `clude_web/static/wiki/` through
 the existing accessible SVG figure wrappers and figure-detail pages.
 The legacy engraved portraits remain available under their existing figure
 keys. Board pieces, gameplay, executable personas and measurements are
-unchanged. This is a local asset update, not a deployment.
+unchanged. This was a local asset update, not a deployment; the deployment
+followed as `clude-00041-pxh` on 2026-10-30 and is verified in section 21.
 
 
 Validation: focused wiki/web checks passed (80 passed, 1 skipped), followed
@@ -900,3 +910,82 @@ suite 681 passed, 34 skipped. Chromium checked 48 article layouts and
 desktop widths, with no broken images, overflow or browser errors.
 Representative infobox, card-detail and token-detail crops were inspected.
 No gameplay changes or deployment.
+
+## 21. Housekeeping: deployment evidence and the PlumOG purge (2026-11-01)
+
+**Deployment, verified.** `gcloud run revisions list` shows three revisions
+after Phase 14's `clude-00038-jws`, each deployed within three hours of the
+commit it carries: `clude-00039-xrp` (2026-10-20 03:02 UTC; the post-Phase-14
+documentation refresh and the `persona` CLI group), `clude-00040-9wl`
+(2026-10-26 18:18 UTC; the per-character chattiness presets and the
+redefined personas with their refreshed recordings) and `clude-00041-pxh`
+(2026-10-30 04:47 UTC; the collector's cards and wooden tokens), the last at
+100% traffic. All 96 articles were rendered from the checkout at `671b26b`
+with the Flask test client and fetched from the live service; every pair was
+byte-identical apart from the per-request CSRF token. The six biographies
+serve the 2026-10-26 texts (Plum's *Wall Street Journal*, White's French
+news), each infobox carries its `card-*.webp` and `token-*.webp`, the WebP
+files answer 200 as `image/webp`, and the PNG masters answer 404, as the
+ignore lists intend. Section 20's "not a deployment" and the persona
+commit's local-only acceptance are therefore closed; the cards and the new
+biographies are live.
+
+**PlumOG leaves the public corpus.** David's direction: the archived
+enumeration agent should appear only as a minor, long-abandoned
+developmental detour; every table that included him goes, and every table
+with Plum in it must be current. Before this pass 49 passages in 18
+articles named him, 13 of them in *Professor Plum*, which carried a
+five-subsection *PlumOG* record with its own figure and tables. Removed:
+
+- Tables `bench.ring`, `budget.grid`, `twin.grid`, `twin.ring`,
+  `plum.claude`, `plum.logbook`, `landing.repeats`, `bench.policy`,
+  `arena.policy`, `plum.run1` and `plum.run2`, and the Plum row of
+  `bench.grid`, from `facts.py`; with them 72 fact keys that quoted only
+  those sections (the loop counts, the budgets, the twin and ring-board
+  numbers, Green's historical arm records). The glossary keeps the data.
+- Figures `plum-budget`, `green-trust`, `plum-policy-logloss` and
+  `plum-checkpoints`. `plum-search` and `rope-deals` stay: they draw the
+  worked example, which belongs to the method, not the agent.
+- The `[[PlumOG]]` links, the *PlumOG* section and "did you know" hook in
+  *Professor Plum*, the *Measured* section of *Exact posterior enumeration*,
+  the *Recorded grid comparison* table of *Twin comparison*, the repeats
+  table of *Landing rule* and the logbook experiment table of *Logbook*.
+
+What stays, deliberately: one sentence each in *Professor Plum* ("Phase 12
+retired the method and archived the agent ... under the name PlumOG"),
+*History of clude* and the *In clude* section of *Exact posterior
+enumeration*, where the `PlumOG` redirect lands and the archive name of the
+module's class is a fact about the code; the redirect itself, so an old
+logbook entry or an MCP reader asking for the name still reaches the method
+article; and the two facts that explain the retirement (the count fell back
+in 490 of 1,080 Classic-board calls). Titles, redirects and the canon index
+are unchanged, so the recorded request keys are untouched.
+
+**Plum's tables are all Phase 14.** Every table that now names him is
+current: the balanced tournament, table sizes and 120-game benchmark
+(`plum.phase14.*`), the current-setting control (`arena.phase14`), the
+pooled sweeps, the paid leash screen and the 24-pair leash confirmation.
+Articles that lost the 15 September 2026 six-method table now embed each
+rebuilt method's Phase 14 validation (`methods.phase14.*`) or Plum's
+benchmark, and say in words that the Scarlett and Peacock methods, which
+carry no learned state, were last benchmarked before the landing rule.
+
+**Data still to be collected**, named in *Belief benchmark*, *Measurement
+record*, *Twin comparison* and *Logbook*: a six-method belief benchmark on
+one set of current snapshots with the Run 3 weights and the released method
+documents (no run since Phase 14 has scored the six together, and the
+methods are not ranked against one another in the encyclopaedia until one
+does); a paired headless-against-model twin comparison with the current Plum
+(Phase 14 has only the eight-game leash rows and the 24-pair confirmation at
+his own three-seat table); and a memory comparison that changes one seat's
+depth at a time. None was run in this pass: the first two are free headless
+work but touch the remembered method state, and the third is paid, so each
+needs its own approval.
+
+**Also in this pass.** Phase 13's plan carries dated superseded notes where
+its checklist and brief had fallen behind the later record (steps 0 to 3,
+the shared NPR/*New Yorker* background, Plum's *Economist*, the 0.5
+chattiness), section 5 above closes W7 under Phase 14 and W8 under Phase 13,
+and CLAUDE.md and the roadmap name the live revision. `tests/test_wiki.py`
+swapped one arbitrary fact key (`bench.grid.Plum.50`, now `White`) in its
+render tests.

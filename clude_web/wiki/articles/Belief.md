@@ -37,7 +37,7 @@ In this constructed example, every method evaluates the same observer's view. It
     |---|---|---|
     | The floor alone ([[uniform baseline]]) | {{code:example.uniform.White.dec}} | Two suspects still possible, an even share each |
     | [[Naive Bayes]] ([[Miss Scarlett]]) | {{code:example.scarlett.1.White}} | Marked Peacock and the Rope down by {{code:scarlett.decay}} and rescaled |
-    | [[Exact posterior enumeration]] ([[PlumOG]]) | {{code:example.plum.White.dec}} (exactly {{code:example.plum.White}}) | Counted the deals: {{code:example.deals}} survive, White in the envelope in two |
+    | [[Exact posterior enumeration]] (the count) | {{code:example.plum.White.dec}} (exactly {{code:example.plum.White}}) | Counted the deals: {{code:example.deals}} survive, White in the envelope in two |
     | [[Dempster-Shafer theory]] ([[Mrs. Peacock]]) | {{code:example.peacock.White}} | Belief {{code:example.peacock.White.bel}}, plausibility {{code:example.peacock.White.pl}}, split down the middle |
     | [[Decision tree]] ([[Colonel Mustard]]) | {{code:example.mustard.White}} | All four open cards reached the same leaf |
     | [[Markov chain]] ([[Mrs. White]]) | {{code:example.white.White}} | Green named Peacock and the Rope, so their scores rise |
@@ -102,7 +102,7 @@ The benchmark uses [[log-loss]]: for each category, $-\ln P(\text{true card})$. 
 
 ## In clude
 
-The type is `ClueBelief` in `clude_agents/base.py`: the probabilities, and an `extra` dictionary for whatever a method wants to say beside them. [[Professor Plum]] records his network's estimate of how the game is going (PlumOG recorded whether his answer was exact or sampled); [[Mrs. Peacock]] her belief and plausibility bounds; [[Mr. Green]] which arm he played; [[Mrs. White]] each opponent's repeat probability and closeness. The agent contract, shared with David's other projects, asks a method for a belief and nothing else: `select_action` returns probabilities, never a move, and the character turns them into play.[^base][^protocol]
+The type is `ClueBelief` in `clude_agents/base.py`: the probabilities, and an `extra` dictionary for whatever a method wants to say beside them. [[Professor Plum]] records his network's estimate of how the game is going; [[Mrs. Peacock]] her belief and plausibility bounds; [[Mr. Green]] which arm he played; [[Mrs. White]] each opponent's repeat probability and closeness. The agent contract, shared with David's other projects, asks a method for a belief and nothing else: `select_action` returns probabilities, never a move, and the character turns them into play.[^base][^protocol]
 
 A stored game's event record allows any seat's view to be rebuilt at any recorded point. A method can then recompute its belief from that view. The `trace` tool prints these estimates turn by turn, and the replay screen draws them as a belief trace.[^invariant]
 
@@ -112,13 +112,9 @@ The web interface follows the project's "play-is-blind" rule. Spectators and Wat
 
 Phase 14's current evidence separates probability quality from playing strength. Run 3 improved Plum's balanced-tournament wins while its early checkpoint losses rose slightly; Mustard improved every held-out loss checkpoint, White stayed close to her old losses, and Green improved three of four. The [[measurement record]] gives the current comparisons and their different denominators. The tables below are dated historical illustrations, not a current six-method ranking.[^policy]
 
-{{table:bench.grid|Historical comparison. The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games and {{fact:bench.grid.snapshots}} positions, 15 September 2026. Plum's row is at the old sample of 2,000.}}
+{{table:plum.phase14.benchmark|Phase 14's benchmark: the current Run 3, the former checkpoint and the floor's own even spread on the same {{fact:phase14.bench.snapshots}} snapshots. Lower is better.}}
 
-At the halfway checkpoint in this dated run, [[Mrs. White]] had the lowest log-loss, {{fact:bench.grid.White.50}}. [[Colonel Mustard]] scored {{fact:bench.grid.Mustard.50}}, compared with the baseline's {{fact:bench.grid.uniform.50}}. The Plum of that row is [[PlumOG]], at the smaller sampling budget that was later increased. Phase 14's current Run 3 network scores {{fact:plum.phase14.benchmark.run3.50}} at halfway on its separate 120-game benchmark, below that run's uniform floor baseline of {{fact:plum.phase14.benchmark.uniform.50}}.[^policy] [[Miss Scarlett]] and [[Mrs. Peacock]] scored slightly worse than the baseline at all four checkpoints in the older common-method run. Four methods took a fraction of a millisecond per call; PlumOG and Green, who consulted him, took about half a second.[^grid]
-
-{{table:bench.ring|Historical comparison. The same benchmark on the ring board, the first the game was played on, Phase 5.}}
-
-The ring-board run produced a different ranking. These results describe the recorded games and configurations, rather than a universal order of methods. The benchmark is therefore rerun when the board or a method changes.[^ring]
+Phase 14 scored the current network against the floor baseline on {{fact:phase14.bench.snapshots}} snapshots from {{fact:phase14.bench.games}} games, and each rebuilt method against its own former state on a separate 264-snapshot validation set, which the [[measurement record]] holds. No run since has scored all six methods together. [[Miss Scarlett]]'s and [[Mrs. Peacock]]'s methods, which carry no learned state, were last benchmarked on 15 September 2026, before the [[landing rule]], and both then scored slightly worse than the baseline at every checkpoint. A current six-method benchmark remains to be run; until it is, the methods are not ranked against one another here.[^policy][^grid] These results describe the recorded games and configurations, rather than a universal order of methods. The benchmark is therefore rerun when the board or a method changes.
 
 ## Limitations
 
@@ -132,7 +128,7 @@ The ring-board run produced a different ranking. These results describe the reco
 [[The certainty tag]] · [[Replay]]
 
 - [[Deduction floor]], what every belief is masked by
-- [[Naive Bayes]], [[Regularised Nash dynamics]], [[Dempster-Shafer theory]], [[Decision tree]], [[Bandit ensemble]] and [[Markov chain]], the six ways of forming one, and [[exact posterior enumeration]], PlumOG's archived seventh
+- [[Naive Bayes]], [[Regularised Nash dynamics]], [[Dempster-Shafer theory]], [[Decision tree]], [[Bandit ensemble]] and [[Markov chain]], the six ways of forming one, and [[exact posterior enumeration]], the count they are compared with
 - [[Personality dials]] and [[Accusation threshold]], what is done with one
 - [[Belief benchmark]], [[Log-loss]] and [[Uniform baseline]], how one is scored
 - [[w:Probability distribution|Probability distribution]], [[w:Calibration (statistics)|calibration]] and [[w:Bayesian probability|Bayesian probability]] on Wikipedia
@@ -150,7 +146,6 @@ The ring-board run produced a different ranking. These results describe the reco
 [^invariant]: {{cite:CLAUDE.md|Architecture in brief}}
 [^web]: {{cite:CLAUDE.md|Settled decisions (David's)}} "Spectators, and what the seat bars give away", 2026-09-22, and "No persona advises a chat seat", 2026-09-21.
 [^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
-[^ring]: {{cite:docs/strategy-glossary.md|Belief benchmark, FloorBot regime (Phase 5)}}
 [^policy]: {{cite:docs/strategy-glossary.md|Phase 14 Run 3, the current Plum (2026-10-18)}}
 
 {{navbox:clude}}

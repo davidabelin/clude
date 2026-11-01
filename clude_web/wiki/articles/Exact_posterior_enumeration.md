@@ -1,27 +1,26 @@
 ---
 title: Exact posterior enumeration
-short: Counting consistent deals to estimate envelope probabilities: PlumOG's method, archived in Phase 12
+short: Counting consistent deals to estimate envelope probabilities: the exact method Plum played by until Phase 12
 categories: Methods
 redirects: PlumOG, Exact enumeration, Enumeration, Counting deals, Exact posterior
 dyk: ... that [[exact posterior enumeration]] answered the Rope question in {{code:example.plum.nodes}} steps, and that a player at a six-seat table with one card of each kind in hand initially faces {{code:deals.6}} deals?
-dyk: ... that the sample [[PlumOG]] fell back on was raised from 2,000 to {{code:plum.sample_budget}} deals, and that in the recorded budget comparison, raising the sample budget helped more than raising the search budget?
+dyk: ... that the sample the search fell back on was raised from 2,000 to {{code:plum.sample_budget}} deals, and that in the recorded budget comparison, raising the sample budget helped more than raising the search budget?
 ---
 {{infobox
 title: Exact posterior enumeration
-Played by | [[Professor Plum]] until 5 October 2026, now archived as PlumOG
+Played by | [[Professor Plum]] until 5 October 2026
 In a phrase | Exhaustive when the search finishes; sampled otherwise
 Module | `exact_enum.py`
 Evidence used | Everything the [[deduction floor]] knows, joint facts included
 Assumes | Every deal still possible is equally likely
-Cost | About {{fact:budget.grid.200k-10k.ms}} ms a call at the Classic-board halfway checkpoint
 = The two budgets
 Search steps | {{code:plum.node_budget}}
 Random deals, after that | {{code:plum.sample_budget}}
 }}
 
-{{hatnote:Professor Plum has played by [[regularised Nash dynamics]] since Phase 12. This article describes the method he played by until 5 October 2026, archived with its character as PlumOG.}}
+{{hatnote:Professor Plum has played by [[regularised Nash dynamics]] since Phase 12. This article describes the method he played by until 5 October 2026.}}
 
-**Exact posterior enumeration** was [[Professor Plum]]'s method of estimating which [[Clue#The cards|cards]] are in [[the envelope]]. It lists every deal consistent with the [[deduction floor]] and calculates each card's [[w:Probability|probability]] as its share of the surviving deals. It is kept in the code as **PlumOG**, unseated but still run by this encyclopaedia's worked examples, because it is the one method whose answer to a small position can be checked by hand. When the search finishes, this gives exact card probabilities under a model that treats consistent deals as equally likely. The model uses the logical consequences of suggestions and disproofs, but does not account for opponents' preferences when choosing suggestions or cards to show.[^module]
+**Exact posterior enumeration** was [[Professor Plum]]'s method of estimating which [[Clue#The cards|cards]] are in [[the envelope]]. It lists every deal consistent with the [[deduction floor]] and calculates each card's [[w:Probability|probability]] as its share of the surviving deals. No seat plays it now, but the code keeps it for this encyclopaedia's worked examples, because it is the one method whose answer to a small position can be checked by hand. When the search finishes, this gives exact card probabilities under a model that treats consistent deals as equally likely. The model uses the logical consequences of suggestions and disproofs, but does not account for opponents' preferences when choosing suggestions or cards to show.[^module]
 
 The search can be too large to finish between turns. It stops after {{code:plum.node_budget}} steps and falls back on up to {{code:plum.sample_budget}} [[w:Monte Carlo method|random draws]]. The accepted draws estimate the same card probabilities, with sampling noise and construction bias. In the original [[Classic board]] benchmark, the fallback was used in {{fact:plum.fallback.calls}} of {{fact:bench.grid.snapshots}} calls. That is a proportion of benchmark calls, not a measure of how much of each game was spent sampling.[^grid]
 
@@ -44,7 +43,7 @@ A small position makes it possible to check the count by hand.
 
 ### The search, step by step
 
-{{figure:plum-search|PlumOG's search on the Rope question. Each open card is tried in Mustard's hand and in the envelope; a branch is abandoned the moment it breaks a rule; every branch that reaches the bottom is one complete deal.}}
+{{figure:plum-search|The search on the Rope question. Each open card is tried in Mustard's hand and in the envelope; a branch is abandoned the moment it breaks a rule; every branch that reaches the bottom is one complete deal.}}
 
 The example can be counted by inspection. The implementation instead [[w:Tree traversal|walks a search tree]], shown above in {{code:example.plum.nodes}} steps. It tries Mrs. White in Mustard's hand and then in the envelope, proceeding through the other open cards. A branch ends as soon as Mustard's hand is full, a category has a second envelope card, or both Peacock and the Rope are assigned to the envelope, leaving neither to explain Mustard's disproof. Three branches reach complete, valid deals.
 
@@ -115,7 +114,7 @@ A character [[accusation|accuses]] when the product of its best suspect, weapon 
 
 ## In clude
 
-The module is `clude_agents/exact_enum.py`, whose agent has been named `PlumOG` and kept out of the registry since 5 October 2026: no seat plays it, and [[Mr. Green]]'s Plum arm is the network. The search is a small class holding the cards still to place, each card's possible places (taken from the floor's mask and sorted into a fixed order), each seat's remaining capacity, which categories already have their envelope card, and the open facts not yet satisfied by a placed card; it places and unplaces cards along the current branch and counts completions. The sampler reuses the same class for each random draw. The agent itself is a few lines over the two: it runs the search with the step budget, and if the search did not finish it runs the sampler with the draw budget.[^module]
+The module is `clude_agents/exact_enum.py`, whose agent has been kept out of the registry since 5 October 2026 under the archive name `PlumOG`: no seat plays it, and [[Mr. Green]]'s Plum arm is the network. The search is a small class holding the cards still to place, each card's possible places (taken from the floor's mask and sorted into a fixed order), each seat's remaining capacity, which categories already have their envelope card, and the open facts not yet satisfied by a placed card; it places and unplaces cards along the current branch and counts completions. The sampler reuses the same class for each random draw. The agent itself is a few lines over the two: it runs the search with the step budget, and if the search did not finish it runs the sampler with the draw budget.[^module]
 
 An independent, slower enumerator checks the search on small positions. It lists every assignment outright and verifies that the two methods agree card by card.[^tests] Fixed holder ordering also preserves reproducibility. Possible-holder sets mix seat numbers with the word *envelope*, and [[w:Python (programming language)|Python]] set iteration can change between processes. Before the ordering was fixed, this could change a sampler's choices and make the same seeded five- or six-seat game produce different results.[^ordering]
 
@@ -123,37 +122,15 @@ The method returns, beside its probabilities, a note of which path produced them
 
 While it was Plum's method, [[Mr. Green]]'s [[bandit ensemble]], which queries all five of the other methods before choosing one, paid its computation cost even when he selected another arm: a four-character table with both of them ran 7.5 seconds a game against 0.03 without them. That cost was one of the reasons for the change.[^policy][^budget]
 
-## Measured
+## Why it was retired
 
-### The two boards
-
-The [[belief benchmark]] scores each method's probabilities against the truth at four points in a game, by [[log-loss]] (lower is better), against the [[uniform baseline]]: the score of a player who believes what the deduction floor has proved and spreads the rest evenly.
-
-{{table:bench.ring|Historical comparison. The six methods on the ring board, the first the game was played on: log-loss at four checkpoints, {{fact:bench.ring.snapshots}} positions from 60 games. Each column is the share of the game's suggestions already made.}}
-
-On the ring board the method was the best or joint-best of the six from three-quarters of the way through a game, and at the end its first choice in each category was right {{fact:bench.ring.Plum.top1}} of the time against the baseline's {{fact:bench.ring.uniform.top1}}. Already there the budget held only part of the time: on early positions the search fell back to sampling in nearly half of its calls, at about {{fact:plum.ring.ms}} ms a call.[^ring]
-
-{{table:bench.grid|Historical comparison. The same benchmark on the Classic board, {{fact:bench.grid.games}} games and {{fact:bench.grid.snapshots}} positions, 15 September 2026. Plum's row was measured at the old sample of 2,000.}}
-
-The [[Classic board]] run recorded more difficult searches at its checkpoints. These checkpoints count fractions of suggestions, not elapsed turns: longer corridor journeys alone do not explain the change. The search ran out of steps in {{fact:plum.fallback.calls}} of {{fact:bench.grid.snapshots}} calls. At the halfway checkpoint the exact reasoner scored {{fact:budget.grid.200k-2k.50}} against the baseline's {{fact:budget.grid.uniform.50}}, worse than the floor-only baseline, with sampling error contributing to the loss.[^grid]
-
-### The budgets
-
-{{figure:plum-budget|Plum's log-loss through a game on the Classic board at the old and the new sample, against the uniform baseline. Lower is better.}}
-
-Four budgets were then run on the same {{fact:bench.grid.games}} games.
-
-{{table:budget.grid|Historical comparison. Log-loss at four budgets on the Classic board. "Calls that fell back" is how many of the {{fact:bench.grid.snapshots}} calls exhausted the search and sampled instead.}}
-
-In this comparison, increasing the sample budget helped more than increasing the search budget. Five times the draws improved halfway log-loss from {{fact:budget.grid.200k-2k.50}} to {{fact:budget.grid.200k-10k.50}}, at about twice the time per call. Five times the search steps reduced fallbacks from {{fact:budget.grid.200k-2k.fallback}} to {{fact:budget.grid.1M-2k.fallback}}, but improved accuracy less and cost more. Raising both budgets improved the score by no more than 0.03 over raising the sample budget alone. The larger sample was adopted with the node budget unchanged. The measured test-suite runtime rose from about {{fact:plum.suite.before}} to {{fact:plum.suite.after}} seconds.[^budget]
-
-The larger sample did not eliminate the deficit. At the halfway checkpoint, log-loss remained slightly worse than the baseline: {{fact:budget.grid.200k-10k.50}} versus {{fact:budget.grid.uniform.50}}. At the three-quarter checkpoint the method had caught up, and at the end it was among the lowest-loss methods. The tested budget increases therefore improved the approximation without making the early search exhaustive.[^budget]
+On the board the game was first played on, the count was the best or joint-best reader of the cards from three-quarters of the way through a game, though already there the search fell back to sampling on nearly half of its early calls.[^ring] The move to the [[Classic board]] on 15 September 2026 left more possibilities open at each point of a game. In the [[belief benchmark]] run that day the search ran out of steps in {{fact:plum.fallback.calls}} of {{fact:bench.grid.snapshots}} calls, and at the halfway checkpoint the sampled estimate scored worse than the [[uniform baseline]], the floor's own even spread. Raising the sample from 2,000 to {{code:plum.sample_budget}} draws repaired most of the mid-game deficit at about twice the time per call; raising the search budget helped less; neither made the early search exhaustive.[^grid][^budget] Those dated tables stay in the maintainer glossary. The network that replaced the count is better calibrated mid-game and about a thousand times faster, and it is the Plum every current table measures.[^policy]
 
 ## Limitations
 
 The principal limitations concern computation, the evidence model and the use of its output.
 
-- **It is slow where the game is open.** At {{fact:bench.grid.Plum.ms}} ms a call on the Classic board it is some thousands of times slower than [[Naive Bayes]], [[Dempster-Shafer theory]], the [[decision tree]] or the [[Markov chain]], each of which answers in a fraction of a millisecond.[^grid]
+- **It is slow where the game is open.** A mid-game call on the Classic board took hundreds of milliseconds, some thousands of times longer than [[Naive Bayes]], [[Dempster-Shafer theory]], the [[decision tree]] or the [[Markov chain]], each of which answers in a fraction of a millisecond.[^grid]
 - **Sampling is approximate.** Early positions often exhaust the search budget. The recorded halfway scores remained worse than the uniform baseline even after the sample budget was increased.
 - **Opponent choices are not modelled.** The count uses logical constraints rather than behavioural evidence about which questions players ask or which cards they prefer to show.
 - **Exactness is conditional.** A completed search gives exact card probabilities under the equal-weight model. It neither corrects for card-selection policies nor supplies the joint probability used by an exact accusation test.

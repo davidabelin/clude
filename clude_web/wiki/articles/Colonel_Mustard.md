@@ -76,9 +76,9 @@ The neutral threshold is a rule the project calls "don't encode the flaw twice".
 
 On the first benchmark of all, before the tree was regrown on better games and its leaves smoothed, his score at the end of a game was {{fact:mustard.phase4}} against the baseline's {{fact:uniform.phase4}}, and {{fact:mustard.phase4.zeros}} per cent of that came from the one category in fifteen or so where a leaf put exactly nothing on the true card. A hard zero costs a [[log-loss]] of {{fact:bench.zero_cost}}, and would have read to the accusation test as certainty.[^phase4] With the smoothing and the floor-bot games he became the best method at the end of a game and stayed confidently wrong in the middle, "which is the character".[^glossary]
 
-{{table:bench.grid|Historical comparison. The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
+{{table:methods.phase14.mustard|Phase 14's validation: the former tree and the accepted rebuild on the same 19 held-out deals and 264 private snapshots. Lower log-loss is better.}}
 
-In the Classic-board benchmark, with a tree trained on that board, halfway loss was {{fact:bench.grid.Mustard.50}} against the baseline's {{fact:bench.grid.uniform.50}}. Final loss was {{fact:bench.grid.Mustard.100}}, the lowest of the six, and final first-choice accuracy was {{fact:bench.grid.Mustard.top1}}, the highest. His calls took a fraction of a millisecond.[^grid]
+The rebuilt tree improved at every checkpoint, most in the middle of a game, where the method is confidently wrong by design. These are candidate-selection scores, not an independent confirmation, and no benchmark since Phase 14 has scored the six methods together. His calls take a fraction of a millisecond.[^validation]
 
 ### At the table
 
@@ -88,11 +88,9 @@ The current control recorded {{fact:arena.phase14.Mustard.wrong}}% wrong accusat
 
 ### With Claude in the seat
 
-The twin arenas initially suggested that [[Claude]] improved Mustard's decisions within the [[leash]]. With a model in every seat of a four-player table, his wrong-accusation rate fell from {{fact:twin.grid.Mustard.wrong_base}}% to {{fact:twin.grid.Mustard.wrong_llm}}%, while his win rate rose from {{fact:twin.grid.Mustard.win_base}}% to {{fact:twin.grid.Mustard.win_llm}}%. The initial interpretation was that model judgement helped him avoid the tree's confident errors.[^twin]
 
 The current paid leash screen gave Mustard seven wins in eight games at his 0.25 preset, four at 0.5 and six at 1, with no wrong accusation in any row. Those eight-game rows did not justify changing the preset or claiming that model judgement reliably corrects the tree.[^current]
 
-Two other things the model did in his seat are recorded. He came to repeat himself: {{fact:mustard.loop.claude.pct}}% of his suggestions with Claude were exact repeats of his own earlier ones, against {{fact:mustard.loop.alone.pct}}% headless, with {{fact:mustard.loop.trips}} wasted trips; a loop through a room whose card he held names his own card on every pass, which is why his [[w:Bluff (poker)|bluffing]] held steady ({{fact:twin.grid.bluff.mustard.base}} to {{fact:twin.grid.bluff.mustard.llm}} own-card suggestions a game) while every character that did not loop bluffed far less. The [[landing rule]] has since taken most of the looping away: on the mixed table his repeats went from {{fact:landing.repeats.Mustard.mixed}}.[^twin][^landing]
 
 ## Memory
 
@@ -123,11 +121,9 @@ Like every character he can also keep a narrative logbook, written by a model af
 [^rule]: {{cite:docs/architecture.md|Personality layer (Phase 5c)}}
 [^grid-presets]: {{cite:docs/strategy-glossary.md|Tuned presets on the grid (Stage 1e, 2026-09-15)}}
 [^phase4]: {{cite:docs/strategy-glossary.md|Phase 4 benchmark results (RandomBot regime, historical)}}
-[^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
 [^arena]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
-[^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
+[^validation]: {{cite:docs/strategy-glossary.md|Phase 14 adaptive-method validation (2026-10-17)}}
 [^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
-[^landing]: {{cite:docs/strategy-glossary.md|The landing rule (Phase 8.0.4, 2026-09-18)}}
 [^logbooks]: {{cite:docs/logbooks.md|Three tiers}}
 [^lives]: {{cite:docs/phase13-plan.md|1. Brief and settled decisions}}
 [^live]: {{cite:docs/phase13-plan.md|2026-10-15: step 4 accepted live, and a debrief lost to its token cap}}

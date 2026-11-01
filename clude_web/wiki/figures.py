@@ -336,24 +336,6 @@ def _row(table: str, row: str) -> list:
     return [float(c) for c in cells[:4]]
 
 
-def _plum_budget() -> Figure:
-    before, after, uniform = _row("budget.grid", "200k-2k"), _row("budget.grid", "200k-10k"), _row("budget.grid", "uniform")
-    series = [
-        ("Plum, 2,000 samples", before, "sl-plum dashed", -9),
-        ("Plum, 10,000 samples", after, "sl-plum", 0),
-        ("uniform baseline", uniform, "sl-neutral", 15),
-    ]
-    label = (
-        f"Log-loss at four checkpoints. Plum with 2,000 samples: {before}. Plum with 10,000 samples: {after}. "
-        f"The uniform baseline: {uniform}."
-    )
-    return _logloss(
-        "plum-budget", "Plum's mid-game, before and after the larger sample",
-        "Plum against the uniform baseline on the Classic board. Five times the samples repaired most of his mid-game, not all of it.",
-        series, label,
-    )
-
-
 def _scarlett_bench() -> Figure:
     scarlett, uniform = _row("bench.grid", "Scarlett"), _row("bench.grid", "uniform")
     series = [("Scarlett", scarlett, "sl-scarlett", -9), ("uniform baseline", uniform, "sl-neutral", 15)]
@@ -688,20 +670,6 @@ def _green_arms() -> Figure:
     )
 
 
-def _green_trust() -> Figure:
-    """The arms' mean Beta scores after the ring board's benchmark."""
-    names = [("PlumOG", "plum", "exact"), ("Mustard", "mustard", "tree"), ("White", "white", "Markov"), ("Peacock", "peacock", "D-S"), ("Scarlett", "scarlett", "naive Bayes")]
-    columns = [(name, sub, float(facts.fact(f"green.arms.ring.{key}")), f"s-{key}") for name, key, sub in names]
-    label = "The mean of each arm's Beta score record after sixty benchmark games on the ring board: " + ", ".join(
-        f"{name} {value:.2f}" for name, _, value, _ in columns
-    ) + "."
-    return _columns(
-        "green-trust", "Whom Green came to trust",
-        "Mean Beta scores after sixty benchmark games on the ring board, compared with the initial mean of 0.5. These are selection records, not calibrated probabilities of a method being best.",
-        columns, (0.5, "the prior: 0.5"), "mean arm score", label,
-    )
-
-
 # --- the floor's notepad ----------------------------------------------------
 
 
@@ -943,66 +911,6 @@ def _plum_network() -> Figure:
     )
 
 
-def _plum_policy_logloss() -> Figure:
-    plum, og, uniform = _row("bench.policy", "Plum"), _row("bench.policy", "PlumOG"), _row("bench.policy", "uniform")
-    series = [
-        ("PlumOG, counting", og, "sl-plum dashed", -9),
-        ("uniform baseline", uniform, "sl-neutral", 0),
-        ("Plum, the network", plum, "sl-plum", 15),
-    ]
-    label = f"Log-loss at four checkpoints. Plum's network: {plum}. PlumOG: {og}. The uniform baseline: {uniform}."
-    return _logloss(
-        "plum-policy-logloss", "The network against the count",
-        "Plum's network against PlumOG's count and the uniform baseline on the same 1,080 positions. Lower is better.",
-        series, label,
-    )
-
-
-def _plum_checkpoints() -> Figure:
-    """Win rate at his own table at each re-measured checkpoint of the
-    two runs; the second resumed from the first's checkpoint 110."""
-    run1 = [(int(k), float(facts.TABLES["plum.run1"].cells(k)[1])) for k in facts.TABLES["plum.run1"].rows]
-    run2 = [(110 + int(k), float(facts.TABLES["plum.run2"].cells(k)[1])) for k in facts.TABLES["plum.run2"].rows]
-    og = float(facts.fact("arena.policy.og.own.win"))
-    left, right, top, bottom, lo, hi, top_value = 40, 346, 30, 206, 90, 270, 70.0
-
-    def x_of(it):
-        return left + (it - lo) / (hi - lo) * (right - left)
-
-    def y_of(v):
-        return bottom - v / top_value * (bottom - top)
-
-    body = [_text(left - 34, 20, "won at his own table, %", "t-xs t-soft")]
-    for tick in (0, 20, 40, 60):
-        body.append(f'<path d="M{left} {y_of(tick):.1f} H{right}" class="grid"/>')
-        body.append(_text(left - 6, y_of(tick) + 4, str(tick), "t-xs t-soft t-num", "end"))
-    for it in (100, 150, 200, 250):
-        body.append(_text(x_of(it), bottom + 16, str(it), "t-xs t-soft t-num", "middle"))
-    body.append(_text((left + right) / 2, bottom + 32, "training iteration (512 games each)", "t-xs t-soft", "middle"))
-    body.append(f'<path d="M{left} {bottom} H{right}" class="axis"/>')
-    body.append(f'<path d="M{left} {y_of(og):.1f} H{right}" class="ref"/>')
-    body.append(_text(left + 4, y_of(og) - 5, f"PlumOG {og:g}% (24 games)", "t-xs t-b t-halo"))
-    for points, cls, name in ((run1, "sl-plum dashed", "first run"), (run2, "sl-plum", "second run")):
-        path = " ".join(f"{'M' if i == 0 else 'L'}{x_of(x):.1f} {y_of(v):.1f}" for i, (x, v) in enumerate(points))
-        body.append(f'<path d="{path}" class="line {cls}"/>')
-        for x, v in points:
-            body.append(f'<circle cx="{x_of(x):.1f}" cy="{y_of(v):.1f}" r="4" class="dot {cls.split()[0]}"><title>{name}, iteration {x}: {v:g}%</title></circle>')
-    best = max(run2, key=lambda p: p[1])
-    body.append(_text(x_of(best[0]), y_of(best[1]) - 10, f"exported: {best[1]:g}%", "t-xs t-b t-halo", "middle"))
-    body.append(_text(x_of(125), y_of(6), "first run", "t-xs t-soft", "middle"))
-    body.append(_text(x_of(232), y_of(6), "second run", "t-xs t-soft", "middle"))
-    label = (
-        "Plum's win rate at his own table at each re-measured checkpoint, 96 games each. First run: "
-        + ", ".join(f"iteration {x} {v:g}%" for x, v in run1) + ". Second run, resumed from iteration 110: "
-        + ", ".join(f"iteration {x} {v:g}%" for x, v in run2) + f". PlumOG won {og:g}% on 24 games."
-    )
-    return Figure(
-        key="plum-checkpoints", title="Plum's checkpoints",
-        caption="The late checkpoints of both training runs at his own table, 96 games each; the second run resumed from the first's iteration 110 with gentler settings, and its best was exported.",
-        svg=_svg(360, 248, "".join(body), label, "chart"),
-    )
-
-
 # --- the method diagrams, from files ----------------------------------------
 
 
@@ -1062,7 +970,6 @@ _DRAWN: dict = {
     "suggestion-round": _suggestion_round,
     "rope-deals": _rope_deals,
     "rope-bars": _rope_bars,
-    "plum-budget": _plum_budget,
     "scarlett-bench": _scarlett_bench,
     "belief-six": _belief_six,
     "plum-search": _plum_search,
@@ -1070,11 +977,8 @@ _DRAWN: dict = {
     "mustard-path": _mustard_path,
     "white-chain": _white_chain,
     "green-arms": _green_arms,
-    "green-trust": _green_trust,
     "floor-notepad": _floor_notepad,
     "plum-network": _plum_network,
-    "plum-policy-logloss": _plum_policy_logloss,
-    "plum-checkpoints": _plum_checkpoints,
     **{f"token-{s.lower()}": (lambda s=s: _token(s)) for s in SUSPECTS},
     **{f"card-{s.lower()}": (lambda s=s: _character_card(s)) for s in SUSPECTS},
     **{f"portrait-{s.lower()}": (lambda s=s: _portrait(s)) for s in SUSPECTS},

@@ -1,6 +1,6 @@
 # Phase Plan
 
-Current roadmap as of 2026-10-19. This describes the checkout, not a live production audit. Completed plans are historical decision records; the maintainer guides describe current behaviour. The strategy glossary keeps dated measurements, including superseded ring-board, PlumOG and Phase 12 network results.
+Current roadmap as of 2026-11-01. This describes the checkout, not a live production audit. Completed plans are historical decision records; the maintainer guides describe current behaviour. The strategy glossary keeps dated measurements, including superseded ring-board, PlumOG and Phase 12 network results.
 
 ## Completed phases
 
@@ -91,6 +91,15 @@ documents together on 2026-10-18. Its recorded acceptance verified revision
 `clude-00038-jws` at 100% traffic, live table/replay completion and the three
 accepted method hashes after removal of throwaway acceptance data. These are
 dated release observations, not a fresh production audit.
+
+Three revisions followed without a phase: `clude-00039-xrp` (2026-10-20, the
+post-Phase-14 documentation refresh and the `persona` CLI group),
+`clude-00040-9wl` (2026-10-26, per-character chattiness presets and the
+redefined personas with refreshed recordings) and `clude-00041-pxh`
+(2026-10-30, the collector's cards and wooden tokens). On 2026-11-01 every
+wiki page rendered from the checkout matched the live service, and the PlumOG
+tables and figures left the public encyclopaedia
+([Wikiclude plan](wikiclude-plan.md#21-housekeeping-deployment-evidence-and-the-plumog-purge-2026-11-01)).
 
 ## Post-game final comments
 

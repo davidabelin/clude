@@ -74,11 +74,11 @@ Phase 14 repeated the threshold screen on post-landing-rule games. Its direct ef
 
 ### The quality of his numbers
 
-Green's score is a borrowed score, and it tracks the arms he trusts. In the earliest benchmark, all five arms had mean rewards within a percentage point of one another, so selection barely distinguished them; the reward was changed to a rank, after which sixty games spread his records by about {{fact:green.arms.spread}}, in the order the benchmark ranks the methods at the end of a game.[^glossary]
+Green's score is a borrowed score, and it tracks the arms he trusts. In the earliest benchmark, all five arms had mean rewards within a percentage point of one another, so selection barely distinguished them; the reward was changed to a rank, which spread the records. Phase 14 began his record again from Beta(1,1) and trained it on fresh games, so which arm he now trusts most is not a published number.[^glossary]
 
-{{table:bench.grid|Historical comparison. The six methods on the Classic board: log-loss at four checkpoints, {{fact:bench.grid.games}} games, 15 September 2026.}}
+{{table:methods.phase14.green|Phase 14's validation: his former comparison state and the accepted rebuild on the same 19 held-out deals and 264 private snapshots. Lower log-loss is better.}}
 
-In the 15 September Classic-board benchmark, with PlumOG still in his ensemble, he was second-best at the end, {{fact:bench.grid.Green.100}}, and ahead of the baseline throughout, including the halfway mark where PlumOG was not; the run left him leaning on Mustard ({{fact:green.arms.grid.mustard}}) and Plum ({{fact:green.arms.grid.plum}}) and away from Peacock ({{fact:green.arms.grid.peacock}}) and Scarlett ({{fact:green.arms.grid.scarlett}}). That historical call took {{fact:bench.grid.Green.ms}} ms at mid-game because it included PlumOG's search. It is not a timing of the current network ensemble.[^grid]
+His rebuilt record improved at the first three checkpoints and worsened at the last. These are candidate-selection scores, and no benchmark since Phase 14 has scored the six methods together. Every call still consults all five arms, now all fast, the network among them.[^validation]
 
 ### At the table
 
@@ -88,7 +88,7 @@ Green won {{fact:arena.phase14.Green.win}}% of the current control and made a wr
 
 ### With Claude in the seat
 
-With a model choosing within his [[leash]], Green's win rate changed from {{fact:twin.grid.Green.win_base}}% to {{fact:twin.grid.Green.win_llm}}%. The notes treat the change as within sampling uncertainty. His first accusation came earlier, as it did for every character at the model table. His [[w:Bluff (poker)|bluffing]] fell from {{fact:twin.grid.bluff.green.base}} own-card suggestions per game to {{fact:twin.grid.bluff.green.llm}}.[^twin]
+In Phase 14's paid leash screen, the current record of a model in his seat, he won three of eight games at his 0.25 preset, none at leash 0, four at 0.5 and seven at 1, with no wrong accusation at any value. Eight-game rows are screens, not promotion evidence, and no paired headless-against-model comparison has been run since the landing rule.[^arena]
 
 ## Memory
 
@@ -115,10 +115,9 @@ Like every character he can also keep a narrative [[logbook]], written by a mode
 [^module]: {{cite:clude_agents/bandit.py|`BanditAgent.select_action` and `observe`, `rank_rewards`}}
 [^bandit]: Computed by the live modules on the Rope question; see [[Bandit ensemble#At the table]].
 [^presets]: {{cite:clude_agents/personality.py|`PRESETS`, Green's entry and its note}}
-[^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
 [^arena]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
+[^validation]: {{cite:docs/strategy-glossary.md|Phase 14 adaptive-method validation (2026-10-17)}}
 [^current]: {{cite:docs/phase14-plan.md|Plum and Green — retrained; Run 3 promoted locally}}
-[^twin]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
 [^logbooks]: {{cite:docs/logbooks.md|Three tiers}}
 [^lives]: {{cite:docs/phase13-plan.md|1. Brief and settled decisions}}
 [^live]: {{cite:docs/phase13-plan.md|2026-10-15: step 4 accepted live, and a debrief lost to its token cap}}
