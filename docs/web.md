@@ -219,7 +219,7 @@ python -m pytest tests\test_wiki.py -k wikipedia
 
 ## Sound
 
-Six short cues: tick, turn, refute, accent, door and passage. Five are synthesised; the door processes a public-domain squeaky-door recording (LeonMire, PDSounds 505). [Source and processing notes](../scripts/assets/README.md) preserve its provenance. No music. Sound starts off; the header toggle and volume persist per device. Cues fire once for new visible events/decisions, never polling, reload, talk or manual replay scrubbing. `scripts/make_sounds.py` regenerates the deterministic WAV assets.
+Six short cues: tick, turn, refute, accent, door and passage. Five are synthesised; the door has a voice per look, chosen by `sound.js` from the page's `data-style` (the cue is still `door` to every page and to `cludeSound.played`). Gaslight dark, and any look not listed, plays `door.wav`, which processes a public-domain squeaky-door recording (LeonMire, PDSounds 505; [source and processing notes](../scripts/assets/README.md) preserve its provenance). Developer plays `door-knock.wav`, one knuckle-rap on wood, since its board has no leaf to swing. Case-file light plays `door-soft.wav`, a muffled latch and wooden bars rising on the open and falling home on the shut, quieter than `door.wav` in RMS and timed to land with its leaf's 1.1 s swing. Both new voices are synthesised by `scripts/make_sounds.py`. No music. Sound starts off; the header toggle and volume persist per device. Cues fire once for new visible events/decisions, never polling, reload, talk or manual replay scrubbing. `scripts/make_sounds.py` regenerates the deterministic WAV assets.
 
 ## Looking at it
 

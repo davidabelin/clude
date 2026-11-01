@@ -18,6 +18,11 @@ struck plate. No music.
   swing, with its solid closing thud near the end.
   Source: LeonMire, “Squeaky door.ogg” (PDSounds record 505), public
   domain: https://commons.wikimedia.org/wiki/File:Squeaky_door.ogg
+- `door-knock` and `door-soft` (2026-11-01): the door cue's two other
+  voices. `static/sound.js` plays the file for the page's look: `door` for
+  Gaslight dark, `door-knock` (one knuckle-rap on wood) for Developer, and
+  `door-soft` (a muffled latch, wooden bars rising on the open and
+  falling home on the shut) for Case-file light. Both are synthesized.
 - `passage`: a token taking a secret passage: stone dragged aside, a
   hollow draught under it, and a low settle.
 
@@ -186,6 +191,91 @@ def door(n: int) -> list:
     return out
 
 
+def knock(n: int) -> list:
+    """One knuckle-rap on a wooden door, for the Developer look: a brief
+    skin-on-grain contact over four fast-dying panel modes, with no
+    hinge, no latch and no echo. Plain on purpose: Developer's board has
+    no leaf to swing, so the cue is only a mark that a token came in."""
+    noise = _noise(41)
+    low = 0.0
+    out = []
+    for i in range(n):
+        t = i / RATE
+        low += 0.40 * (next(noise) - low)             # one-pole low-pass, about 1.8 kHz
+        contact = low * math.exp(-t / 0.0022)
+        body = (
+            1.00 * _partial(t, 205, 0.040)
+            + 0.85 * _partial(t, 388, 0.028, 0.4)
+            + 0.55 * _partial(t, 640, 0.018, 1.0)
+            + 0.28 * _partial(t, 1020, 0.010, 2.1)
+        )
+        out.append((0.9 * contact + body) * _attack(t, 0.0006))
+    return out
+
+
+def _bar(t: float, onset: float, freq: float, tau: float) -> float:
+    """A struck wooden bar at `freq`, sounding from `onset`: a round
+    fundamental with the 4th and 10th partials a marimba bar carries,
+    which is what makes a pure tone read as wood."""
+    u = t - onset
+    if u < 0:
+        return 0.0
+    ring = (
+        _partial(u, freq, tau)
+        + 0.30 * _partial(u, 4 * freq, tau * 0.22)
+        + 0.08 * _partial(u, 10 * freq, tau * 0.06)
+    )
+    return ring * _attack(u, 0.006)
+
+
+def door_soft(n: int) -> list:
+    """The Case-file light door: a soft open and a soft shut, tuned.
+
+    Opening, a muffled latch and a breath of air, with wooden bars
+    rising A3, E4, A4 (an open fifth and its octave) as the leaf swings
+    clear. Shutting, a felt thud under bars falling D4, A3, D3, so the
+    pair reads as a cadence from the dominant home to the tonic: an
+    ending, not a slam. The close lands at 0.98 s, as the board's leaf
+    (1.1 s swing, `--dur-door`) comes back to the frame."""
+    noise = _noise(53)
+    latch = breath = thud = 0.0
+    phase = 0.0
+    out = []
+    close = 0.98
+    for i in range(n):
+        t = i / RATE
+        x = next(noise)
+        latch += 0.25 * (x - latch)                    # about 1 kHz
+        breath += 0.06 * (x - breath)                  # a dark rush
+        thud += 0.15 * (x - thud)
+        opening = 0.30 * latch * math.exp(-t / 0.010)
+        air = 0.0
+        if t < 0.55:
+            air = 0.085 * breath * math.sin(math.pi * t / 0.55) ** 2 * 6
+        rising = (
+            0.80 * _bar(t, 0.00, 220.0, 0.21)
+            + 0.55 * _bar(t, 0.06, 329.63, 0.19)
+            + 0.25 * _bar(t, 0.12, 440.0, 0.15)
+        )
+        shut = 0.0
+        if t >= close:
+            u = t - close
+            phase += 2 * math.pi * (70 + 50 * math.exp(-u / 0.03)) / RATE    # a falling thump
+            shut = (
+                0.85 * math.sin(phase) * math.exp(-u / 0.07) * _attack(u, 0.003)
+                + 0.35 * thud * math.exp(-u / 0.008)
+                + 0.45 * _bar(t, close, 293.66, 0.22)
+                + 0.60 * _bar(t, close + 0.05, 220.0, 0.22)
+                + 0.70 * _bar(t, close + 0.10, 146.83, 0.24)
+            )
+        tail = 1.0
+        end = n / RATE
+        if t > end - 0.12:
+            tail = 0.5 * (1 + math.cos(math.pi * (t - (end - 0.12)) / 0.12))
+        out.append((opening + air + rising + shut) * _attack(t, 0.003) * tail)
+    return out
+
+
 def passage(n: int) -> list:
     """A secret passage: a stone slab dragged aside (filtered noise,
     grinding), a hollow draught beneath (a low tone wavering), swelling
@@ -217,6 +307,8 @@ CUES = {
     "refute": (refute, 0.22, 0.50),
     "accent": (accent, 1.40, 0.55),
     "door": (door, 1.35, 0.52),
+    "door-knock": (knock, 0.32, 0.55),
+    "door-soft": (door_soft, 1.45, 0.26),
     "passage": (passage, 1.25, 0.50),
 }
 """Cue -> (recipe, seconds, peak level). The peaks leave the loudest

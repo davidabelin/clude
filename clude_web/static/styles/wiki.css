@@ -607,6 +607,29 @@ html[data-style="gaslight"] .wiki-board-plain { display: none; }
 .portal dd { margin-left: 0; font-size: 0.92rem; }
 .portal a.stub { color: var(--ink-soft); }
 
+/* The featured article's card (2026-11-01): the collector's card from its
+   infobox, beside the lead's excerpt. Centred above the text on a phone,
+   floated right from 560 px. Its pixels keep their own palette in every
+   look; only the frame follows the look. */
+.portal-featured .portal-body { display: flow-root; }
+.portal-card {
+  box-sizing: border-box;
+  width: 9.5rem;
+  margin: 0 auto 0.75rem;
+  padding: 0.5rem;
+  border: 1px solid var(--w-strong);
+  border-radius: var(--w-radius);
+  background: var(--w-sunk);
+  text-align: center;
+}
+.portal-card a { display: block; }
+.portal-card a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.portal-card svg.fig-character-card { display: block; width: 100%; height: auto; margin: 0 auto; }
+.portal-card figcaption { margin-top: 0.3rem; font-size: 0.8rem; line-height: 1.3; color: var(--ink-soft); }
+@media (min-width: 560px) {
+  .portal-card { float: right; width: 10.5rem; margin: 0.15rem 0 0.75rem 1rem; }
+}
+
 /* --- below 900 px: every pixel to the figure ------------------------------ */
 
 @media (max-width: 899px) {
