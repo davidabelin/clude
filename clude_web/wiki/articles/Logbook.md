@@ -50,7 +50,7 @@ The CLI opts in with `--logbook`. A read-only logbook supplies a fixed memory st
 
 ## Recorded experiment
 
-An early experiment on the ring board, on 14 September 2026, paired games of a model-piloted Plum with and without an accumulating logbook at leash 0.5 and recorded fewer stalls with it. That Plum, his board and the scores responsible for his stalls have all since been replaced, and the run is kept in the maintainer glossary. Phase 14's memory-depth screen, in which all four model seats changed depth together, is the current paid evidence and cannot isolate one seat's benefit; a paired memory comparison for the current characters has not been run.[^experiment]
+An early experiment on the ring board, on 14 September 2026, paired games of a model-piloted Plum with and without an accumulating logbook at leash 0.5 and recorded fewer stalls with it. That Plum, his board and the scores responsible for his stalls have all since been replaced, and the run is kept in the maintainer glossary. Phase 14's memory-depth screen, in which all four model seats changed depth together, cannot isolate one seat's benefit. On 1 November 2026 one seat was isolated: Plum with the model at his three-seat table, 24 seed-paired games with and without his logbook at depth 1, in which the logbook gained him {{fact:twin.phase14.memory.delta}} paired win-rate points ({{fact:twin.phase14.memory.low}} to {{fact:twin.phase14.memory.high}}), an interval that clears zero, so the direction is established and the size is not ([[Memory dial]]).[^experiment][^twin]
 
 ## Maintenance and limits
 
@@ -76,5 +76,6 @@ More narrative depth increases context and can preserve useful detail, but can a
 [^live]: {{cite:docs/phase13-plan.md|2026-10-15: step 4 accepted live, and a debrief lost to its token cap}}
 [^experiment]: {{cite:docs/strategy-glossary.md|Plum's logbook at leash 0.5 (2026-09-14)}}
 [^maintenance]: {{cite:docs/logbooks.md|Running it}}
+[^twin]: {{cite:docs/strategy-glossary.md|Plum twin comparison at his three-seat table (2026-11-01)}}
 
 {{navbox:clude}}

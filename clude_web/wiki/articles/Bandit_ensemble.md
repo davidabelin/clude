@@ -111,7 +111,7 @@ The rank reward separated the arms where the earlier reward had not: on the ring
 
 ### The quality of his numbers
 
-Green's benchmark loss reflects which arms were selected. Phase 14's validation above is the current measurement; no benchmark since has scored the six methods together, and the ensemble's cost is now that of five fast methods, the network among them.[^validation]
+Green's benchmark loss reflects which arms were selected. On the six-method benchmark of 1 November 2026 the released ensemble had the lowest loss of the six at the first two checkpoints, {{fact:bench.six.Green.25}} and {{fact:bench.six.Green.50}}, and the second-lowest at the end, {{fact:bench.six.Green.100}}; a call costs {{fact:bench.six.Green.ms}} ms, the five arms together.[^validation][^six]
 
 ### At the table
 
@@ -154,5 +154,6 @@ In Phase 14's paid leash screen, the current record of a model in his seat, he w
 [^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^phase14]: {{cite:docs/phase14-plan.md|Plum and Green — retrained; Run 3 promoted locally}}
 [^policy]: {{cite:clude_web/wiki/facts.py|`rope_observation` and `rope_question`}}
+[^six]: {{cite:docs/strategy-glossary.md|Six-method belief benchmark (2026-11-01)}}
 
 {{navbox:clude}}

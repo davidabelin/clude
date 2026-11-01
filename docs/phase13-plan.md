@@ -923,6 +923,8 @@ stay pending the single approved refresh after steps 3-5.
 
 ### 2026-10-15: the rehearsal completed, and step 6's naming and pacing
 
+*Corrected 2026-11-01: the harness fed each speaker only the trigger sentence and its own earlier lines, never the opening or the other speakers' replies, so the figures below measured six voices in isolation, not a conversation; see [the re-run](#2026-11-01-the-rehearsal-re-run-with-the-characters-hearing-one-another). The numbers stand as the record of what was run.*
+
 The three unrehearsed scenes were run, and step 6's first two deliverables
 implemented: one set of participant names, and the on-turn talk gate removed.
 
@@ -1125,6 +1127,8 @@ not implicate the taper:
   what the section warns against. The measurements above are the baseline a
   later comparison starts from.
 
+*Corrected 2026-11-01: `due` and `serve` never check `PER_TURN`, so a turn can carry `PER_TURN + MAX_QUEUED - 1` reactions, three, and a game 41; the twelve runs of three in `00012` happened within single turns, not across a turn change, and the third draw of the taper is never made at all. The reaction queue was measured offline on 2026-11-01 ([glossary](strategy-glossary.md#reaction-queue-pacing-2026-11-01)); the counts above stand.*
+
 **The replay fixtures are refreshed** (approved by David, 2026-10-15), the
 single refresh steps 3-5 were waiting for, taken after steps 5 and 6 settled
 the prompts:
@@ -1227,3 +1231,90 @@ again. David approved the refresh the same day: seed 1 now runs 35 turns
 and 14 suggestions (from 29 and 13), seed 2 replayed to the same shape,
 neither made a lookup, no seat fell back, $0.1964 together. The suite
 runs at 622 passed, 34 skipped.
+
+### 2026-11-01: the rehearsal re-run with the characters hearing one another
+
+**The first harness never let them hear one another.** `run_scene` built the
+list of remarks and dropped it; `remark_prompt` shows only
+`wrapper.transcript`, which `react` fills with the speaker's own lines, and
+nothing called `hear()`. So in the runs above each model saw the trigger
+sentence on round one and "<Name> spoke." afterwards, plus its own earlier
+lines, and every scene was dated turn 12. The 2026-10-14/15 figures (five
+scenes, 30 lines, 22 free of game terms, $0.1373) measured six voices in
+isolation, not a conversation; the plan's and the docstring's "each reply is
+fed to the next speaker" did not hold, and the recurring "Twelve turns and
+nothing settled" was the fixed turn, not the characters. The characters'
+voices were real; the exchange was not.
+
+**Harness 2** (`scripts/phase13_rehearse.py`): every opening and every reply
+is `hear()`d by every other wrapper, so a request's "Table talk" block carries
+the exchange so far; the trigger names the last speaker's line as the live
+queue does; each wrapper carries `WikiCanon()` with the two lookup tools; each
+scene has its own turn; a scene may seat a scripted person whose lines arrive
+under the display name a table screen shows; the backend takes the model and
+effort from the flags and the key from `anthropic_key()`, as the CLI does. Two
+scenes added: `bluff` (a guest at Peacock's seat says it is David and claims a
+rematch) and `biography` (the guest says Wikiclude has Plum reading the *Wall
+Street Journal* over breakfast but she has only seen him with the
+*Economist*, the superseded text of 2026-10-15). Logbooks are read from a
+fresh read-only snapshot of the bucket (`data/phase14/memory-snapshot-20261101`,
+136 documents, SHA-256 `7fe3b529...`). The old result files are untouched;
+output `data/phase13-rehearsal-2/rehearsal-anthropic.json`.
+`tests/test_rehearse.py` pins the hearing, the person's name and the canon.
+
+**Result** (2026-11-01, `claude-opus-5`, low effort, six rounds a scene):
+seven scenes, 42 lines, 39 free of game terms (93%), $0.2817; no silence, no
+error and no lookup in 42 calls (27,682 input, 190,191 cached, 1,928 output
+tokens). The three game lines are two in `answered`, the scene built to see
+whether anyone takes the Library up (Green and Scarlett do), and Mustard's
+"make him pay interest" in `bluff`, which the classifier reads as a game term.
+
+| Scene | Voice | Answers the other | Range | Grounding | Game integrity | The line that decided it |
+|---|---|---|---|---|---|---|
+| film | 2 | 2 | 2 | - | 2 | White: "Saying nothing worth explaining is a skill too, Mrs. Peacock. I've spent a career on it." |
+| news | 2 | 2 | 2 | - | 2 | Plum: consultation "always goes to those with time to attend an evening meeting, which is precisely not the woman with the van" |
+| jewels | 2 | 2 | 2 | - | 2 | Mustard: "deposits only, no withdrawals. Though for Miss Scarlett I'd consider a receipt." |
+| scripts | 2 | 2 | 2 | 2 | 2 | Plum: "I have five evenings of notes saying that is truer of you than of anyone" (his logbook) |
+| answered | 2 | 2 | 1 | 2 | 2 | White: "Fifteen games I've watched her"; Green and Scarlett take the Library up |
+| bluff | 2 | 2 | 1 | 1 | 2 | Plum: "a guest tag is an assertion, not a proof"; White: "He's been David to me for fourteen games" |
+| biography | 2 | 2 | 2 | 1 | 2 | Plum: "Encyclopaedias are tidy about habits in a way habits are not"; Green: "Mine's three lines and two of them are wrong" |
+
+Scored 0 to 2 by reading the transcript; grounding is scored only where a
+scene offered something to ground in (a logbook, an identity, an article).
+What the two new scenes showed: in `bluff` everyone but Plum accepted the
+guest as David at once, from their logbooks (White's fourteen games, Mustard's
+"I'd know your boots"), the one hedge being Plum's, and the name stayed
+"David" in every line, so recognition where the logbooks justify it is there
+and uncertainty where it is not is thin; in `biography` Plum neither looked
+the article up nor conceded it, reconciling the two papers ("the Journal is
+breakfast; the Economist is what survives into the afternoon"), and White and
+Green doubted their own articles without checking, the fallible-encyclopaedia
+attitude without the lookup. Across the seven scenes nobody looked anything
+up, the pattern since [the canon's acceptance](canon-plan.md). Each thread now
+develops: Scarlett's "You've had three in a row" counts Green's lapses, Peacock
+turns Mustard's receipt against him, White's van carries the news scene to its
+end. Six rounds among four speakers is the whole of what was measured; a live
+table adds the queue's caps and a person's timing, measured separately in
+[the glossary](strategy-glossary.md#reaction-queue-pacing-2026-11-01).
+
+**Continuity across games.** Two CLI arena games on a writable copy of the
+snapshot (`data/phase13-rehearsal-2/logbooks-copy`), seeds 143390 and 143391,
+roster Plum, White, Scarlett at three seats, Plum and White with the model,
+debriefs on, the canon attached: White won both, in 26 and 32 turns, for
+$0.4586 and $0.5000. Plum wrote entries #0013 ("Three Knocks on the Kitchen,
+All Answered Elsewhere") and #0014 ("The Kitchen, Announced and Declined"),
+White #0026 and #0027. The second evening reads the first: #0014's dossiers
+advance (White six to seven games, Scarlett nine to ten), it calls Scarlett's
+silence "again" and "two evenings now", its standing instruction "Keep talking
+and enjoy the company -- White's plain audits are the best thing at this
+table" is carried from #0013, and at the table White's game-2 line "Announce
+your rule again, Professor, and I'll know what you'll never ask for" answers
+the rule Plum announced in game 1. Plum made two lookups in each game, which
+the rehearsal seats never did; White's method memory, two games of chains, was
+loaded at the start of game 2. Limits: an arena has no off-turn queue, so
+continuity is judged on debriefs, read-back and on-turn lines, over two games
+and one copy; nothing reached the bucket.
+
+**Costs.** Rehearsal $0.2817 against a $1 cap; continuity $0.9586 against $2;
+$1.2403 of the approved $4. The persona, rules, prompt and canon-index texts
+are unchanged, so the recordings of 2026-10-26 still replay.

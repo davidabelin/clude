@@ -126,7 +126,7 @@ The [[belief benchmark]] scores each method's probabilities against the truth at
 
 Scarlett's log-loss was slightly worse than the baseline at every checkpoint in this benchmark. Her score adjustments therefore reduced accuracy on average, compared with spreading probability evenly over the floor's remaining candidates. The earlier benchmark showed the same pattern. The project notes attribute it to repeated, overlapping disproofs, which are more common than undisproved suggestions until late in a game.[^ring]
 
-Two other metrics help interpret the result. At the end checkpoint, Scarlett's first choice in each category was correct with frequency {{fact:bench.grid.Scarlett.top1}}, compared with {{fact:bench.grid.uniform.top1}} for the baseline. Her ranking was therefore slightly better despite her worse log-loss; ranking and [[w:Calibration (statistics)|calibration]] measure different properties.[^domingos] She also answered in a fraction of a millisecond in this benchmark. Her method carries no learned state, and no benchmark since Phase 14 has re-scored it.
+Two other metrics help interpret the result. At the end checkpoint, Scarlett's first choice in each category was correct with frequency {{fact:bench.grid.Scarlett.top1}}, compared with {{fact:bench.grid.uniform.top1}} for the baseline. Her ranking was therefore slightly better despite her worse log-loss; ranking and [[w:Calibration (statistics)|calibration]] measure different properties.[^domingos] She also answered in a fraction of a millisecond in this benchmark. Her method carries no learned state; the six-method benchmark of 1 November 2026 scored it worse than the floor at every checkpoint again, {{fact:bench.six.Scarlett.100}} against {{fact:bench.six.uniform.100}} at the end, with a first choice right {{fact:bench.six.Scarlett.top1}} of the time.[^six]
 
 ### At the table
 
@@ -166,5 +166,6 @@ In clude, those estimates also control when Scarlett stakes the game on an [[acc
 [^ring]: {{cite:docs/strategy-glossary.md|Belief benchmark, FloorBot regime (Phase 5)}}
 [^arena]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
+[^six]: {{cite:docs/strategy-glossary.md|Six-method belief benchmark (2026-11-01)}}
 
 {{navbox:clude}}

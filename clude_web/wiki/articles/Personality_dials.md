@@ -90,7 +90,7 @@ These values are read from the current implementation. The neutral profile used 
 | [[Chattiness]] | The off-turn reply draw, tapered by reply depth; a line written with a decision is said as written | {{code:neutral.chattiness}} |
 | [[Memory dial]] | How much narrative logbook is read before a game | {{code:neutral.memory}} |
 
-The headless character ignores these three settings. Since 15 October 2026 chattiness no longer gates an on-turn line, only the off-turn draws that [[Table talk]] describes, and since 26 October 2026 each preset sets its own: [[Miss Scarlett]] {{code:preset.Scarlett.chattiness}}, [[Mrs. Peacock]] {{code:preset.Peacock.chattiness}}, [[Mr. Green]] {{code:preset.Green.chattiness}}, [[Mrs. White]] {{code:preset.White.chattiness}}, [[Professor Plum]] {{code:preset.Plum.chattiness}} and [[Colonel Mustard]] {{code:preset.Mustard.chattiness}}. A memory value of 0 means the condensed logbook head, not memory disabled. New web LLM seats start at full narrative depth; remembering is a separate table setting. [[Method memory]] can also apply to headless seats when remembering is enabled.
+The headless character ignores these three settings. Since 15 October 2026 chattiness no longer gates an on-turn line, only the off-turn draws that [[Table talk]] describes, and since 26 October 2026 each preset sets its own: [[Miss Scarlett]] {{code:preset.Scarlett.chattiness}}, [[Mrs. Peacock]] {{code:preset.Peacock.chattiness}}, [[Mr. Green]] {{code:preset.Green.chattiness}}, [[Mrs. White]] {{code:preset.White.chattiness}}, [[Professor Plum]] {{code:preset.Plum.chattiness}} and [[Colonel Mustard]] {{code:preset.Mustard.chattiness}}; replayed over the stored web games, those presets serve {{fact:pacing.harness.web2.presets.served}} off-turn lines where 1.0 serves {{fact:pacing.harness.web2.one.served}} ([[Table talk]]).[^pacing] A memory value of 0 means the condensed logbook head, not memory disabled. New web LLM seats start at full narrative depth; remembering is a separate table setting. [[Method memory]] can also apply to headless seats when remembering is enabled.
 
 ## Limits
 
@@ -109,5 +109,6 @@ The dials operate on a character's own estimates and shared scoring rules. They 
 [^character]: {{cite:clude_agents/character.py|`best_triple`, `show_scores` and decision sampling}}
 [^features]: {{cite:clude_agents/features.py|`room_features`, `score_choices` and `sample_softmax`}}
 [^tuning]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
+[^pacing]: {{cite:docs/strategy-glossary.md|Reaction-queue pacing (2026-11-01)}}
 
 {{navbox:clude}}

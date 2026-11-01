@@ -112,7 +112,7 @@ The two bounds are also the origin of a piece of the design: the "two-tone belie
 
 The [[belief benchmark]] scores the pignistic probability, since that is the number the rest of the system uses, by [[log-loss]] against the [[uniform baseline]].
 
-In the historical ring-board and 15 September Classic-board benchmarks, Peacock's log-loss was slightly worse than the baseline at every checkpoint. The Classic-board values were {{fact:bench.grid.Peacock.25}}, {{fact:bench.grid.Peacock.50}}, {{fact:bench.grid.Peacock.75}} and {{fact:bench.grid.Peacock.100}}, against {{fact:bench.grid.uniform.25}}, {{fact:bench.grid.uniform.50}}, {{fact:bench.grid.uniform.75}} and {{fact:bench.grid.uniform.100}}. Her final first-choice accuracy was {{fact:bench.grid.Peacock.top1}}, the same as the baseline's. Her method carries no learned state, and no benchmark since Phase 14 has re-scored it.[^glossary] In the Rope example, her {{code:example.peacock.White}} for White exceeds the equal-weight count's {{code:example.plum.White}}. The difference comes from the heuristic category split and the pignistic allocation of the remaining mass.
+In the historical ring-board and 15 September Classic-board benchmarks, Peacock's log-loss was slightly worse than the baseline at every checkpoint. The Classic-board values were {{fact:bench.grid.Peacock.25}}, {{fact:bench.grid.Peacock.50}}, {{fact:bench.grid.Peacock.75}} and {{fact:bench.grid.Peacock.100}}, against {{fact:bench.grid.uniform.25}}, {{fact:bench.grid.uniform.50}}, {{fact:bench.grid.uniform.75}} and {{fact:bench.grid.uniform.100}}. Her final first-choice accuracy was {{fact:bench.grid.Peacock.top1}}, the same as the baseline's. Her method carries no learned state; the six-method benchmark of 1 November 2026 scored it worse than the floor at every checkpoint again, {{fact:bench.six.Peacock.50}} against {{fact:bench.six.uniform.50}} at halfway.[^glossary][^six] In the Rope example, her {{code:example.peacock.White}} for White exceeds the equal-weight count's {{code:example.plum.White}}. The difference comes from the heuristic category split and the pignistic allocation of the remaining mass.
 
 The accusation test uses the belief values rather than the decision probabilities. The benchmark does not directly evaluate those bounds, so its results alone cannot establish how well they express uncertainty.[^ring]
 
@@ -157,5 +157,6 @@ With a model in her seat the picture changes a little: the [[leash]] lets a mode
 [^phase5fix]: {{cite:docs/phase5-plan.md|8. As implemented (2026-09-12)}}
 [^ring]: {{cite:docs/strategy-glossary.md|Belief benchmark, FloorBot regime (Phase 5)}}
 [^arena]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
+[^six]: {{cite:docs/strategy-glossary.md|Six-method belief benchmark (2026-11-01)}}
 
 {{navbox:clude}}

@@ -23,9 +23,9 @@ Memory | A [[logbook]] only; her method remembers nothing
 [[Curiosity]] | {{code:preset.Scarlett.curiosity}}
 [[Secrecy]] | {{code:preset.Scarlett.secrecy}}
 [[Temperature]] | {{code:preset.Scarlett.temperature}}
-= Classic-board arena, 15 September 2026
-Games won | {{fact:arena.phase14.Scarlett.win}}% of {{fact:arena.phase14.Scarlett.games}}
-Wrong accusations | {{fact:arena.phase14.Scarlett.wrong}}%
+= Headless six-character arena, 1 November 2026
+Games won | {{fact:arena.six.Scarlett.win}}% of {{fact:arena.six.Scarlett.games}} seat-games
+Wrong accusations | {{fact:arena.six.Scarlett.wrong}}%
 }}
 
 **Miss Scarlett** is one of the six [[Clue#The cards|suspects]] in [[Clue]] and a [[Category:Characters|character]] in [[clude]]. Her [[Naive Bayes]] method estimates the cards in [[the envelope]] by multiplying their scores after each [[suggestion]]. An undisproved suggestion raises the named cards' scores; a disproof whose card she does not see lowers them. Each update treats the suggestion as independent evidence. The method is fast, but overlapping clues can make Scarlett [[w:Overconfidence effect|overconfident]].[^module]
@@ -84,13 +84,15 @@ Phase 14 repeated the threshold and curiosity checks on post-landing-rule games.
 
 The [[belief benchmark]] scores each method's probabilities against the truth at four points in a game by [[log-loss]], against the [[uniform baseline]], the score of a player who believes what the deduction floor has proved and spreads the rest evenly.
 
-In every recorded benchmark, Scarlett's log-loss was slightly higher than the baseline at every checkpoint.[^grid] The repeated adjustments reduced probability accuracy on average. In the Classic-board run, final first-choice accuracy was {{fact:bench.grid.Scarlett.top1}}, compared with {{fact:bench.grid.uniform.top1}} for the baseline. Her card ranking was slightly better while her probability estimates were worse.[^grid] This is consistent with the distinction between classification accuracy and [[w:Calibration (statistics)|calibration]] discussed in the naive Bayes literature.[^domingos] Her method carries no learned state, and no benchmark since Phase 14 has re-scored it; that run is the latest.
+In every recorded benchmark, Scarlett's log-loss was slightly higher than the baseline at every checkpoint.[^grid] The repeated adjustments reduced probability accuracy on average. In the Classic-board run, final first-choice accuracy was {{fact:bench.grid.Scarlett.top1}}, compared with {{fact:bench.grid.uniform.top1}} for the baseline. Her card ranking was slightly better while her probability estimates were worse.[^grid] This is consistent with the distinction between classification accuracy and [[w:Calibration (statistics)|calibration]] discussed in the naive Bayes literature.[^domingos] Her method carries no learned state. On the six-method benchmark of 1 November 2026 it scored worse than the floor at every checkpoint again, {{fact:bench.six.Scarlett.50}} against {{fact:bench.six.uniform.50}} at halfway, while her final first choice was right {{fact:bench.six.Scarlett.top1}} of the time against the floor's {{fact:bench.six.uniform.top1}}.[^six]
 
 ### At the table
 
-{{table:arena.phase14|The current-setting rows from Phase 14's isolated headless screens, 40 seat-games per character.}}
+{{table:arena.six|The six released characters against one another, headless, 1 November 2026: 480 games cycling three to six seats.}}
 
-She won {{fact:arena.phase14.Scarlett.win}}% of the current control and made a wrong accusation in {{fact:arena.phase14.Scarlett.wrong}}%, still the highest observed error rate at the table.[^arena] Her first accusation came at mean turn {{fact:arena.phase14.Scarlett.first}}. The 40-seat-game sample describes this block, not a universal rate.
+{{table:arena.phase14|The current-setting rows from Phase 14's isolated headless screens, 40 seat-games per character, the dial record.}}
+
+She won {{fact:arena.phase14.Scarlett.win}}% of the current control and made a wrong accusation in {{fact:arena.phase14.Scarlett.wrong}}%, still the highest observed error rate at the table.[^arena] Her first accusation came at mean turn {{fact:arena.phase14.Scarlett.first}}. The 40-seat-game sample describes this block, not a universal rate. The six-character arena of 1 November 2026, 400 seat-games, has Scarlett winning {{fact:arena.six.Scarlett.win}}% and accusing wrongly in {{fact:arena.six.Scarlett.wrong}}%.[^six_arena]
 
 ### With Claude in the seat
 
@@ -126,5 +128,7 @@ Scarlett's method reads the current game's suggestion history afresh on every ca
 [^logbooks]: {{cite:docs/logbooks.md|Three tiers}}
 [^lives]: {{cite:docs/phase13-plan.md|1. Brief and settled decisions}}
 [^live]: {{cite:docs/phase13-plan.md|2026-10-15: step 4 accepted live, and a debrief lost to its token cap}}
+[^six]: {{cite:docs/strategy-glossary.md|Six-method belief benchmark (2026-11-01)}}
+[^six_arena]: {{cite:docs/strategy-glossary.md|Six-character arena (2026-11-01)}}
 
 {{navbox:clude}}

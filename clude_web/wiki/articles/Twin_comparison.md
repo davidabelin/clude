@@ -26,7 +26,11 @@ An always-failing backend supplies a strong control: it reproduces headless even
 
 The recorded twin comparisons, on the ring board on 13 September 2026 and on the Classic board on 16 September, paired 24 four-seat games with every seated character piloted through Claude at the presets of the time. Their tables stay in the maintainer glossary: they predate the [[landing rule]], the Phase 14 method rebuild and Plum's network, so they are not measurements of the current characters. In that sample Mustard's win rate rose and his wrong-accusation rate fell, Peacock won more and the Plum of the time won fewer, which already showed that the effect has no single direction.[^grid]
 
-No twin comparison has been run since. The current paid evidence is Phase 14's leash screen, eight games per value per character, and the 24-pair confirmation of Plum's leash at his own three-seat table ([[Leash]]). Neither pairs a headless leg against a model leg on the same deals, so that measurement remains to be collected.[^leash]
+On 1 November 2026 the comparison was made again for the current Plum, at his own three-seat table with Mustard and Green on their released methods: 24 seed-paired games headless, with [[Claude]] in his seat, and with Claude reading his [[logbook]] at depth 1. A null-backend twin reproduced the headless leg game for game first, which is what makes the model leg paired.[^twin]
+
+{{table:twin.phase14|Plum's legs at seed 143300. The headless leg is free; the model legs seat claude-opus-5 at his preset leash with no debrief.}}
+
+With the model Plum lost {{fact:twin.phase14.model.delta}} paired win-rate points (95% interval {{fact:twin.phase14.model.low}} to {{fact:twin.phase14.model.high}}); with his logbook as well he gained {{fact:twin.phase14.memory.delta}} points against the model alone ({{fact:twin.phase14.memory.low}} to {{fact:twin.phase14.memory.high}}). The model-alone interval straddles zero; the logbook interval does not. Intervals twenty points wide leave sizes unmeasured, and one seat with two headless opponents is not a live table's company. Phase 14's leash screen and 24-pair confirmation ([[Leash]]) remain the other paid evidence for his seat.[^leash]
 
 ## Diagnosing a result
 
@@ -53,5 +57,6 @@ Those experiments predate the landing-rule change. A current comparison should r
 [^arena]: {{cite:clude_training/arena.py|paired random streams and LLM statistics}}
 [^grid]: {{cite:docs/strategy-glossary.md|Twin comparison on the grid (Stage 2a, 2026-09-16)}}
 [^leash]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
+[^twin]: {{cite:docs/strategy-glossary.md|Plum twin comparison at his three-seat table (2026-11-01)}}
 
 {{navbox:clude}}

@@ -24,6 +24,9 @@ Memory | A [[logbook]]; his network's weights are fixed between games
 [[Curiosity]] | {{code:preset.Plum.curiosity}} (inert for his network)
 [[Secrecy]] | {{code:preset.Plum.secrecy}}
 [[Temperature]] | {{code:preset.Plum.temperature}}
+= Headless six-character arena, 1 November 2026
+Games won | {{fact:arena.six.Plum.win}}% of {{fact:arena.six.Plum.games}} seat-games
+Wrong accusations | {{fact:arena.six.Plum.wrong}}%
 = Headless, Phase 14 balanced tournament
 Won | {{fact:plum.phase14.tournament.run3.win}}% of {{fact:plum.phase14.tournament.run3.games}} games
 Wrong accusations | {{fact:plum.phase14.tournament.run3.wrong}} (reported to the LLM head)
@@ -104,6 +107,8 @@ former checkpoint at every point and finished slightly lower,
 
 {{table:plum.phase14.benchmark|Run 3, the former checkpoint and the uniform floor baseline on the same 2,160 snapshots. Lower log-loss is better.}}
 
+On 1 November 2026 the six released methods were scored on the same snapshots. Run 3 had the lowest loss of the six at three-quarters, {{fact:bench.six.Plum.75}}, and finished third at {{fact:bench.six.Plum.100}}, behind Mustard's tree and Green's ensemble ([[belief benchmark]]).[^six]
+
 ### At the table
 
 {{table:plum.phase14.tournament|The balanced selection and confirmation blocks together, with every entrant on the same 1,920 games.}}
@@ -116,6 +121,10 @@ It did not separate clearly from Runs 1 and 2, so this is the selected best
 observed network, not proof of a unique winner.[^phase14]
 
 {{table:plum.phase14.sizes|Run 3's result by table size. The 480 games in each row balance all applicable line-ups.}}
+
+Against the five others as released, headless on 1 November 2026, he won {{fact:arena.six.Plum.win}}% of {{fact:arena.six.Plum.games}} seat-games and accused wrongly in {{fact:arena.six.Plum.wrong}}%, the record his infobox quotes beside the tournament's.[^six_arena]
+
+{{table:arena.six|The six released characters against one another, headless, 1 November 2026: 480 games cycling three to six seats.}}
 
 ### With Claude
 
@@ -130,6 +139,10 @@ The exact-game fixture was also refreshed after the weights were accepted: six
 successful calls, no fallbacks or lookups, for about
 ${{fact:phase14.plum.fixture.cost}}. It retained White as winner after ten
 turns. A longer game can cost more because every call carries the game so far.
+
+On 1 November 2026 his seat was played headless and with the model on the same 24 deals at his own table ([[twin comparison]]): with the model he lost {{fact:twin.phase14.model.delta}} paired win-rate points ({{fact:twin.phase14.model.low}} to {{fact:twin.phase14.model.high}}), inside an interval too wide to call a size, and his logbook gained him {{fact:twin.phase14.memory.delta}} more ({{fact:twin.phase14.memory.low}} to {{fact:twin.phase14.memory.high}}), an interval that clears zero.[^twin]
+
+{{table:twin.phase14|Plum's three legs at his three-seat table, seed 143300, 24 games each.}}
 
 ## Before the network
 
@@ -165,5 +178,8 @@ His logbook began empty at the Phase 12 migration, the enumeration era's entries
 [^logbooks]: {{cite:docs/logbooks.md|Three tiers}}
 [^lives]: {{cite:docs/phase13-plan.md|1. Brief and settled decisions}}
 [^live]: {{cite:docs/phase13-plan.md|2026-10-15: step 4 accepted live, and a debrief lost to its token cap}}
+[^six]: {{cite:docs/strategy-glossary.md|Six-method belief benchmark (2026-11-01)}}
+[^twin]: {{cite:docs/strategy-glossary.md|Plum twin comparison at his three-seat table (2026-11-01)}}
+[^six_arena]: {{cite:docs/strategy-glossary.md|Six-character arena (2026-11-01)}}
 
 {{navbox:clude}}

@@ -39,7 +39,7 @@ Run 3's halfway loss is {{fact:plum.phase14.benchmark.run3.50}}, against uniform
 
 ## Recorded comparison
 
-At the half-way checkpoint of the 15 September 2026 Classic-board benchmark, uniform loss was {{fact:bench.grid.uniform.50}}. White scored {{fact:bench.grid.White.50}}, Mustard {{fact:bench.grid.Mustard.50}}, Scarlett {{fact:bench.grid.Scarlett.50}} and Peacock {{fact:bench.grid.Peacock.50}}. Lower is better. The run used {{fact:bench.grid.games}} floor-player games and {{fact:bench.grid.snapshots}} private observations across four checkpoints. That run predates the [[landing rule]], the Phase 14 method rebuild and Plum's network, and the six methods have not been scored together since.[^grid]
+At the half-way checkpoint of the 15 September 2026 Classic-board benchmark, uniform loss was {{fact:bench.grid.uniform.50}}. White scored {{fact:bench.grid.White.50}}, Mustard {{fact:bench.grid.Mustard.50}}, Scarlett {{fact:bench.grid.Scarlett.50}} and Peacock {{fact:bench.grid.Peacock.50}}. Lower is better. The run used {{fact:bench.grid.games}} floor-player games and {{fact:bench.grid.snapshots}} private observations across four checkpoints. That run predates the [[landing rule]], the Phase 14 method rebuild and Plum's network. On 1 November 2026 the six were scored together again, on the Phase 14 snapshots: the uniform row's {{fact:bench.six.uniform.50}} at halfway was beaten by Mustard, Green, Plum and White and not by Scarlett or Peacock ([[belief benchmark]]).[^grid][^six]
 
 The comparison can therefore reveal that additional heuristic detail worsened average estimates in a particular regime. It does not imply that a uniform player would win more games: the baseline is a prediction row, while the [[floor player]] is an actual decision policy.
 
@@ -62,5 +62,6 @@ Equal remaining probabilities are a reference assumption rather than a proof of 
 [^example]: {{cite:clude_web/wiki/facts.py|`rope_observation` and `rope_question`}}
 [^current]: {{cite:docs/strategy-glossary.md|Phase 14 Run 3, the current Plum (2026-10-18)}}
 [^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
+[^six]: {{cite:docs/strategy-glossary.md|Six-method belief benchmark (2026-11-01)}}
 
 {{navbox:clude}}

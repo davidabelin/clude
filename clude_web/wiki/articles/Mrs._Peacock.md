@@ -23,9 +23,9 @@ Memory | A [[logbook]] only; her method remembers nothing
 [[Curiosity]] | {{code:preset.Peacock.curiosity}}
 [[Secrecy]] | {{code:preset.Peacock.secrecy}}
 [[Temperature]] | {{code:preset.Peacock.temperature}}
-= Classic-board arena, 15 September 2026
-Games won | {{fact:arena.phase14.Peacock.win}}% of {{fact:arena.phase14.Peacock.games}}
-Wrong accusations | {{fact:arena.phase14.Peacock.wrong}}%
+= Headless six-character arena, 1 November 2026
+Games won | {{fact:arena.six.Peacock.win}}% of {{fact:arena.six.Peacock.games}} seat-games
+Wrong accusations | {{fact:arena.six.Peacock.wrong}}%
 }}
 
 **Mrs. Peacock** is one of the six [[Clue#The cards|suspects]] in [[Clue]] and the cautious [[Category:Characters|character]] in [[clude]]. Her [[Dempster-Shafer theory|Dempster–Shafer]] method assigns evidence to sets of possible cards. For each card, it calculates *belief*, the mass supporting that card alone, and *plausibility*, the mass that does not exclude it. When a single probability is needed, each set's mass is shared equally among its members. When she [[accusation|accuses]], she instead uses the product of the selected cards' [[w:Upper and lower probabilities|belief bounds]].[^module]
@@ -74,13 +74,15 @@ The threshold is tested against her belief rather than her probability by a func
 
 ### The quality of her numbers
 
-The [[belief benchmark]] scores her decision probabilities rather than the bounds used for accusation. In the historical ring-board and 15 September Classic-board benchmarks, her log-loss was slightly higher than the [[uniform baseline]] at every checkpoint. On the Classic board, halfway loss was {{fact:bench.grid.Peacock.50}} versus {{fact:bench.grid.uniform.50}}, and final loss {{fact:bench.grid.Peacock.100}} versus {{fact:bench.grid.uniform.100}}. Final first-choice accuracy was {{fact:bench.grid.Peacock.top1}}, the same as the baseline. These results evaluate the single-number estimates, not whether the bounds are calibrated or whether caution is always advantageous. Her method carries no learned state, and no benchmark since Phase 14 has re-scored it or the six methods together.[^grid] Computation took a fraction of a millisecond per call.
+The [[belief benchmark]] scores her decision probabilities rather than the bounds used for accusation. In the historical ring-board and 15 September Classic-board benchmarks, her log-loss was slightly higher than the [[uniform baseline]] at every checkpoint. On the Classic board, halfway loss was {{fact:bench.grid.Peacock.50}} versus {{fact:bench.grid.uniform.50}}, and final loss {{fact:bench.grid.Peacock.100}} versus {{fact:bench.grid.uniform.100}}. Final first-choice accuracy was {{fact:bench.grid.Peacock.top1}}, the same as the baseline. These results evaluate the single-number estimates, not whether the bounds are calibrated or whether caution is always advantageous. Her method carries no learned state; on the six-method benchmark of 1 November 2026 it scored worse than the floor at every checkpoint again, {{fact:bench.six.Peacock.50}} against {{fact:bench.six.uniform.50}} at halfway and {{fact:bench.six.Peacock.100}} against {{fact:bench.six.uniform.100}} at the end.[^grid][^six] Computation took a fraction of a millisecond per call.
 
 ### At the table
 
-{{table:arena.phase14|The current-setting rows from Phase 14's isolated headless screens, 40 seat-games per character.}}
+{{table:arena.six|The six released characters against one another, headless, 1 November 2026: 480 games cycling three to six seats.}}
 
-Peacock won {{fact:arena.phase14.Peacock.win}}% of the current control and made no wrong accusation in 40 seat-games. She first accused at mean turn {{fact:arena.phase14.Peacock.first}}.[^arena] The absence of observed errors is not a guarantee. Her paid leash screen also stayed at 0.25; its eight-game rows did not support a personality-preserving change.[^current]
+{{table:arena.phase14|The current-setting rows from Phase 14's isolated headless screens, 40 seat-games per character, the dial record.}}
+
+Peacock won {{fact:arena.phase14.Peacock.win}}% of the current control and made no wrong accusation in 40 seat-games. She first accused at mean turn {{fact:arena.phase14.Peacock.first}}.[^arena] The absence of observed errors is not a guarantee. Her paid leash screen also stayed at 0.25; its eight-game rows did not support a personality-preserving change.[^current] The six-character arena of 1 November 2026, 400 seat-games, has Peacock winning {{fact:arena.six.Peacock.win}}% and accusing wrongly in {{fact:arena.six.Peacock.wrong}}%.[^six_arena]
 
 ### With Claude in the seat
 
@@ -118,5 +120,7 @@ Peacock's method recomputes from the floor's open facts on each call and carries
 [^rules]: {{cite:clude_llm/personas/rules.md|The company and the parts}}
 [^lives]: {{cite:docs/phase13-plan.md|1. Brief and settled decisions}}
 [^live]: {{cite:docs/phase13-plan.md|2026-10-15: step 4 accepted live, and a debrief lost to its token cap}}
+[^six]: {{cite:docs/strategy-glossary.md|Six-method belief benchmark (2026-11-01)}}
+[^six_arena]: {{cite:docs/strategy-glossary.md|Six-character arena (2026-11-01)}}
 
 {{navbox:clude}}

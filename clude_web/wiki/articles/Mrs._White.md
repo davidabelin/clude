@@ -23,9 +23,9 @@ Memory | How each opponent has asked their questions, game after game
 [[Curiosity]] | {{code:preset.White.curiosity}}
 [[Secrecy]] | {{code:preset.White.secrecy}}
 [[Temperature]] | {{code:preset.White.temperature}}
-= Classic-board arena, 15 September 2026
-Games won | {{fact:arena.phase14.White.win}}% of {{fact:arena.phase14.White.games}}
-Wrong accusations | {{fact:arena.phase14.White.wrong}}%
+= Headless six-character arena, 1 November 2026
+Games won | {{fact:arena.six.White.win}}% of {{fact:arena.six.White.games}} seat-games
+Wrong accusations | {{fact:arena.six.White.wrong}}%
 }}
 
 **Mrs. White** is one of the six [[Clue#The cards|suspects]] in [[Clue]] and the observant [[clude]] [[Category:Characters|character]]. Her [[Markov chain]] method models whether each opponent's [[suggestion|suggestions]] are new or repeat earlier cards. It gives more weight to cards named often by players with high estimated repeat rates. The behavioural assumption is that unresolved cards are asked about repeatedly. This may be a useful [[w:Tell (poker)|tell]], but is not proof that a player lacks the card or that it is in [[the envelope]].[^module]
@@ -80,13 +80,15 @@ In the first, random-bot benchmark, White had the highest final [[log-loss]]: {{
 
 {{table:methods.phase14.white|Phase 14's validation: her former comparison state and the accepted rebuild on the same 19 held-out deals and 264 private snapshots. Lower log-loss is better.}}
 
-The rebuild kept her loss close to the former state, a little higher at three checkpoints and lower at one; it cleared the allowed margin without improving every number. These are candidate-selection scores, and no benchmark since Phase 14 has scored the six methods together. She answers in a fraction of a millisecond per call.[^validation]She answered in a fraction of a millisecond per call.[^grid]
+The rebuild kept her loss close to the former state, a little higher at three checkpoints and lower at one; it cleared the allowed margin without improving every number. These are candidate-selection scores. On the six-method benchmark of 1 November 2026 she beat the floor at every checkpoint, {{fact:bench.six.White.50}} against {{fact:bench.six.uniform.50}} at halfway and {{fact:bench.six.White.100}} against {{fact:bench.six.uniform.100}} at the end, fourth of the six; she answers in a fraction of a millisecond per call.[^validation][^six]She answered in a fraction of a millisecond per call.[^grid]
 
 ### At the table
 
-{{table:arena.phase14|The current-setting rows from Phase 14's isolated headless screens, 40 seat-games per character.}}
+{{table:arena.six|The six released characters against one another, headless, 1 November 2026: 480 games cycling three to six seats.}}
 
-White won {{fact:arena.phase14.White.win}}% of the current control and made a wrong accusation in {{fact:arena.phase14.White.wrong}}% of her 40 seat-games.[^arena] Her eight-game paid leash screen showed higher wins at 0.5 and 1, but that small signal did not establish a personality-preserving improvement, so the 0.25 preset remained.[^current]
+{{table:arena.phase14|The current-setting rows from Phase 14's isolated headless screens, 40 seat-games per character, the dial record.}}
+
+White won {{fact:arena.phase14.White.win}}% of the current control and made a wrong accusation in {{fact:arena.phase14.White.wrong}}% of her 40 seat-games.[^arena] Her eight-game paid leash screen showed higher wins at 0.5 and 1, but that small signal did not establish a personality-preserving improvement, so the 0.25 preset remained.[^current] The six-character arena of 1 November 2026, 400 seat-games, has White winning {{fact:arena.six.White.win}}% and accusing wrongly in {{fact:arena.six.White.wrong}}%.[^six_arena]
 
 ### With Claude in the seat
 
@@ -126,5 +128,7 @@ Like every character she can also keep a narrative [[logbook]], written by a mod
 [^logbooks]: {{cite:docs/logbooks.md|The debrief}}
 [^lives]: {{cite:docs/phase13-plan.md|1. Brief and settled decisions}}
 [^live]: {{cite:docs/phase13-plan.md|2026-10-15: step 4 accepted live, and a debrief lost to its token cap}}
+[^six]: {{cite:docs/strategy-glossary.md|Six-method belief benchmark (2026-11-01)}}
+[^six_arena]: {{cite:docs/strategy-glossary.md|Six-character arena (2026-11-01)}}
 
 {{navbox:clude}}

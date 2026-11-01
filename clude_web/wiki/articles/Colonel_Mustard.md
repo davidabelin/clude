@@ -23,9 +23,9 @@ Memory | Training rows extracted from stored games when remembering is enabled
 [[Curiosity]] | {{code:preset.Mustard.curiosity}}
 [[Secrecy]] | {{code:preset.Mustard.secrecy}}
 [[Temperature]] | {{code:preset.Mustard.temperature}}
-= Phase 14 current-setting control
-Games won | {{fact:arena.phase14.Mustard.win}}% of {{fact:arena.phase14.Mustard.games}}
-Wrong accusations | {{fact:arena.phase14.Mustard.wrong}}%
+= Headless six-character arena, 1 November 2026
+Games won | {{fact:arena.six.Mustard.win}}% of {{fact:arena.six.Mustard.games}} seat-games
+Wrong accusations | {{fact:arena.six.Mustard.wrong}}%
 }}
 
 **Colonel Mustard** is one of the six [[Clue#The cards|suspects]] in [[Clue]] and the [[clude]] [[Category:Characters|character]] who uses a [[decision tree]]. For each unresolved card, the tree asks questions about possible holders, previous [[suggestion|suggestions]] and the stage of the game. It assigns a score from training examples with similar features. This [[w:Pattern recognition|pattern-based]] approach is fast, but can be misleading when a current position differs from the games used for training.[^module]
@@ -78,13 +78,15 @@ On the first benchmark of all, before the tree was regrown on better games and i
 
 {{table:methods.phase14.mustard|Phase 14's validation: the former tree and the accepted rebuild on the same 19 held-out deals and 264 private snapshots. Lower log-loss is better.}}
 
-The rebuilt tree improved at every checkpoint, most in the middle of a game, where the method is confidently wrong by design. These are candidate-selection scores, not an independent confirmation, and no benchmark since Phase 14 has scored the six methods together. His calls take a fraction of a millisecond.[^validation]
+The rebuilt tree improved at every checkpoint, most in the middle of a game, where the method is confidently wrong by design. These are candidate-selection scores, not an independent confirmation. Scored with the five other released methods on the Phase 14 snapshots on 1 November 2026, his tree had the lowest final log-loss of the six, {{fact:bench.six.Mustard.100}}, and {{fact:bench.six.Mustard.50}} at halfway against the floor's {{fact:bench.six.uniform.50}}; his calls take a fraction of a millisecond.[^validation][^six]
 
 ### At the table
 
-{{table:arena.phase14|The current-setting rows from Phase 14's isolated headless screens, 40 seat-games per character.}}
+{{table:arena.six|The six released characters against one another, headless, 1 November 2026: 480 games cycling three to six seats.}}
 
-The current control recorded {{fact:arena.phase14.Mustard.wrong}}% wrong accusations and {{fact:arena.phase14.Mustard.win}}% wins, with a first accusation at mean turn {{fact:arena.phase14.Mustard.first}}. Forty seat-games remain too few to treat zero observed errors as a universal rate.[^arena]
+{{table:arena.phase14|The current-setting rows from Phase 14's isolated headless screens, 40 seat-games per character, the dial record.}}
+
+The current control recorded {{fact:arena.phase14.Mustard.wrong}}% wrong accusations and {{fact:arena.phase14.Mustard.win}}% wins, with a first accusation at mean turn {{fact:arena.phase14.Mustard.first}}. Forty seat-games remain too few to treat zero observed errors as a universal rate.[^arena] The six-character arena of 1 November 2026, 320 seat-games, has Mustard winning {{fact:arena.six.Mustard.win}}% and accusing wrongly in {{fact:arena.six.Mustard.wrong}}%.[^six_arena]
 
 ### With Claude in the seat
 
@@ -127,5 +129,7 @@ Like every character he can also keep a narrative logbook, written by a model af
 [^logbooks]: {{cite:docs/logbooks.md|Three tiers}}
 [^lives]: {{cite:docs/phase13-plan.md|1. Brief and settled decisions}}
 [^live]: {{cite:docs/phase13-plan.md|2026-10-15: step 4 accepted live, and a debrief lost to its token cap}}
+[^six]: {{cite:docs/strategy-glossary.md|Six-method belief benchmark (2026-11-01)}}
+[^six_arena]: {{cite:docs/strategy-glossary.md|Six-character arena (2026-11-01)}}
 
 {{navbox:clude}}

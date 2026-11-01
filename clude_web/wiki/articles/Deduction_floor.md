@@ -125,7 +125,7 @@ In the recorded self-play comparison, floor-bot games took about {{fact:floor.su
 
 {{table:plum.phase14.benchmark|Phase 14's benchmark: the uniform row is the floor's own belief, scored beside the current network and the former checkpoint.}}
 
-The uniform row gives the floor's own score for this run: {{fact:plum.phase14.benchmark.uniform.50}} at halfway and {{fact:plum.phase14.benchmark.uniform.100}} at the end, with final top-choice accuracy {{fact:plum.phase14.benchmark.uniform.top1}}. What any method adds to it is what the benchmark measures.[^current]
+The uniform row gives the floor's own score for this run: {{fact:plum.phase14.benchmark.uniform.50}} at halfway and {{fact:plum.phase14.benchmark.uniform.100}} at the end, with final top-choice accuracy {{fact:plum.phase14.benchmark.uniform.top1}}. What any method adds to it is what the benchmark measures. On the same snapshots, scored on 1 November 2026, four of the six methods improve on it at every checkpoint and two do not ([[belief benchmark]]).[^current][^six]
 
 In the arena the floor bot is the "does a character beat a purely logical player" baseline: the sweeps that set the presets seat every character between floor bots, and a win rate there is a character's rate against pure logic.[^sweeps]
 
@@ -162,5 +162,6 @@ In the arena the floor bot is the "does a character beat a purely logical player
 [^selfplay]: {{cite:docs/architecture.md|Self-play regimes: `RandomBot` and `FloorBot` (Phase 5b)}}
 [^current]: {{cite:docs/strategy-glossary.md|Phase 14 Run 3, the current Plum (2026-10-18)}}
 [^sweeps]: {{cite:docs/strategy-glossary.md|Dial sweeps}}
+[^six]: {{cite:docs/strategy-glossary.md|Six-method belief benchmark (2026-11-01)}}
 
 {{navbox:clude}}

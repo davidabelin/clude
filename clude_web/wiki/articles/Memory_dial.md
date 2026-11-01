@@ -54,6 +54,8 @@ Phase 14 used exactly that control: one immutable snapshot, no debrief writes an
 
 {{table:paid.phase14.memory|Current paid memory-depth screen. Wins total one per game across the four model-piloted seats, so they cannot distinguish depths.}}
 
+One seat at a time was measured on 1 November 2026: [[Professor Plum]] with the model at his three-seat table, 24 seed-paired games with and without his logbook at depth 1, the two headless opponents unchanged. The logbook gained him {{fact:twin.phase14.memory.delta}} paired win-rate points (95% interval {{fact:twin.phase14.memory.low}} to {{fact:twin.phase14.memory.high}}), an interval that clears zero, so the direction is established and the size is not, with no wrong accusation and more suggestions padded with his own cards, as his standing instructions ask; the two model legs together cost ${{fact:twin.phase14.cost}} ([[Twin comparison]]).[^twin]
+
 Greater depth can preserve useful details but also increases prompt length and carries more stale or repetitive narrative. The screen did not identify a candidate worth confirming; 0.75 used 386 calls and cost $6.7857, against 297 calls and $3.4689 at zero, while also recording two wrong accusations. All four seats changed depth together, so total wins cannot estimate an individual benefit. Eight games per depth and one fixed snapshot do not establish equivalence or test whether remembered relationships improve over many evenings. No candidate advanced to independent confirmation, and the present profile and lobby conventions were retained.
 
 
@@ -69,5 +71,6 @@ Greater depth can preserve useful details but also increases prompt length and c
 [^counts]: {{cite:clude_storage/logbooks.py|`memory_counts` and `render_memory`}}
 [^wrapper]: {{cite:docs/llm-wrapper.md|Memory (Phase 7)}}
 [^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
+[^twin]: {{cite:docs/strategy-glossary.md|Plum twin comparison at his three-seat table (2026-11-01)}}
 
 {{navbox:clude}}

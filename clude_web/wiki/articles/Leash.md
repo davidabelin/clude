@@ -66,6 +66,9 @@ The screen retained Scarlett, Mustard, Peacock, White and Green. White and Green
 
 ## Plum's confirmation
 
+On 1 November 2026 the same kind of table, Plum with Mustard and Green, was played headless and with the model at the preset leash on 24 new paired deals: the model lost {{fact:twin.phase14.model.delta}} paired win-rate points ({{fact:twin.phase14.model.low}} to {{fact:twin.phase14.model.high}}), the first headless-against-model pairing for the current Plum ([[Twin comparison]]).[^twin]
+
+
 {{table:paid.phase14.plum_leash_confirm|Separate paired confirmation of Plum's preset 0.35 against the shortlisted 0.60, 24 games per value at seed 143200.}}
 
 The candidate lost 12.5 paired win-rate points, with a 95% bootstrap interval from -25.0 to 0.0. Wrong accusations did not change. Mean length increased by 2.33 turns, or 6.97%, which remained inside the ten-per-cent guardrail; the win loss exceeded the five-point limit. The candidate was rejected and Plum kept 0.35.[^current]
@@ -84,5 +87,6 @@ Zero observed wrong accusations in either row do not establish that either setti
 [^wrapper]: {{cite:clude_llm/player.py|decision validation and fallback}}
 [^plum]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
+[^twin]: {{cite:docs/strategy-glossary.md|Plum twin comparison at his three-seat table (2026-11-01)}}
 
 {{navbox:clude}}

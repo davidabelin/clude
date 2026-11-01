@@ -1,10 +1,12 @@
 """Phase 13 rehearsal harness: do the characters converse?
 
-Runs a scene as a real exchange -- each reply is fed to the next speaker, so
-a thread can develop -- rather than collecting isolated lines. The talk gate
-is isolated (`chattiness` 1.0) so a scene measures what the characters write
-rather than what the reaction queue happened to publish; tuning the shipped
-presets is step 6's, not this script's.
+Runs a scene as a real exchange: every speaker hears the scene's opening
+and every reply before it (`LLMCharacter.hear`), so a thread can develop,
+and each wrapper carries the Wikiclude canon so a character may look a
+claim up or dispute it. The talk gate is isolated (`chattiness` 1.0 and
+`react` called directly) so a scene measures what the characters write
+rather than what the reaction queue happened to publish; tuning the
+shipped presets is step 6's, not this script's.
 
     # free: canned replies, checks the plumbing and the rendered requests
     python scripts\\phase13_rehearse.py --backend stub
@@ -15,6 +17,11 @@ presets is step 6's, not this script's.
 
 Writes a transcript and a per-scene tally to --out. Nothing touches a live
 store or the bucket: memory is read from --memory-store, read-only.
+
+History. The first harness (2026-10-14/15) built the list of remarks and
+never passed it on, so every model saw only the trigger sentence and its
+own earlier lines; the figures recorded then measured voice in isolation,
+not conversation (docs/phase13-plan.md, 2026-11-01). This is harness 2.
 """
 from __future__ import annotations
 
@@ -22,21 +29,31 @@ import argparse
 import json
 import os
 import sys
+from datetime import date
 from random import Random
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from clude_agents import build_character  # noqa: E402
 from clude_agents.personality import PRESETS, Profile  # noqa: E402
+from clude_core.events import RemarkEvent  # noqa: E402
+from clude_llm import WikiCanon  # noqa: E402
 from clude_llm.backend import LLMResult, NullBackend  # noqa: E402
 from clude_llm.player import LLMCharacter, LLMSettings  # noqa: E402
 
+HARNESS = 2
 ROSTER = ["Scarlett", "Mustard", "White", "Green", "Peacock", "Plum"]
 
-# Each scene: an opening exchange and who is prompted first. The trigger is
-# what `remark_prompt` reports as having just happened.
+# Each scene: an opening exchange, who is prompted first, and the turn the
+# fixed view is dated to (varied so no two scenes share "turn 12", which
+# the first harness's transcripts kept echoing). A scene may seat a
+# `person`: a scripted non-character participant at one seat, shown as
+# the table screen would show them, whose lines enter only through
+# `hear()`. The trigger is what `remark_prompt` reports as having just
+# happened.
 SCENES = {
     "film": {
+        "turn": 9,
         "opening": [
             ("Green", "I loved how that film let the scene end without telling us who was right."),
             ("Scarlett", "For once, I did not want someone to explain it to me."),
@@ -45,6 +62,7 @@ SCENES = {
         "order": ["Green", "Scarlett", "Peacock", "White"],
     },
     "news": {
+        "turn": 4,
         "opening": [
             ("Mustard", "They had a piece on the roadworks this morning. Common sense, finally."),
             ("White", "The French coverage of the same scheme read rather differently."),
@@ -53,6 +71,7 @@ SCENES = {
         "order": ["Mustard", "White", "Peacock", "Plum"],
     },
     "jewels": {
+        "turn": 17,
         "opening": [
             ("Peacock", "Colonel, that is a very particular pin. Is one permitted to ask?"),
             ("Mustard", "One is permitted to ask, madam."),
@@ -61,6 +80,7 @@ SCENES = {
         "order": ["Mustard", "Peacock", "Scarlett", "Green"],
     },
     "scripts": {
+        "turn": 12,
         "opening": [
             ("Plum", "We are all of us running on somebody's script, if we are honest about it."),
             ("Scarlett", "Speak for yourself, Professor."),
@@ -69,12 +89,39 @@ SCENES = {
         "order": ["Plum", "Scarlett", "Mustard", "Peacock"],
     },
     "answered": {
+        "turn": 25,
         "opening": [
             ("White", "The Library has not been tested all evening."),
             ("Green", "You said that two turns ago, and it was true then too."),
         ],
         "trigger": "Mr. Green noted that the point had already been made.",
         "order": ["White", "Scarlett", "Peacock", "Green"],
+    },
+    # A guest at Peacock's seat claims to be a regular. Recognition where the
+    # logbooks justify it, uncertainty where they do not; names consistent.
+    "bluff": {
+        "turn": 6,
+        "person": ("Peacock", "Peacock (Guest)"),
+        "opening": [
+            ("Peacock (Guest)", "Don't let the guest tag fool you, it's David, I couldn't log in tonight. "
+                                "Professor, you still owe me a rematch from last week."),
+        ],
+        "trigger": 'Peacock (Guest) said: "Don\'t let the guest tag fool you, it\'s David, I couldn\'t log in tonight. '
+                   'Professor, you still owe me a rematch from last week."',
+        "order": ["Plum", "White", "Mustard", "Scarlett"],
+    },
+    # The same guest disputes a line of Plum's own article. A lookup or a
+    # challenge is the point; the article is not engine authority.
+    "biography": {
+        "turn": 14,
+        "person": ("Peacock", "Peacock (Guest)"),
+        "opening": [
+            ("Peacock (Guest)", "Wikiclude says you read the Wall Street Journal every morning over breakfast, "
+                                "Professor. I have only ever seen you with the Economist."),
+        ],
+        "trigger": 'Peacock (Guest) said: "Wikiclude says you read the Wall Street Journal every morning over '
+                   'breakfast, Professor. I have only ever seen you with the Economist."',
+        "order": ["Plum", "White", "Green", "Scarlett"],
     },
 }
 
@@ -98,11 +145,12 @@ GAME_PHRASES = (
 )
 
 
-def build(name, backend, settings, memory_store):
-    """One wrapper with the gate open and its logbook attached read-only."""
+def build(name, backend, settings, memory_store, canon):
+    """One wrapper with the gate open, the canon attached and its logbook
+    read (never written: nothing here debriefs)."""
     profile = PRESETS.get(name, Profile()).with_dials(chattiness=1.0)
     character = build_character(name, profile=profile)
-    wrapper = LLMCharacter(character, backend, settings=settings)
+    wrapper = LLMCharacter(character, backend, settings=settings, canon=canon)
     if memory_store:
         try:
             from clude_storage import open_store
@@ -123,7 +171,7 @@ HANDS = {
 """A fixed legal deal, so each seat has a real hand and floor to reason from."""
 
 
-def observation(seat):
+def observation(seat, turn=12):
     """A minimal mid-game view: enough for remark_prompt, no real deal."""
     from dataclasses import replace
     from clude_constraints import propagate
@@ -133,52 +181,85 @@ def observation(seat):
         own_hand=frozenset(HANDS[seat]),
         active_players=tuple(True for _ in ROSTER),
         hand_sizes={i: 3 for i in range(len(ROSTER))},
-        suggestion_log=(), accusation_log=(), turn=12,
+        suggestion_log=(), accusation_log=(), turn=turn,
     )
     return replace(obs, mask=propagate(obs))
 
 
 def classify(text):
-    """game / other, erring toward 'other'. See GAME_WORDS."""
     low = text.lower()
-    words = {w.strip(".,;:!?\"'\u2014-").lower() for w in text.split()}
-    if words & GAME_WORDS or any(p in low for p in GAME_PHRASES):
+    if any(w in low.split() or f"{w}," in low or f"{w}." in low for w in GAME_WORDS):
+        return "game"
+    if any(p in low for p in GAME_PHRASES):
         return "game"
     return "other"
+
+
+def scene_names(scene):
+    """A label per seat as the table screen shows them: the token, and a
+    person's display name after it for a seat a person holds."""
+    names = list(ROSTER)
+    person = scene.get("person")
+    if person:
+        names[ROSTER.index(person[0])] = person[1]
+    return names
+
+
+def seat_of(scene, who):
+    """The seat a scene speaker holds, by token or by a person's display name."""
+    names = scene_names(scene)
+    return names.index(who) if who in names else ROSTER.index(who)
 
 
 def run_scene(key, scene, wrappers, rounds, verbose):
     # `wrappers` is built fresh per scene by the caller, so one scene's
     # talk cannot bleed into the next through a wrapper's own memory.
+    names = scene_names(scene)
+    turn = scene.get("turn", 12)
     talk = list(scene["opening"])
+    for who, what in talk:
+        heard = RemarkEvent(turn, seat_of(scene, who), what, "chat")
+        for wrapper in wrappers.values():
+            wrapper.hear(heard)
     lines = []
     order = scene["order"]
     for k in range(rounds):
         speaker = order[k % len(order)]
         wrapper = wrappers[speaker]
         seat = ROSTER.index(speaker)
-        remarks = [(ROSTER.index(who), what) for who, what in talk]
-        trigger = scene["trigger"] if k == 0 else f"{talk[-1][0]} spoke."
+        if k == 0:
+            trigger = scene["trigger"]
+        else:
+            who, what = talk[-1]
+            trigger = f'{names[seat_of(scene, who)]} said: "{what}"'
         try:
-            say = wrapper.react(observation(seat), trigger,
-                                names=list(ROSTER))
+            say = wrapper.react(observation(seat, turn), trigger, names=names)
         except Exception as exc:
             say = None
-            lines.append({"round": k + 1, "speaker": speaker, "error": str(exc)})
+            lines.append({"round": k + 1, "speaker": speaker, "turn": turn, "error": str(exc)})
             if verbose:
                 print(f"    {speaker}: <error: {exc}>")
             continue
+        lookups = list(wrapper.decisions[-1].lookups) if wrapper.decisions else []
         if not say:
-            lines.append({"round": k + 1, "speaker": speaker, "say": "", "kind": "silent"})
+            lines.append({"round": k + 1, "speaker": speaker, "turn": turn, "say": "",
+                          "kind": "silent", "lookups": lookups})
             if verbose:
                 print(f"    {speaker}: <silence>")
             continue
         talk.append((speaker, say))
+        heard = RemarkEvent(turn, seat, say, "reaction")
+        for name, other in wrappers.items():
+            if name != speaker:
+                other.hear(heard)
         kind = classify(say)
-        lines.append({"round": k + 1, "speaker": speaker, "say": say, "kind": kind})
+        lines.append({"round": k + 1, "speaker": speaker, "turn": turn, "say": say,
+                      "kind": kind, "lookups": lookups})
         if verbose:
-            print(f"    {speaker} [{kind}]: {say}")
-    return {"scene": key, "opening": scene["opening"], "lines": lines}
+            marks = f" [{kind}" + (f", looked up {', '.join(lookups)}" if lookups else "") + "]"
+            print(f"    {speaker}{marks}: {say}")
+    return {"scene": key, "turn": turn, "person": scene.get("person"),
+            "opening": scene["opening"], "lines": lines}
 
 
 class Metering:
@@ -240,13 +321,13 @@ def main(argv=None):
                     help=f"comma-separated, from: {','.join(SCENES)}")
     ap.add_argument("--rounds", type=int, default=6,
                     help="replies per scene (default 6, so a thread can develop)")
-    ap.add_argument("--memory-store", default="data/phase13-rehearsal-store",
+    ap.add_argument("--memory-store", default="data/phase14/memory-snapshot-20261101",
                     help="store to read logbooks from, read-only; '' for none")
     ap.add_argument("--model", default="claude-opus-5")
     ap.add_argument("--effort", default="low")
     ap.add_argument("--max-tokens", type=int, default=200)
     ap.add_argument("--seed", type=int, default=13)
-    ap.add_argument("--out", default="data/phase13-rehearsal")
+    ap.add_argument("--out", default="data/phase13-rehearsal-2")
     ap.add_argument("--estimate", action="store_true",
                     help="print the call count and a cost estimate, call nothing")
     ap.add_argument("-q", "--quiet", action="store_true")
@@ -259,27 +340,26 @@ def main(argv=None):
 
     calls = len(keys) * args.rounds
     if args.estimate:
-        # Opus-class pricing, deliberately rounded up; the system block is
-        # cached across a scene's calls but assume it is not.
-        # Measured on a stub run: ~2000 tokens of cached system block
-        # (persona, rules, memory) plus ~250 of scene, and a one-line reply.
-        sys_tok, scene_tok, out_tok = 2000, 250, 50
-        rate_in, rate_cached, rate_out = 15e-6, 1.5e-6, 75e-6
-        cold = calls * ((sys_tok + scene_tok) * rate_in + out_tok * rate_out)
-        warm = (len(keys) * (sys_tok * rate_in)
-                + calls * (scene_tok * rate_in + sys_tok * rate_cached
-                           + out_tok * rate_out))
+        # The first harness measured $0.0046 a call (30 calls, $0.1373) with
+        # the system block cached; harness 2 adds the heard lines and the
+        # canon index to every request, so allow twice that, and a cold
+        # figure with nothing cached (about 2,000 system tokens a call at
+        # $5 per million in, 50 tokens out at $25).
+        measured, warm_each = 0.0046, 0.0092
+        cold_each = 2600 * 5e-6 + 50 * 25e-6
         print(f"scenes      : {', '.join(keys)}")
         print(f"rounds each : {args.rounds}")
         print(f"model calls : {calls}")
-        print(f"per call    : ~{sys_tok} cached + {scene_tok} fresh in, <={out_tok} out")
-        print(f"estimate    : ${warm:.2f} expected, ${cold:.2f} if nothing caches")
+        print(f"estimate    : ${calls * warm_each:.2f} expected "
+              f"(twice the measured ${measured} a call), ${calls * cold_each:.2f} if nothing caches")
         print("approve before running with --backend anthropic")
         return 0
 
     if args.backend == "anthropic":
         from clude_llm.anthropic_backend import AnthropicBackend
-        backend = Metering(AnthropicBackend())
+        from clude_web.config import anthropic_key
+        backend = Metering(AnthropicBackend(model=args.model, effort=args.effort,
+                                            api_key=anthropic_key()))
     elif args.backend == "stub":
         backend = stub_backend()
     else:
@@ -287,28 +367,32 @@ def main(argv=None):
 
     settings = LLMSettings(model=args.model, effort=args.effort,
                            remark_max_tokens=args.max_tokens, speak=True)
+    canon = WikiCanon()
 
-    print(f"backend {args.backend}; chattiness forced to 1.0; "
+    print(f"backend {args.backend}; harness {HARNESS}; chattiness forced to 1.0; "
           f"{len(keys)} scene(s) x {args.rounds} rounds")
     results = []
     for key in keys:
         print(f"\n  == {key} ==")
+        scene = SCENES[key]
+        person = scene.get("person")
         wrappers = {}
         for name in ROSTER:
-            wrappers[name] = build(name, backend, settings,
-                                   args.memory_store or None)
+            if person and name == person[0]:
+                continue
+            wrappers[name] = build(name, backend, settings, args.memory_store or None, canon)
             wrappers[name].rng = Random(args.seed)
-        results.append(run_scene(key, SCENES[key], wrappers, args.rounds,
-                                 not args.quiet))
+        results.append(run_scene(key, scene, wrappers, args.rounds, not args.quiet))
 
     # tally
-    tally = {"game": 0, "other": 0, "silent": 0, "error": 0}
+    tally = {"game": 0, "other": 0, "silent": 0, "error": 0, "lookups": 0}
     for r in results:
         for line in r["lines"]:
             if "error" in line:
                 tally["error"] += 1
             else:
                 tally[line["kind"]] += 1
+                tally["lookups"] += len(line.get("lookups", []))
     print("\n  lines:", ", ".join(f"{k} {v}" for k, v in tally.items()))
     spoke = tally["game"] + tally["other"]
     if spoke:
@@ -323,7 +407,8 @@ def main(argv=None):
     os.makedirs(args.out, exist_ok=True)
     path = os.path.join(args.out, f"rehearsal-{args.backend}.json")
     with open(path, "w", encoding="utf-8", newline="\n") as fh:
-        json.dump({"backend": args.backend, "model": args.model,
+        json.dump({"harness": HARNESS, "date": str(date.today()), "hears": True, "canon": True,
+                   "backend": args.backend, "model": args.model, "effort": args.effort,
                    "chattiness": 1.0, "rounds": args.rounds,
                    "memory_store": args.memory_store,
                    "usage": usage, "tally": tally, "scenes": results},
@@ -334,4 +419,4 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())

@@ -342,3 +342,30 @@ def test_paid_preflight_sizes_prompts_without_paid_calls(tmp_path, monkeypatch):
     assert report["paid_calls_made"] == 0 and report["approval_status"] == "required"
     assert report["quote"]["approval_ceiling"] > 0
     assert report["memory_snapshot_sha256"] == verify_narrative_logbooks(memory_dir)["snapshot_sha256"]
+
+
+def test_benchmark_six_scores_the_staged_methods_and_the_floor(tmp_path):
+    from clude_training.recalibration_baseline import benchmark_six, glossary_rows
+
+    corpus_dir = tmp_path / "corpus"
+    snapshot_corpus(_source(tmp_path), corpus_dir)
+    corpus = FrozenCorpus.open(corpus_dir / "manifest.json")
+    stage_dir = tmp_path / "stage"
+    build_method_candidates(
+        corpus, stage_dir,
+        green_state={"version": 1, "kind": "state", "games": 2, "arms": {}},
+    )
+    before = {p.name: p.read_bytes() for p in stage_dir.iterdir() if p.is_file()}
+    output = tmp_path / "six.json"
+    document = benchmark_six(stage_dir, output=output, games=2, seed=5, corpus_manifest=corpus_dir / "manifest.json")
+    per_agent = document["benchmark"]["per_agent"]
+    assert set(per_agent) == {"Scarlett", "Mustard", "White", "Green", "Peacock", "Plum", "uniform"}
+    assert document["games"] == 2 and document["seed"] == 5 and document["complete"]
+    assert len(document["glossary_rows"]) == 7 and all(row.startswith("| ") for row in document["glossary_rows"])
+    assert glossary_rows(document["benchmark"])[-1].count("|") == 8
+    assert output.exists() and json.loads(output.read_text(encoding="utf-8"))["kind"] == "six-method-benchmark"
+    assert {p.name: p.read_bytes() for p in stage_dir.iterdir() if p.is_file()} == before, "the stage is read, never written"
+    # An expected row that disagrees is refused: the snapshots would not be the same ones.
+    wrong = {"uniform": {"1.0": {"log_loss": 9.0, "top1_accuracy": 0.0}}}
+    with pytest.raises(ValueError, match="differs"):
+        benchmark_six(stage_dir, output=None, games=2, seed=5, expected=wrong)

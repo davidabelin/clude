@@ -132,7 +132,7 @@ These are configuration-selection results, with the final state released on 18 O
 
 On the first benchmark of all, before the floor bot and the smoothing, its score at the end had been {{fact:mustard.phase4}} against the baseline's {{fact:uniform.phase4}}, two-thirds of it from the {{fact:phase4.zero_categories}} per cent of categories where a leaf put exactly nothing on the true card.[^phase4]
 
-In the 15 September 2026 Classic-board benchmark, with the tree trained on that board, halfway loss was {{fact:bench.grid.Mustard.50}}, compared with the baseline's {{fact:bench.grid.uniform.50}}; final loss was {{fact:bench.grid.Mustard.100}} and final first-choice accuracy {{fact:bench.grid.Mustard.top1}}, the best of any method in that run. It predates the landing rule and the Phase 14 rebuild, whose validation above is the current measurement.[^grid]
+In the 15 September 2026 Classic-board benchmark, with the tree trained on that board, halfway loss was {{fact:bench.grid.Mustard.50}}, compared with the baseline's {{fact:bench.grid.uniform.50}}; final loss was {{fact:bench.grid.Mustard.100}} and final first-choice accuracy {{fact:bench.grid.Mustard.top1}}, the best of any method in that run. It predates the landing rule and the Phase 14 rebuild, whose validation above is the current measurement. On the six-method benchmark of 1 November 2026 the released tree again had the lowest final loss of the six, {{fact:bench.six.Mustard.100}}.[^grid][^six]
 
 ### At the table
 
@@ -174,5 +174,6 @@ The current paid leash screen recorded seven wins in eight games at Mustard's 0.
 [^arena]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^phase14]: {{cite:docs/phase14-plan.md|Mustard and White — accepted locally, not released}}
+[^six]: {{cite:docs/strategy-glossary.md|Six-method belief benchmark (2026-11-01)}}
 
 {{navbox:clude}}

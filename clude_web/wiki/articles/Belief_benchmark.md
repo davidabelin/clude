@@ -44,9 +44,13 @@ Run 3's loss was slightly higher at the first two checkpoints and slightly lower
 
 Mustard, White and Green were selected on a different 19-game held-out corpus. Their paired before/after losses appear in [[measurement record]]. Those candidate-selection scores and Plum's benchmark have different evidence and starting states; they cannot be combined into a current six-method league table.
 
-## What has not been measured
+## The six methods together
 
-No benchmark since Phase 14 has scored all six methods on one set of snapshots. [[Miss Scarlett]]'s and [[Mrs. Peacock]]'s methods carry no learned state and were last benchmarked on 15 September 2026, in a Classic-board run that predates the [[landing rule]], the rebuilt methods and Plum's network; its table is kept in the maintainer glossary, not here. A fresh six-method run on current code, with the current Plum weights and the released method documents, is the measurement still to be collected before the methods can be ranked against one another again.[^grid]
+On 1 November 2026 the six methods as released were scored on the same {{fact:six.snapshots}} snapshots as the table above: Mustard, White and Green from their Phase 14 documents, Plum from the Run 3 weights, Scarlett and Peacock as they always are. The uniform and Plum rows reproduce the Phase 14 table, which is the check that the positions are the same ones.[^six]
+
+{{table:bench.six|The six released methods on the Phase 14 snapshots. Lower log-loss is better; the uniform row is the floor's own even spread.}}
+
+Four methods improve on the floor at every checkpoint and two do not. [[Miss Scarlett]]'s and [[Mrs. Peacock]]'s methods carry no learned state, so their rows are the first since 15 September 2026 and need no refresh until the code or the board changes; Mustard's and Green's depend on the released documents and will move as remembered play changes them. The ranking is of probabilities under the floor player's questions, not of play.
 
 ## Adaptation and interpretation
 
@@ -71,7 +75,7 @@ The [[arena]] complements this test by letting beliefs, dials and opponents inte
 
 [^code]: {{cite:clude_training/benchmark.py|`run_benchmark` and `_Accumulator`}}
 [^snapshots]: {{cite:clude_training/self_play.py|`generate_snapshots` and `truncate_state`}}
-[^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
+[^six]: {{cite:docs/strategy-glossary.md|Six-method belief benchmark (2026-11-01)}}
 [^phase14]: {{cite:docs/strategy-glossary.md|Phase 14 Run 3, the current Plum (2026-10-18)}}
 
 {{navbox:clude}}

@@ -54,6 +54,8 @@ Paid screens fixed `claude-opus-5`, the accepted code and weights, and a read-on
 
 {{table:paid.phase14.chattiness|Phase 14 chattiness screen. On-turn speech is not gated by this dial; calls and spoken lines here are off-turn reactions.}}
 
+The queue's own mechanics were measured offline on 1 November 2026, without a model and without changing them: its caps are soft, a reply to a reply is never served, and the sorted scan reaches later seats less often ([[Table talk]]).[^pacing]
+
 The 183 opportunities are fixed suggestion/accusation trigger events, replayed from the same eight saved games. Several seats and reply chains can respond to one trigger, so 210 lines at 0.5 is not a response probability above 100%. The line count increased and began to flatten above 0.5, with the simulation limited to two replies per turn and forty per game. The current 0.5 setting was retained; this replay screen does not test a win-rate effect or establish a natural conversational ceiling.
 
 {{table:paid.phase14.memory|Phase 14 memory-depth screen against one immutable logbook snapshot. Each row contains eight four-seat games.}}
@@ -81,5 +83,6 @@ Earlier ring-board and pre-landing-rule sweeps informed older presets. Their det
 [^paired]: {{cite:clude_training/sweep.py|`_paired_game_differences`, `_bootstrap_interval` and `SweepResult.paired_deltas`}}
 [^runner]: {{cite:clude_training/sweep.py|`sweep_dial`, `pooled_stats` and `SweepResult.monotone`}}
 [^record]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
+[^pacing]: {{cite:docs/strategy-glossary.md|Reaction-queue pacing (2026-11-01)}}
 
 {{navbox:clude}}

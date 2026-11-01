@@ -129,7 +129,7 @@ These are configuration-selection results, with the final state released on 18 O
 
 On the first benchmark of all, before the flat prior, the chain had been the worst belief of the six by a distance, {{fact:white.phase4}}, nearly all of it from unnamed cards read as impossible.[^phase4]
 
-In the 15 September 2026 Classic-board benchmark, White had the lowest log-loss of any method at the first three checkpoints: {{fact:bench.grid.White.25}}, {{fact:bench.grid.White.50}} and {{fact:bench.grid.White.75}}. At the end she was second to Mustard. That run predates the landing rule and the Phase 14 rebuild, whose validation above is the current measurement. The project relates her mid-game performance to the floor-bot regime, in which players repeatedly name unresolved cards. That explanation is plausible, but the comparison does not isolate opponent behaviour from all other features of the games.[^grid][^glossary]
+In the 15 September 2026 Classic-board benchmark, White had the lowest log-loss of any method at the first three checkpoints: {{fact:bench.grid.White.25}}, {{fact:bench.grid.White.50}} and {{fact:bench.grid.White.75}}. At the end she was second to Mustard. That run predates the landing rule and the Phase 14 rebuild, whose validation above is the current measurement; on the six-method benchmark of 1 November 2026 the released chain scored {{fact:bench.six.White.50}} at halfway, fourth of the six and below the floor's {{fact:bench.six.uniform.50}}.[^six] The project relates her mid-game performance to the floor-bot regime, in which players repeatedly name unresolved cards. That explanation is plausible, but the comparison does not isolate opponent behaviour from all other features of the games.[^grid][^glossary]
 
 ### At the table
 
@@ -173,5 +173,6 @@ In Phase 14's paid leash screen, the current record of a model in her seat, she 
 [^phase4]: {{cite:docs/strategy-glossary.md|Phase 4 benchmark results (RandomBot regime, historical)}}
 [^arena]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^phase14]: {{cite:docs/phase14-plan.md|Mustard and White — accepted locally, not released}}
+[^six]: {{cite:docs/strategy-glossary.md|Six-method belief benchmark (2026-11-01)}}
 
 {{navbox:clude}}

@@ -989,3 +989,95 @@ chattiness), section 5 above closes W7 under Phase 14 and W8 under Phase 13,
 and CLAUDE.md and the roadmap name the live revision. `tests/test_wiki.py`
 swapped one arbitrary fact key (`bench.grid.Plum.50`, now `White`) in its
 render tests.
+
+## 22. The missing measurements collected (2026-11-01)
+
+Section 21 named three Plum measurements the encyclopaedia could not cite,
+and David asked for two more things: a behavioural re-check of the personas
+rewritten on 2026-10-26, and a measurement of the reaction queue's pacing
+before anything about it changes. Nothing paid ran before its quote was
+printed and compared with the ceiling David approved (about $10, ceiling $16;
+about $8 with a $12 ceiling for Plum's paired legs).
+
+**What ran, and what it cost.**
+
+- Six-method belief benchmark, free: `phase14_recalibrate.py benchmark-six`,
+  120 games at seed 641600, the released Mustard, White and Green documents
+  loaded through the Phase 14 helpers, Plum on Run 3. The uniform and Plum
+  rows reproduced Phase 14's table to three decimals, so the six are scored
+  on the same 2,160 snapshots. Glossary "Six-method belief benchmark
+  (2026-11-01)"; facts table `bench.six`.
+- Reaction-queue pacing, free: `scripts/pacing_measure.py` drives the real
+  `clude_web.chat.Reactions` class (`clude_training/pacing.py`) over the 15
+  frozen `web-2` records and the 8 preflight arena games at the current
+  presets and at 1.0, patient and impatient. Glossary "Reaction-queue pacing
+  (2026-11-01)"; tables `pacing.harness` and `pacing.seat`. It found the caps
+  soft (three a turn, 41 a game), a reply to a reply never served, later seat
+  positions skipped by the sorted scan (never drawing at all at 1.0), and the
+  game cap binding in six of fifteen real games. Nothing was changed.
+- The rehearsal, paid $0.2817: `scripts/phase13_rehearse.py` fixed first,
+  since the Phase 13 harness never let a speaker hear the opening or the
+  others (the 2026-10-15 figures measured voices in isolation); seven scenes
+  with two new ones, an identity bluff and a disputed biography, 42 lines, 39
+  free of game terms, no lookups. Two continuity games with debriefs on a
+  copy of a fresh logbook snapshot, $0.9586, showed the second evening reading
+  the first. Record and rubric in [Phase 13](phase13-plan.md), section 10,
+  2026-11-01; facts `rehearsal.*` repointed.
+- Six-character arena, free, at David's request for the infoboxes:
+  `phase14_recalibrate.py arena-six`, 480 headless games at seed 143400
+  cycling three to six seats, the six as released. Glossary "Six-character
+  arena (2026-11-01)"; table `arena.six`. Every biography's infobox now quotes
+  "Games won" and "Wrong accusations" from it (four of them had still been
+  headed "Classic-board arena, 15 September 2026" over Phase 14 numbers); the
+  *Arena* article embeds it beside Phase 14's 40-seat-game control.
+- Plum's paired legs, paid $12.0763: `scripts/phase14_twin.py`, 24
+  games at seed 143300 at his three-seat table, headless (with a null-backend
+  twin proving the pairing), with the model, and with the model reading his
+  logbook at depth 1 from the fresh snapshot, read-only. Glossary "Plum twin
+  comparison at his three-seat table (2026-11-01)"; table `twin.phase14`.
+  Against headless the model lost 4.2 paired win-rate points (95% interval -29.2 to +20.8); the logbook gained 41.7 paired win-rate points (95% interval +16.7 to +62.5) against
+  the model alone, the one interval of the day that clears zero, with more
+  own-card suggestions as his entries instruct. Sizes are not measured. The
+  model leg's long games put the pair past its $12 ceiling, so the logbook leg
+  ran on David's separate approval the same day.
+
+Paid total $13.3166 of the approved $16; every leg valid, no fallback, no ceiling reached.
+
+**Where the encyclopaedia changed.** *Belief*, *Belief benchmark* (its "What
+has not been measured" section is now "The six methods together"), *Uniform
+baseline*, *Deduction floor*, the six biographies and the five method
+articles cite the six-method table or its cells; *Table talk* has a "Pacing,
+measured" section and its chattiness paragraph no longer promises a third
+level of reply, since the per-turn cap never lets one be served; *Dial
+sweeps* and *Personality dials* point at the pacing result; *Twin comparison*,
+*Professor Plum*, *Memory dial*, *Logbook* and *Leash* carry the paired legs;
+*Measurement record*'s archive note says which measurements were made;
+*Persona*'s "Rehearsed" section describes the new run and says what the old
+one measured, and its recording date reads 26 October 2026.
+
+**Corrections.** Phase 13's record carries two dated notes: the harness
+defect above the 2026-10-15 rehearsal section, and the soft caps after the
+taper bullets (the twelve runs of three in `web-2/00012` sat inside single
+turns; "the turn advanced inside the exchange" was wrong). The old literals
+stay, so the `talk.reactions.*` facts still anchor.
+
+**Limits to keep in view.** The six-method table ranks probabilities under
+the floor player's questions, not play, and Mustard's and Green's rows move
+with remembered play. The pacing replay answers every remark and waits for
+nothing; impatient mode is an upper bound on what a quick person causes. The
+rehearsal is six rounds among four speakers with the taper forced open; an
+arena has no off-turn queue, so the continuity check reads debriefs,
+read-back and on-turn lines. Twenty-four pairs at one three-seat table with
+headless opponents bound the twin legs.
+
+**Verification.** `tests/test_pacing.py` (the overshoot, the full queue, the
+skipped seat, depth one, the stale drop, the game cap, the constants pinned),
+`tests/test_rehearse.py` (every speaker hears the rest, the person's name, the
+canon offered) and a `benchmark_six` test in `tests/test_recalibration.py`
+are new; the wiki suite proves every literal sits under its glossary heading;
+the full offline suite ran with six workers. No persona, rules, prompt or
+canon-index text changed, so the recordings of 2026-10-26 still replay.
+Ignored outputs: `data/phase14/benchmark-six.json`,
+`data/phase14/memory-snapshot-20261101/`, `data/phase14/paid/twin-games/`,
+`data/phase14/paid/twin-plum.json`, `data/phase13-rehearsal-2/`,
+`data/pacing/`.

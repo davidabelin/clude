@@ -183,6 +183,37 @@ def cmd_baseline(args) -> int:
     return 0
 
 
+def cmd_benchmark_six(args) -> int:
+    from clude_training.recalibration_baseline import benchmark_six
+
+    expected = None
+    if args.check_against is not None and str(args.check_against) not in ("", "."):
+        earlier = json.loads(args.check_against.read_text(encoding="utf-8"))
+        rows = earlier["benchmark"][args.check_entrant]["per_agent"]
+        expected = {"uniform": rows["uniform"], "Plum": rows["Plum"]}
+    document = benchmark_six(
+        args.stage, output=args.output, games=args.games, seed=args.seed,
+        corpus_manifest=args.manifest, expected=expected,
+    )
+    print("\n".join(document["glossary_rows"]))
+    print(args.output)
+    return 0
+
+
+def cmd_arena_six(args) -> int:
+    from clude_training.recalibration_baseline import arena_six
+
+    store = open_store(str(args.store)) if args.store else None
+    document = arena_six(
+        args.stage, output=args.output, games=args.games, seed=args.seed,
+        corpus_manifest=args.manifest, store=store,
+    )
+    print("\n".join(document["glossary_rows"]))
+    print(f"mean turns {document['mean_turns']:.2f}")
+    print(args.output)
+    return 0
+
+
 def cmd_snapshot_memory(args) -> int:
     manifest = snapshot_narrative_logbooks(
         open_store(args.source, credentials_path=args.credentials), args.destination
@@ -243,6 +274,32 @@ def parser() -> argparse.ArgumentParser:
     )
     memory.add_argument("--credentials", default=None)
     memory.set_defaults(fn=cmd_snapshot_memory)
+
+    six = sub.add_parser(
+        "benchmark-six", help="Score the six released methods on the Run 3 benchmark snapshots."
+    )
+    six.add_argument("--stage", type=Path, default=DEFAULT_STAGE)
+    six.add_argument("--manifest", type=Path, default=DEFAULT_CORPUS)
+    six.add_argument("--output", type=Path, default=ROOT / "data" / "phase14" / "benchmark-six.json")
+    six.add_argument("--games", type=int, default=120)
+    six.add_argument("--seed", type=int, default=641600)
+    six.add_argument(
+        "--check-against", type=Path, default=ROOT / "data" / "phase14" / "plum" / "balanced-tournament.json",
+        help="An earlier benchmark document whose uniform and Plum rows must agree; '' to skip.",
+    )
+    six.add_argument("--check-entrant", default="run-3")
+    six.set_defaults(fn=cmd_benchmark_six)
+
+    arena = sub.add_parser(
+        "arena-six", help="Play the six released characters headless, three to six seats, for the record."
+    )
+    arena.add_argument("--stage", type=Path, default=DEFAULT_STAGE)
+    arena.add_argument("--manifest", type=Path, default=DEFAULT_CORPUS)
+    arena.add_argument("--output", type=Path, default=ROOT / "data" / "phase14" / "arena-six.json")
+    arena.add_argument("--store", type=Path, default=ROOT / "data" / "phase14" / "arena-six-games")
+    arena.add_argument("--games", type=int, default=480)
+    arena.add_argument("--seed", type=int, default=143400)
+    arena.set_defaults(fn=cmd_arena_six)
 
     retrain = sub.add_parser(
         "retrain-methods", help="Run the frozen-corpus Mustard, White or Green candidate search."

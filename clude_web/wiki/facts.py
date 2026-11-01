@@ -72,6 +72,10 @@ enumeration agent's rows were removed from the public corpus on
 _PLUM = "[[Professor Plum|Plum]]"
 DEEPNASH_PLAN = "docs/deepnash-plan.md"
 _PHASE14_PLUM = "Phase 14 Run 3, the current Plum (2026-10-18)"
+_SIX = "Six-method belief benchmark (2026-11-01)"
+_SIX_ARENA = "Six-character arena (2026-11-01)"
+_PACING = "Reaction-queue pacing (2026-11-01)"
+_TWIN = "Plum twin comparison at his three-seat table (2026-11-01)"
 _PHASE14_DIALS = "Phase 14 dial recalibration (2026-10-18)"
 _PHASE14_METHODS = "Phase 14 adaptive-method validation (2026-10-17)"
 _RUN1 = "The first long run, `run150a` (2026-10-06)"
@@ -281,6 +285,72 @@ TABLES.update({
             "1": ("1", "| 1 | 8 | 32 | 8 | 1 | 303 | $5.0502 |"),
         },
     ),
+    # The six released characters against one another, headless, 2026-11-01.
+    "arena.six": Table(
+        GLOSSARY, _SIX_ARENA,
+        ("Character", "Seat-games", "Won %", "Accused wrongly %", "First accusation (turn)",
+         "Never accused %", "Own cards shown", "Own cards named", "Re-shown %"),
+        ("games", "win", "wrong", "first", "never", "leaked", "named", "reshow"),
+        {
+            "Scarlett": (_SUSPECT_LABELS["Scarlett"], '| Scarlett | 400 | 15.5 | 26.2 | 46.1 | 58.2 | 2.74 | 1.10 | 50.1 |'),
+            "Mustard": (_SUSPECT_LABELS["Mustard"], '| Mustard | 320 | 21.2 | 5.9 | 46.2 | 72.8 | 2.39 | 1.47 | 40.5 |'),
+            "White": (_SUSPECT_LABELS["White"], '| White | 400 | 31.8 | 0.5 | 47.9 | 67.8 | 2.38 | 3.07 | 45.9 |'),
+            "Green": (_SUSPECT_LABELS["Green"], '| Green | 320 | 19.1 | 2.8 | 49.8 | 78.1 | 2.37 | 1.43 | 35.9 |'),
+            "Peacock": (_SUSPECT_LABELS["Peacock"], '| Peacock | 400 | 26.2 | 0.0 | 47.9 | 73.8 | 2.03 | 1.18 | 46.7 |'),
+            "Plum": (_PLUM, '| Plum | 320 | 17.8 | 0.3 | 42.9 | 81.9 | 2.08 | 1.73 | 28.1 |'),
+        },
+    ),
+    # The six released methods on the Run 3 snapshots, 2026-11-01.
+    "bench.six": Table(
+        GLOSSARY, _SIX,
+        ("Method", "25%", "50%", "75%", "100%", "Top-1 at 100%", "ms per call at 50%"),
+        ("25", "50", "75", "100", "top1", "ms"),
+        {
+            "Mustard": (_SUSPECT_LABELS["Mustard"], "| Mustard | 1.472 | 1.149 | 0.840 | 0.192 | 0.932 | 0.114 |"),
+            "Green": (_SUSPECT_LABELS["Green"], "| Green | 1.450 | 1.117 | 0.773 | 0.205 | 0.927 | 0.660 |"),
+            "Plum": (_PLUM, "| Plum | 1.459 | 1.157 | 0.755 | 0.220 | 0.927 | 0.302 |"),
+            "White": (_SUSPECT_LABELS["White"], "| White | 1.523 | 1.244 | 0.869 | 0.274 | 0.905 | 0.064 |"),
+            "uniform": (_SUSPECT_LABELS["uniform"], "| uniform (baseline) | 1.570 | 1.322 | 0.983 | 0.356 | 0.789 | - |"),
+            "Peacock": (_SUSPECT_LABELS["Peacock"], "| Peacock | 1.646 | 1.430 | 1.043 | 0.375 | 0.790 | 0.140 |"),
+            "Scarlett": (_SUSPECT_LABELS["Scarlett"], "| Scarlett | 1.650 | 1.473 | 1.175 | 0.403 | 0.829 | 0.028 |"),
+        },
+    ),
+    # The reaction queue replayed offline, 2026-11-01.
+    "pacing.harness": Table(
+        GLOSSARY, _PACING,
+        ("Inputs, chattiness", "Games", "Opportunities", "Draws", "Joined and served", "Turns at three",
+         "Full at a trigger", "Skipped by the break", "Stale drops", "Games at the cap", "Projected cost"),
+        ("games", "opportunities", "draws", "served", "three", "full", "skipped", "stale", "cap", "cost"),
+        {
+            "web2.presets": ("Real tables (`web-2`), current presets", "| web-2, presets | 15 | 626 | 1,281 | 388 | 42 | 8 | 106 | 82 | 6 | $3.05 |"),
+            "web2.one": ("Real tables (`web-2`), chattiness 1.0", "| web-2, 1.0 | 15 | 471 | 579 | 579 | 130 | 20 | 276 | 153 | 12 | $4.55 |"),
+            "preflight.presets": ("Arena games, current presets", "| preflight, presets | 8 | 272 | 726 | 190 | 20 | 0 | 38 | 0 | 1 | $1.49 |"),
+            "preflight.one": ("Arena games, chattiness 1.0", "| preflight, 1.0 | 8 | 207 | 314 | 314 | 100 | 0 | 207 | 0 | 7 | $2.47 |"),
+        },
+    ),
+    "twin.phase14": Table(
+        GLOSSARY, _TWIN,
+        ("Leg", "Games", "Wins", "Won %", "Wrong accusations", "Mean turns", "Model calls", "List-price cost"),
+        ("games", "wins", "win", "wrong", "turns", "calls", "cost"),
+        {
+            "headless": ("Headless", '| Headless | 24 | 7 | 29.2 | 1 | 47.62 | - | $0.0000 |'),
+            "model": ("With the model, no logbook", '| Model, no logbook | 24 | 6 | 25.0 | 1 | 46.88 | 426 | $5.3430 |'),
+            "memory": ("With the model and his logbook at memory 1", '| Model, logbook at memory 1 | 24 | 16 | 66.7 | 0 | 41.62 | 406 | $6.7333 |'),
+        },
+    ),
+    "pacing.seat": Table(
+        GLOSSARY, _PACING,
+        ("Position in the scan", "Eligible", "Drew", "Joined and served", "Never reached"),
+        ("eligible", "drew", "served", "skipped"),
+        {
+            "1": ("1st", "| 1st | 406 | 406 | 158 | 0 |"),
+            "2": ("2nd", "| 2nd | 409 | 405 | 103 | 4 |"),
+            "3": ("3rd", "| 3rd | 304 | 287 | 87 | 17 |"),
+            "4": ("4th", "| 4th | 165 | 131 | 31 | 34 |"),
+            "5": ("5th", "| 5th | 68 | 36 | 8 | 32 |"),
+            "6": ("6th", "| 6th | 35 | 16 | 1 | 19 |"),
+        },
+    ),
     "paid.phase14.plum_leash_confirm": Table(
         GLOSSARY, _PHASE14_DIALS,
         ("Plum leash", "Games", "Wins", "Won %", "Wrong accusations", "Mean turns", "Model calls", "List-price cost"),
@@ -347,6 +417,24 @@ FACTS: dict = {
     "phase14.plum.fixture.cost": Fact("0.0348", GLOSSARY, _PHASE14_PLUM, "for $0.0348"),
     "phase14.bench.games": Fact("120", GLOSSARY, _PHASE14_PLUM, "120-game, 2,160-snapshot"),
     "phase14.bench.snapshots": Fact("2,160", GLOSSARY, _PHASE14_PLUM, "120-game, 2,160-snapshot"),
+    # The six released methods together, and the reaction queue's pacing (2026-11-01).
+    "six.games": Fact("120", GLOSSARY, _SIX, "120 games, 2,160 snapshots"),
+    "arena.six.games": Fact("480", GLOSSARY, _SIX_ARENA, "480 games at seed"),
+    "arena.six.turns": Fact("46.75", GLOSSARY, _SIX_ARENA, "averaged 46.75 turns"),
+    "six.snapshots": Fact("2,160", GLOSSARY, _SIX, "120 games, 2,160 snapshots"),
+    "pacing.asplayed.reactions": Fact("403", GLOSSARY, _PACING, "403 off-turn lines"),
+    "pacing.asplayed.three": Fact("56", GLOSSARY, _PACING, "47 carried one, 94 two and 56 three"),
+    "pacing.overshoot": Fact("41", GLOSSARY, _PACING, "three, and\na game 41"),
+    "pacing.depth.presets": Fact("60", GLOSSARY, _PACING, "328/60 at the presets"),
+    "pacing.games_at_cap": Fact("six", GLOSSARY, _PACING, "binds in six of fifteen real games"),
+    # Plum's paired legs (2026-11-01).
+    "twin.phase14.model.delta": Fact("4.2", GLOSSARY, _TWIN, 'the model lost 4.2 paired win-rate points (95% interval -29.2 to +20.8)'),
+    "twin.phase14.model.low": Fact("-29.2", GLOSSARY, _TWIN, 'the model lost 4.2 paired win-rate points (95% interval -29.2 to +20.8)'),
+    "twin.phase14.model.high": Fact("+20.8", GLOSSARY, _TWIN, 'the model lost 4.2 paired win-rate points (95% interval -29.2 to +20.8)'),
+    "twin.phase14.memory.delta": Fact("41.7", GLOSSARY, _TWIN, 'the logbook gained 41.7 paired win-rate points (95% interval +16.7 to +62.5)'),
+    "twin.phase14.memory.low": Fact("+16.7", GLOSSARY, _TWIN, 'the logbook gained 41.7 paired win-rate points (95% interval +16.7 to +62.5)'),
+    "twin.phase14.memory.high": Fact("+62.5", GLOSSARY, _TWIN, 'the logbook gained 41.7 paired win-rate points (95% interval +16.7 to +62.5)'),
+    "twin.phase14.cost": Fact("12.0763", GLOSSARY, _TWIN, "$12.0763 at list price"),
 }
 
 
@@ -933,7 +1021,8 @@ _P13_NAMING = "2026-10-15: the rehearsal completed, and step 6's naming and paci
 _P13_TAPER = "2026-10-15: the taper left alone, the fixtures refreshed, step 0 closed out"
 _P13_LIVE = "2026-10-15: step 4 accepted live, and a debrief lost to its token cap"
 _P13_AUDIT = "2026-10-14: live memory audit and pathway revision"
-_REHEARSAL = "five scenes, 30 lines, 22 free of game terms (73%), $0.1373"
+_P13_REHEARSAL2 = "2026-11-01: the rehearsal re-run with the characters hearing one another"
+_REHEARSAL = "seven scenes, 42 lines, 39 free of game terms (93%), $0.2817"
 
 FACTS.update({
     # Phase 13: what the talk gate cost, and how the reaction queue paced two games (W8).
@@ -945,10 +1034,13 @@ FACTS.update({
     "talk.reactions.six": Fact("41", PHASE13_PLAN, _P13_TAPER, "41 over 57"),
     "talk.reactions.six.turns": Fact("57", PHASE13_PLAN, _P13_TAPER, "41 over 57"),
     "talk.reactions.runs": Fact("twelve", PHASE13_PLAN, _P13_TAPER, "twelve runs of three"),
-    "rehearsal.lines": Fact("30", PHASE13_PLAN, _P13_NAMING, _REHEARSAL),
-    "rehearsal.free": Fact("22", PHASE13_PLAN, _P13_NAMING, _REHEARSAL),
-    "rehearsal.pct": Fact("73", PHASE13_PLAN, _P13_NAMING, _REHEARSAL),
-    "rehearsal.cost": Fact("0.1373", PHASE13_PLAN, _P13_NAMING, _REHEARSAL),
+    "rehearsal.lines": Fact("42", PHASE13_PLAN, _P13_REHEARSAL2, _REHEARSAL),
+    "rehearsal.free": Fact("39", PHASE13_PLAN, _P13_REHEARSAL2, _REHEARSAL),
+    "rehearsal.pct": Fact("93", PHASE13_PLAN, _P13_REHEARSAL2, _REHEARSAL),
+    "rehearsal.cost": Fact("0.2817", PHASE13_PLAN, _P13_REHEARSAL2, _REHEARSAL),
+    "rehearsal.scenes": Fact("seven", PHASE13_PLAN, _P13_REHEARSAL2, _REHEARSAL),
+    "rehearsal.lookups": Fact("0", PHASE13_PLAN, _P13_REHEARSAL2, "no lookup in 42 calls"),
+    "continuity.cost": Fact("0.9586", PHASE13_PLAN, _P13_REHEARSAL2, "continuity $0.9586"),
     "debrief.plum.out": Fact("3,407", PHASE13_PLAN, _P13_LIVE, "Those 3,407 output tokens confirm the diagnosis"),
     "debrief.plum.cost": Fact("0.1281", PHASE13_PLAN, _P13_LIVE, "$0.1281 for 8,580 in and 3,407 out"),
     "audit.entries": Fact("78", PHASE13_PLAN, _P13_AUDIT, "(78 in all)"),

@@ -44,6 +44,10 @@ Own cards shown counts distinct cards rather than how many recipients saw each o
 
 {{table:arena.phase14|The current-setting control: Classic board, seed 242000, 96 games cycling three to six seats, 18 October 2026.}}
 
+{{table:arena.six|The six released characters against one another, headless, 1 November 2026: 480 games at seed 143400 cycling three to six seats, the record the biographies' infoboxes quote.}}
+
+The larger run of 1 November 2026 puts the order at {ranking}; its rows carry standard errors of about two and a half points, so the middle of that order is not settled.[^six_arena]
+
 The 96 games averaged 40.33 turns. Mustard, Peacock and Plum made no wrong accusation in their 40 seat-games; that is an observation from this block, not a guarantee. White had the highest observed win rate at 25%, only one win ahead of Mustard and Peacock, so the table is not evidence of a durable rank order.[^record]
 
 ## Uncertainty
@@ -74,5 +78,6 @@ For model-piloted seats, the arena records decisions, calls, fallbacks, departur
 [^arena]: {{cite:clude_training/arena.py|`run_arena`, `seat_lineup` and private random streams}}
 [^metrics]: {{cite:clude_training/arena.py|`PlayerStats`, `SeatOutcome` and `binomial_std`}}
 [^record]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
+[^six_arena]: {{cite:docs/strategy-glossary.md|Six-character arena (2026-11-01)}}
 
 {{navbox:clude}}

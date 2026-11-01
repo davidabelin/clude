@@ -41,13 +41,27 @@ A served line is said at the table as a `reaction` and opens the floor again one
 
 The prompt for a reaction shows the seat's own observation, the recent talk and what just happened, and asks the character to answer the person rather than echo the topic, to let an answered point rest, and never to reveal a card it was shown.[^prompt] Reactions are audited and counted against the same per-game call and token budget as decisions.
 
+## Pacing, measured
+
+On 1 November 2026 the queue was replayed offline, unchanged, over the fifteen stored `web-2` games and eight arena games, with a backend that always answers and a clock that never waits, at the current presets and at chattiness 1.0.[^pacing]
+
+{{table:pacing.harness|The queue replayed over saved games. "Full at a trigger" and "stale drops" come from the replay in which a person moves the game on before a queued line is due; the patient replay has none of either.}}
+
+Three things the code does not record showed up. The caps are soft: only the opening of the floor checks them, so a turn can carry three lines and a game 41, as the stored games already did ({{fact:pacing.asplayed.three}} of the turns with any reaction carried three; three games hold 41). A reply to a reply is never served: once two lines are out the floor closes for the turn, so the taper's third power is never drawn. And the sorted scan reaches later seats less often, modestly at the presets and absolutely at 1.0, where the fourth, fifth and sixth positions never draw.
+
+{{table:pacing.seat|Who the sorted scan reaches, over the stored web games at the current presets. Position is the rank among a table's model seats.}}
+
+The game cap of {{code:chat.per_game}} bound in {{fact:pacing.games_at_cap}} of fifteen real games at the presets. None of this was changed by the measurement; it is the baseline for any change made one mechanism at a time.
+
 ## Chattiness
 
-The profile default is {{code:neutral.chattiness}}. Since 15 October 2026 the dial governs the off-turn draws alone; it no longer touches a line written with a decision. At the default a seat joins a fresh opportunity half the time, replies to a reply a quarter of the time and goes a third level deep about one time in eight.[^wrapper] Since 26 October 2026 the six presets differ: [[Miss Scarlett]] keeps {{code:preset.Scarlett.chattiness}}, [[Mrs. Peacock]] has {{code:preset.Peacock.chattiness}}, [[Mr. Green]] {{code:preset.Green.chattiness}}, [[Mrs. White]] {{code:preset.White.chattiness}}, [[Professor Plum]] {{code:preset.Plum.chattiness}} and [[Colonel Mustard]] {{code:preset.Mustard.chattiness}}, so Scarlett joins twice as often as Mustard and a quiet character's second reply is rarer still. These are [[Personality dials|preset]] choices about the company, not measured settings; the screen below was run with everyone at the default.[^profile]
+The profile default is {{code:neutral.chattiness}}. Since 15 October 2026 the dial governs the off-turn draws alone; it no longer touches a line written with a decision. At the default a seat joins a fresh opportunity half the time, and replies to a reply a quarter of the time; the third level, one time in eight, is never reached, since the per-turn cap closes the floor before a reply to a reply can be served (Pacing, above).[^wrapper][^pacing] Since 26 October 2026 the six presets differ: [[Miss Scarlett]] keeps {{code:preset.Scarlett.chattiness}}, [[Mrs. Peacock]] has {{code:preset.Peacock.chattiness}}, [[Mr. Green]] {{code:preset.Green.chattiness}}, [[Mrs. White]] {{code:preset.White.chattiness}}, [[Professor Plum]] {{code:preset.Plum.chattiness}} and [[Colonel Mustard]] {{code:preset.Mustard.chattiness}}, so Scarlett joins twice as often as Mustard and a quiet character's second reply is rarer still. These are [[Personality dials|preset]] choices about the company, not measured settings; the screen below was run with everyone at the default.[^profile]
 
 Phase 14 replayed the same 183 suggestion and accusation triggers from eight saved four-seat games at each of five values:
 
 {{table:paid.phase14.chattiness|Current paid chattiness screen. Calls and spoken lines are off-turn reactions; the on-turn line attached to a decision is outside this gate.}}
+
+The offline replay above puts the current presets at {{fact:pacing.harness.web2.presets.served}} served lines over the fifteen stored web games against {{fact:pacing.harness.web2.one.served}} at 1.0, with the game cap, not the dial, binding in {{fact:pacing.games_at_cap}} of them.[^pacing]
 
 A trigger can invite several seats, and a reply can trigger another reply, so 183 is not a denominator for a per-seat response rate. The experiment held the game events fixed; it tested conversation on those events rather than playing five new sets of model games. The line-count footprint begins to flatten above 0.5, partly within limits of two replies per turn and forty per game. The current setting produced 210 lines, against 275 at 0.75 and 288 at 1, while preserving silence on a missed draw. It was retained without claiming a universal optimum.[^current]
 
@@ -87,5 +101,6 @@ The engine distinguishes speech from card shows in the record. A spectator's acc
 [^chat]: {{cite:clude_web/chat.py|`Reactions.opportunity`, `due` and `serve`}}
 [^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^clean]: {{cite:clude_llm/player.py|`clean_remark`}}
+[^pacing]: {{cite:docs/strategy-glossary.md|Reaction-queue pacing (2026-11-01)}}
 
 {{navbox:clude}}

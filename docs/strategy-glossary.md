@@ -1807,3 +1807,208 @@ seat at 0.5 and stands as the record of the dial's response curve.
 Superseded ring-board and pre-landing-rule calibration tables remain in git
 and the dated maintainer history. They are not current recommendations and are
 not republished as the public calibration record.
+
+## Six-method belief benchmark (2026-11-01)
+
+The six methods as released, scored together on the snapshots Phase 14's Plum
+benchmark used: `python scripts\phase14_recalibrate.py benchmark-six`, 120
+floor-player games at seed 641600, player counts three to six, 2,160 private
+snapshots ("120 games, 2,160 snapshots"). Mustard, White and Green play the
+accepted staged documents (Green `06becddd...`, Mustard `d4fe5f0a...`, White
+`4bdcf253...`, the hashes under "Phase 14 dial recalibration"), Plum the
+committed Run 3 weights (`13e76570...`); Scarlett and Peacock carry no state.
+The uniform and Plum rows reproduce the Run 3 table above to three decimals,
+which is the check that the positions are the same ones (`--check-against`).
+Nothing was read from or written to a store; Green's arm record starts from
+the staged state and adapts in memory during the run. Result in ignored
+`data/phase14/benchmark-six.json`.
+
+| Method | 25% | 50% | 75% | 100% | Top-1 at 100% | ms per call at 50% |
+|---|---:|---:|---:|---:|---:|---:|
+| Mustard | 1.472 | 1.149 | 0.840 | 0.192 | 0.932 | 0.114 |
+| Green | 1.450 | 1.117 | 0.773 | 0.205 | 0.927 | 0.660 |
+| Plum | 1.459 | 1.157 | 0.755 | 0.220 | 0.927 | 0.302 |
+| White | 1.523 | 1.244 | 0.869 | 0.274 | 0.905 | 0.064 |
+| uniform (baseline) | 1.570 | 1.322 | 0.983 | 0.356 | 0.789 | - |
+| Peacock | 1.646 | 1.430 | 1.043 | 0.375 | 0.790 | 0.140 |
+| Scarlett | 1.650 | 1.473 | 1.175 | 0.403 | 0.829 | 0.028 |
+
+Mustard's released tree finishes lowest; Green's ensemble is lowest for the
+first half of a game and Plum's network at three-quarters; White beats the
+floor at every checkpoint; Peacock and Scarlett score worse than the floor at
+every checkpoint, as they did on 15 September 2026, though Scarlett's first
+choice is right more often than the floor's. Green's call time is the five
+arms together. These are floor-player positions: the table ranks the methods'
+probabilities under one evidence-generating policy, and says nothing about
+play, which the arena measures. Mustard's and Green's rows depend on the
+released documents and will move as remembered play changes them; Scarlett's
+and Peacock's are the first since 15 September 2026 and need no refresh until
+the code or the board changes.
+
+## Reaction-queue pacing (2026-11-01)
+
+The web reaction queue (`clude_web/chat.py`) was measured and not changed:
+`python scripts\pacing_measure.py` replays saved games through a real
+`Reactions` instance (`clude_training/pacing.py`) with a backend that always
+answers a remark and a clock that never waits, at the current chattiness
+presets and at 1.0, over the 15 frozen `web-2` records of the Phase 14 corpus
+and the 8 `phase14-preflight-chat` arena games (seed 143200, four seats,
+suggestion and accusation triggers only). Patient mode drains the queue after
+every event, as `TableRegistry.work` does while it answers "waiting", so a bot
+or model turn never moves past a queued reaction; impatient mode leaves the
+queue alone after a person's own events, so the next turn drops what was
+queued, an upper bound on what a quick human causes. Model seats are seeded
+from the game seed exactly as `build_table` seeds them, so every model seat at
+one table starts from the same RNG stream and their draws are correlated.
+Output: ignored `data/pacing/pacing-20261101.json`.
+
+**As played.** The thirteen talking `web-2` records hold 403 off-turn lines;
+of the turns with any, 47 carried one, 94 two and 56 three. Per seat (seat 0
+first): 0:106, 1:90, 2:104, 3:72, 4:22, 5:9; per character Scarlett 106,
+Plum 80, Peacock 67, White 58, Mustard 49, Green 43.
+
+| Game | Seats | Turns | Reactions | Turns with one | Turns with two | Turns with three |
+|---|---:|---:|---:|---:|---:|---:|
+| 00000 | 4 | 26 | 0 | 0 | 0 | 0 |
+| 00001 | 4 | 35 | 0 | 0 | 0 | 0 |
+| 00002 | 5 | 32 | 41 | 2 | 9 | 7 |
+| 00003 | 4 | 35 | 31 | 5 | 13 | 0 |
+| 00004 | 3 | 43 | 8 | 6 | 1 | 0 |
+| 00005 | 3 | 28 | 17 | 7 | 5 | 0 |
+| 00006 | 5 | 54 | 40 | 0 | 5 | 10 |
+| 00007 | 4 | 51 | 38 | 3 | 16 | 1 |
+| 00008 | 3 | 23 | 14 | 4 | 5 | 0 |
+| 00009 | 6 | 32 | 41 | 0 | 10 | 7 |
+| 00010 | 4 | 23 | 30 | 4 | 4 | 6 |
+| 00011 | 3 | 37 | 22 | 10 | 6 | 0 |
+| 00012 | 6 | 57 | 41 | 3 | 1 | 12 |
+| 00013 | 4 | 55 | 40 | 2 | 13 | 4 |
+| 00014 | 4 | 48 | 40 | 1 | 6 | 9 |
+
+**The caps are soft.** Only `opportunity` checks `PER_TURN` and `PER_GAME`;
+`due` and `serve` never do, so a reaction queued before a cap is reached is
+still served: a turn can carry `PER_TURN + MAX_QUEUED - 1` lines, three, and
+a game 41. Three games above hold 41 lines, and the twelve runs of three in
+`web-2/00012` happened within single turns. The 2026-10-15 reading in
+[Phase 13](phase13-plan.md) ("a run of three against `PER_TURN = 2` means the
+turn advanced inside the exchange") was wrong.
+
+**A reply to a reply is never served.** Once two lines have been served in a
+turn the floor is closed, and the third line a turn can carry is one queued
+earlier, so a served reaction at depth one never opens a depth-two
+opportunity that draws: served depth 0/1 were 328/60 at the presets and
+408/171 at 1.0 over the `web-2` games, with 262 and 456 turn-cap refusals.
+The taper's third power, `chattiness ** 3`, is never drawn.
+
+| Inputs, chattiness | Games | Opportunities | Draws | Joined and served | Turns at three | Full at a trigger | Skipped by the break | Stale drops | Games at the cap | Projected cost |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| web-2, presets | 15 | 626 | 1,281 | 388 | 42 | 8 | 106 | 82 | 6 | $3.05 |
+| web-2, 1.0 | 15 | 471 | 579 | 579 | 130 | 20 | 276 | 153 | 12 | $4.55 |
+| preflight, presets | 8 | 272 | 726 | 190 | 20 | 0 | 38 | 0 | 1 | $1.49 |
+| preflight, 1.0 | 8 | 207 | 314 | 314 | 100 | 0 | 207 | 0 | 7 | $2.47 |
+
+Opportunities, draws and served lines are the patient replay; "full at a
+trigger" (a trigger that found both queue slots taken, so no seat drew) and
+"stale drops" are the impatient replay, since the patient one has none of
+either by construction; the preflight games seat no person, so their two
+modes coincide. "Skipped by the break" counts eligible seats whose RNG the
+sorted scan never consulted because enough earlier seats had already joined.
+Projected cost is $0.00785 a line, the chattiness screen's $1.6490 for 210
+lines, a projection and not a measurement.
+
+| Position in the scan | Eligible | Drew | Joined and served | Never reached |
+|---|---:|---:|---:|---:|
+| 1st | 406 | 406 | 158 | 0 |
+| 2nd | 409 | 405 | 103 | 4 |
+| 3rd | 304 | 287 | 87 | 17 |
+| 4th | 165 | 131 | 31 | 34 |
+| 5th | 68 | 36 | 8 | 32 |
+| 6th | 35 | 16 | 1 | 19 |
+
+The seat-position table is the `web-2` games at the presets. Position is the
+rank among a table's model seats in the sorted scan, so a 4th position exists
+only at tables with four or more model seats. At 1.0 the 4th, 5th and 6th
+positions never draw at all (143, 50 and 24 eligible, no draws), because the
+first two always join. By character at the presets: served Scarlett 128,
+Peacock 66, White 57, Plum 55, Green 44, Mustard 38, against 273, 200, 211,
+336, 166 and 201 eligible; Plum, the highest-numbered seat, was eligible most
+often and skipped by the break most often (53 of the 106), and his low
+preset does the rest.
+
+What this settles: the per-turn cap, not the taper, bounds an exchange; the
+sorted scan does disadvantage later seats, modestly at the presets and
+absolutely at 1.0; a trigger on a full queue is lost silently only when a
+person moves the game on before the queue drains; and the game cap of forty
+binds in six of fifteen real games at the current presets. What it does not
+settle is whether any of this should change: that is a design choice, to be
+made one mechanism at a time with this baseline beside it. `MAX_QUEUED`,
+`PER_TURN`, `PER_GAME`, the taper and the order are as they were.
+
+## Plum twin comparison at his three-seat table (2026-11-01)
+
+Seed-paired legs of 24 games at seed 143300, roster Plum, Mustard, Green at
+three seats, Mustard and Green playing the Phase 14 released method documents
+(the staged hashes under "Phase 14 dial recalibration") and Plum the Run 3
+weights at his preset leash 0.35: `scripts/phase14_twin.py`, records in
+ignored `data/phase14/paid/twin-games`, results in
+`data/phase14/paid/twin-plum.json`. The headless leg is free; a null-backend
+twin of it reproduced every game's turn count and winner, which is the proof
+that the model legs are paired with it. Leg A seats `claude-opus-5` (low
+effort, the canon attached, no debrief) in Plum's chair with no logbook; leg
+B is the same with his narrative logbook read at memory depth 1, what a new
+lobby seat reads, from the read-only snapshot of 2026-11-01 (SHA-256
+`7fe3b529...`), nothing written. A ceiling backend prices every reply and
+stops a leg at its cap; no leg reached it and none recorded a fallback.
+Deltas are paired game differences with 4,000-draw bootstrap intervals, as
+in the leash confirmation above.
+
+| Leg | Games | Wins | Won % | Wrong accusations | Mean turns | Model calls | List-price cost |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Headless | 24 | 7 | 29.2 | 1 | 47.62 | - | $0.0000 |
+| Model, no logbook | 24 | 6 | 25.0 | 1 | 46.88 | 426 | $5.3430 |
+| Model, logbook at memory 1 | 24 | 16 | 66.7 | 0 | 41.62 | 406 | $6.7333 |
+
+Against the headless leg, the model lost 4.2 paired win-rate points (95% interval -29.2 to +20.8), changed by 0.0 paired wrong-accusation points (95% interval -12.5 to +12.5), and changed mean
+length by -0.75 turns (-13.58 to +13.92). Against the model leg without a logbook, the logbook gained 41.7 paired win-rate points (95% interval +16.7 to +62.5), lost 4.2 paired wrong-accusation points (95% interval -12.5 to +0.0), and changed mean
+length by -5.25 turns (-13.83 to +4.08); against the
+headless leg the logbook leg gained 37.5 paired win-rate points (95% interval +16.7 to +58.3). The logbook interval clears zero, the one result of the day that does, so
+its direction is established while its size is not. His own-card suggestions rose by +2.62 a game (+0.50 to +4.96), which
+is what the standing instructions in his entries tell him to do: pad every
+suggestion with his own suspect and weapon so a refutation can land only on
+the room.
+The model-alone interval straddles zero; the logbook interval does not. Twenty-four pairs give intervals some twenty points wide, so
+a size is not measured here, and one seat at one table with two headless
+opponents is not the mixed company of a live table.
+The two legs cost $12.0763 at list price against the $12 approved for the pair,
+the logbook leg having been approved separately once the model leg's long games put
+the pair past that figure; with the rehearsal re-run ($0.2817) and its two
+continuity games ($0.9586) the day's paid work came to $13.3166 of
+the approved $16.
+
+## Six-character arena (2026-11-01)
+
+The six characters as released, headless, against one another:
+`python scripts\phase14_recalibrate.py arena-six`, 480 games at seed
+143400 cycling three-, four-, five- and six-seat tables, Mustard, White
+and Green on the accepted staged documents and Plum on the Run 3 weights,
+every character on its preset dials. Records in ignored
+`data/phase14/arena-six-games`, result in `data/phase14/arena-six.json`. The
+480 games averaged 46.75 turns. This is the record the
+biographies' infoboxes quote; Phase 14's 40-seat-game control above remains
+the dial record it was.
+
+| Character | Seat-games | Won % | Accused wrongly % | First accusation (turn) | Never accused % | Own cards shown | Own cards named | Re-shown % |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Scarlett | 400 | 15.5 | 26.2 | 46.1 | 58.2 | 2.74 | 1.10 | 50.1 |
+| Mustard | 320 | 21.2 | 5.9 | 46.2 | 72.8 | 2.39 | 1.47 | 40.5 |
+| White | 400 | 31.8 | 0.5 | 47.9 | 67.8 | 2.38 | 3.07 | 45.9 |
+| Green | 320 | 19.1 | 2.8 | 49.8 | 78.1 | 2.37 | 1.43 | 35.9 |
+| Peacock | 400 | 26.2 | 0.0 | 47.9 | 73.8 | 2.03 | 1.18 | 46.7 |
+| Plum | 320 | 17.8 | 0.3 | 42.9 | 81.9 | 2.08 | 1.73 | 28.1 |
+
+Won: White 31.8%, Peacock 26.2%, Mustard 21.2%, Green 19.1%, Plum 17.8%, Scarlett 15.5%. Accused wrongly: Scarlett 26.2%, Mustard 5.9%, Green 2.8%, White 0.5%, Plum 0.3%, Peacock 0.0%. Seat-games differ by character
+because every table size seats every character in turn and the six-seat
+tables seat all of them. Headless play on preset dials, not the model seats:
+a row of 320 to 400 seat-games carries a binomial standard error of two to
+two and a half points on a 25% win rate, so White's lead and Scarlett's
+trailing place are clear and the order of the middle four is not.

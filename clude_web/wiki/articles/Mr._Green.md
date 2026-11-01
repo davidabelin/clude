@@ -23,9 +23,9 @@ Memory | How well each of the other five methods has done
 [[Curiosity]] | {{code:preset.Green.curiosity}}
 [[Secrecy]] | {{code:preset.Green.secrecy}}
 [[Temperature]] | {{code:preset.Green.temperature}}
-= Classic-board arena, 15 September 2026
-Games won | {{fact:arena.phase14.Green.win}}% of {{fact:arena.phase14.Green.games}}
-Wrong accusations | {{fact:arena.phase14.Green.wrong}}%
+= Headless six-character arena, 1 November 2026
+Games won | {{fact:arena.six.Green.win}}% of {{fact:arena.six.Green.games}} seat-games
+Wrong accusations | {{fact:arena.six.Green.wrong}}%
 }}
 
 **Mr. Green** is one of the six [[Clue#The cards|suspects]] in [[Clue]] and a [[Category:Characters|character]] in [[clude]]. His [[bandit ensemble]] computes the other five methods' [[belief|beliefs]] and adopts one unchanged. It uses [[w:Thompson sampling|Thompson sampling]] to select among them, based on a record of their accuracy on revealed envelopes. Green therefore has an adaptive selection method of his own, but obtains the card probabilities from one of its constituent methods. He pays the computation cost of all five whether or not he selects the expensive one.[^module]
@@ -78,13 +78,15 @@ Green's score is a borrowed score, and it tracks the arms he trusts. In the earl
 
 {{table:methods.phase14.green|Phase 14's validation: his former comparison state and the accepted rebuild on the same 19 held-out deals and 264 private snapshots. Lower log-loss is better.}}
 
-His rebuilt record improved at the first three checkpoints and worsened at the last. These are candidate-selection scores, and no benchmark since Phase 14 has scored the six methods together. Every call still consults all five arms, now all fast, the network among them.[^validation]
+His rebuilt record improved at the first three checkpoints and worsened at the last. These are candidate-selection scores. On the six-method benchmark of 1 November 2026 his borrowed belief was the lowest-loss of the six for the first half of a game, {{fact:bench.six.Green.25}} and {{fact:bench.six.Green.50}}, and second at the end, {{fact:bench.six.Green.100}}; every call still consults all five arms, {{fact:bench.six.Green.ms}} ms together.[^validation][^six]
 
 ### At the table
 
-{{table:arena.phase14|The current-setting rows from Phase 14's isolated headless screens, 40 seat-games per character.}}
+{{table:arena.six|The six released characters against one another, headless, 1 November 2026: 480 games cycling three to six seats.}}
 
-Green won {{fact:arena.phase14.Green.win}}% of the current control and made a wrong accusation in {{fact:arena.phase14.Green.wrong}}%.[^arena] The 40-seat-game result does not establish a precise competitive rank. His separate retraining began from Beta(1,1), selected step 4 and decay 1.05, and cleared its separate 200-game validation block against the frozen former live posterior. The method document was then staged and released on 18 October. The old arm shares above do not describe its rebuilt state.[^current]
+{{table:arena.phase14|The current-setting rows from Phase 14's isolated headless screens, 40 seat-games per character, the dial record.}}
+
+Green won {{fact:arena.phase14.Green.win}}% of the current control and made a wrong accusation in {{fact:arena.phase14.Green.wrong}}%.[^arena] The 40-seat-game result does not establish a precise competitive rank. His separate retraining began from Beta(1,1), selected step 4 and decay 1.05, and cleared its separate 200-game validation block against the frozen former live posterior. The method document was then staged and released on 18 October. The old arm shares above do not describe its rebuilt state.[^current] The six-character arena of 1 November 2026, 320 seat-games, has Green winning {{fact:arena.six.Green.win}}% and accusing wrongly in {{fact:arena.six.Green.wrong}}%.[^six_arena]
 
 ### With Claude in the seat
 
@@ -121,5 +123,7 @@ Like every character he can also keep a narrative [[logbook]], written by a mode
 [^logbooks]: {{cite:docs/logbooks.md|Three tiers}}
 [^lives]: {{cite:docs/phase13-plan.md|1. Brief and settled decisions}}
 [^live]: {{cite:docs/phase13-plan.md|2026-10-15: step 4 accepted live, and a debrief lost to its token cap}}
+[^six]: {{cite:docs/strategy-glossary.md|Six-method belief benchmark (2026-11-01)}}
+[^six_arena]: {{cite:docs/strategy-glossary.md|Six-character arena (2026-11-01)}}
 
 {{navbox:clude}}

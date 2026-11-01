@@ -49,7 +49,7 @@ Signed-in readers can use [[the lobby]]'s development folders to inspect availab
 
 ## Archive note
 
-Ring-board, pre-landing and earlier Classic-board calibrations are superseded. Their detailed evidence, commands and limitations remain in the maintainer strategy glossary and git history, but they are no longer presented as the public calibration of the current characters. Three measurements have not been made since Phase 14: a six-method [[belief benchmark]] on one set of current snapshots (Scarlett's and Peacock's methods were last benchmarked on 15 September 2026), a paired headless-against-model [[twin comparison]] with the current Plum weights, and a memory comparison that changes one seat's depth at a time.
+Ring-board, pre-landing and earlier Classic-board calibrations are superseded. Their detailed evidence, commands and limitations remain in the maintainer strategy glossary and git history, but they are no longer presented as the public calibration of the current characters. On 1 November 2026 a six-method [[belief benchmark]] on the Phase 14 snapshots and a paired headless-against-model [[twin comparison]] for the current Plum at his three-seat table were added, and, in the same run, a one-seat memory comparison ([[memory dial]]); the reaction queue's pacing was measured offline the same day ([[table talk]]), and a 480-game headless [[arena]] of the six released characters gave the biographies' infoboxes a current record. None changed a preset, a method document or the queue.
 
 ## See also
 

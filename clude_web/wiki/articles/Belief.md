@@ -114,7 +114,11 @@ Phase 14's current evidence separates probability quality from playing strength.
 
 {{table:plum.phase14.benchmark|Phase 14's benchmark: the current Run 3, the former checkpoint and the floor's own even spread on the same {{fact:phase14.bench.snapshots}} snapshots. Lower is better.}}
 
-Phase 14 scored the current network against the floor baseline on {{fact:phase14.bench.snapshots}} snapshots from {{fact:phase14.bench.games}} games, and each rebuilt method against its own former state on a separate 264-snapshot validation set, which the [[measurement record]] holds. No run since has scored all six methods together. [[Miss Scarlett]]'s and [[Mrs. Peacock]]'s methods, which carry no learned state, were last benchmarked on 15 September 2026, before the [[landing rule]], and both then scored slightly worse than the baseline at every checkpoint. A current six-method benchmark remains to be run; until it is, the methods are not ranked against one another here.[^policy][^grid] These results describe the recorded games and configurations, rather than a universal order of methods. The benchmark is therefore rerun when the board or a method changes.
+Phase 14 scored the current network against the floor baseline on {{fact:phase14.bench.snapshots}} snapshots from {{fact:phase14.bench.games}} games, and each rebuilt method against its own former state on a separate 264-snapshot validation set, which the [[measurement record]] holds.[^policy] On 1 November 2026 the six methods were scored together on those same {{fact:six.snapshots}} snapshots, each adaptive method playing its released document:[^six]
+
+{{table:bench.six|The six methods as released on the Phase 14 snapshots, 1 November 2026. Lower log-loss is better.}}
+
+[[Colonel Mustard]]'s tree finishes lowest, {{fact:bench.six.Mustard.100}}; [[Mr. Green]]'s ensemble leads the first half of a game and [[Professor Plum]]'s network the third quarter; [[Mrs. White]] beats the floor at every checkpoint; [[Miss Scarlett]] and [[Mrs. Peacock]], whose methods carry no learned state, score worse than the floor at every checkpoint, as they did on 15 September 2026, though Scarlett's first choice is right more often than the floor's. These are floor-player positions, so the table ranks the methods' probabilities under one evidence-generating policy and says nothing about play. These results describe the recorded games and configurations, rather than a universal order of methods. The benchmark is therefore rerun when the board or a method changes.
 
 ## Limitations
 
@@ -145,7 +149,7 @@ Phase 14 scored the current network against the floor baseline on {{fact:phase14
 [^protocol]: {{cite:docs/architecture.md|`AgentProtocol`}}
 [^invariant]: {{cite:CLAUDE.md|Architecture in brief}}
 [^web]: {{cite:CLAUDE.md|Settled decisions (David's)}} "Spectators, and what the seat bars give away", 2026-09-22, and "No persona advises a chat seat", 2026-09-21.
-[^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
+[^six]: {{cite:docs/strategy-glossary.md|Six-method belief benchmark (2026-11-01)}}
 [^policy]: {{cite:docs/strategy-glossary.md|Phase 14 Run 3, the current Plum (2026-10-18)}}
 
 {{navbox:clude}}
