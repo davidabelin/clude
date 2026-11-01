@@ -106,6 +106,7 @@ class Article:
     infobox: str
     toc: list
     navboxes: list
+    card: str = ""
     links: set = field(default_factory=set)
     wanted: set = field(default_factory=set)
     wikipedia: set = field(default_factory=set)
@@ -219,6 +220,7 @@ class Wiki:
                 redirects=_list(meta, "redirects"), featured=(meta.get("featured") or [""])[0].lower() in ("yes", "true"),
                 dyk=[hook.lead for hook in hooks],
                 hatnotes=out.hatnotes, lead=out.lead, body=out.body, infobox=out.infobox, toc=out.toc, navboxes=list(ctx.navboxes),
+                card=ctx.card,
                 links=ctx.links, wanted=ctx.wanted, wikipedia=ctx.wikipedia, category_links=ctx.categories, facts=ctx.facts, codes=ctx.codes,
                 figures=ctx.figures, cites=ctx.cites, text=render.plain(out.html),
             )

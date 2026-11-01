@@ -929,3 +929,124 @@ def test_sound_starts_muted_is_remembered_and_never_repeats_a_cue(page):
     page.click("#play")
     page.click("#sound-toggle")
     assert page.inner_text("#sound-toggle") == "Sound off"
+
+
+def test_the_door_has_a_voice_for_each_look(page):
+    """2026-11-01. The door cue is one cue to every page, but its file
+    follows the look: the recording under Gaslight dark, one knock on
+    wood under Developer, a soft open and shut under Case-file light. The
+    other cues have one voice in every look."""
+    voices = "() => ['door', 'tick', 'passage'].map(name => window.cludeSound.voice(name))"
+    assert page.evaluate("() => document.documentElement.getAttribute('data-style')") == "casefile"
+    assert page.evaluate(voices) == ["door-soft", "tick", "passage"]
+    _pick_look(page, "gaslight")
+    assert page.evaluate(voices) == ["door", "tick", "passage"]
+    _pick_look(page, "developer")
+    assert page.evaluate(voices) == ["door-knock", "tick", "passage"]
+    for name in ("door", "door-knock", "door-soft"):
+        assert page.request.get(f"{page.base}/static/sounds/{name}.wav").ok, name
+    _pick_look(page, "casefile")
+
+
+@pytest.mark.parametrize("look", ["casefile", "developer"])
+def test_table_talk_holds_still_while_you_read_back(page, look):
+    """2026-11-01. A busy conversation must not drag Talk to its newest
+    line: a reader scrolled up stays exactly where they are, `#talk-more`
+    says how many new lines wait out of sight and takes them to the end,
+    and a line the reader says themselves is the one thing Talk follows.
+    Run in both table layouts: the engraved one (balloons) and Developer's
+    (plain lines), which has its own markup."""
+    base = page.base
+    _pick_look(page, look)
+    try:
+        _talk_holds_still(page, base, look)
+    finally:
+        _pick_look(page, "casefile")
+
+
+def _talk_holds_still(page, base, look):
+    _deal_table(page, {"Scarlett": "me", "Mustard": "open", "White": "character",
+                       "Green": "empty", "Peacock": "empty", "Plum": "empty"})
+    page.wait_for_selector(".table-open", timeout=20000)
+    table_url = page.url
+    other = _second_page(page, base)
+    other.goto(table_url)
+    other.click(".seat-row form button")  # Sit here, at Mustard
+    page.reload()
+    page.click("form[action$='/deal'] button")
+    page.wait_for_selector("#say-text", timeout=20000)
+    other.reload()
+    other.wait_for_selector("#say-text", timeout=20000)
+    # A short window, so a handful of lines overflows it in every look.
+    window = "140px" if look == "casefile" else "60px"
+    page.evaluate(
+        "(h) => { const t = document.getElementById('talk'); t.style.maxHeight = h; t.style.overflowY = 'auto'; }",
+        window,
+    )
+    assert page.locator("#talk-more").is_hidden()
+
+    lines = 0
+
+    def other_says(count):
+        nonlocal lines
+        for _ in range(count):
+            lines += 1
+            other.fill("#say-text", f"Line number {lines}.")
+            other.click("#say-form button[type=submit]")
+            other.wait_for_function(
+                "(n) => document.querySelectorAll('#talk li:not(.placeholder)').length >= n", arg=lines, timeout=20000
+            )
+
+    def reader_has(count):
+        page.wait_for_function(
+            "(n) => document.querySelectorAll('#talk li:not(.placeholder)').length >= n", arg=count, timeout=20000
+        )
+
+    def metrics():
+        return page.evaluate(
+            """() => { const t = document.getElementById('talk');
+                      return { top: t.scrollTop, end: t.scrollHeight - t.clientHeight }; }"""
+        )
+
+    other_says(6)
+    reader_has(6)
+    now = metrics()
+    assert now["end"] > 40, "the window was meant to overflow"
+    assert now["top"] == 0, "Talk scrolled to a new line on its own"
+    assert page.locator("#talk-more").is_visible()
+    waiting = int(page.inner_text("#talk-more").split()[1])
+    assert 1 <= waiting <= 6, page.inner_text("#talk-more")
+
+    # Reading back from the middle: one more line changes nothing but the count.
+    page.evaluate("() => { document.getElementById('talk').scrollTop = 30; }")
+    other_says(1)
+    reader_has(7)
+    assert metrics()["top"] == 30, "a new line moved a reader who was reading back"
+    assert int(page.inner_text("#talk-more").split()[1]) == waiting + 1
+
+    # The pill takes the reader to the newest line, and goes.
+    page.click("#talk-more")
+    now = metrics()
+    assert now["end"] - now["top"] < 2
+    assert page.locator("#talk-more").is_hidden()
+
+    # Scrolling to the end by hand also clears it, and the next line waits below.
+    page.evaluate("() => { document.getElementById('talk').scrollTop = 0; }")
+    other_says(1)
+    reader_has(8)
+    assert page.locator("#talk-more").is_visible()
+    page.evaluate("() => { const t = document.getElementById('talk'); t.scrollTop = t.scrollHeight; }")
+    page.wait_for_selector("#talk-more", state="hidden", timeout=5000)
+
+    # What the reader says themselves is followed.
+    page.evaluate("() => { document.getElementById('talk').scrollTop = 0; }")
+    page.fill("#say-text", "My own line, which I want to see.")
+    page.click("#say-form button[type=submit]")
+    page.wait_for_function(
+        "() => [...document.querySelectorAll('#talk li')].some(li => li.textContent.includes('My own line'))",
+        timeout=20000,
+    )
+    now = metrics()
+    assert now["end"] - now["top"] < 2, "the reader's own line was left out of sight"
+    assert page.locator("#talk-more").is_hidden()
+    other.context.close()

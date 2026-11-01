@@ -52,3 +52,15 @@
   -webkit-mask: url(../copyleft.svg) center / contain no-repeat;
   mask: url(../copyleft.svg) center / contain no-repeat;
 }
+
+/* Talk's "N new" pill (2026-11-01). Talk no longer scrolls itself while
+ * someone is reading back, so this says how many new lines are out of
+ * sight below and takes the reader to them. A quiet button under the
+ * list, centred; the selector outranks each look's `button.quiet` so its
+ * margin holds, and `hidden` is honoured whichever look's rules apply. */
+button.quiet.talk-more {
+  display: block;
+  margin: 0.5rem auto 0;
+  font-size: 0.85rem;
+}
+button.quiet.talk-more[hidden] { display: none; }

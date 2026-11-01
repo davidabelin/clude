@@ -341,7 +341,9 @@
     li.appendChild(pip);
   }
 
-  function append(list, items, emptyText) {
+  /* Adds `items` to `list`, and takes the list to its end when `follow`.
+     The Record follows its newest line; Talk does not (below). */
+  function append(list, items, emptyText, follow) {
     if (!list) return 0;
     var placeholder = list.querySelector(".placeholder");
     items.forEach(function (li) {
@@ -352,8 +354,55 @@
       list.appendChild(li);
     });
     if (!list.children.length) list.appendChild(el("li", "placeholder note", emptyText));
-    if (items.length) list.scrollTop = list.scrollHeight;
+    if (items.length && follow) list.scrollTop = list.scrollHeight;
     return items.length;
+  }
+
+  /* Talk holds still (2026-11-01). While a conversation is busy, a panel
+     that jumps to the newest line on every poll makes reading back
+     impossible, so Talk moves on its own only to open at the newest: the
+     first paint, a tab or panel being opened, and a line the viewer has
+     just said. Otherwise new lines wait below; `#talk-more` counts the
+     ones out of sight and takes the viewer to them. */
+  var talkMore = document.getElementById("talk-more");
+  var talkUnseen = 0;
+  var followTalk = false;
+
+  function showTalkMore() {
+    if (!talkMore) return;
+    talkMore.hidden = talkUnseen === 0;
+    if (!talkUnseen) return;
+    talkMore.textContent = "↓ " + talkUnseen + " new";
+    talkMore.setAttribute("aria-label", "Jump to the newest table talk (" + talkUnseen + " new)");
+  }
+
+  function talkToEnd() {
+    if (talk) talk.scrollTop = talk.scrollHeight;
+    talkUnseen = 0;
+    showTalkMore();
+  }
+
+  function talkAtEnd() {
+    return !talk || talk.scrollHeight - talk.scrollTop - talk.clientHeight < 24;
+  }
+
+  /* Lines just added that sit below the visible part of Talk. A hidden
+     panel measures as empty, so counts nothing: its tab's badge speaks
+     for it. */
+  function noteTalkUnseen(items) {
+    if (!talk || !items.length) return;
+    var edge = talk.getBoundingClientRect().bottom;
+    items.forEach(function (li) {
+      if (li.getBoundingClientRect().bottom > edge + 1) talkUnseen += 1;
+    });
+    showTalkMore();
+  }
+
+  if (talkMore) talkMore.addEventListener("click", talkToEnd);
+  if (talk) {
+    talk.addEventListener("scroll", function () {
+      if (talkUnseen && talkAtEnd()) { talkUnseen = 0; showTalkMore(); }
+    });
   }
 
   /* Adds the new events to their panels; returns what was new, split
@@ -366,8 +415,11 @@
       var panel = event.panel || (event.kind === "remark" ? "talk" : "record");
       (panel === "talk" ? said : played).push(event);
     });
-    append(log, played.map(recordLine), "The cards are dealt. Nobody has moved yet.");
-    append(talk, said.map(balloon), "Nobody has said anything yet.");
+    append(log, played.map(recordLine), "The cards are dealt. Nobody has moved yet.", true);
+    var follow = firstRender || followTalk;
+    var balloons = said.map(balloon);
+    append(talk, balloons, "Nobody has said anything yet.", follow);
+    if (follow) talkToEnd(); else noteTalkUnseen(balloons);
     if (engraved) {
       said.forEach(function (event) {
         if (talkTurns[event.turn]) return;
@@ -574,7 +626,9 @@
           sayText.value = "";
           countSay();
           showError("");
-          render(payload);
+          /* The viewer's own line is the one thing Talk scrolls to. */
+          followTalk = true;
+          try { render(payload); } finally { followTalk = false; }
           schedule(300);
         })
         .catch(function (err) { showError(err.message); })
@@ -1179,7 +1233,7 @@
     });
     var panel = screen.querySelector('.col-side > [data-tab="' + name + '"]');
     if (panel && panel.tagName === "DETAILS") panel.open = true;
-    if (name === "talk") { unreadTalk = 0; setBadge("talk", 0); }
+    if (name === "talk") { unreadTalk = 0; setBadge("talk", 0); talkToEnd(); }
     if (name === "record") setBadge("record", 0);
     try { window.localStorage.setItem(TAB_KEY, name); } catch (e) { /* private window */ }
   }
@@ -1419,7 +1473,8 @@
     panel.addEventListener("toggle", function () {
       if (!panel.open) return;
       var list = panel.querySelector("ol");
-      if (list) list.scrollTop = list.scrollHeight;
+      if (list === talk) talkToEnd();
+      else if (list) list.scrollTop = list.scrollHeight;
     });
   });
 

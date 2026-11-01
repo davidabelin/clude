@@ -13,6 +13,13 @@
   <section class="portal portal-featured">
     <h2>From the featured article</h2>
     <div class="portal-body">
+      {# Her card, as the infobox shows it: the picture links to the figure's own page. #}
+      {% if card %}
+      <figure class="portal-card" id="featured-card">
+        <a href="{{ url_for('main.wiki_page', title='Figure:' ~ card.key) }}" aria-label="Enlarge {{ card.title }}">{{ card.svg|safe }}</a>
+        <figcaption>{{ card.title }} <a class="thumb-open" href="{{ url_for('main.wiki_page', title='Figure:' ~ card.key) }}" aria-label="Enlarge {{ card.title }}">[enlarge]</a></figcaption>
+      </figure>
+      {% endif %}
       {{ featured.lead_preview|safe }}
       <p class="portal-more"><a class="wl" href="{{ url_for('main.wiki_page', title=featured.slug) }}"><strong>Read the whole article: {{ featured.title }}</strong></a></p>
     </div>

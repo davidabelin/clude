@@ -280,7 +280,9 @@ def test_the_sound_cues_are_served_short_and_start_muted(client):
     import wave
 
     sign_in(client)
-    for name in ("tick", "turn", "refute", "accent", "door", "passage"):
+    # The door has a voice per look (2026-11-01): the recording for Gaslight
+    # dark, a knuckle-rap for Developer, a soft open and shut for Case-file light.
+    for name in ("tick", "turn", "refute", "accent", "door", "door-knock", "door-soft", "passage"):
         response = client.get(f"/static/sounds/{name}.wav")
         assert response.status_code == 200, name
         with wave.open(io.BytesIO(response.get_data())) as clip:
@@ -290,6 +292,7 @@ def test_the_sound_cues_are_served_short_and_start_muted(client):
     assert 'read(KEY_ON) === "1"' in script, "sound is off until the viewer turns it on"
     for name in ("tick", "turn", "refute", "accent", "door", "passage"):
         assert f'"{name}"' in script
+    assert 'door: { developer: "door-knock", casefile: "door-soft" }' in script, "Gaslight dark keeps door.wav"
     assert 'id="sound-toggle"' not in client.get("/").get_data(as_text=True)
 
 
