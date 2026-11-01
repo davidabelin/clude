@@ -3,9 +3,11 @@ title: Miss Scarlett
 short: The confident character who combines clues with heuristic score updates
 categories: Characters
 redirects: Scarlett, Miss Scarlet, Scarlet
+featured: yes
 dyk: ... that [[Miss Scarlett]] accuses at a confidence of {{code:preset.Scarlett.accuse_threshold}}, where every other character waits for 0.7 or more, and that her bar has been set three times?
 dyk: ... that repeating the same disproof raises [[Miss Scarlett]]'s probability for Mrs. White from {{code:example.scarlett.1.White}} to {{code:example.scarlett.3.White}}, without adding a new constraint?
 dyk: ... that [[Miss Scarlett]] skimmed this encyclopaedia once and rarely opens it again, her own numbers being faster?
+dyk: ... that [[Miss Scarlett]]'s chattiness, {{code:preset.Scarlett.chattiness}}, is the highest of the six and twice [[Colonel Mustard]]'s {{code:preset.Mustard.chattiness}}?
 ---
 {{infobox
 title: Miss Scarlett
@@ -38,7 +40,7 @@ In both recorded [[belief benchmark|benchmark]] regimes, her log-loss was slight
 
 Scarlett's [[persona]], the instructions given to a [[w:Large language model|language model]] playing her seat, describes her as "quick, glamorous, and entirely sure of yourself". It connects her confidence to her method: "your certainty has a way of running ahead of the evidence without your noticing".[^persona] The persona supplies the voice; the method and threshold supply the decisions that make that voice credible.
 
-Her prescribed voice is "poised, amused, a little cutting. Short sentences." She announces conclusions rather than explains her arithmetic. Since October 2026 the script also allows her some range: if a remark actually hurt someone she can own it plainly without surrendering her poise, and being wrong need not make her repeat the mistake to preserve the performance.[^persona] A review of the first model-piloted games found no sufficient reason to change the persona. One explanation of her arithmetic conflicted with the instructions, but was judged too little evidence to justify retuning.[^phase6]
+Her prescribed voice is "poised, amused, a little cutting. Short sentences." She announces conclusions rather than explains her arithmetic.[^persona] A review of the first model-piloted games, in September, found no sufficient reason to change the persona; one explanation of her arithmetic conflicted with the instructions, but was judged too little evidence to justify retuning.[^phase6] Since October 2026 the script has also allowed her some range: if a remark actually hurt someone she can own it plainly without surrendering her poise, and being wrong need not make her repeat the mistake to preserve the performance.[^persona]
 
 The persona is written to one rule, shared by all six: do not encode the flaw twice. Scarlett's early accusations come from her threshold and her method; the persona says she is sure of herself, not that she should accuse early.[^wrapper] All of this is heard only when a model is in the seat, as [[table talk]]. Headless, by her numbers alone, she is silent, and every measurement below was made that way unless it says otherwise. The seat is fixed: Scarlett always plays the red token and moves first.[^seats]
 
@@ -68,13 +70,13 @@ A character's belief says what it thinks; five headless [[personality dials]] sa
 |---|---|---|
 | [[Accusation threshold]] | {{code:preset.Scarlett.accuse_threshold}} | She accuses once her own estimate of being right reaches this. The lowest at the table by a distance; the next lowest is [[Mrs. Peacock]]'s 0.7, applied to a stricter number. |
 | [[Bluff rate]] | {{code:preset.Scarlett.bluff_rate}} | The chance that she names a card from her own hand in a suggestion. |
-| [[Curiosity]] | {{code:preset.Scarlett.curiosity}} | How far she will walk for the room she most suspects rather than enter the nearest. Second-highest of the six. |
+| [[Curiosity]] | {{code:preset.Scarlett.curiosity}} | How far she will walk for the room she most suspects rather than enter the nearest. The highest of the six; [[Mrs. Peacock]]'s 0.6 is next. |
 | [[Secrecy]] | {{code:preset.Scarlett.secrecy}} | When she must show a card, how strongly she prefers one that player has already seen. |
 | [[Temperature]] | {{code:preset.Scarlett.temperature}} | How much chance enters her choices. |
 
-Her threshold has changed as the board and game length changed, but its current justification is the post-landing-rule screen. Phase 14 compared the preset with nearby values on common seeds and retained 0.3: it keeps her recognisably early and overconfident without a candidate clearing the outcome guardrails.[^current]
+Her threshold has moved with the board and the length of a game: 0.5 in the first pass, 0.15 on the ring board, and 0.3 since the Classic-board retune of 15 September 2026.[^tuned] Its current justification is the post-landing-rule screen. Phase 14 compared her preset with nearby values on common seeds and repeated the curiosity check; her isolated screens preserved the intended early, curious character without producing a candidate that cleared the five-point outcome guardrails, so the threshold stays at {{code:preset.Scarlett.accuse_threshold}} and curiosity at {{code:preset.Scarlett.curiosity}}.[^current]
 
-Phase 14 repeated the threshold and curiosity checks on post-landing-rule games. Her isolated screens preserved the intended early, curious character without producing a candidate that cleared the five-point outcome guardrails, so the threshold remains {{code:preset.Scarlett.accuse_threshold}} and curiosity {{code:preset.Scarlett.curiosity}}.[^current]
+Two more settings act only when a model plays her seat; the headless character ignores them.[^presets] Her [[leash]], {{code:preset.Scarlett.leash}}, is the setting five of the six share, [[Professor Plum]]'s {{code:preset.Plum.leash}} excepted. Her [[chattiness]], {{code:preset.Scarlett.chattiness}} since 26 October 2026, is the highest of the six and twice [[Colonel Mustard]]'s {{code:preset.Mustard.chattiness}}, so she draws the most off-turn replies at [[table talk]]. It was set as a product choice, not a measurement.[^chat]
 
 ## Record
 
@@ -125,6 +127,7 @@ Scarlett's method reads the current game's suggestion history afresh on every ca
 [^grid]: {{cite:docs/strategy-glossary.md|Belief benchmark on the grid (Stage 1a)}}
 [^arena]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
 [^current]: {{cite:docs/strategy-glossary.md|Phase 14 dial recalibration (2026-10-18)}}
+[^chat]: {{cite:docs/strategy-glossary.md|Chattiness presets (2026-10-26)}}
 [^logbooks]: {{cite:docs/logbooks.md|Three tiers}}
 [^lives]: {{cite:docs/phase13-plan.md|1. Brief and settled decisions}}
 [^live]: {{cite:docs/phase13-plan.md|2026-10-15: step 4 accepted live, and a debrief lost to its token cap}}

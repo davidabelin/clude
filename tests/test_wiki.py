@@ -184,9 +184,13 @@ def test_every_article_has_a_lead_a_category_and_no_broken_link(wiki):
 
 def test_the_three_kinds_of_exemplar_are_there_with_their_redirects(wiki):
     plum, came_from = wiki.get("plum")
-    assert plum.title == "Professor Plum" and came_from == "plum" and plum.featured
-    assert wiki.featured() is plum
+    assert plum.title == "Professor Plum" and came_from == "plum"
     assert wiki.get("Professor_Plum") == (plum, "")
+    # The featured article is Miss Scarlett's since 2026-11-01, and the only one marked.
+    scarlett, came_from = wiki.get("scarlett")
+    assert scarlett.title == "Miss Scarlett" and came_from == "scarlett" and scarlett.featured
+    assert [a.title for a in wiki.pages() if a.featured] == ["Miss Scarlett"]
+    assert wiki.featured() is scarlett
     assert wiki.get("Scarlett's method")[0].title == "Naive Bayes"
     assert wiki.get("Disproof")[0].title == "Suggestion"
     assert wiki.get("Nothing at all") == (None, "")
@@ -556,6 +560,23 @@ def test_the_lead_the_infobox_and_the_hatnotes_come_apart():
 
 
 # --- the pages --------------------------------------------------------------
+
+
+def test_the_main_page_features_scarlett_and_shows_her_card(app):
+    """2026-11-01. The featured article is Miss Scarlett's: her lead as
+    the excerpt, her collector's card beside it (the figure her infobox
+    uses, linked to its own page), and the way in to the whole article."""
+    client = app.test_client()
+    main = client.get("/wiki").get_data(as_text=True)
+    featured = main.split('class="portal portal-featured"')[1].split("</section>")[0]
+    assert "<strong>Miss Scarlett</strong>" in featured
+    assert 'id="featured-card"' in featured and "/static/wiki/card-scarlett.webp" in featured
+    assert featured.count('href="/wiki/Figure:card-scarlett"') == 2, "the picture and its [enlarge]"
+    assert "Read the whole article: Miss Scarlett" in featured
+    assert client.get("/wiki/Figure:card-scarlett").status_code == 200
+    assert client.get("/static/wiki/card-scarlett.webp").status_code == 200
+    # The article itself still shows the same card in its infobox.
+    assert "card-scarlett.webp" in client.get("/wiki/Miss_Scarlett").get_data(as_text=True)
 
 
 def test_wikiclude_is_public_and_every_kind_of_page_answers(app):

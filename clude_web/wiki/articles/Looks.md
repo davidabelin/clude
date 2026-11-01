@@ -26,7 +26,7 @@ Earlier account values remain readable: Legacy maps to Developer, and Engraved m
 
 The layout adapts to a phone width, and wiki tables and long equations can scroll within their own panels. Reduced-motion preferences and the app's motion control limit transitions. Colour supports distinctions also expressed in labels, numbers and proof states.
 
-Sound effects are a separate optional control, initially off for a viewer. They indicate game events rather than change the rules, and the app has no background music. Choosing a dark look does not turn sound on.[^sound]
+Sound effects are a separate optional control, initially off for a viewer. They indicate game events rather than change the rules, and the app has no background music. A token entering a room through a door has a sound for each look: a recording of a squeaky door in Gaslight dark, a single knock on wood in Developer and a soft open-and-shut in Case-file light. Choosing a dark look does not turn sound on.[^sound]
 
 
 ## See also

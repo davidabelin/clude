@@ -108,6 +108,7 @@ class Context:
     figures: list = field(default_factory=list)
     cites: list = field(default_factory=list)
     infobox: str = ""
+    card: str = ""
     navboxes: list = field(default_factory=list)
 
 
@@ -399,6 +400,7 @@ class _Blocks(Preprocessor):
             else:
                 raise WikiError(f"{self.ctx.title}: an infobox line I cannot read: {line!r}")
         art = ""
+        self.ctx.card = figure_key
         for key, note_text, kind in ((figure_key, caption, "card"), (token_key, "Game token", "token")):
             if not key:
                 continue

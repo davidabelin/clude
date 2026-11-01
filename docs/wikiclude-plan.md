@@ -990,7 +990,47 @@ and CLAUDE.md and the roadmap name the live revision. `tests/test_wiki.py`
 swapped one arbitrary fact key (`bench.grid.Plum.50`, now `White`) in its
 render tests.
 
-## 22. The missing measurements collected (2026-11-01)
+## 22. The featured article becomes Miss Scarlett (2026-11-01)
+
+**The Main Page.** The marked article moves from *Professor Plum* to
+*Miss Scarlett* (`featured: yes` in her front matter, removed from his, so
+exactly one article is marked and `Wiki.featured()` no longer depends on
+title order). The featured portal now shows the collector's card beside the
+lead's excerpt, as the infobox does: the renderer records an infobox's
+`figure:` key as `Article.card`, `views.wiki()` passes the figure, and
+`templates/wiki/main.html` draws it with an `[enlarge]` link to its own
+page. It floats right from 560 px and centres above the text below that;
+only its frame follows the look (`.portal-card` in `wiki.css`). Checked in
+Case-file light, Gaslight dark and Developer at 1440, 700 and 390 px.
+
+**The article, re-audited rather than only re-flagged.** `persona check
+Scarlett` found 15 mirrored passages and none stale; the persona's film,
+Green, NPR and *New Yorker* material, the leash rows of the paid screen and
+the Phase 14 control row all agree with their sources. Four things had
+drifted and were corrected:
+
+- *Curiosity* was called "second-highest of the six". Plum's cut to 0.5
+  (Stage 1e) made her 0.7 the highest, with Peacock's 0.6 next.
+- The infobox's arena block was headed "Classic-board arena, 15 September
+  2026" over Phase 14's isolated 40-seat-game values; it now reads "Phase 14
+  current-setting control", as *Colonel Mustard* does.
+- Her chattiness (0.5, the highest of the six, set on 2026-10-26) and
+  leash (0.25, shared by five of the six) were missing. A paragraph and a
+  "Did you know" hook now carry them, cited to the glossary's "Chattiness
+  presets (2026-10-26)".
+- The two paragraphs on her threshold said the same thing twice; they are
+  one, with its history (0.5, 0.15, 0.3) added, and the Character section
+  now runs in the order things happened.
+
+**Still stale elsewhere, not touched.** *Mrs. White*, *Mr. Green* and
+*Mrs. Peacock* still head their infobox arena block "Classic-board arena,
+15 September 2026" over `arena.phase14` values; the fix is the same single
+line each, but those articles were not re-audited in this pass.
+
+`tests/test_wiki.py` asserts the new featured article and that she is the
+only one marked, and that the Main Page shows her card and its links.
+
+## 23. The missing measurements collected (2026-11-01)
 
 Section 21 named three Plum measurements the encyclopaedia could not cite,
 and David asked for two more things: a behavioural re-check of the personas
@@ -1027,8 +1067,9 @@ about $8 with a $12 ceiling for Plum's paired legs).
   `phase14_recalibrate.py arena-six`, 480 headless games at seed 143400
   cycling three to six seats, the six as released. Glossary "Six-character
   arena (2026-11-01)"; table `arena.six`. Every biography's infobox now quotes
-  "Games won" and "Wrong accusations" from it (four of them had still been
-  headed "Classic-board arena, 15 September 2026" over Phase 14 numbers); the
+  "Games won" and "Wrong accusations" from it (section 22 had relabelled
+  Scarlett's block and left three others headed "Classic-board arena, 15
+  September 2026" over Phase 14 numbers); the
   *Arena* article embeds it beside Phase 14's 40-seat-game control.
 - Plum's paired legs, paid $12.0763: `scripts/phase14_twin.py`, 24
   games at seed 143300 at his three-seat table, headless (with a null-backend

@@ -61,7 +61,7 @@ The Phase 12 checkpoint had the best mid-game belief then measured and sub-milli
 
 [Phase 13: Character development](phase13-plan.md) is complete, deployed in revision `clude-00032-bvr` on 2026-10-16. The six broader personas, listening guidance and social debriefs are live. Wikiclude is briefed as fallible outside house rules, participant names are consistent across requests, and valid on-turn lines are published without a chattiness draw. The off-turn taper remains unchanged.
 
-The five-scene rehearsal, live logbook flag hygiene and W8 article alignment are complete. Both exact-game fixtures were refreshed after the final Phase 13 index change; Phase 14 later refreshed only the Plum game. The implementation record preserves the memory audit, retirement of silence rules, lost-entry repair and costs. Phase 14 completed W7 on 2026-10-18. The `focus` dial and character-authored wiki edits remain deferred. On 2026-11-01 the rehearsal was re-run with the characters hearing one another (the Phase 13 harness had not let them) and the reaction queue's pacing was measured offline; the taper and caps are unchanged ([Wikiclude plan](wikiclude-plan.md#22-the-missing-measurements-collected-2026-11-01)).
+The five-scene rehearsal, live logbook flag hygiene and W8 article alignment are complete. Both exact-game fixtures were refreshed after the final Phase 13 index change; Phase 14 later refreshed only the Plum game. The implementation record preserves the memory audit, retirement of silence rules, lost-entry repair and costs. Phase 14 completed W7 on 2026-10-18. The `focus` dial and character-authored wiki edits remain deferred. On 2026-11-01 the rehearsal was re-run with the characters hearing one another (the Phase 13 harness had not let them) and the reaction queue's pacing was measured offline; the taper and caps are unchanged ([Wikiclude plan](wikiclude-plan.md#23-the-missing-measurements-collected-2026-11-01)).
 
 ## Phase 14 scope
 
@@ -103,7 +103,7 @@ tables and figures left the public encyclopaedia
 The same day the six released methods were benchmarked together on the Run 3
 snapshots and Plum's seat was played headless, with the model and with his
 logbook on 24 paired deals (seed 143300); no preset changed
-([section 22](wikiclude-plan.md#22-the-missing-measurements-collected-2026-11-01)).
+([section 23](wikiclude-plan.md#23-the-missing-measurements-collected-2026-11-01)).
 
 ## Post-game final comments
 

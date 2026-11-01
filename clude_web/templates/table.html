@@ -126,6 +126,8 @@
       <details class="panel talk-panel" data-tab="talk" open>
         <summary><h2>Table talk</h2></summary>
         <ol class="talk" id="talk" aria-live="polite"></ol>
+        {# Talk never scrolls itself once you are reading it (2026-11-01); this says how much is waiting below and takes you there. #}
+        <button type="button" class="quiet talk-more" id="talk-more" hidden></button>
         <p class="note typing" id="typing" aria-live="polite" hidden></p>
         {% if viewer is not none %}
         <form id="say-form" class="say" autocomplete="off">
@@ -217,6 +219,7 @@
       <details class="panel talk-panel" open>
         <summary><h2>Table Talk</h2></summary>
         <ol class="talk" id="talk"></ol>
+        <button type="button" class="quiet talk-more" id="talk-more" hidden></button>
         <p class="note typing" id="typing" aria-live="polite" hidden></p>
         {% if viewer is not none %}
         <form id="say-form" class="say" autocomplete="off">

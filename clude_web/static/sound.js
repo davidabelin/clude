@@ -5,7 +5,8 @@
  * disprove), `refute` (a suggestion somebody disproved), `turn` (a
  * decision just became yours), `accent` (an accusation, the end), and
  * since 2026-10-01 `door` (a token going into a room through a door)
- * and `passage` (one taking a secret passage). No music.
+ * and `passage` (one taking a secret passage). The door has a voice per
+ * look (`VOICES`). No music.
  *
  * The rules, all kept here or by the pages that call `play`:
  * - Muted until the viewer turns it on; the toggle and the volume are
@@ -30,6 +31,13 @@
   var KEY_VOLUME = "clude.sound.volume";
   var NAMES = ["tick", "turn", "refute", "accent", "door", "passage"];
   var RANK = { tick: 0, door: 1, passage: 1, turn: 2, refute: 3, accent: 4 };
+  /* A cue can have a voice per look (2026-11-01): the door is the real
+     squeaky-door recording under Gaslight dark (and anywhere unlisted),
+     one knuckle-rap on wood under Developer, and a soft, warm open and
+     shut under Case-file light. The cue is still `door` to every page
+     and to `played`; only the file differs. The look is the page's
+     `data-style`, and changing it reloads the page. */
+  var VOICES = { door: { developer: "door-knock", casefile: "door-soft" } };
   var GAP_MS = 150;
   var DEFAULT_VOLUME = 0.6;
 
@@ -52,13 +60,21 @@
   var lastRank = -1;
   var played = [];
 
+  /* The sound file for a cue under this page's look. */
+  function voice(name) {
+    var look = document.documentElement.getAttribute("data-style");
+    var voices = VOICES[name];
+    return (voices && look && Object.prototype.hasOwnProperty.call(voices, look) && voices[look]) || name;
+  }
+
   function clip(name) {
-    if (!clips[name] && typeof window.Audio === "function") {
-      var audio = new window.Audio(base + name + ".wav");
+    var file = voice(name);
+    if (!clips[file] && typeof window.Audio === "function") {
+      var audio = new window.Audio(base + file + ".wav");
       audio.preload = "auto";
-      clips[name] = audio;
+      clips[file] = audio;
     }
-    return clips[name];
+    return clips[file];
   }
 
   /* Plays `name` if sound is on and it is not drowned by the gap rule;
@@ -127,6 +143,7 @@
     setOn: setOn,
     setVolume: setVolume,
     isOn: function () { return on; },
+    voice: voice,
     played: played
   };
 

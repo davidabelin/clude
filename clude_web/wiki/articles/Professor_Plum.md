@@ -3,7 +3,6 @@ title: Professor Plum
 short: The pedantic character who plays by a network trained in self-play
 categories: Characters
 redirects: Plum, Prof. Plum
-featured: yes
 dyk: ... that [[Professor Plum]]'s current network was selected from three fresh {{fact:phase14.plum.per_run}}-game runs in a balanced {{fact:plum.phase14.tournament.run3.games}}-game tournament per entrant?
 dyk: ... that Plum's current network gets the Rope question backwards, giving Mrs. White {{code:example.policy.White}} where the count gives {{code:example.plum.White}}?
 dyk: ... that [[Professor Plum]] has read every article of this encyclopaedia and is the first to notice when one is wrong, especially about him?
